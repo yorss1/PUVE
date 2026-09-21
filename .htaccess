@@ -1,11 +1,8 @@
 RewriteEngine On
 
 RewriteCond %{THE_REQUEST} ^[A-Z]{3,9}\ /index\.html\ HTTP/
-RewriteRule ^index\.html$ https://puve.xo.je/ [R=301,L]
 
 DirectoryIndex index.html index.php
-
-ErrorDocument 404 /404.html
 
 <FilesMatch "^\.">
   Require all denied
