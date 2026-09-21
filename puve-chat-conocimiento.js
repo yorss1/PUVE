@@ -1,32 +1,3 @@
-// =====================================================
-// PUVE - Base de conocimiento del chatbot de Atencion a cliente
-// =====================================================
-// Este archivo define UNA sola variable global: BASE_CONOCIMIENTO_PUVE.
-// No llama a ningun servidor ni a ninguna IA -- es una lista de
-// preguntas posibles ("patrones": palabras o frases que se buscan
-// dentro de lo que escribe el usuario) con su respuesta ya escrita.
-// El emparejamiento (buscarRespuestaFAQ, dentro de index.html) ya no
-// exige la frase exacta: si no encuentra el patron completo, cuenta
-// cuantas palabras clave del patron aparecen en lo que escribio el
-// usuario, así que preguntas formuladas distinto igual encuentran
-// respuesta.
-//
-// Las preguntas que el bot NO logra responder se guardan solas en
-// la tabla preguntas_sin_respuesta (Supabase) para revisarlas despues
-// y agregarlas aqui -- así este archivo crece con el tiempo.
-//
-// PARA AGREGAR UNA PREGUNTA NUEVA:
-//   Copia un objeto de abajo y agrega el tuyo al arreglo. No hace
-//   falta tocar nada mas -- index.html ya lo carga automaticamente.
-//   - "patrones": entre mas variantes (sinonimos, forma informal,
-//     errores comunes de dedo) mejor detecta la pregunta.
-//   - "respuesta": lo que contesta el bot.
-//   - "seccion" (opcional): si la respuesta corresponde a una
-//     pantalla concreta de PUVE, agrega su identificador aqui y el
-//     bot ofrece un boton "Ir a [seccion] ->". Los identificadores
-//     validos son: vender, productos, corte, devoluciones, gastos,
-//     analitica, dispositivos, config, fiscal.
-
 const BASE_CONOCIMIENTO_PUVE = [
   {
     "patrones": [
