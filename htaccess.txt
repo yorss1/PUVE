@@ -1,0 +1,15 @@
+RewriteEngine On
+
+RewriteCond %{THE_REQUEST} ^[A-Z]{3,9}\ /index\.html\ HTTP/
+
+DirectoryIndex index.html index.php
+
+<FilesMatch "^\.">
+  Require all denied
+</FilesMatch>
+
+<FilesMatch "\.(sql|env|bak|zip|log|ini|conf|yml|yaml)$">
+  Require all denied
+</FilesMatch>
+
+Options -Indexes
