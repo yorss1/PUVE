@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#000">
+    <title>Error 404 - Sistemas PUVE</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #000000;
+            --accent-muted: #f0f0f0;
+            --glitch-speed: 3s;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 40px 20px;
+            overflow: hidden;
+        }
+
+        header {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            font-size: 0.9rem;
+        }
+
+        .system-status {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0.6;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background-color: var(--text-color);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        main {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1;
+        }
+
+        .error-code {
+            font-size: clamp(6rem, 15vw, 12rem);
+            font-weight: 900;
+            line-height: 0.8;
+            letter-spacing: -4px;
+            position: relative;
+            margin-bottom: 20px;
+            user-select: none;
+        }
+
+        /* Efecto sutil futurista de glitch */
+        .error-code::before,
+        .error-code::after {
+            content: '404';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-color);
+        }
+
+        .error-code::before {
+            left: 2px;
+            text-shadow: -1px 0 rgba(0,0,0,0.1);
+            clip: rect(44px, 450px, 56px, 0);
+            animation: glitch-anim 5s infinite linear alternate-reverse;
+        }
+
+        .error-code::after {
+            left: -2px;
+            text-shadow: -1px 0 rgba(0,0,0,0.1);
+            clip: rect(85px, 450px, 140px, 0);
+            animation: glitch-anim2 5s infinite linear alternate-reverse;
+        }
+
+        .message {
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 6px;
+            margin-bottom: 40px;
+            font-weight: 400;
+            opacity: 0.8;
+            max-width: 500px;
+            line-height: 1.6;
+        }
+
+        .btn-container {
+            position: relative;
+        }
+
+        .btn-back {
+            display: inline-block;
+            background-color: var(--text-color);
+            color: var(--bg-color);
+            text-decoration: none;
+            padding: 15px 35px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: 1px solid var(--text-color);
+        }
+
+        .btn-back:hover {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+
+        footer {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.4;
+        }
+
+        .coordinates {
+            font-family: monospace;
+        }
+
+        /* Animaciones */
+        @keyframes pulse {
+            0% { opacity: 0.2; }
+            50% { opacity: 1; }
+            100% { opacity: 0.2; }
+        }
+
+        @keyframes glitch-anim {
+            0% { clip: rect(15px, 9999px, 66px, 0); }
+            10% { clip: rect(34px, 9999px, 55px, 0); }
+            20% { clip: rect(81px, 9999px, 19px, 0); }
+            30% { clip: rect(65px, 9999px, 85px, 0); }
+            40% { clip: rect(12px, 9999px, 34px, 0); }
+            50% { clip: rect(98px, 9999px, 94px, 0); }
+            60% { clip: rect(54px, 9999px, 12px, 0); }
+            70% { clip: rect(23px, 9999px, 76px, 0); }
+            80% { clip: rect(87px, 9999px, 32px, 0); }
+            90% { clip: rect(11px, 9999px, 88px, 0); }
+            100% { clip: rect(45px, 9999px, 61px, 0); }
+        }
+
+        @keyframes glitch-anim2 {
+            0% { clip: rect(76px, 9999px, 11px, 0); }
+            11% { clip: rect(54px, 9999px, 34px, 0); }
+            22% { clip: rect(23px, 9999px, 87px, 0); }
+            33% { clip: rect(98px, 9999px, 12px, 0); }
+            44% { clip: rect(12px, 9999px, 65px, 0); }
+            55% { clip: rect(81px, 9999px, 98px, 0); }
+            66% { clip: rect(34px, 9999px, 23px, 0); }
+            77% { clip: rect(15px, 9999px, 54px, 0); }
+            88% { clip: rect(67px, 9999px, 15px, 0); }
+            100% { clip: rect(89px, 9999px, 45px, 0); }
+        }
+
+        /* Líneas de cuadrícula de fondo hiper-sutiles para el toque futurista */
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-linear-gradient: rgba(0,0,0,0.01) 1px, transparent 1px;
+            background-size: 100% 4px;
+            z-index: -1;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="grid-overlay"></div>
+
+    <header>
+        <div class="logo">Sistemas PUVE</div>
+        <div class="system-status">
+            <div class="status-dot"></div>
+            <span>Índice no localizado</span>
+        </div>
+    </header>
+
+    <main>
+        <div class="error-code">404</div>
+        <div class="message">La sección solicitada no existe.</div>
+        <div class="btn-container">
+            <a href="index.html" class="btn-back">Ir al inicio</a>
+        </div>
+    </main>
+
+    <footer>
+        <div>&copy; 2026</div>
+    </footer>
+
+</body>
+</html>
