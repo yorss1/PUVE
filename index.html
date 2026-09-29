@@ -730,10 +730,9 @@
         <div class="campo">
           <label for="regReferido">Código de invitación (opcional)</label>
           <input id="regReferido" type="text" maxlength="12" autocomplete="off" placeholder="PUVE-XXXX" style="text-transform:uppercase;">
-          <p class="nota" id="notaReferido" style="margin-top:6px;">Si otro negocio o un Embajador de PUVE te invitó, escribe aquí su código. Si es de otro negocio, pagas solo <strong class="texto-precio-referido">$187.50</strong> al mes durante tus primeros 3 meses.</p>
         </div>
         <div class="campo">
-          <label for="regPass">Contraseña (generada automáticamente)</label>
+          <label for="regPass">Contraseña</label>
           <div style="display:flex; gap:6px;">
             <input id="regPass" type="text" readonly required style="flex:1; font-family:'IBM Plex Mono', monospace; letter-spacing:0.02em; background:var(--fondo); color:var(--texto);">
             <button type="button" class="btn-escanear" onclick="regenerarPasswordRegistro()" title="Generar otra">↻</button>
@@ -742,16 +741,15 @@
             <button type="button" class="texto" onclick="copiarPasswordRegistro()" style="flex:1; border:1px solid var(--borde); border-radius:7px; padding:7px 0;">Copiar</button>
             <button type="button" class="texto" id="btnCompartirPassword" onclick="compartirPasswordRegistro()" style="flex:1; border:1px solid var(--borde); border-radius:7px; padding:7px 0;">Compartir</button>
           </div>
-          <p class="nota" style="margin-top:8px;">Guárdala en un lugar seguro, la necesitarás para iniciar sesión.</p>
+          <p class="nota" style="margin-top:8px;">Guárda tu contraseña en un lugar seguro, la necesitarás para iniciar sesión.</p>
         </div>
         <button class="principal" type="submit" id="btnRegistro">Crear cuenta</button>
       </form>
       <form id="formEmbajador" style="display:none;" class="form-auth" onsubmit="return manejarRegistroEmbajador(event)">
-        <p class="nota" style="margin:0 0 14px;">Recomienda PUVE con tu propio código y gana una comisión por cada negocio que dejes funcionando y con su primer pago hecho — no necesitas tener un negocio en PUVE para esto.</p>
         <div class="campo"><label for="embNombre">Tu nombre</label><input id="embNombre" type="text" required></div>
         <div class="campo"><label for="embEmail">Correo</label><input id="embEmail" type="email" required autocomplete="email"></div>
         <div class="campo">
-          <label for="embPass">Contraseña (generada automáticamente)</label>
+          <label for="embPass">Contraseña</label>
           <div style="display:flex; gap:6px;">
             <input id="embPass" type="text" readonly required style="flex:1; font-family:'IBM Plex Mono', monospace; letter-spacing:0.02em; background:var(--fondo); color:var(--texto);">
             <button type="button" class="btn-escanear" onclick="document.getElementById('embPass').value = generarPasswordSegura();" title="Generar otra">↻</button>
@@ -759,7 +757,7 @@
           <div style="display:flex; gap:8px; margin-top:8px;">
             <button type="button" class="texto" onclick="navigator.clipboard?.writeText(document.getElementById('embPass').value); mostrarMensaje('mensajeAuth','Contraseña copiada al portapapeles.','exito');" style="flex:1; border:1px solid var(--borde); border-radius:7px; padding:7px 0;">Copiar</button>
           </div>
-          <p class="nota" style="margin-top:8px;">Guárdala en un lugar seguro, la necesitarás para iniciar sesión.</p>
+          <p class="nota" style="margin-top:8px;">Guárda tu contraseña en un lugar seguro, la necesitarás para iniciar sesión.</p>
         </div>
         <button class="principal" type="submit" id="btnRegistroEmbajador">Crear cuenta de Embajador</button>
       </form>
