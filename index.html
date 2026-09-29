@@ -973,6 +973,7 @@
         <button id="navCorte" onclick="conTutorial('nav-corte', this, function(){ if(funcionPuveActiva('cajero.nav_corte')) cambiarSeccion('corte'); })">Corte de caja</button>
         <button id="navDevoluciones" class="oculto" onclick="conTutorial('nav-devoluciones', this, function(){ if(funcionPuveActiva('cajero.nav_devoluciones')) cambiarSeccion('devoluciones'); })">Devoluciones</button>
         <button id="navGastos" class="oculto" onclick="conTutorial('nav-gastos', this, function(){ if(funcionPuveActiva('admin.guardar_gasto')) cambiarSeccion('gastos'); })">Gastos</button>
+        <button id="navInventario" class="oculto" onclick="conTutorial('nav-inventario', this, function(){ if(funcionPuveActiva('admin.nav_inventario')) cambiarSeccion('inventario'); })">Inventario</button>
         <button id="navAnalitica" onclick="conTutorial('nav-analitica', this, function(){ if(funcionPuveActiva('analista.nav_analitica')) cambiarSeccion('analitica'); })">Analítica</button>
         <button id="navDispositivos" onclick="conTutorial('nav-dispositivos', this, cambiarSeccion, 'dispositivos')">Dispositivos</button>
         <button id="navConfig" class="oculto" onclick="conTutorial('nav-config', this, function(){ if(funcionPuveActiva('admin.nav_config')) cambiarSeccion('config'); })">Configuración</button>
@@ -1301,6 +1302,65 @@
     </div>
   </div>
 
+  <div class="seccion" id="seccionInventario">
+    <div class="contenido">
+      <div class="encabezado-seccion">
+        <div><h2>Inventario</h2><p>Proveedores, órdenes de compra, mermas y ajustes de stock.</p></div>
+      </div>
+
+      <div class="bloque-analitica" style="margin-bottom:20px;">
+        <h3>Proveedores</h3>
+        <div id="mensajeProveedores" class="mensaje"></div>
+        <div class="form-agregar-admin">
+          <input id="proveedorNombre" type="text" placeholder="Nombre del proveedor">
+          <input id="proveedorContacto" type="text" placeholder="Contacto (opcional)">
+          <input id="proveedorTelefono" type="text" placeholder="Teléfono (opcional)">
+          <button class="principal" type="button" onclick="crearProveedor()" style="width:auto;">Agregar</button>
+        </div>
+        <div class="envoltura-tabla"><table>
+          <thead><tr><th>Nombre</th><th>Contacto</th><th>Teléfono</th><th></th></tr></thead>
+          <tbody id="cuerpoProveedores"><tr><td colspan="4" class="nota">Sin proveedores todavía.</td></tr></tbody>
+        </table></div>
+      </div>
+
+      <div class="bloque-analitica" style="margin-bottom:20px;">
+        <h3>Órdenes de compra</h3>
+        <p class="nota" style="margin:0 0 12px;">Al marcar una orden como "Recibida" se suma el stock automáticamente y queda registrado en el historial de abajo.</p>
+        <div id="mensajeOrdenCompra" class="mensaje"></div>
+        <div class="rejilla" style="grid-template-columns:1fr 2fr; margin-bottom:10px;">
+          <div class="campo"><label for="ordenProveedor">Proveedor</label><select id="ordenProveedor"><option value="">(sin proveedor)</option></select></div>
+          <div class="campo"><label for="ordenNotas">Notas (opcional)</label><input id="ordenNotas" type="text" placeholder="Ej. Pedido quincenal"></div>
+        </div>
+        <div id="itemsOrdenCompra"></div>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button class="editar" type="button" style="width:auto;" onclick="agregarRenglonOrden()">+ Agregar producto</button>
+          <button class="principal" type="button" style="width:auto;" onclick="guardarOrdenCompra()">Crear orden</button>
+        </div>
+        <div class="envoltura-tabla" style="margin-top:18px;"><table>
+          <thead><tr><th>Fecha</th><th>Proveedor</th><th>Productos</th><th>Estado</th><th></th></tr></thead>
+          <tbody id="cuerpoOrdenesCompra"><tr><td colspan="5" class="nota">Sin órdenes todavía.</td></tr></tbody>
+        </table></div>
+      </div>
+
+      <div class="bloque-analitica">
+        <h3>Mermas y ajustes de inventario</h3>
+        <div id="mensajeMovInventario" class="mensaje"></div>
+        <div class="rejilla" style="grid-template-columns:1fr 1fr 1fr;">
+          <div class="campo"><label for="movProducto">Producto</label><select id="movProducto"></select></div>
+          <div class="campo"><label for="movTipo">Tipo</label><select id="movTipo" onchange="actualizarEtiquetaMovInventario()"><option value="merma">Merma (se pierde)</option><option value="ajuste">Ajuste (conteo físico)</option></select></div>
+          <div class="campo"><label id="etiquetaMovCantidad" for="movCantidad">Cantidad perdida</label><input id="movCantidad" type="number" min="0" step="0.01"></div>
+        </div>
+        <div class="campo"><label for="movMotivo">Motivo (opcional)</label><input id="movMotivo" type="text" placeholder="Ej. Caducado, dañado, conteo mensual..."></div>
+        <button class="principal" type="button" style="width:auto;" onclick="guardarMovimientoInventario()">Registrar</button>
+
+        <div class="envoltura-tabla" style="margin-top:18px;"><table>
+          <thead><tr><th>Fecha</th><th>Producto</th><th>Tipo</th><th>Cantidad</th><th>Stock resultante</th><th>Motivo</th></tr></thead>
+          <tbody id="cuerpoMovimientos"><tr><td colspan="6" class="nota">Sin movimientos todavía.</td></tr></tbody>
+        </table></div>
+      </div>
+    </div>
+  </div>
+
   <div class="seccion" id="seccionAnalitica">
     <div class="contenido">
       <div class="encabezado-seccion">
@@ -1314,6 +1374,13 @@
           <button class="principal" id="btnDescargarPDF" onclick="generarPDFNegocio()" style="width:auto;">Descargar reporte</button>
         </div>
       </div>
+
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
+        <select id="filtroAnaliticaCajero" onchange="aplicarFiltrosAnalitica()" style="padding:8px 10px; border:1px solid var(--borde); border-radius:7px; background:var(--superficie); color:var(--texto); font-family:'Inter'; font-size:13px;"><option value="">Todos los cajeros</option></select>
+        <select id="filtroAnaliticaMetodo" onchange="aplicarFiltrosAnalitica()" style="padding:8px 10px; border:1px solid var(--borde); border-radius:7px; background:var(--superficie); color:var(--texto); font-family:'Inter'; font-size:13px;"><option value="">Todos los métodos de pago</option></select>
+        <button class="editar" type="button" style="width:auto;" onclick="exportarCSVAnalitica()">Exportar CSV</button>
+      </div>
+      <p class="nota" id="notaFiltroAnalitica" style="margin:-10px 0 16px; display:none;">Los filtros de arriba solo afectan Ventas, Ingresos y Ticket promedio, y el CSV exportado — el resto de la analítica sigue mostrando el periodo completo.</p>
 
       <div class="periodo-selector" style="margin-bottom:20px;">
         <button class="activo" data-vista="resumen" onclick="cambiarVistaAnalitica('resumen')">Resumen</button>
@@ -1492,6 +1559,28 @@
               <button class="texto" type="button" id="btnQuitarPinAutorizacion" style="width:auto;" onclick="quitarPinAutorizacion()">Quitar PIN</button>
             </div>
           </div>
+        </div>
+
+        <div class="bloque-analitica">
+          <h3>Analistas</h3>
+          <p class="nota">Invita a alguien (un socio, un contador) a ver tu Analítica en modo de solo lectura — no puede vender, editar productos ni nada más, y no ocupa un lugar de dispositivo contratado.</p>
+          <div id="mensajeAnalistas" class="mensaje"></div>
+          <div class="rejilla" style="grid-template-columns:1fr 1fr; align-items:end;">
+            <div class="campo"><label for="analistaNombre">Nombre</label><input id="analistaNombre" type="text" placeholder="Ej. Contador"></div>
+            <div class="campo"><label for="analistaCorreo">Correo</label><input id="analistaCorreo" type="email" placeholder="correo@ejemplo.com"></div>
+          </div>
+          <button class="principal" type="button" style="width:auto; margin-top:10px;" onclick="invitarAnalista()">Invitar</button>
+          <div id="bloquePasswordAnalista" class="oculto" style="margin-top:14px; padding:14px 16px; border:1px solid var(--borde); border-radius:9px; background:var(--fondo);">
+            <p class="nota" style="margin:0 0 8px;">Comparte esta contraseña con el analista — no se vuelve a mostrar:</p>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <span id="passwordAnalistaGenerada" style="font-family:'IBM Plex Mono', monospace; font-size:16px; font-weight:600;">—</span>
+              <button type="button" class="texto" onclick="navigator.clipboard?.writeText(document.getElementById('passwordAnalistaGenerada').textContent); mostrarMensaje('mensajeAnalistas','Contraseña copiada.','exito')">Copiar</button>
+            </div>
+          </div>
+          <div class="envoltura-tabla" style="margin-top:16px;"><table>
+            <thead><tr><th>Nombre</th><th>Correo</th><th></th></tr></thead>
+            <tbody id="cuerpoAnalistas"><tr><td colspan="3" class="nota">Sin analistas todavía.</td></tr></tbody>
+          </table></div>
         </div>
 
         <div class="bloque-analitica">
@@ -3377,6 +3466,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     { id: 'admin.nav_fiscal', categoria: 'Admin', etiqueta: 'Pestaña Declaración SAT', descripcion: 'Botón de navegación "Declaración SAT".' },
     { id: 'admin.guardar_producto', categoria: 'Admin', etiqueta: 'Guardar producto', descripcion: 'Botón "Guardar" del formulario para crear o editar un producto.' },
     { id: 'admin.guardar_gasto', categoria: 'Admin', etiqueta: 'Registrar gasto', descripcion: 'Botón "Guardar" del formulario para registrar un gasto.' },
+    { id: 'admin.nav_inventario', categoria: 'Admin', etiqueta: 'Pestaña Inventario', descripcion: 'Botón de navegación "Inventario" (proveedores, compras, mermas y ajustes).' },
     { id: 'cajero.cobrar', categoria: 'Cajero', etiqueta: 'Botón Cobrar', descripcion: 'Botón principal "Cobrar" que cierra una venta en el punto de venta.' },
     { id: 'cajero.unirse_codigo', categoria: 'Cajero', etiqueta: 'Unirse con código de caja', descripcion: 'Formulario para que un cajero entre con el código que le da el encargado.' },
     { id: 'cajero.nav_corte', categoria: 'Cajero', etiqueta: 'Pestaña Corte de caja', descripcion: 'Botón de navegación "Corte de caja".' },
@@ -3605,6 +3695,49 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   // ---------- Configurar el PIN (panel del encargado) ----------
+  async function cargarAnalistas(){
+    const { data, error } = await sb.rpc('admin_listar_analistas');
+    const cuerpo = document.getElementById('cuerpoAnalistas');
+    if(error){ cuerpo.innerHTML = '<tr><td colspan="3" class="nota">No se pudo cargar: ' + escapar(error.message) + '</td></tr>'; return; }
+    if(!data || !data.length){ cuerpo.innerHTML = '<tr><td colspan="3" class="nota">Sin analistas todavía.</td></tr>'; return; }
+    cuerpo.innerHTML = data.map(a => `
+      <tr><td>${escapar(a.nombre || '—')}</td><td>${escapar(a.email)}</td>
+      <td class="acciones"><button class="eliminar" onclick="quitarAnalista('${a.id}', '${escaparAtributo(a.nombre || a.email)}')">Quitar acceso</button></td></tr>
+    `).join('');
+  }
+
+  async function invitarAnalista(){
+    const nombre = document.getElementById('analistaNombre').value.trim();
+    const correo = document.getElementById('analistaCorreo').value.trim();
+    if(!correo || !correo.includes('@')){ mostrarMensaje('mensajeAnalistas', 'Escribe un correo válido.', 'error'); return; }
+    const { data, error } = await sb.functions.invoke('crear-analista', { body: { correo, nombre } });
+    if(error || data?.error){
+      let msg = data?.error || error?.message || 'Error desconocido';
+      try { const j = await error.context.json(); msg = j.error || msg; } catch(e){}
+      mostrarMensaje('mensajeAnalistas', 'No se pudo invitar: ' + msg, 'error');
+      return;
+    }
+    document.getElementById('analistaNombre').value = '';
+    document.getElementById('analistaCorreo').value = '';
+    document.getElementById('passwordAnalistaGenerada').textContent = data.password;
+    document.getElementById('bloquePasswordAnalista').classList.remove('oculto');
+    mostrarMensaje('mensajeAnalistas', 'Analista invitado.', 'exito');
+    cargarAnalistas();
+  }
+
+  async function quitarAnalista(id, nombre){
+    if(!confirm('¿Quitar el acceso de "' + nombre + '"? No podrá volver a entrar.')) return;
+    const { data, error } = await sb.functions.invoke('quitar-analista', { body: { analista_id: id } });
+    if(error || data?.error){
+      let msg = data?.error || error?.message || 'Error desconocido';
+      try { const j = await error.context.json(); msg = j.error || msg; } catch(e){}
+      mostrarMensaje('mensajeAnalistas', 'No se pudo quitar: ' + msg, 'error');
+      return;
+    }
+    mostrarMensaje('mensajeAnalistas', 'Acceso revocado.', 'exito');
+    cargarAnalistas();
+  }
+
   async function cargarEstadoPinAutorizacion(){
     const { data, error } = await sb.rpc('tengo_pin_autorizacion_puve');
     const el = document.getElementById('estadoPinAutorizacion');
@@ -3635,6 +3768,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   async function entrarApp(user){
     cargarCorreosPuveGlobal();
     cargarControlesFuncionesPuve();
+    // El superadmin puede apagar un botón en cualquier momento mientras
+    // alguien ya tiene la sesión abierta — sin este refresco periódico,
+    // el aviso solo se habría visto hasta el siguiente inicio de sesión.
+    if(!window.__intervaloControlesFunciones){
+      window.__intervaloControlesFunciones = setInterval(cargarControlesFuncionesPuve, 15000);
+    }
     cargarPinConfiguradoGlobal();
     const { data: perfil, error } = await sb
       .from('perfiles')
@@ -3716,23 +3855,26 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
     const esCajero = miRol === 'vendedor';
     const esEncargado = miRol === 'admin';
+    const esAnalista = miRol === 'analista';
 
     const badgeRol = document.getElementById('badgeRol');
     if(esAdminActual){ badgeRol.textContent = 'Administrador PUVE'; badgeRol.style.display = 'inline-block'; }
     else if(esEncargado){ badgeRol.textContent = 'Encargado'; badgeRol.style.display = 'inline-block'; }
     else if(esCajero){ badgeRol.textContent = 'Cajero'; badgeRol.style.display = 'inline-block'; }
+    else if(esAnalista){ badgeRol.textContent = 'Analista (solo lectura)'; badgeRol.style.display = 'inline-block'; }
     else { badgeRol.style.display = 'none'; }
 
     document.getElementById('navAdmin').classList.toggle('oculto', !esAdminActual);
-    document.getElementById('navVender').classList.toggle('oculto', esAdminActual || esEncargado);
-    document.getElementById('navProductos').classList.toggle('oculto', esAdminActual);
-    document.getElementById('navCorte').classList.toggle('oculto', esAdminActual || !configNegocio.corte_caja);
-    document.getElementById('navDevoluciones').classList.toggle('oculto', esAdminActual || !configNegocio.devoluciones);
-    document.getElementById('navGastos').classList.toggle('oculto', esAdminActual || esCajero);
+    document.getElementById('navVender').classList.toggle('oculto', esAdminActual || esEncargado || esAnalista);
+    document.getElementById('navProductos').classList.toggle('oculto', esAdminActual || esAnalista);
+    document.getElementById('navCorte').classList.toggle('oculto', esAdminActual || esAnalista || !configNegocio.corte_caja);
+    document.getElementById('navDevoluciones').classList.toggle('oculto', esAdminActual || esAnalista || !configNegocio.devoluciones);
+    document.getElementById('navGastos').classList.toggle('oculto', esAdminActual || esCajero || esAnalista);
+    document.getElementById('navInventario').classList.toggle('oculto', esAdminActual || esCajero || esAnalista);
     document.getElementById('navAnalitica').classList.toggle('oculto', esAdminActual || esCajero);
-    document.getElementById('navDispositivos').classList.toggle('oculto', esAdminActual || esCajero);
-    document.getElementById('navConfig').classList.toggle('oculto', esAdminActual || esCajero);
-    document.getElementById('navFiscal').classList.toggle('oculto', esAdminActual || esCajero);
+    document.getElementById('navDispositivos').classList.toggle('oculto', esAdminActual || esCajero || esAnalista);
+    document.getElementById('navConfig').classList.toggle('oculto', esAdminActual || esCajero || esAnalista);
+    document.getElementById('navFiscal').classList.toggle('oculto', esAdminActual || esCajero || esAnalista);
     document.getElementById('navSoporte').classList.toggle('oculto', esAdminActual);
     aplicarConfiguracionUI();
 
@@ -3744,6 +3886,20 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('vistaUbicacion').style.display = 'none';
       document.getElementById('vistaApp').classList.add('activo');
       cambiarSeccion('admin');
+      actualizarIndicadorConexion();
+      return;
+    }
+
+    if(esAnalista){
+      // Nunca ocupa un lugar de dispositivo contratado: no pasa por
+      // verificarDispositivo(), solo entra directo a su única pantalla.
+      document.getElementById('vistaAuth').style.display = 'none';
+      document.getElementById('vistaBloqueo').style.display = 'none';
+      document.getElementById('vistaBaneado').style.display = 'none';
+      document.getElementById('vistaPagoPendiente').style.display = 'none';
+      document.getElementById('vistaUbicacion').style.display = 'none';
+      document.getElementById('vistaApp').classList.add('activo');
+      cambiarSeccion('analitica');
       actualizarIndicadorConexion();
       return;
     }
@@ -5687,23 +5843,25 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       case 'productos':    return esCajeroAhora || esEncargadoAhora;
       case 'corte':        return (esCajeroAhora || esEncargadoAhora) && !!configNegocio.corte_caja;
       case 'devoluciones': return (esCajeroAhora || esEncargadoAhora) && !!configNegocio.devoluciones;
+      case 'analitica':    return esEncargadoAhora || miRol === 'analista';
       case 'gastos':
-      case 'analitica':
+      case 'inventario':
       case 'dispositivos':
       case 'config':
       case 'fiscal':        return esEncargadoAhora;
-      case 'soporte':       return esCajeroAhora || esEncargadoAhora;
+      case 'soporte':       return esCajeroAhora || esEncargadoAhora || miRol === 'analista';
       case 'admin':          return false;
       default:               return false;
     }
   }
 
   function cambiarSeccion(cual){
+    cargarControlesFuncionesPuve(); // refresco silencioso; no bloquea el cambio de sección
     if(!seccionPermitidaParaMi(cual)){
       console.warn('Navegación bloqueada: tu rol no tiene acceso a "' + cual + '".');
       return;
     }
-    ['Vender','Productos','Corte','Devoluciones','Gastos','Analitica','Dispositivos','Config','Fiscal','Soporte','Admin'].forEach(s => {
+    ['Vender','Productos','Corte','Devoluciones','Gastos','Inventario','Analitica','Dispositivos','Config','Fiscal','Soporte','Admin'].forEach(s => {
       document.getElementById('nav'+s).classList.toggle('activo', s.toLowerCase() === cual);
       document.getElementById('seccion'+s).classList.toggle('activa', s.toLowerCase() === cual);
     });
@@ -5712,7 +5870,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(cual === 'corte') cargarHistorialCortes();
     if(cual === 'devoluciones'){ cargarHistorialDevoluciones(); document.getElementById('formBuscarVentaDevolucion').reset(); document.getElementById('resultadoBuscarVenta').classList.add('oculto'); ocultarMensaje('mensajeDevoluciones'); }
     if(cual === 'gastos'){ cargarGastos(); document.getElementById('panelGasto').classList.remove('activo'); ocultarMensaje('mensajeGasto'); }
-    if(cual === 'analitica'){ cambiarVistaAnalitica('resumen'); cargarAnalitica(); }
+    if(cual === 'inventario'){ if(!productosCache.length) cargarProductos(); cargarProveedores(); cargarOrdenesCompra(); cargarMovimientosInventario(); }
+    if(cual === 'analitica'){ if(!productosCache.length) cargarProductos(); cambiarVistaAnalitica('resumen'); cargarAnalitica(); }
     if(cual === 'dispositivos'){ cambiarVistaDispositivos('cajeros'); cargarDispositivos(); cargarCajas(); cargarSolicitudCajeroPendiente(); }
     if(cual === 'soporte') inicializarChatSoporte();
     if(cual === 'config'){
@@ -6529,6 +6688,56 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     el.className = 'delta ' + (cambio > 0 ? 'positivo' : (cambio < 0 ? 'negativo' : 'neutro'));
   }
 
+  function poblarFiltrosAnalitica(ventas){
+    const selCajero = document.getElementById('filtroAnaliticaCajero');
+    const selMetodo = document.getElementById('filtroAnaliticaMetodo');
+    const vCajero = selCajero.value, vMetodo = selMetodo.value;
+    const cajeros = [...new Set(ventas.map(v => v.perfiles?.nombre).filter(Boolean))].sort();
+    const metodos = [...new Set(ventas.map(v => v.metodo_pago).filter(Boolean))].sort();
+    selCajero.innerHTML = '<option value="">Todos los cajeros</option>' + cajeros.map(c => `<option value="${escaparAtributo(c)}">${escapar(c)}</option>`).join('');
+    selMetodo.innerHTML = '<option value="">Todos los métodos de pago</option>' + metodos.map(m => `<option value="${escaparAtributo(m)}">${escapar(m)}</option>`).join('');
+    selCajero.value = vCajero; selMetodo.value = vMetodo;
+  }
+
+  function ventasAnaliticaFiltradas(){
+    const cajero = document.getElementById('filtroAnaliticaCajero').value;
+    const metodo = document.getElementById('filtroAnaliticaMetodo').value;
+    return (window.__ventasAnaliticaCache || []).filter(v =>
+      (!cajero || v.perfiles?.nombre === cajero) && (!metodo || v.metodo_pago === metodo)
+    );
+  }
+
+  function aplicarFiltrosAnalitica(){
+    const cajero = document.getElementById('filtroAnaliticaCajero').value;
+    const metodo = document.getElementById('filtroAnaliticaMetodo').value;
+    document.getElementById('notaFiltroAnalitica').style.display = (cajero || metodo) ? 'block' : 'none';
+    const filtradas = ventasAnaliticaFiltradas();
+    const total = filtradas.length;
+    const ingresos = filtradas.reduce((s, v) => s + Number(v.total), 0);
+    document.getElementById('kpiVentas').textContent = total;
+    document.getElementById('kpiIngresos').textContent = formatoDinero(ingresos);
+    document.getElementById('kpiTicket').textContent = formatoDinero(total ? ingresos / total : 0);
+  }
+
+  function exportarCSVAnalitica(){
+    const filtradas = ventasAnaliticaFiltradas();
+    if(!filtradas.length){ alert('No hay ventas que exportar con estos filtros.'); return; }
+    const filas = [['Fecha', 'Cajero', 'Método de pago', 'Total']];
+    filtradas.forEach(v => filas.push([
+      new Date(v.created_at).toLocaleString('es-MX'),
+      v.perfiles?.nombre || '—',
+      v.metodo_pago || '—',
+      Number(v.total).toFixed(2)
+    ]));
+    const csv = filas.map(f => f.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\r\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'ventas-puve-' + new Date().toISOString().slice(0,10) + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   async function cargarAnalitica(){
     if(!enLinea){
       document.getElementById('listaTopProductos').innerHTML = '<div class="vacio">Sin conexión: la analítica requiere internet.</div>';
@@ -6547,7 +6756,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const desdeAnteriorISO = desdeAnterior.toISOString();
 
     const [{ data: ventas, error: errVentas }, { data: detalle, error: errDetalle }, { data: ventasAnt, error: errAnt }, { data: gastosPeriodo, error: errGastos }] = await Promise.all([
-      sb.from('ventas').select('id,total,created_at,usuario_id,perfiles(nombre,rol)').gte('created_at', desdeISO).order('created_at', { ascending: true }),
+      sb.from('ventas').select('id,total,created_at,usuario_id,metodo_pago,perfiles(nombre,rol)').gte('created_at', desdeISO).order('created_at', { ascending: true }),
       sb.from('detalle_ventas').select('producto_id,producto_nombre,cantidad,subtotal,ventas!inner(created_at)').gte('ventas.created_at', desdeISO),
       sb.from('ventas').select('total').gte('created_at', desdeAnteriorISO).lt('created_at', desdeISO),
       sb.from('gastos').select('monto').gte('fecha', desdeISO.slice(0,10))
@@ -6570,6 +6779,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('kpiTicket').textContent = formatoDinero(ticketProm);
     renderDelta('deltaVentas', totalVentas, totalVentasAnt);
     renderDelta('deltaIngresos', totalIngresos, totalIngresosAnt);
+
+    // Caché para los filtros (por cajero / método de pago) y la
+    // exportación a CSV — no dispara consultas nuevas.
+    window.__ventasAnaliticaCache = ventas;
+    poblarFiltrosAnalitica(ventas);
+    aplicarFiltrosAnalitica();
 
     let margenTotal = 0;
     detalle.forEach(d => {
@@ -6775,7 +6990,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       b.classList.toggle('activo', b.dataset.vista === vista);
     });
     if(vista === 'invita') cargarPanelReferidos();
-    if(vista === 'funciones') cargarEstadoPinAutorizacion();
+    if(vista === 'funciones'){ cargarEstadoPinAutorizacion(); cargarAnalistas(); }
   }
 
   function cambiarVistaDispositivos(vista){
@@ -9531,6 +9746,197 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     ocultarMensaje('mensajeGasto');
     document.getElementById('formGasto').reset();
     document.getElementById('gastoFecha').value = new Date().toISOString().slice(0, 10);
+  }
+
+  // =====================================================
+  // Etapa 4 (Admin): Inventario — proveedores, órdenes de compra,
+  // mermas y ajustes de stock.
+  // =====================================================
+
+  // ---------- Proveedores ----------
+  async function cargarProveedores(){
+    const { data, error } = await sb.from('proveedores').select('*').order('nombre');
+    const cuerpo = document.getElementById('cuerpoProveedores');
+    const selOrden = document.getElementById('ordenProveedor');
+    if(error){ cuerpo.innerHTML = '<tr><td colspan="4" class="nota">No se pudo cargar: ' + escapar(error.message) + '</td></tr>'; return; }
+    window.__proveedoresCache = data || [];
+    if(!data.length){
+      cuerpo.innerHTML = '<tr><td colspan="4" class="nota">Sin proveedores todavía.</td></tr>';
+    } else {
+      cuerpo.innerHTML = data.map(p => `
+        <tr><td>${escapar(p.nombre)}</td><td>${escapar(p.contacto || '—')}</td><td>${escapar(p.telefono || '—')}</td>
+        <td class="acciones"><button class="eliminar" onclick="borrarProveedor('${p.id}', '${escaparAtributo(p.nombre)}')">Eliminar</button></td></tr>
+      `).join('');
+    }
+    selOrden.innerHTML = '<option value="">(sin proveedor)</option>' + (data || []).map(p => `<option value="${p.id}">${escapar(p.nombre)}</option>`).join('');
+  }
+
+  async function crearProveedor(){
+    const nombre = document.getElementById('proveedorNombre').value.trim();
+    if(!nombre){ mostrarMensaje('mensajeProveedores', 'Escribe el nombre del proveedor.', 'error'); return; }
+    const contacto = document.getElementById('proveedorContacto').value.trim() || null;
+    const telefono = document.getElementById('proveedorTelefono').value.trim() || null;
+    const { error } = await sb.from('proveedores').insert({ negocio_id: negocioId, nombre, contacto, telefono });
+    if(error){ mostrarMensaje('mensajeProveedores', 'No se pudo guardar: ' + error.message, 'error'); return; }
+    document.getElementById('proveedorNombre').value = '';
+    document.getElementById('proveedorContacto').value = '';
+    document.getElementById('proveedorTelefono').value = '';
+    mostrarMensaje('mensajeProveedores', 'Proveedor agregado.', 'exito');
+    cargarProveedores();
+  }
+
+  async function borrarProveedor(id, nombre){
+    if(!confirm('¿Eliminar al proveedor "' + nombre + '"? Sus órdenes de compra pasadas no se ven afectadas.')) return;
+    const { error } = await sb.from('proveedores').delete().eq('id', id);
+    if(error){ mostrarMensaje('mensajeProveedores', 'No se pudo eliminar: ' + error.message, 'error'); return; }
+    cargarProveedores();
+  }
+
+  // ---------- Órdenes de compra ----------
+  let __renglonesOrdenActual = [];
+
+  function agregarRenglonOrden(){
+    __renglonesOrdenActual.push({ producto_id: '', cantidad: 1, costo_unitario: 0 });
+    renderizarRenglonesOrden();
+  }
+
+  function quitarRenglonOrden(i){
+    __renglonesOrdenActual.splice(i, 1);
+    renderizarRenglonesOrden();
+  }
+
+  function actualizarRenglonOrden(i, campo, valor){
+    __renglonesOrdenActual[i][campo] = valor;
+  }
+
+  function renderizarRenglonesOrden(){
+    const cont = document.getElementById('itemsOrdenCompra');
+    if(!__renglonesOrdenActual.length){ cont.innerHTML = '<p class="nota">Todavía no agregas productos a esta orden.</p>'; return; }
+    cont.innerHTML = __renglonesOrdenActual.map((r, i) => `
+      <div class="rejilla" style="grid-template-columns:2fr 1fr 1fr auto; align-items:end; margin-bottom:8px;">
+        <div class="campo"><label>Producto</label>
+          <select onchange="actualizarRenglonOrden(${i}, 'producto_id', this.value)">
+            <option value="">Selecciona...</option>
+            ${productosCache.map(p => `<option value="${p.id}" ${p.id === r.producto_id ? 'selected' : ''}>${escapar(p.nombre)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="campo"><label>Cantidad</label><input type="number" min="0.01" step="0.01" value="${r.cantidad}" oninput="actualizarRenglonOrden(${i}, 'cantidad', this.value)"></div>
+        <div class="campo"><label>Costo unitario</label><input type="number" min="0" step="0.01" value="${r.costo_unitario}" oninput="actualizarRenglonOrden(${i}, 'costo_unitario', this.value)"></div>
+        <button type="button" class="eliminar" style="width:auto; height:38px;" onclick="quitarRenglonOrden(${i})">Quitar</button>
+      </div>
+    `).join('');
+  }
+
+  async function guardarOrdenCompra(){
+    if(!__renglonesOrdenActual.length){ mostrarMensaje('mensajeOrdenCompra', 'Agrega al menos un producto.', 'error'); return; }
+    const items = [];
+    for(const r of __renglonesOrdenActual){
+      const prod = productosCache.find(p => p.id === r.producto_id);
+      if(!prod){ mostrarMensaje('mensajeOrdenCompra', 'Falta elegir un producto en alguno de los renglones.', 'error'); return; }
+      const cantidad = parseFloat(r.cantidad);
+      if(isNaN(cantidad) || cantidad <= 0){ mostrarMensaje('mensajeOrdenCompra', 'Revisa las cantidades.', 'error'); return; }
+      items.push({ producto_id: prod.id, producto_nombre: prod.nombre, cantidad, costo_unitario: parseFloat(r.costo_unitario) || 0 });
+    }
+    const proveedorId = document.getElementById('ordenProveedor').value || null;
+    const notas = document.getElementById('ordenNotas').value.trim() || null;
+    const { error } = await sb.rpc('crear_orden_compra', { p_proveedor_id: proveedorId, p_notas: notas, p_items: items });
+    if(error){ mostrarMensaje('mensajeOrdenCompra', 'No se pudo crear la orden: ' + error.message, 'error'); return; }
+    __renglonesOrdenActual = [];
+    renderizarRenglonesOrden();
+    document.getElementById('ordenNotas').value = '';
+    mostrarMensaje('mensajeOrdenCompra', 'Orden creada.', 'exito');
+    cargarOrdenesCompra();
+  }
+
+  async function cargarOrdenesCompra(){
+    const { data, error } = await sb.from('ordenes_compra')
+      .select('id, estado, notas, creado_en, proveedores(nombre), detalle_orden_compra(producto_nombre, cantidad)')
+      .order('creado_en', { ascending: false }).limit(50);
+    const cuerpo = document.getElementById('cuerpoOrdenesCompra');
+    if(error){ cuerpo.innerHTML = '<tr><td colspan="5" class="nota">No se pudo cargar: ' + escapar(error.message) + '</td></tr>'; return; }
+    if(!data.length){ cuerpo.innerHTML = '<tr><td colspan="5" class="nota">Sin órdenes todavía.</td></tr>'; return; }
+    const etiquetas = { pendiente: 'Pendiente', recibida: 'Recibida', cancelada: 'Cancelada' };
+    const clases = { pendiente: 'bajo', recibida: 'activo-si', cancelada: 'baneado' };
+    cuerpo.innerHTML = data.map(o => `
+      <tr>
+        <td>${new Date(o.creado_en).toLocaleDateString('es-MX')}</td>
+        <td>${escapar(o.proveedores?.nombre || '—')}</td>
+        <td>${escapar((o.detalle_orden_compra || []).map(d => d.producto_nombre + ' (' + d.cantidad + ')').join(', '))}</td>
+        <td><span class="badge ${clases[o.estado] || ''}">${etiquetas[o.estado] || o.estado}</span></td>
+        <td class="acciones">${o.estado === 'pendiente' ? `<button class="reactivar" onclick="recibirOrdenCompra('${o.id}')">Recibir</button><button class="eliminar" onclick="cancelarOrdenCompra('${o.id}')">Cancelar</button>` : ''}</td>
+      </tr>
+    `).join('');
+  }
+
+  async function recibirOrdenCompra(id){
+    if(!confirm('¿Marcar esta orden como recibida? Se sumará el stock de cada producto automáticamente.')) return;
+    const { error } = await sb.rpc('recibir_orden_compra', { p_orden_id: id });
+    if(error){ mostrarMensaje('mensajeOrdenCompra', 'No se pudo recibir: ' + error.message, 'error'); return; }
+    mostrarMensaje('mensajeOrdenCompra', 'Orden recibida — stock actualizado.', 'exito');
+    cargarOrdenesCompra();
+    cargarMovimientosInventario();
+    cargarProductos();
+  }
+
+  async function cancelarOrdenCompra(id){
+    if(!confirm('¿Cancelar esta orden de compra?')) return;
+    const { error } = await sb.rpc('cancelar_orden_compra', { p_orden_id: id });
+    if(error){ mostrarMensaje('mensajeOrdenCompra', 'No se pudo cancelar: ' + error.message, 'error'); return; }
+    cargarOrdenesCompra();
+  }
+
+  // ---------- Mermas y ajustes ----------
+  function actualizarEtiquetaMovInventario(){
+    const esAjuste = document.getElementById('movTipo').value === 'ajuste';
+    document.getElementById('etiquetaMovCantidad').textContent = esAjuste ? 'Nuevo stock contado' : 'Cantidad perdida';
+  }
+
+  function poblarSelectProductosInventario(){
+    const sel = document.getElementById('movProducto');
+    if(!sel) return;
+    const actual = sel.value;
+    sel.innerHTML = productosCache.map(p => `<option value="${p.id}">${escapar(p.nombre)} (stock: ${p.stock})</option>`).join('');
+    if(actual) sel.value = actual;
+  }
+
+  async function guardarMovimientoInventario(){
+    const productoId = document.getElementById('movProducto').value;
+    const tipo = document.getElementById('movTipo').value;
+    const cantidad = parseFloat(document.getElementById('movCantidad').value);
+    const motivo = document.getElementById('movMotivo').value.trim() || null;
+    if(!productoId){ mostrarMensaje('mensajeMovInventario', 'Elige un producto.', 'error'); return; }
+    if(isNaN(cantidad) || cantidad < 0){ mostrarMensaje('mensajeMovInventario', 'Escribe una cantidad válida.', 'error'); return; }
+
+    const { error } = tipo === 'merma'
+      ? await sb.rpc('registrar_merma', { p_producto_id: productoId, p_cantidad: cantidad, p_motivo: motivo })
+      : await sb.rpc('ajustar_inventario', { p_producto_id: productoId, p_nuevo_stock: cantidad, p_motivo: motivo });
+
+    if(error){ mostrarMensaje('mensajeMovInventario', 'No se pudo registrar: ' + error.message, 'error'); return; }
+    document.getElementById('movCantidad').value = '';
+    document.getElementById('movMotivo').value = '';
+    mostrarMensaje('mensajeMovInventario', 'Movimiento registrado.', 'exito');
+    await cargarProductos();
+    poblarSelectProductosInventario();
+    cargarMovimientosInventario();
+  }
+
+  async function cargarMovimientosInventario(){
+    poblarSelectProductosInventario();
+    const { data, error } = await sb.from('movimientos_inventario').select('*').order('creado_en', { ascending: false }).limit(50);
+    const cuerpo = document.getElementById('cuerpoMovimientos');
+    if(error){ cuerpo.innerHTML = '<tr><td colspan="6" class="nota">No se pudo cargar: ' + escapar(error.message) + '</td></tr>'; return; }
+    if(!data.length){ cuerpo.innerHTML = '<tr><td colspan="6" class="nota">Sin movimientos todavía.</td></tr>'; return; }
+    const etiquetasTipo = { merma: 'Merma', ajuste: 'Ajuste', compra: 'Compra recibida' };
+    cuerpo.innerHTML = data.map(m => `
+      <tr>
+        <td>${new Date(m.creado_en).toLocaleDateString('es-MX')}</td>
+        <td>${escapar(m.producto_nombre)}</td>
+        <td>${etiquetasTipo[m.tipo] || m.tipo}</td>
+        <td class="num" style="color:${Number(m.cantidad) < 0 ? 'var(--error)' : 'var(--exito)'};">${Number(m.cantidad) > 0 ? '+' : ''}${m.cantidad}</td>
+        <td class="num">${m.stock_resultante ?? '—'}</td>
+        <td>${escapar(m.motivo || '—')}</td>
+      </tr>
+    `).join('');
   }
 
   async function guardarGasto(e){
