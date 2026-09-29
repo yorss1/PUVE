@@ -899,6 +899,11 @@
       <div id="bloquePlanPago">
         <div class="fila"><span class="k">Tu plan</span><span class="v" id="pagoTipoPlan">—</span></div>
         <div class="fila"><span class="k">Monto a pagar</span><span class="v" id="pagoMontoPlan">—</span></div>
+        <div style="display:flex; gap:8px; margin-top:12px;">
+          <input id="inputCuponPago" type="text" placeholder="¿Tienes un cupón?" style="flex:1; padding:9px 12px; border:1px solid var(--borde); border-radius:7px; font-family:'Inter'; font-size:13.5px; text-transform:uppercase;">
+          <button class="editar" type="button" style="width:auto; white-space:nowrap;" onclick="aplicarCuponPago()">Aplicar</button>
+        </div>
+        <div id="mensajeCuponPago" class="mensaje" style="margin-top:6px;"></div>
         <div style="display:flex; flex-direction:column; gap:8px; margin-top:16px;">
           <button class="principal" id="btnPagarUnicoStripe" onclick="pagarConStripe('unico')" style="width:100%;">Pagar con tarjeta, OXXO o transferencia SPEI</button>
           <button class="principal" id="btnPagarSuscripcionStripe" onclick="pagarConStripe('suscripcion')" style="width:100%; background:var(--texto);">Activar cobro automático con tarjeta</button>
@@ -1791,11 +1796,12 @@
       </div>
 
       <div class="form-agregar-admin" style="margin-bottom:16px;">
+        <input id="filtroTexto" type="text" placeholder="Buscar por nombre, correo o ID..." oninput="cargarAdminNegociosConBusqueda()" style="min-width:240px;">
         <input id="filtroPais" type="text" placeholder="País" oninput="cargarAdminNegocios()">
         <input id="filtroEstado" type="text" placeholder="Estado" oninput="cargarAdminNegocios()">
         <input id="filtroMunicipio" type="text" placeholder="Municipio" oninput="cargarAdminNegocios()">
         <input id="filtroCP" type="text" placeholder="Código postal" oninput="cargarAdminNegocios()">
-        <button class="texto" onclick="document.getElementById('filtroPais').value='';document.getElementById('filtroEstado').value='';document.getElementById('filtroMunicipio').value='';document.getElementById('filtroCP').value='';cargarAdminNegocios();">Limpiar</button>
+        <button class="texto" onclick="document.getElementById('filtroTexto').value='';document.getElementById('filtroPais').value='';document.getElementById('filtroEstado').value='';document.getElementById('filtroMunicipio').value='';document.getElementById('filtroCP').value='';cargarAdminNegocios();">Limpiar</button>
         <button class="principal" onclick="generarPDFRegional()" style="width:auto;">Descargar análisis</button>
         <button id="btnAbrirCrearNegocio" class="principal oculto" onclick="conTutorial('admin-agregar-negocio', this, abrirModalCrearNegocio)" style="width:auto;">Agregar negocio manualmente</button>
       </div>
@@ -1882,6 +1888,31 @@
             </div>
             <button class="principal" type="submit" style="width:auto; margin-top:12px;">Guardar precio</button>
           </form>
+        </div>
+
+        <div class="bloque-analitica oculto" id="bloqueCupones">
+          <h3 style="margin-bottom:4px;">Cupones de descuento</h3>
+          <p class="nota" style="margin:0 0 14px;">El negocio escribe el código en su pantalla de pago antes de pagar el plan (mensual o anual). No aplica a cajeros adicionales ni a cambios de plan.</p>
+          <div id="mensajeCupones" class="mensaje"></div>
+          <form onsubmit="return guardarCupon(event)">
+            <div class="rejilla" style="grid-template-columns:1fr 1fr 1fr 1fr;">
+              <div class="campo"><label for="cuponCodigo">Código</label><input id="cuponCodigo" type="text" style="text-transform:uppercase;" placeholder="Ej. BIENVENIDA20" required></div>
+              <div class="campo">
+                <label for="cuponTipo">Tipo</label>
+                <select id="cuponTipo"><option value="porcentaje">% porcentaje</option><option value="monto_fijo">Monto fijo (MXN)</option></select>
+              </div>
+              <div class="campo"><label for="cuponValor">Valor</label><input id="cuponValor" type="number" min="0.01" step="0.01" required></div>
+              <div class="campo"><label for="cuponUsosMax">Usos máximos (opcional)</label><input id="cuponUsosMax" type="number" min="1" step="1"></div>
+            </div>
+            <div class="rejilla" style="grid-template-columns:1fr; margin-top:4px;">
+              <div class="campo"><label for="cuponVigencia">Vigente hasta (opcional)</label><input id="cuponVigencia" type="date"></div>
+            </div>
+            <button class="principal" type="submit" style="width:auto; margin-top:8px;">Guardar cupón</button>
+          </form>
+          <div class="envoltura-tabla" style="margin-top:16px;"><table>
+            <thead><tr><th>Código</th><th>Descuento</th><th>Usos</th><th>Vigencia</th><th>Estado</th><th></th></tr></thead>
+            <tbody id="cuerpoCupones"><tr><td colspan="6" class="nota">Sin cupones todavía.</td></tr></tbody>
+          </table></div>
         </div>
 
         <div class="bloque-analitica oculto" id="bloqueSolicitudesPago" style="border-color:var(--alerta); background:var(--alerta-bg);">
@@ -3810,6 +3841,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
     document.getElementById('pagoTipoPlan').textContent = tipoPlan + ' · ' + dispositivos + ' dispositivo(s)';
     document.getElementById('pagoMontoPlan').textContent = formatoDinero(monto) + (hayDescuentoReferido(tipoPlan, descuentoReferido) ? ' · precio de bienvenida' : '');
+    window.__montoBasePago = monto;
+    window.__cuponAplicado = null;
+    document.getElementById('inputCuponPago').value = '';
+    ocultarMensaje('mensajeCuponPago');
     ocultarMensaje('mensajePagoPendiente');
 
     const { data: pagoPrevio } = await sb.from('pagos_puve').select('id').eq('negocio_id', negocioId).not('fecha_pago', 'is', null).limit(1).maybeSingle();
@@ -3868,6 +3903,23 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
 
   // ---------- Pagar con Stripe (pago único o suscripción automática) ----------
+  async function aplicarCuponPago(){
+    const codigo = document.getElementById('inputCuponPago').value.trim();
+    if(!codigo){ return; }
+    const { data, error } = await sb.rpc('validar_cupon_puve', { p_codigo: codigo });
+    if(error || !data?.valido){
+      window.__cuponAplicado = null;
+      mostrarMensaje('mensajeCuponPago', (data && data.motivo) || 'No se pudo validar el cupón.', 'error');
+      document.getElementById('pagoMontoPlan').textContent = formatoDinero(window.__montoBasePago || 0);
+      return;
+    }
+    const base = Number(window.__montoBasePago || 0);
+    const conDescuento = data.tipo === 'porcentaje' ? Math.round(base * (1 - data.valor / 100) * 100) / 100 : Math.max(0, base - data.valor);
+    window.__cuponAplicado = data.codigo;
+    document.getElementById('pagoMontoPlan').innerHTML = '<s style="color:var(--texto-suave); font-weight:500;">' + formatoDinero(base) + '</s> ' + formatoDinero(conDescuento);
+    mostrarMensaje('mensajeCuponPago', 'Cupón aplicado — se descuenta al pagar.', 'exito');
+  }
+
   async function pagarConStripe(modo){
     if(miRol !== 'admin'){
       mostrarMensaje('mensajePagoPendiente', 'Solo el encargado de este negocio puede pagar.', 'error');
@@ -3882,7 +3934,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
     const { data: negocio } = await sb.from('negocios').select('tipo_plan').eq('id', negocioId).maybeSingle();
     const { data, error } = await sb.functions.invoke('stripe-crear-checkout', {
-      body: { modo, tipo_plan: negocio?.tipo_plan || 'mensual', return_url: location.origin + location.pathname }
+      body: { modo, tipo_plan: negocio?.tipo_plan || 'mensual', return_url: location.origin + location.pathname, cupon: window.__cuponAplicado || null }
     });
 
     btn.disabled = false; btn.textContent = textoOriginal;
@@ -7365,6 +7417,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     await cargarAdminEmbajadores();
   }
 
+  let __debounceBusquedaNegocios = null;
+  function cargarAdminNegociosConBusqueda(){
+    clearTimeout(__debounceBusquedaNegocios);
+    __debounceBusquedaNegocios = setTimeout(cargarAdminNegocios, 300);
+  }
+
   async function cargarAdminNegocios(){
     const cuerpo = document.getElementById('cuerpoAdminNegocios');
     const vacio = document.getElementById('adminVacio');
@@ -7386,12 +7444,20 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const fEstado = (document.getElementById('filtroEstado')?.value || '').toLowerCase().trim();
     const fMunicipio = (document.getElementById('filtroMunicipio')?.value || '').toLowerCase().trim();
     const fCP = (document.getElementById('filtroCP')?.value || '').toLowerCase().trim();
+    const fTexto = (document.getElementById('filtroTexto')?.value || '').trim();
+
+    let idsTexto = null;
+    if(fTexto){
+      const { data: ids } = await sb.rpc('admin_buscar_negocios_por_texto', { p_query: fTexto });
+      idsTexto = new Set(ids || []);
+    }
 
     const data = crudo.filter(n =>
       (!fPais || (n.pais || '').toLowerCase().includes(fPais)) &&
       (!fEstado || (n.estado || '').toLowerCase().includes(fEstado)) &&
       (!fMunicipio || (n.municipio || '').toLowerCase().includes(fMunicipio)) &&
-      (!fCP || (n.codigo_postal || '').toLowerCase().includes(fCP))
+      (!fCP || (n.codigo_postal || '').toLowerCase().includes(fCP)) &&
+      (!idsTexto || idsTexto.has(n.id))
     );
 
     if(!data.length){
@@ -7419,6 +7485,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         ? `<button class="boton-gestionar-negocio">Ver / Entrar</button>` +
           `<button class="editar boton-editar-plan">Editar plan</button>` +
           `<button class="editar boton-tipo-plan">Tipo</button>` +
+          `<button class="editar boton-extender-prueba">Extender prueba</button>` +
           (n.baneado
             ? `<button class="reactivar boton-reactivar-negocio">Reactivar</button>`
             : `<button class="eliminar boton-banear-negocio">Banear</button>`) +
@@ -7448,10 +7515,21 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(e.target.closest('.boton-gestionar-negocio') || e.target.closest('td.nombre-negocio')) abrirGestionNegocio(id);
     if(e.target.closest('.boton-editar-plan')) adminEditarPlan(id, dispositivos);
     if(e.target.closest('.boton-tipo-plan')) adminCambiarTipoPlan(id, tipoPlan);
+    if(e.target.closest('.boton-extender-prueba')) adminExtenderPrueba(id, nombre);
     if(e.target.closest('.boton-reactivar-negocio')) adminReactivarNegocio(id);
     if(e.target.closest('.boton-banear-negocio')) adminBanearNegocio(id, nombre);
     if(e.target.closest('.boton-eliminar-negocio')) adminEliminarNegocioPermanente(id, nombre);
   });
+
+  async function adminExtenderPrueba(id, nombre){
+    const texto = prompt('¿Cuántos días extra de prueba gratis le damos a "' + nombre + '"?');
+    if(texto === null) return;
+    const dias = parseInt(texto, 10);
+    if(isNaN(dias) || dias <= 0){ alert('Escribe un número de días válido.'); return; }
+    const { error } = await sb.rpc('admin_extender_prueba', { p_negocio_id: id, p_dias: dias });
+    if(error){ alert('No se pudo extender la prueba: ' + error.message); return; }
+    alert(dias + ' día(s) extra agregados a "' + nombre + '".');
+  }
 
   async function adminBanearNegocio(id, nombre){
     const motivo = prompt('Motivo del baneo para "' + nombre + '" (se lo mostraremos a sus usuarios):');
@@ -7785,10 +7863,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('bloqueConfigBancaria').classList.toggle('oculto', !soloSuperadmin);
     document.getElementById('bloquePrecios').classList.toggle('oculto', !soloSuperadmin);
     document.getElementById('bloqueCorreosEmpresa').classList.toggle('oculto', !soloSuperadmin);
+    document.getElementById('bloqueCupones').classList.toggle('oculto', !soloSuperadmin);
     document.getElementById('bloqueSatPuve').classList.toggle('oculto', !soloSuperadmin);
     if(soloSuperadmin){
       cargarConfigBancaria();
       cargarCorreosEmpresa();
+      cargarCupones();
       cargarDatosFiscalesPuve();
       document.getElementById('cfgPrecioMensual').value = precioMensualDispositivo;
       previsualizarPrecioAnual();
@@ -7819,6 +7899,59 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
     document.getElementById('buscarFolioFinanzas').value = '';
     renderizarFinanzas(__finanzasCache.activos);
+  }
+
+  async function cargarCupones(){
+    const { data, error } = await sb.from('cupones_puve').select('*').order('creado_en', { ascending: false });
+    const cuerpo = document.getElementById('cuerpoCupones');
+    if(error){ cuerpo.innerHTML = '<tr><td colspan="6" class="nota">No se pudo cargar: ' + escapar(error.message) + '</td></tr>'; return; }
+    if(!data.length){ cuerpo.innerHTML = '<tr><td colspan="6" class="nota">Sin cupones todavía.</td></tr>'; return; }
+    cuerpo.innerHTML = data.map(c => `
+      <tr>
+        <td style="font-family:'IBM Plex Mono', monospace;">${escapar(c.codigo)}</td>
+        <td>${c.tipo === 'porcentaje' ? c.valor + '%' : formatoDinero(c.valor)}</td>
+        <td class="num">${c.usos_actuales}${c.usos_maximos != null ? ' / ' + c.usos_maximos : ''}</td>
+        <td>${c.vigente_hasta ? new Date(c.vigente_hasta + 'T00:00:00').toLocaleDateString('es-MX') : 'Sin límite'}</td>
+        <td><span class="badge ${c.activo ? 'activo-si' : 'baneado'}">${c.activo ? 'Activo' : 'Desactivado'}</span></td>
+        <td class="acciones"><button class="${c.activo ? 'eliminar' : 'reactivar'}" onclick="toggleCupon('${c.id}', ${!c.activo})">${c.activo ? 'Desactivar' : 'Activar'}</button></td>
+      </tr>
+    `).join('');
+  }
+
+  async function guardarCupon(e){
+    e.preventDefault();
+    const codigo = document.getElementById('cuponCodigo').value.trim();
+    const tipo = document.getElementById('cuponTipo').value;
+    const valor = parseFloat(document.getElementById('cuponValor').value);
+    const usosMax = document.getElementById('cuponUsosMax').value ? parseInt(document.getElementById('cuponUsosMax').value, 10) : null;
+    const vigencia = document.getElementById('cuponVigencia').value || null;
+    if(!codigo || isNaN(valor) || valor <= 0){ mostrarMensaje('mensajeCupones', 'Revisa el código y el valor.', 'error'); return false; }
+    const { error } = await sb.rpc('admin_guardar_cupon_puve', { p_codigo: codigo, p_tipo: tipo, p_valor: valor, p_usos_maximos: usosMax, p_vigente_hasta: vigencia });
+    if(error){ mostrarMensaje('mensajeCupones', 'No se pudo guardar: ' + error.message, 'error'); return false; }
+    document.getElementById('cuponCodigo').value = ''; document.getElementById('cuponValor').value = '';
+    document.getElementById('cuponUsosMax').value = ''; document.getElementById('cuponVigencia').value = '';
+    mostrarMensaje('mensajeCupones', 'Cupón guardado.', 'exito');
+    cargarCupones();
+    return false;
+  }
+
+  async function toggleCupon(id, activo){
+    const { error } = await sb.rpc('admin_activar_cupon_puve', { p_id: id, p_activo: activo });
+    if(error){ mostrarMensaje('mensajeCupones', 'No se pudo actualizar: ' + error.message, 'error'); return; }
+    cargarCupones();
+  }
+
+  async function adminReembolsarPago(pagoId, monto, nombreNegocio){
+    if(!confirm('¿Reembolsar ' + formatoDinero(monto) + ' a "' + nombreNegocio + '"? Esto regresa el dinero real vía Stripe y no se puede deshacer.')) return;
+    const { data, error } = await sb.functions.invoke('stripe-reembolsar-pago', { body: { pago_id: pagoId } });
+    if(error || data?.error){
+      let msg = data?.error || error?.message || 'Error desconocido';
+      try { const j = await error.context.json(); msg = j.error || msg; } catch(e){}
+      alert('No se pudo reembolsar: ' + msg);
+      return;
+    }
+    alert('Reembolso enviado.');
+    cargarFinanzas();
   }
 
   function filtrarFinanzas(){
@@ -7867,7 +8000,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       const botonBloqueo = n.bloqueado_por_pago
         ? `<button class="editar" onclick="desbloquearPorPago('${n.id}')">Desbloquear</button>`
         : `<button class="eliminar" onclick="bloquearPorPago('${n.id}')">Bloquear ahora</button>`;
-      const acciones = esSuperadminActual ? botonPago + botonBloqueo : '';
+      const botonReembolso = (pagado && pago?.stripe_payment_id && !pago?.reembolsado)
+        ? `<button class="eliminar" onclick="adminReembolsarPago('${pago.id}', ${Number(pago.monto_pagado || esperado)}, '${escaparAtributo(n.nombre)}')">Reembolsar</button>`
+        : (pago?.reembolsado ? `<span class="nota" style="display:inline;">Reembolsado</span>` : '');
+      const acciones = esSuperadminActual ? botonPago + botonBloqueo + botonReembolso : '';
 
       return `
         <tr>
