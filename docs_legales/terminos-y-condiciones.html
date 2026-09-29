@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#000000">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; base-uri 'self'; form-action 'self'; object-src 'none';">
+<title>Términos y condiciones — PUVE</title>
+<link rel="icon" href="../img/logo_mini.png" type="image/png" sizes="any">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --texto:#18181B;--texto-suave:#71717A;--borde:#E4E4E7;
+  --fondo:#FAFAFA;--superficie:#FFFFFF;--acento:#18181B;
+  --texto-sobre-acento:#FFFFFF;--foco:#2563EB;
+}
+body.tema-oscuro{
+  --texto:#FAFAFA;--texto-suave:#A1A1AA;--borde:#3F3F46;
+  --fondo:#000000;--superficie:#18181B;--acento:#FAFAFA;
+  --texto-sobre-acento:#000000;--foco:#4C9AFF;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--fondo);font-family:'Inter',-apple-system,sans-serif;
+  color:var(--texto);min-height:100vh;line-height:1.65;
+}
+a{color:var(--texto);text-underline-offset:3px}
+.contenedor{width:100%;max-width:900px;margin:0 auto;padding:44px 28px 70px}
+.encabezado{margin-bottom:34px}
+.logo{font-size:15px;font-weight:700;letter-spacing:-.01em;margin-bottom:32px}
+.etiqueta{font-size:12px;color:var(--texto-suave);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin:0 0 8px}
+h1{font-size:28px;line-height:1.2;font-weight:700;letter-spacing:-.025em;margin:0 0 10px}
+.intro{font-size:14px;color:var(--texto-suave);margin:0;max-width:760px}
+.aviso{
+  margin:24px 0 34px;padding:16px 18px;border:1px solid var(--borde);
+  border-radius:10px;background:var(--superficie);font-size:13px;color:var(--texto-suave)
+}
+.aviso strong{color:var(--texto)}
+.indice{
+  background:var(--superficie);border:1px solid var(--borde);border-radius:10px;
+  padding:18px 20px;margin:0 0 34px
+}
+.indice h2{font-size:13px;margin:0 0 10px;font-weight:600}
+.indice ol{margin:0;padding-left:20px}
+.indice li{font-size:13px;margin:5px 0}
+.indice a{text-decoration:none;color:var(--texto-suave)}
+.indice a:hover{color:var(--texto);text-decoration:underline}
+.seccion{
+  background:var(--superficie);border:1px solid var(--borde);border-radius:10px;
+  padding:24px 26px;margin-bottom:16px
+}
+h2{font-size:17px;line-height:1.35;font-weight:600;letter-spacing:-.01em;margin:0 0 14px}
+h3{font-size:14px;line-height:1.4;font-weight:600;margin:22px 0 8px}
+p{font-size:13.5px;margin:0 0 12px}
+p:last-child{margin-bottom:0}
+ul,ol{font-size:13.5px;margin:8px 0 14px;padding-left:22px}
+li{margin:6px 0}
+.nota{font-size:12px;color:var(--texto-suave)}
+.definiciones{
+  display:grid;grid-template-columns:1fr 2.2fr;border-top:1px solid var(--borde)
+}
+.definiciones div{padding:9px 0;border-bottom:1px solid var(--borde);font-size:13px}
+.definiciones .termino{font-weight:600;padding-right:16px}
+.tabla{
+  width:100%;border-collapse:collapse;margin:12px 0 8px;
+  font-size:12.5px
+}
+.tabla th,.tabla td{border:1px solid var(--borde);padding:9px 10px;text-align:left;vertical-align:top}
+.tabla th{background:var(--fondo);font-weight:600}
+.firma{
+  margin-top:28px;padding-top:20px;border-top:1px solid var(--borde);
+  color:var(--texto-suave);font-size:12.5px
+}
+.pie-pagina{background:#0a0a0a;color:#a1a1aa;padding:18px 24px}
+.pie-contenido{max-width:900px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 24px;font-size:12.5px;line-height:1.5}
+.pie-enlaces{display:flex;flex-wrap:wrap;gap:6px 18px}
+.pie-enlaces a{color:#d4d4d8;text-decoration:none}
+.pie-enlaces a:hover{color:#fff;text-decoration:underline}
+@media(max-width:640px){
+  .contenedor{padding:28px 14px 48px}
+  .seccion{padding:19px 17px}
+  h1{font-size:23px}
+  .definiciones{grid-template-columns:1fr}
+  .definiciones .termino{padding-bottom:0;border-bottom:0}
+  .pie-contenido{flex-direction:column;align-items:flex-start}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<main class="contenedor">
+  <header class="encabezado">
+    <div class="logo">PUVE</div>
+    <p class="etiqueta">Documento contractual</p>
+    <h1>Términos y condiciones</h1>
+    <p class="intro">Última actualización: 12 de septiembre de 2026 · Versión 1.0</p>
+  </header>
+
+  <div class="aviso">
+    <strong>Importante.</strong> Estos Términos regulan el acceso y uso de PUVE, una plataforma de punto de venta y gestión comercial. Antes de contratar o utilizar el Servicio, léelos íntegramente. Si actúas en nombre de una empresa, negocio u otra persona moral, manifiestas contar con facultades suficientes para obligarla. La aceptación electrónica produce efectos jurídicos en los términos de la legislación mexicana aplicable.
+  </div>
+
+  <nav class="indice" aria-label="Índice">
+    <h2>Contenido</h2>
+    <ol>
+      <li><a href="#objeto">Objeto y alcance</a></li>
+      <li><a href="#definiciones">Definiciones</a></li>
+      <li><a href="#cuenta">Cuenta, acceso y seguridad</a></li>
+      <li><a href="#servicio">Descripción del Servicio y límites</a></li>
+      <li><a href="#planes">Planes, precios y pagos</a></li>
+      <li><a href="#prueba">Periodo de prueba y activación</a></li>
+      <li><a href="#uso">Uso permitido y responsabilidades del Usuario</a></li>
+      <li><a href="#ventas">Ventas, tickets, devoluciones y clientes finales</a></li>
+      <li><a href="#fiscal">Información fiscal y relación con el SAT</a></li>
+      <li><a href="#datos">Datos personales y privacidad</a></li>
+      <li><a href="#propiedad">Propiedad intelectual</a></li>
+      <li><a href="#disponibilidad">Disponibilidad, continuidad y funcionamiento sin conexión</a></li>
+      <li><a href="#seguridad">Seguridad y gestión de dispositivos</a></li>
+      <li><a href="#responsabilidad">Responsabilidad y exclusiones</a></li>
+      <li><a href="#suspension">Suspensión y terminación</a></li>
+      <li><a href="#conservacion">Conservación y eliminación de información</a></li>
+      <li><a href="#cambios">Cambios al Servicio y a estos Términos</a></li>
+      <li><a href="#ley">Ley aplicable, jurisdicción y mecanismos de atención</a></li>
+      <!-- <li><a href="#contacto">Contacto y datos del proveedor</a></li> -->
+    </ol>
+  </nav>
+
+  <section class="seccion" id="objeto">
+    <h2>1. Objeto y alcance</h2>
+    <p>Los presentes Términos y Condiciones (“Términos”) constituyen el acuerdo que regula el acceso, registro, contratación y uso de la plataforma PUVE (“PUVE”, “la Plataforma” o “el Servicio”), incluyendo sus aplicaciones, interfaces, funciones de punto de venta, inventario, reportes, analítica, gestión de dispositivos, cuentas de personal y demás funcionalidades que PUVE ponga a disposición.</p>
+    <p>El contrato se celebra entre <strong>[RAZÓN SOCIAL / NOMBRE COMERCIAL DEL PROVEEDOR]</strong>, a quien en adelante se denominará “PUVE” o “el Proveedor”, y la persona física o moral que registre una cuenta o utilice el Servicio, denominada “Usuario”.</p>
+    <p>Cuando el Usuario utilice PUVE para operar un establecimiento comercial, el Usuario conserva la responsabilidad jurídica y comercial frente a sus clientes, proveedores, trabajadores, autoridades y terceros. PUVE proporciona una herramienta tecnológica y no sustituye las obligaciones legales propias del negocio.</p>
+  </section>
+
+  <section class="seccion" id="definiciones">
+    <h2>2. Definiciones</h2>
+    <div class="definiciones">
+      <div class="termino">Cuenta</div><div>Registro de acceso asociado a una persona usuaria, negocio o establecimiento.</div>
+      <div class="termino">Negocio</div><div>Establecimiento o unidad comercial administrada mediante PUVE.</div>
+      <div class="termino">Encargado</div><div>Usuario con permisos administrativos sobre un Negocio, incluyendo la administración de personal, dispositivos y determinadas funciones de configuración.</div>
+      <div class="termino">Cajero</div><div>Usuario autorizado por el Encargado para realizar operaciones de venta y aquellas funciones que PUVE permita según sus permisos.</div>
+      <div class="termino">Datos del Negocio</div><div>Información introducida o generada por el Usuario mediante el Servicio, como productos, precios, inventario, ventas, cortes y reportes.</div>
+      <div class="termino">Cliente Final</div><div>Persona que adquiere bienes o servicios del Negocio del Usuario; no es parte del contrato entre PUVE y el Usuario por el solo hecho de recibir un ticket o utilizar una función de consulta.</div>
+      <div class="termino">Plan</div><div>Modalidad comercial contratada, que puede determinar precio, periodicidad, número de dispositivos u otras características.</div>
+    </div>
+  </section>
+
+  <section class="seccion" id="cuenta">
+    <h2>3. Cuenta, acceso y seguridad</h2>
+    <p>Para utilizar determinadas funciones es necesario crear una Cuenta proporcionando información verdadera, completa y actualizada. El Usuario deberá mantenerla vigente y corregir oportunamente cualquier dato que haya cambiado.</p>
+    <p>Las credenciales son personales. El Usuario es responsable de mantener bajo control sus contraseñas, códigos de acceso, sesiones y dispositivos autorizados. No deberá compartir credenciales ni permitir que terceros utilicen una Cuenta fuera de los permisos autorizados.</p>
+    <p>El Usuario deberá notificar a PUVE, tan pronto como sea razonablemente posible, cualquier acceso no autorizado, pérdida de un dispositivo, divulgación de credenciales o incidente que pueda comprometer la seguridad de la Cuenta.</p>
+    <p>PUVE podrá aplicar medidas razonables de seguridad, incluyendo limitación de dispositivos, cierre de sesiones, bloqueo preventivo o suspensión temporal cuando existan indicios razonables de compromiso de seguridad, fraude, abuso o uso contrario a estos Términos.</p>
+  </section>
+
+  <section class="seccion" id="servicio">
+    <h2>4. Descripción del Servicio y límites</h2>
+    <p>PUVE es una solución tecnológica para apoyar la operación de negocios mediante funciones de punto de venta, productos e inventario, corte de caja, devoluciones, analítica, gestión de dispositivos, administración de usuarios y herramientas de apoyo fiscal, según las funciones efectivamente habilitadas en cada versión y Plan.</p>
+    <p>Las funcionalidades pueden evolucionar. PUVE podrá corregir errores, actualizar componentes, mejorar interfaces, retirar funciones obsoletas o incorporar nuevas capacidades, procurando no afectar de forma arbitraria las funciones esenciales ya contratadas.</p>
+    <p>Salvo que se contrate expresamente un servicio distinto, PUVE no actúa como banco, procesador de pagos, institución financiera, contador público, asesor fiscal, despacho jurídico, proveedor de certificación de CFDI, autoridad fiscal, aseguradora ni vendedor de los bienes que el Usuario comercializa.</p>
+  </section>
+
+  <section class="seccion" id="planes">
+    <h2>5. Planes, precios y pagos</h2>
+    <p>Los precios, impuestos aplicables, periodicidad y características de cada Plan serán los que se informen al Usuario antes de contratarlo o los que se muestren en la Plataforma y queden asociados a la Cuenta.</p>
+    <p>Cuando un precio deba incluir impuestos, descuentos, cargos adicionales o condiciones particulares, estos deberán informarse de manera clara antes de la contratación, de conformidad con la legislación aplicable.</p>
+    <p>El pago de una suscripción o servicio no transfiere al Usuario ningún derecho de propiedad sobre el software. El pago únicamente concede el derecho de uso del Servicio durante el periodo contratado y sujeto a estos Términos.</p>
+    <p>Cuando exista un pago pendiente, PUVE podrá limitar temporalmente el acceso a funciones de operación, sin que ello implique por sí mismo la eliminación inmediata de los Datos del Negocio. La reactivación estará sujeta a la regularización del adeudo y a las verificaciones razonables correspondientes.</p>
+    <p>Los cargos por servicios adicionales, incluyendo ampliaciones de capacidad o usuarios/dispositivos, deberán ser informados antes de su contratación. No se considerará aceptado un cargo que no haya sido debidamente informado y aceptado conforme a los mecanismos disponibles.</p>
+  </section>
+
+  <section class="seccion" id="prueba">
+    <h2>6. Periodo de prueba y activación</h2>
+    <p>Cuando PUVE ofrezca un periodo de prueba gratuito, su duración, alcance y condiciones serán las que se informen al momento de registro. Salvo que se indique expresamente lo contrario, el periodo de prueba no constituye una promesa de gratuidad indefinida.</p>
+    <p>Concluido el periodo de prueba, el Usuario deberá contratar el Plan correspondiente para continuar utilizando las funciones sujetas a pago. La falta de pago podrá provocar la suspensión de acceso, de acuerdo con estos Términos y la información comercial mostrada al Usuario.</p>
+    <p>PUVE podrá limitar abusos de periodos de prueba cuando existan indicios de creación repetida de cuentas con la finalidad de eludir límites comerciales.</p>
+  </section>
+
+  <section class="seccion" id="uso">
+    <h2>7. Uso permitido y responsabilidades del Usuario</h2>
+    <p>El Usuario se obliga a utilizar PUVE de manera lícita, diligente y de buena fe. En particular, deberá:</p>
+    <ul>
+      <li>proporcionar información veraz y mantenerla actualizada;</li>
+      <li>utilizar el Servicio únicamente para actividades lícitas y autorizadas;</li>
+      <li>mantener el control de sus cuentas, dispositivos y credenciales;</li>
+      <li>verificar precios, inventarios, impuestos, operaciones, devoluciones y reportes antes de tomar decisiones comerciales o fiscales;</li>
+      <li>contar con las autorizaciones, licencias, permisos y registros necesarios para su actividad;</li>
+      <li>respetar los derechos de consumidores, trabajadores, proveedores y terceros;</li>
+      <li>no introducir código malicioso ni intentar vulnerar, descompilar, interferir o evadir controles técnicos de la Plataforma; y</li>
+      <li>no utilizar PUVE para actividades fraudulentas, ilícitas, engañosas o destinadas a evadir obligaciones fiscales, comerciales o regulatorias.</li>
+    </ul>
+    <p>Queda prohibido utilizar PUVE para manipular deliberadamente registros con el propósito de ocultar operaciones, defraudar a clientes, alterar controles internos, evadir impuestos o perjudicar a terceros.</p>
+  </section>
+
+  <section class="seccion" id="ventas">
+    <h2>8. Ventas, tickets, devoluciones y Clientes Finales</h2>
+    <p>El Usuario es el único responsable de las operaciones comerciales realizadas en su establecimiento. PUVE registra y procesa la información que el Usuario introduce o genera durante el uso de la Plataforma, pero no participa como vendedor en la operación subyacente.</p>
+    <p>Los precios, existencia, descripción, calidad, garantías, promociones, descuentos, condiciones de devolución y demás condiciones ofrecidas al Cliente Final son responsabilidad del Negocio.</p>
+    <p>Los tickets, códigos QR y folios generados por PUVE sirven como mecanismos tecnológicos de consulta o identificación de una operación. Su emisión no convierte a PUVE en parte de la compraventa ni sustituye, por sí sola, el comprobante fiscal que corresponda.</p>
+    <p>El Usuario deberá aplicar las devoluciones, cancelaciones y ajustes conforme a sus políticas comerciales, la legislación de protección al consumidor y las disposiciones fiscales aplicables. PUVE puede proporcionar herramientas para registrar estas operaciones, pero no determina si una devolución es jurídicamente procedente.</p>
+    <p>Cuando el Usuario recabe datos de Clientes Finales para programas de recompensas, tickets u otras funciones, deberá contar con la base jurídica correspondiente y cumplir con las obligaciones de privacidad que le resulten aplicables.</p>
+  </section>
+
+  <section class="seccion" id="fiscal">
+    <h2>9. Información fiscal y relación con el SAT</h2>
+    <p>PUVE puede ofrecer herramientas de apoyo para registrar información fiscal, generar reportes o facilitar la organización de datos. Estas funciones no constituyen asesoría fiscal ni implican que PUVE presente declaraciones, determine impuestos o garantice el cumplimiento fiscal del Usuario, salvo que exista un servicio específico contratado por escrito que expresamente disponga lo contrario.</p>
+    <p>El Usuario es responsable de su inscripción y situación en el RFC, emisión y conservación de CFDI cuando corresponda, contabilidad, declaraciones, retenciones, impuestos, complementos, cancelaciones y demás obligaciones que le sean aplicables.</p>
+    <p>Cuando una función de PUVE muestre cálculos, resúmenes o estimaciones fiscales, deberán considerarse herramientas de apoyo y no una determinación oficial. El Usuario deberá verificar la información con sus registros y, cuando proceda, con un profesional fiscal.</p>
+    <p>Las operaciones que deban documentarse mediante CFDI deberán sujetarse a los requisitos y reglas fiscales vigentes. El Usuario no podrá atribuir a PUVE la calidad de emisor de un CFDI cuando la Plataforma únicamente registre información o genere un resumen de apoyo.</p>
+  </section>
+
+  <section class="seccion" id="datos">
+    <h2>10. Datos personales y privacidad</h2>
+    <p>El tratamiento de datos personales realizado por PUVE se regirá por su <a href="aviso-de-privacidad.html">Aviso de Privacidad</a>, el cual forma parte integral del marco contractual del Servicio en lo que corresponda.</p>
+    <p>Cuando el Usuario introduzca en PUVE datos personales de sus empleados, cajeros, clientes, proveedores u otras personas, el Usuario deberá contar con la legitimación, aviso, consentimiento o demás fundamento que corresponda para su tratamiento y deberá utilizar la Plataforma conforme a la legislación mexicana aplicable.</p>
+    <p>PUVE implementará medidas administrativas, técnicas y físicas razonables y proporcionales para proteger los datos personales bajo su responsabilidad. Ningún sistema conectado a Internet puede garantizar seguridad absoluta; por ello, el Usuario también deberá adoptar medidas de seguridad adecuadas en sus dispositivos, cuentas y procedimientos internos.</p>
+    <p>Los derechos de acceso, rectificación, cancelación y oposición (ARCO), así como los mecanismos adicionales que correspondan, se atenderán conforme al Aviso de Privacidad y a la legislación aplicable.</p>
+  </section>
+
+  <section class="seccion" id="propiedad">
+    <h2>11. Propiedad intelectual</h2>
+    <p>PUVE y sus elementos, incluyendo software, código, arquitectura, interfaces, diseños, marcas, logotipos, textos, gráficos, bases de datos, documentación y demás componentes protegibles, pertenecen a PUVE o a sus respectivos titulares y están protegidos por la legislación aplicable.</p>
+    <p>El Usuario recibe una autorización limitada, no exclusiva, revocable y, salvo que se indique expresamente lo contrario, no sublicenciable para utilizar PUVE durante la vigencia de su relación contractual y únicamente para sus operaciones autorizadas.</p>
+    <p>El Usuario conserva los derechos que le correspondan sobre sus Datos del Negocio. Al utilizar el Servicio, concede a PUVE únicamente las autorizaciones técnicas necesarias para alojar, procesar, transmitir, respaldar y mostrar dichos datos con la finalidad de prestar el Servicio.</p>
+    <p>El Usuario no podrá copiar, vender, sublicenciar, distribuir, realizar ingeniería inversa, descompilar, modificar, crear obras derivadas o explotar comercialmente componentes de PUVE salvo cuando la ley aplicable lo permita expresamente o exista autorización escrita.</p>
+  </section>
+
+  <section class="seccion" id="disponibilidad">
+    <h2>12. Disponibilidad, continuidad y funcionamiento sin conexión</h2>
+    <p>PUVE procura mantener el Servicio disponible y operativo, pero no garantiza disponibilidad ininterrumpida. Pueden existir interrupciones por mantenimiento, actualizaciones, fallas de proveedores de infraestructura, redes, energía, dispositivos, navegadores, sistemas operativos, servicios de terceros, acontecimientos fuera del control razonable de PUVE o causas de fuerza mayor.</p>
+    <p>Cuando una función permita registrar temporalmente operaciones sin conexión, dichas operaciones podrán quedar pendientes de sincronización. El Usuario deberá verificar posteriormente que la sincronización haya concluido correctamente. La existencia de una operación local o pendiente no equivale, por sí sola, a una confirmación definitiva del registro en los sistemas remotos.</p>
+    <p>El Usuario deberá mantener conectividad, equipos compatibles, energía eléctrica y condiciones técnicas adecuadas para operar el Servicio, salvo que PUVE indique expresamente lo contrario.</p>
+  </section>
+
+  <section class="seccion" id="seguridad">
+    <h2>13. Seguridad y gestión de dispositivos</h2>
+    <p>PUVE podrá establecer límites de dispositivos o accesos de acuerdo con el Plan contratado. El Encargado es responsable de administrar los dispositivos autorizados y retirar aquellos que ya no deban tener acceso.</p>
+    <p>Ante pérdida, robo o cambio de un dispositivo, el Usuario deberá revocar o liberar su acceso tan pronto como sea posible. PUVE podrá imponer controles temporales para proteger la Cuenta y los Datos del Negocio.</p>
+    <p>Las funciones de auditoría, registros de actividad, detección de patrones o alertas son herramientas de apoyo para el control interno. No constituyen por sí mismas una determinación jurídica de fraude, delito o responsabilidad laboral.</p>
+  </section>
+
+  <section class="seccion" id="responsabilidad">
+    <h2>14. Responsabilidad y exclusiones</h2>
+    <p>En la máxima medida permitida por la legislación aplicable, PUVE será responsable únicamente de los daños directos que sean consecuencia inmediata de un incumplimiento imputable a PUVE y que hayan sido debidamente acreditados.</p>
+    <p>PUVE no será responsable, en la medida permitida por la ley, por pérdidas derivadas de decisiones comerciales del Usuario, errores de captura, precios incorrectos, inventarios inexactos, credenciales compartidas, dispositivos comprometidos, fallas de conectividad, actos de terceros, información fiscal incorrecta proporcionada por el Usuario, incumplimiento de obligaciones legales del Negocio o uso contrario a estos Términos.</p>
+    <p>PUVE tampoco garantiza resultados económicos, incremento de ventas, reducción de mermas, exactitud absoluta de recomendaciones analíticas ni cumplimiento fiscal automático.</p>
+    <p>Nada en estos Términos pretende excluir o limitar derechos que legalmente sean irrenunciables, responsabilidades que no puedan limitarse por ley, ni las obligaciones que correspondan al proveedor frente a consumidores conforme a la legislación aplicable.</p>
+  </section>
+
+  <section class="seccion" id="suspension">
+    <h2>15. Suspensión y terminación</h2>
+    <p>El Usuario podrá dejar de utilizar el Servicio y, cuando exista una función habilitada para ello, solicitar la cancelación de su Cuenta o suscripción conforme a las condiciones comerciales aplicables.</p>
+    <p>PUVE podrá suspender o terminar una Cuenta cuando exista incumplimiento material de estos Términos, falta de pago conforme a las condiciones contratadas, uso ilícito, fraude, abuso, riesgo grave para la seguridad, requerimiento de autoridad competente o imposibilidad legal o técnica de continuar prestando el Servicio.</p>
+    <p>Cuando sea razonablemente posible y no exista una razón de seguridad, fraude, urgencia o requerimiento legal que lo impida, PUVE procurará informar al Usuario antes de una suspensión y permitir la subsanación del incumplimiento.</p>
+    <p>La suspensión no extingue las obligaciones de pago que ya se hayan causado ni las disposiciones que por su naturaleza deban sobrevivir a la terminación.</p>
+  </section>
+
+  <section class="seccion" id="conservacion">
+    <h2>16. Conservación y eliminación de información</h2>
+    <p>Mientras la Cuenta permanezca activa, PUVE conservará los Datos del Negocio en la medida necesaria para prestar el Servicio y cumplir obligaciones legales, contractuales, de seguridad y auditoría.</p>
+    <p>Tras la terminación, PUVE podrá conservar información durante los plazos necesarios para cumplir obligaciones legales, resolver controversias, prevenir fraude, realizar auditorías y ejercer o defender derechos. La eliminación de información se realizará conforme a las políticas internas y al Aviso de Privacidad aplicable.</p>
+    <p>Antes de cancelar una Cuenta, el Usuario es responsable de descargar los reportes o información que necesite para su operación, contabilidad o archivo, siempre que PUVE ponga razonablemente a su disposición los mecanismos correspondientes.</p>
+  </section>
+
+  <section class="seccion" id="cambios">
+    <h2>17. Cambios al Servicio y a estos Términos</h2>
+    <p>PUVE podrá actualizar estos Términos para reflejar cambios legales, regulatorios, tecnológicos, comerciales o de seguridad. La versión vigente se identificará con su fecha de actualización.</p>
+    <p>Cuando un cambio sea material y legalmente corresponda, PUVE procurará comunicarlo por medios razonables antes de su entrada en vigor. El uso continuado del Servicio después de la entrada en vigor de los cambios podrá constituir aceptación, siempre que la legislación aplicable permita dicho mecanismo y se hayan respetado los derechos del Usuario.</p>
+    <p>Los cambios de precio, alcance o condiciones de contratación se comunicarán de manera separada cuando así lo exija la legislación aplicable o la naturaleza del cambio.</p>
+  </section>
+
+  <section class="seccion" id="ley">
+    <h2>18. Ley aplicable, jurisdicción y mecanismos de atención</h2>
+    <p>Estos Términos se regirán e interpretarán conforme a las leyes aplicables de los Estados Unidos Mexicanos, incluyendo, según corresponda, las disposiciones mercantiles, civiles, de protección al consumidor, comercio electrónico, propiedad intelectual, protección de datos personales y fiscales.</p>
+    <p>Para operaciones sujetas a la legislación de protección al consumidor, se respetarán los derechos irrenunciables del consumidor y las facultades de las autoridades competentes, incluida la Procuraduría Federal del Consumidor (PROFECO).</p>
+    <p>En relaciones de naturaleza estrictamente comercial entre PUVE y un Usuario que actúe con fines empresariales, las partes procurarán resolver de buena fe cualquier controversia mediante negociación directa y, en su caso, mediante los mecanismos alternativos o jurisdiccionales que resulten legalmente procedentes.</p>
+    <p>Salvo que una disposición imperativa establezca una jurisdicción distinta o que las partes pacten válidamente otra, cualquier controversia se someterá a los tribunales competentes de <strong>[CIUDAD Y ESTADO DE MÉXICO]</strong>, renunciando las partes, en la medida legalmente permitida, a cualquier otro fuero que pudiera corresponderles por razón de sus domicilios presentes o futuros.</p>
+    <p>La elección de jurisdicción no limita derechos de consumidores ni competencias de autoridades que sean irrenunciables conforme a la ley.</p>
+  </section>
+
+  <!-- <section class="seccion" id="contacto">
+    <h2>19. Contacto y datos del proveedor</h2>
+    <p>Para soporte, dudas contractuales, solicitudes relacionadas con la Cuenta o comunicaciones legales, el Usuario podrá utilizar los canales oficiales que PUVE tenga publicados en la Plataforma.</p>
+    <table class="tabla">
+      <tr><th>Proveedor</th><td>[RAZÓN SOCIAL / NOMBRE COMERCIAL]</td></tr>
+      <tr><th>RFC</th><td>[RFC DEL PROVEEDOR]</td></tr>
+      <tr><th>Domicilio</th><td>[DOMICILIO LEGAL / FISCAL]</td></tr>
+      <tr><th>Correo de contacto</th><td>[CORREO LEGAL / SOPORTE]</td></tr>
+      <tr><th>Teléfono</th><td>[TELÉFONO, SI APLICA]</td></tr>
+    </table>
+    <p class="nota">Los campos entre corchetes deben sustituirse con la información jurídica real del proveedor antes de publicar este documento. No deben dejarse datos ficticios en producción.</p>
+  </section> -->
+
+  <div class="firma">
+    <p><strong>Integridad contractual.</strong> Si alguna disposición de estos Términos fuera declarada inválida o inaplicable, las demás disposiciones conservarán su validez en la medida permitida por la ley. La falta de ejercicio de un derecho no constituirá renuncia a éste.</p>
+    <p>Estos Términos deben leerse conjuntamente con el Aviso de Privacidad, la Política de Cookies y la Política de Reembolsos y Cancelaciones de PUVE, cuando resulten aplicables.</p>
+    <p><strong>Versión:</strong> 1.0 · <strong>Fecha de vigencia:</strong> 12 de septiembre de 2026.</p>
+  </div>
+</main>
+
+<footer class="pie-pagina">
+  <div class="pie-contenido">
+    <span>&copy; <span id="footerAnio"></span> PUVE. Todos los derechos reservados.</span>
+    <nav class="pie-enlaces">
+      <a href="../index.html">PUVE</a>
+      <a href="terminos-y-condiciones.html">Términos y condiciones</a>
+      <a href="aviso-de-privacidad.html">Aviso de privacidad</a>
+      <a href="politica-de-cookies.html">Política de cookies</a>
+      <a href="politica-de-reembolsos.html">Política de reembolsos y cancelaciones</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+document.getElementById('footerAnio').textContent = new Date().getFullYear();
+try {
+  if (localStorage.getItem('puve_tema_oscuro') === '1') document.body.classList.add('tema-oscuro');
+} catch(e) {}
+</script>
+</body>
+</html>
