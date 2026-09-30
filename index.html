@@ -13,9 +13,7 @@
 <meta property="og:title" content="PUVE">
 <meta property="og:description" content="Sistema de Punto de Venta Digital para gestionar las operaciones de tu negocio.">
 <meta property="og:locale" content="es_MX">
-<!-- Carátula al compartir el enlace. Versión CUADRADA 600x600 (miniatura compacta junto al texto en
-     WhatsApp/Telegram/Messenger; la de 1200x630 se ve como una tarjeta enorme). Para volver a la tarjeta
-     ancha: usa img/og-image.png con width 1200 / height 630 y twitter:card = summary_large_image. -->
+
 <meta property="og:image" content="img/og-image-cuadrada.png">
 <meta property="og:image:secure_url" content="img/og-image-cuadrada.png">
 <meta property="og:image:type" content="image/png">
@@ -244,7 +242,7 @@
   .barra-rellena{ height:100%; background:var(--acento); border-radius:99px; }
   .barra-rellena.alerta{ background:var(--alerta); }
 
-  /* ---------- Panel de Embajador (estilo neobanco, monocromo) ---------- */
+  
   #vistaEmbajador .contenedor.ancho{ max-width:440px; padding:8px 4px 40px; margin:0 auto; }
   .emb-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:36px; }
   .emb-persona{ display:flex; align-items:center; gap:11px; }
@@ -281,7 +279,7 @@
   .emb-vacio{ font-size:13px; color:var(--texto-suave); padding:14px 0; }
   .emb-stripe{ display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; padding:14px 16px; border:1px solid var(--borde); border-radius:9px; margin-top:8px; }
 
-  /* ---------- Panel de Control de funciones (superadmin) ---------- */
+  
   .ctrl-categoria{ font-size:12px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--texto-suave); margin:26px 0 10px; }
   .ctrl-categoria:first-child{ margin-top:0; }
   .ctrl-tarjeta{ border:1px solid var(--borde); border-radius:10px; padding:14px 16px; margin-bottom:10px; background:var(--superficie); cursor:pointer; transition:border-color .12s ease; }
@@ -297,7 +295,7 @@
   .ctrl-editor textarea{ width:100%; min-height:74px; padding:10px 12px; border:1px solid var(--borde); border-radius:8px; background:var(--fondo); color:var(--texto); font-family:'Inter'; font-size:13.5px; resize:vertical; }
   .ctrl-editor .fila-botones-emb{ margin-top:10px; max-width:220px; }
 
-  /* ---------- Versión escritorio del panel de Embajador ---------- */
+  
   @media (min-width:860px){
     #vistaEmbajador .contenedor.ancho{ max-width:960px; padding-top:28px; }
     #vistaEmbajador .emb-cuerpo{ display:grid; grid-template-columns:360px 1fr; gap:28px; align-items:start; }
@@ -497,7 +495,7 @@
     .fila-config{ flex-wrap: wrap; gap: 8px; }
   }
 
-  /* ---------- Atención a cliente ---------- */
+  
   .chat-panel-integrado{
     display: flex; flex-direction: column; max-width: 680px;
     height: min(640px, 72vh);
@@ -522,15 +520,13 @@
     .chat-panel-integrado{ max-width: 100%; height: 68vh; }
   }
 
-  /* ---------- Pantalla de éxito de venta (ticket) ---------- */
+  
   .ticket-exito-icono{ width:44px; height:44px; margin:0 auto 10px; color:var(--exito); }
   .ticket-exito-icono svg{ width:100%; height:100%; }
   .ticket-exito-titulo{ font-size:14.5px; font-weight:700; color:var(--texto); margin:0 0 4px; }
   .ticket-exito-monto{ font-size:26px; font-weight:800; letter-spacing:-0.02em; margin:0 0 14px; font-variant-numeric:tabular-nums; }
 
-  /* =====================================================
-     REDISEÑO MÓVIL
-===================================================== */
+  
   .btn-menu-movil{ display:none; background:none; border:none; padding:8px; margin-left:-8px; cursor:pointer; color:var(--texto); }
   .btn-menu-movil svg{ width:24px; height:24px; display:block; }
   .nav-movil-extra{ display:none; }
@@ -540,7 +536,7 @@
   .fondo-menu-movil{ position:fixed; inset:0; z-index:998; background:rgba(0,0,0,0.45); }
 
   @media (max-width: 820px){
-    /* --- Barra superior + menú hamburguesa --- */
+    
     .btn-menu-movil{ display:flex; align-items:center; justify-content:center; }
     .barra{ padding:10px 14px; gap:8px; }
     .barra-izq{ gap:10px; flex:1; min-width:0; }
@@ -574,11 +570,11 @@
     }
     body.menu-movil-abierto{ overflow:hidden; }
 
-    /* --- Cabecera de acción: buscador y escáner amplios --- */
+    
     .buscador input{ min-height:46px; font-size:15px; }
     .btn-escanear{ min-height:46px; padding:0 16px; }
 
-    /* --- Tarjetas de producto con stepper +/- integrado --- */
+    
     .lista-productos{ background:transparent; border:none; gap:12px; }
     .item-producto{
       border:1px solid var(--borde); border-radius:12px; padding:16px;
@@ -598,7 +594,7 @@
     }
     .item-producto-stepper span{ font-size:16px; font-weight:700; min-width:22px; text-align:center; font-variant-numeric:tabular-nums; }
 
-    /* --- Carrito: oculto por defecto, se abre a pantalla completa --- */
+    
     #seccionVender .pos{ padding-bottom:88px; }
     .carrito{ display:none; }
     .carrito.abierto-movil{
@@ -628,7 +624,7 @@
     .carrito.abierto-movil .total-carrito span:first-child{ font-size:13px; font-weight:600; color:var(--texto-suave); }
     .carrito.abierto-movil .total-carrito span:last-child{ font-size:44px; font-weight:800; letter-spacing:-0.02em; }
 
-    /* --- Método de pago como bloques táctiles --- */
+    
     #metodoPagoVenta{ display:none; }
     .metodo-pago-movil{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px; }
     .metodo-pago-movil button{
@@ -640,7 +636,7 @@
 
     #btnCobrar{ font-size:16px; padding:17px; border-radius:12px; }
 
-    /* --- Pantalla de éxito más grande en móvil --- */
+    
     .ticket-exito-icono{ width:60px; height:60px; }
     .ticket-exito-titulo{ font-size:16px; }
     .ticket-exito-monto{ font-size:38px; }
@@ -651,7 +647,7 @@
     .nav{ width:86vw; }
   }
 
-  /* ---------- Gestión del superadmin ---------- */
+  
   #barraSuperiorPuve{ position:sticky; top:0; z-index:9000; }
   .banner-suplantacion{ background:#7C2D12; color:#fff; padding:8px 14px; font-size:13px; display:flex; gap:12px; align-items:center; justify-content:center; flex-wrap:wrap; text-align:center; }
   .banner-suplantacion button{ background:#fff; color:#7C2D12; border:0; border-radius:6px; padding:5px 12px; font-weight:600; cursor:pointer; }
@@ -766,7 +762,7 @@
     <div class="modal-puve-fondo oculto" id="modalAbrirTurno" style="z-index:9000;">
       <div class="modal-puve" style="max-width:380px;">
         <h2 style="margin:0 0 6px;">Abre tu turno</h2>
-        <p class="nota" style="margin:0 0 16px;">Cuenta el efectivo con el que empiezas antes de vender. Tu encargado podrá comparar este monto cuando hagas tu corte.</p>
+        <p class="nota" style="margin:0 0 16px;">Cuenta el efectivo con el que empiezas antes de vender — tu encargado lo verá al hacer el corte.</p>
         <div id="mensajeAbrirTurno" class="mensaje"></div>
         <form onsubmit="return confirmarAbrirTurno(event)">
           <div class="campo"><label for="inputFondoInicialTurno">Fondo inicial (efectivo)</label><input id="inputFondoInicialTurno" type="number" min="0" step="0.01" placeholder="0.00" required></div>
@@ -778,7 +774,7 @@
     <div class="modal-puve-fondo oculto" id="modalSangria" onclick="if(event.target===this) cerrarModalSangria()">
       <div class="modal-puve" style="max-width:380px;">
         <h2 style="margin:0 0 6px;">Registrar retiro de efectivo</h2>
-        <p class="nota" style="margin:0 0 16px;">Para cuando sacas dinero de la caja durante tu turno (ej. pagarle a un proveedor). Queda registrado con tu nombre y la hora.</p>
+        <p class="nota" style="margin:0 0 16px;">Úsalo cuando saques dinero de la caja durante tu turno. Queda registrado con tu nombre y la hora.</p>
         <div id="mensajeSangria" class="mensaje"></div>
         <form onsubmit="return confirmarSangria(event)">
           <div class="campo"><label for="inputMontoSangria">Monto retirado</label><input id="inputMontoSangria" type="number" min="0.01" step="0.01" placeholder="0.00" required></div>
@@ -1106,7 +1102,7 @@
             <p class="ticket-exito-monto" id="montoTicketExito">$0.00</p>
             <img id="imgTicketQR" alt="Código QR del ticket" style="width:180px; height:180px; display:none; background:#fff; border-radius:6px;">
             <p class="nota oculto" id="avisoErrorQR" style="color:var(--error); margin:8px 0;">—</p>
-            <p class="nota" style="margin:10px 0;">El cliente debe escanear este código con su celular para ver y descargar su ticket.</p>
+            <p class="nota" style="margin:10px 0;">El cliente lo escanea con su celular para ver y descargar su ticket.</p>
             <a id="enlaceTicketQR" href="#" target="_blank" class="nota" style="display:block; word-break:break-all; font-size:11px; margin-bottom:10px;">—</a>
             <button class="principal ticket-exito-nueva-venta" onclick="cerrarTicketExito()">Nueva venta</button>
           </div>
@@ -1208,7 +1204,7 @@
 
       <div class="bloque-analitica oculto" id="bloqueAuditoriaCarrito" style="margin-top:20px;">
         <h3 style="margin-bottom:6px;">Productos eliminados del carrito antes de cobrar</h3>
-        <p class="nota" style="margin-bottom:14px;">Un patrón repetido del mismo cajero eliminando productos justo antes de cerrar la venta puede ser señal de fraude — cobrar en efectivo y luego quitar el producto para que no quede en la venta registrada.</p>
+        <p class="nota" style="margin-bottom:14px;">Si ves a un cajero quitando productos justo antes de cobrar, una y otra vez, vale la pena preguntarle qué pasó.</p>
         <div class="envoltura-tabla">
         <table>
           <thead><tr><th>Fecha</th><th>Cajero</th><th>Producto</th><th>Cantidad</th><th>Valor</th></tr></thead>
@@ -1335,7 +1331,7 @@
 
       <div class="bloque-analitica" style="margin-bottom:20px;">
         <h3>Órdenes de compra</h3>
-        <p class="nota" style="margin:0 0 12px;">Al marcar una orden como "Recibida" se suma el stock automáticamente y queda registrado en el historial de abajo.</p>
+        <p class="nota" style="margin:0 0 12px;">Al recibirla, el stock sube solo y queda en el historial de abajo.</p>
         <div id="mensajeOrdenCompra" class="mensaje"></div>
         <div class="rejilla" style="grid-template-columns:1fr 2fr; margin-bottom:10px;">
           <div class="campo"><label for="ordenProveedor">Proveedor</label><select id="ordenProveedor"><option value="">(sin proveedor)</option></select></div>
@@ -1390,7 +1386,7 @@
         <select id="filtroAnaliticaMetodo" onchange="aplicarFiltrosAnalitica()" style="padding:8px 10px; border:1px solid var(--borde); border-radius:7px; background:var(--superficie); color:var(--texto); font-family:'Inter'; font-size:13px;"><option value="">Todos los métodos de pago</option></select>
         <button class="editar" type="button" style="width:auto;" onclick="exportarCSVAnalitica()">Exportar CSV</button>
       </div>
-      <p class="nota" id="notaFiltroAnalitica" style="margin:-10px 0 16px; display:none;">Los filtros de arriba solo afectan Ventas, Ingresos y Ticket promedio, y el CSV exportado — el resto de la analítica sigue mostrando el periodo completo.</p>
+      <p class="nota" id="notaFiltroAnalitica" style="margin:-10px 0 16px; display:none;">Los filtros solo mueven Ventas, Ingresos y Ticket promedio, y lo que exportas — el resto de la pantalla sigue mostrando todo el periodo.</p>
 
       <div class="periodo-selector" style="margin-bottom:20px;">
         <button class="activo" data-vista="resumen" onclick="cambiarVistaAnalitica('resumen')">Resumen</button>
@@ -1411,7 +1407,7 @@
 
         <div class="bloque-analitica">
           <h3>Ver ingresos en otra moneda</h3>
-          <p class="nota">Convierte los ingresos de este periodo con el tipo de cambio del momento — solo para consulta, no cambia nada de tus registros.</p>
+          <p class="nota">Convierte tus ingresos al tipo de cambio actual, solo para verlos — no cambia nada en tus registros.</p>
           <select id="monedaAnalitica" class="input-mini" onchange="convertirIngresosAnalitica()" style="max-width:220px;">
             <option value="">Pesos mexicanos (MXN)</option>
             <option value="USD">Dólar estadounidense (USD)</option>
@@ -1485,7 +1481,7 @@
       <div id="vistaAnaliticaClientes" style="display:none;">
         <div class="bloque-analitica" id="bloqueClientesRecompensas">
           <h3>Directorio de clientes</h3>
-          <p class="nota">Tus clientes por teléfono — tócalos para ponerles un nombre. Desde aquí también autorizas crédito y registras abonos.</p>
+          <p class="nota">Tus clientes por teléfono. Tócalos para ponerles nombre, dar crédito o registrar un abono.</p>
           <div class="envoltura-tabla">
           <table>
             <thead><tr><th>Teléfono</th><th>Nombre</th><th>Puntos</th><th>Crédito autorizado</th><th>Debe</th><th></th></tr></thead>
@@ -1517,7 +1513,7 @@
         <div class="bloque-analitica" id="bloqueCajas" style="display:none;">
           <h3>Cajas (accesos de cajero)</h3>
           <p class="nota" id="usoCajas">—</p>
-          <p class="nota">Cada caja tiene su propio código. El cajero solo escribe el código en "Entrar con código de caja”.</p>
+          <p class="nota">Cada caja tiene su propio código. El cajero lo escribe en "Entrar con código de caja".</p>
           <div id="mensajeCajas" class="mensaje"></div>
           <div class="form-agregar-admin">
             <input id="nuevaCajaNombre" type="text" placeholder="Nombre de la caja (ej. Caja 1)">
@@ -1559,7 +1555,7 @@
       <div id="vistaConfigFunciones">
         <div class="bloque-analitica">
           <h3>PIN de autorización</h3>
-          <p class="nota">Para acciones sensibles del cajero: quitar un producto ya agregado al carrito o procesar una devolución. Si no lo configuras, esas acciones siguen funcionando sin pedir nada, como hasta ahora.</p>
+          <p class="nota">Se pide para quitar un producto del carrito o procesar una devolución. Si no lo configuras, esas dos acciones no piden nada, como siempre.</p>
           <div id="mensajePinAutorizacion" class="mensaje"></div>
           <p class="nota" id="estadoPinAutorizacion" style="margin:0 0 12px; font-weight:600;">—</p>
           <div class="rejilla" style="grid-template-columns:1fr 1fr; align-items:end;">
@@ -1573,7 +1569,7 @@
 
         <div class="bloque-analitica">
           <h3>Analistas</h3>
-          <p class="nota">Invita a alguien (un socio, un contador) a ver tu Analítica en modo de solo lectura — no puede vender, editar productos ni nada más, y no ocupa un lugar de dispositivo contratado.</p>
+          <p class="nota">Invita a alguien a ver tu Analítica sin poder tocar nada más — no vende, no edita productos, y no cuenta como un dispositivo contratado.</p>
           <div id="mensajeAnalistas" class="mensaje"></div>
           <div class="rejilla" style="grid-template-columns:1fr 1fr; align-items:end;">
             <div class="campo"><label for="analistaNombre">Nombre</label><input id="analistaNombre" type="text" placeholder="Ej. Contador"></div>
@@ -1595,7 +1591,7 @@
 
         <div class="bloque-analitica">
           <h3>Tipo de negocio</h3>
-          <p class="nota">Elige el giro de tu negocio y te sugerimos qué activar — tú decides si aplicarlo, nada cambia solo por elegirlo.</p>
+          <p class="nota">Elige tu giro y te sugerimos qué activar. Elegirlo no cambia nada por sí solo.</p>
           <div class="campo">
             <label for="cfgTipoNegocio">Giro</label>
             <select id="cfgTipoNegocio" onchange="conTutorialToggle('cfg-tipo-negocio', this, function(){ guardarConfiguracion(); mostrarSugerenciaTipoNegocio(); })">
@@ -1607,7 +1603,7 @@
               <option value="ropa">Ropa y accesorios</option>
               <option value="farmacia">Farmacia</option>
               <option value="papeleria">Papelería</option>
-              <!-- <option value="otro">Otro</option> -->
+              
             </select>
           </div>
           <div class="oculto" id="bloqueSugerenciaTipoNegocio" style="margin-top:10px; padding:12px; border:1px solid var(--borde); border-radius:8px;">
@@ -1657,7 +1653,7 @@
               <div class="campo"><label for="cfgPesosPorPunto">Pesos gastados por cada punto</label><input id="cfgPesosPorPunto" type="number" min="1" step="1" value="10" onchange="guardarConfiguracion()"></div>
               <div class="campo"><label for="cfgValorPunto">Valor de cada punto al canjear ($)</label><input id="cfgValorPunto" type="number" min="0" step="0.1" value="0.5" onchange="guardarConfiguracion()"></div>
             </div>
-            <!--<p class="nota" style="margin:0;">Ejemplo con estos valores: por cada $10 de compra, 1 punto — y 20 puntos acumulados valen $10 de descuento.</p>-->
+            
           </div>
           <div class="fila-config">
             <div>
@@ -1801,7 +1797,7 @@
               <option value="Régimen de Actividad Empresarial y Profesional">Actividad Empresarial y Profesional</option>
               <option value="Régimen de Incorporación Fiscal (RIF)">Incorporación Fiscal (RIF)</option>
               <option value="Persona Moral - Régimen General">Persona Moral — Régimen General</option>
-              <!--<option value="Otro">Otro</option>-->
+              
             </select>
           </div>
           <div class="campo oculto" id="campoRegimenOtro"><label for="fiscalRegimenOtro">Especifica tu régimen</label><input id="fiscalRegimenOtro" type="text"></div>
@@ -1849,7 +1845,7 @@
         </div>
       </div>
 
-      <!-- <p class="nota" style="max-width:640px;">Este documento es un resumen de apoyo calculado con tus propias ventas y costos capturados en PUVE — no es una declaración presentada ante el SAT ni sustituye la revisión de tu contador. Verifica los montos antes de usarlos en tu declaración oficial.</p> -->
+      
     </div>
   </div>
 
@@ -1858,11 +1854,22 @@
       <div class="encabezado-seccion">
         <div><h2>Atención a cliente</h2><p>Pregunta cómo usar cualquier función, mándanos un problema o una sugerencia.</p></div>
       </div>
-      <div class="chat-panel-integrado">
+      <div style="display:flex; gap:8px; margin-bottom:14px;">
+        <button type="button" class="editar" id="tabChatAsistente" onclick="cambiarPestanaSoporte('asistente')">Asistente</button>
+        <button type="button" class="editar" id="tabChatHumano" onclick="cambiarPestanaSoporte('humano')">Hablar con PUVE<span class="oculto" id="badgeSoporteHumano" style="margin-left:6px; background:var(--error); color:#fff; border-radius:99px; padding:1px 7px; font-size:11px;">0</span></button>
+      </div>
+      <div class="chat-panel-integrado" id="chatPanelAsistente">
         <div class="chat-cuerpo" id="chatCuerpo"></div>
         <div class="chat-pie">
           <textarea id="chatInput" rows="1" placeholder="Escribe tu duda, problema o sugerencia..." oninput="autoAjustarChatInput(this)" onkeydown="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); enviarMensajeChat(); }"></textarea>
           <button type="button" class="principal" onclick="enviarMensajeChat()">Enviar</button>
+        </div>
+      </div>
+      <div class="chat-panel-integrado oculto" id="chatPanelHumano">
+        <div class="chat-cuerpo" id="chatCuerpoHumano"></div>
+        <div class="chat-pie">
+          <textarea id="chatInputHumano" rows="1" placeholder="Escribe tu mensaje para el equipo de PUVE..." oninput="autoAjustarChatInput(this)" onkeydown="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); enviarMensajeSoporteHumano(); }"></textarea>
+          <button type="button" class="principal" onclick="enviarMensajeSoporteHumano()">Enviar</button>
         </div>
       </div>
     </div>
@@ -1882,6 +1889,7 @@
           <button data-vista="seguridad" onclick="cambiarVistaAdmin('seguridad')">Seguridad</button>
           <button data-vista="backups" onclick="cambiarVistaAdmin('backups')">Backups</button>
           <button data-vista="bugs" onclick="cambiarVistaAdmin('bugs')">Bugs</button>
+          <button data-vista="soporte-humano" onclick="cambiarVistaAdmin('soporte-humano')">Soporte<span class="oculto" id="badgeInboxSoporte" style="margin-left:6px; background:var(--error); color:#fff; border-radius:99px; padding:1px 7px; font-size:11px;">0</span></button>
           <button data-vista="controles" onclick="cambiarVistaAdmin('controles')">Controles</button>
         </div>
       </div>
@@ -1917,7 +1925,7 @@
       <div id="vistaAdminEquipo" style="display:none;">
       <div class="bloque-analitica" id="bloqueAdmins" style="display:none;">
         <h3>Administradores PUVE</h3>
-        <!-- <p class="nota">Estas son las cuentas administrativas de PUVE: no pagan suscripción ni aparecen en Negocios ni en Finanzas. Un ‘analista’ solo puede ver este panel y un ‘superadmin’ puede banear, editar planes y gestionar administradores.</p> -->
+        
         <div id="mensajeAdmins" class="mensaje"></div>
         <div class="form-agregar-admin">
           <input id="nuevoAdminCorreo" type="email" placeholder="correo@puve.com">
@@ -1939,7 +1947,7 @@
       <div id="vistaAdminFinanzas" style="display:none;">
         <div class="bloque-analitica oculto" id="bloqueConfigBancaria">
           <h3 style="margin-bottom:4px;">Datos de depósito de PUVE</h3>
-         <!-- <p class="nota" style="margin:0 0 14px;">Datos bancarios para las fichas</p> -->
+         
           <div id="mensajeConfigBancaria" class="mensaje"></div>
           <form id="formConfigBancaria" onsubmit="return guardarConfigBancaria(event)">
             <div class="rejilla" style="grid-template-columns:1fr 1fr;">
@@ -1959,7 +1967,7 @@
 
         <div class="bloque-analitica oculto" id="bloqueCorreosEmpresa">
           <h3 style="margin-bottom:4px;">Correos de la empresa</h3>
-          <p class="nota" style="margin:0 0 14px;">Se usan en los documentos y avisos que necesitan un correo de contacto de PUVE, en vez de un correo personal fijo en el código.</p>
+          <p class="nota" style="margin:0 0 14px;">Se usan como correo de contacto en avisos y documentos, en vez de uno fijo en el código.</p>
           <div id="mensajeCorreosEmpresa" class="mensaje"></div>
           <form id="formCorreosEmpresa" onsubmit="return guardarCorreosEmpresa(event)">
             <div class="rejilla" style="grid-template-columns:1fr 1fr;">
@@ -1972,7 +1980,7 @@
 
         <div class="bloque-analitica oculto" id="bloquePrecios">
           <h3 style="margin-bottom:4px;">Precio de PUVE</h3>
-          <p class="nota" style="margin:0 0 14px;">Se cobra por cada dispositivo (cajero) contratado. El precio anual se calcula solo, con 10% de descuento.</p>
+          <p class="nota" style="margin:0 0 14px;">Se cobra por cada dispositivo contratado. El anual se calcula solo, con 10% de descuento.</p>
           <div id="mensajePrecios" class="mensaje"></div>
           <form id="formPrecios" onsubmit="return guardarPrecioPuve(event)">
             <div class="rejilla" style="grid-template-columns:1fr 1fr; align-items:end;">
@@ -1991,7 +1999,7 @@
 
         <div class="bloque-analitica oculto" id="bloqueCupones">
           <h3 style="margin-bottom:4px;">Cupones de descuento</h3>
-          <p class="nota" style="margin:0 0 14px;">El negocio escribe el código en su pantalla de pago antes de pagar el plan (mensual o anual). No aplica a cajeros adicionales ni a cambios de plan.</p>
+          <p class="nota" style="margin:0 0 14px;">Se captura en la pantalla de pago del plan mensual o anual. No aplica a cajeros extra ni a cambios de plan.</p>
           <div id="mensajeCupones" class="mensaje"></div>
           <form onsubmit="return guardarCupon(event)">
             <div class="rejilla" style="grid-template-columns:1fr 1fr 1fr 1fr;">
@@ -2072,7 +2080,7 @@
               <option value="Régimen de Actividad Empresarial y Profesional">Actividad Empresarial y Profesional</option>
               <option value="Régimen de Incorporación Fiscal (RIF)">Incorporación Fiscal (RIF)</option>
               <option value="Persona Moral - Régimen General">Persona Moral — Régimen General</option>
-              <!-- <option value="Otro">Otro</option> -->
+              
             </select>
           </div>
           <div class="campo oculto" id="campoRegimenOtroPuve"><label for="fiscalRegimenOtroPuve">Especifica tu régimen</label><input id="fiscalRegimenOtroPuve" type="text"></div>
@@ -2124,7 +2132,7 @@
         </div>
       </div>
 
-      <!-- <p class="nota" style="max-width:640px;">Este documento es un resumen de apoyo calculado con el historial permanente de cobros de negocios contratados (por fecha de pago, con IVA incluido; no se borra al reiniciar finanzas ni al eliminar un negocio) — no es una declaración presentada ante el SAT ni sustituye la revisión de tu contador. Verifica los montos antes de usarlos en tu declaración oficial.</p> -->
+      
         </div>
       </div>
 
@@ -2141,7 +2149,7 @@
 
         <div class="bloque-analitica">
           <h3 style="margin-bottom:4px;">Embajadores</h3>
-          <p class="nota" style="margin:0 0 16px;">Comisión al primer pago del negocio que trajeron (probar los 15 días gratis no cuenta). El monto se ajusta en <code>configuracion_puve.comision_embajador_pesos</code> (100 MXN por defecto). El código de un embajador solo identifica quién trajo al negocio: no le cambia el precio.</p>
+          <p class="nota" style="margin:0 0 16px;">Se gana cuando el negocio que trajeron hace su primer pago — probar los 15 días gratis no cuenta. El código solo identifica quién lo trajo, no cambia el precio.</p>
           <div class="envoltura-tabla"><table>
             <thead><tr><th>Embajador</th><th>Código</th><th>Traídos</th><th>Pagados</th><th>Ganado</th><th>Retirado</th><th>Disponible</th></tr></thead>
             <tbody id="cuerpoAdminEmbajadores"><tr><td colspan="7" class="nota">Cargando...</td></tr></tbody>
@@ -2160,7 +2168,7 @@
       <div id="vistaAdminAvisos" style="display:none;">
         <div class="bloque-analitica" style="margin-bottom:20px;">
           <h3 style="margin-bottom:4px;">Enviar aviso a todos los usuarios</h3>
-          <p class="nota" style="margin:0 0 14px;">Le llega en tiempo real a quien tenga sesión iniciada (y a quien entre mientras esté vigente).</p>
+          <p class="nota" style="margin:0 0 14px;">Le llega al momento a quien tenga sesión iniciada.</p>
           <div id="mensajeAviso" class="mensaje"></div>
           <form onsubmit="return enviarAvisoPuve(event)">
             <div class="rejilla" style="grid-template-columns:1fr 1fr 1fr;">
@@ -2206,13 +2214,13 @@
         <div class="bloque-analitica">
           <h3>Respaldo manual</h3>
           <p class="nota" id="backupUltimo">—</p>
-          <p class="nota" style="margin-bottom:16px;">Descarga un archivo con todos los negocios, productos, ventas y dispositivos de PUVE.</p>
+          <p class="nota" style="margin-bottom:16px;">Descarga todos los negocios, productos, ventas y dispositivos de PUVE en un archivo.</p>
           <div id="mensajeBackups" class="mensaje"></div>
           <button class="principal" onclick="generarRespaldo()" style="width:auto;">Generar y descargar respaldo</button>
         </div>
         <div class="bloque-analitica">
           <h3>Respaldos automáticos guardados</h3>
-         <!-- <p class="nota" style="margin-bottom:16px;">Archivos generados por el respaldo diario programado.</p> -->
+         
           <div id="mensajeBackupsStorage" class="mensaje"></div>
           <div id="listaBackupsStorage"></div>
         </div>
@@ -2225,7 +2233,7 @@
       </div>
 
       <div id="vistaAdminControles" style="display:none;">
-        <p class="nota" style="margin:0 0 16px;">Activa o desactiva botones y funciones del sistema sin tocar el código. Al desactivar uno, quien lo use verá el aviso que escribas aquí en vez de poder usarlo.</p>
+        <p class="nota" style="margin:0 0 16px;">Apaga cualquier botón sin tocar código. Quien lo use verá el aviso que escribas, en vez de poder usarlo.</p>
         <input type="search" id="buscadorControles" placeholder="Buscar por nombre..." oninput="pintarControlesFunciones()" style="width:100%; padding:11px 14px; border:1px solid var(--borde); border-radius:8px; background:var(--superficie); color:var(--texto); font-family:'Inter'; font-size:14px; margin-bottom:20px;">
         <div id="mensajeControlesFunciones" class="mensaje"></div>
         <div id="listaControlesFunciones"></div>
@@ -2244,6 +2252,20 @@
           <thead><tr><th>Reporte</th><th>Negocio</th><th>Reportado por</th><th>Estado</th><th>Fecha</th><th></th></tr></thead>
           <tbody id="cuerpoBugs"></tbody>
         </table>
+        </div>
+      </div>
+
+      <div id="vistaAdminSoporteHumano" style="display:none;">
+        <p class="nota" style="margin:0 0 16px;">Conversaciones que los encargados empezaron desde "Hablar con PUVE".</p>
+        <div style="display:grid; grid-template-columns:280px 1fr; gap:16px; align-items:start;">
+          <div class="envoltura-tabla" style="max-height:520px; overflow-y:auto;">
+            <table>
+              <tbody id="cuerpoInboxSoporte"><tr><td class="nota">Sin conversaciones todavía.</td></tr></tbody>
+            </table>
+          </div>
+          <div id="panelConversacionSoporte">
+            <p class="nota">Elige una conversación de la lista.</p>
+          </div>
         </div>
       </div>
 
@@ -2330,7 +2352,7 @@
   <div class="escaner-contenido" style="max-width:420px;">
     <div style="background:var(--superficie); border-radius:10px; padding:24px; width:100%;">
       <h3 style="margin:0 0 4px; font-size:16px; font-weight:600; color:var(--texto);">Apariencia</h3>
-      <!-- <p class="nota" style="margin:0 0 18px;">Esto es solo para ti — cada quien puede ajustarlo a su gusto en su propio dispositivo, no afecta a nadie más.</p> -->
+      
 
       <div class="fila-config" style="margin-bottom:18px;">
         <div>
@@ -2346,7 +2368,7 @@
           <span class="nota" id="valorTamanoTexto" style="margin:0;">50%</span>
         </div>
         <input type="range" id="controlTamanoTexto" min="30" max="70" step="1" value="50" style="width:100%;" oninput="ajustarTamanoTexto(this.value)">
-        <p class="nota" style="margin:8px 0 0;">50% es el tamaño normal. Muévelo para agrandar o achicar el texto de toda la app a tu gusto.</p>
+        <p class="nota" style="margin:8px 0 0;">50% es el tamaño normal. Muévelo para agrandar o achicar el texto de la app.</p>
       </div>
 
       <button type="button" class="texto" onclick="document.getElementById('modalApariencia').classList.add('oculto')" style="width:auto; margin-top:18px;">Cerrar</button>
@@ -2358,7 +2380,7 @@
   <div class="escaner-contenido" style="max-width:440px;">
     <div style="background:var(--superficie); border-radius:10px; padding:24px; width:100%;">
       <h3 style="margin:0 0 4px; font-size:16px; font-weight:600; color:var(--texto);">Agregar negocio manualmente</h3>
-      <p class="nota" style="margin:0 0 16px;">Solo útil mientras el correo de confirmación por Resend no tiene dominio propio.</p>
+      <p class="nota" style="margin:0 0 16px;">Solo hace falta mientras el correo de confirmación no tenga dominio propio.</p>
       <div id="mensajeCrearNegocio" class="mensaje"></div>
       <form id="formCrearNegocio" onsubmit="return crearNegocioManual(event)">
         <div class="campo"><label for="cnCorreo">Correo del encargado</label><input id="cnCorreo" type="email" required placeholder="correo@negocio.com"></div>
@@ -2467,7 +2489,7 @@
         <button onclick="if(!funcionPuveActiva('embajador.copiar')) return; copiarEmbajador('enlace'); this.textContent='Copiado ✓'; setTimeout(()=>this.textContent='Copiar', 1600)" title="Copia tu enlace de referido">Copiar</button>
         <button onclick="if(funcionPuveActiva('embajador.compartir')) compartirEmbajadorWhatsApp()">Compartir</button>
       </div>
-      <p class="emb-micro">No necesitas tener un negocio propio para ganar comisión. Ganas cuando el negocio que refieres hace su primer pago — probar los 15 días gratis no cuenta.</p>
+      <p class="emb-micro">No necesitas negocio propio para ganar. Ganas cuando el negocio que refieres hace su primer pago; probar gratis no cuenta.</p>
     </div>
 
     <div class="emb-seccion">
@@ -2480,7 +2502,7 @@
         <button onclick="if(funcionPuveActiva('embajador.compartir')) compartirEmbajadorX()">X (Twitter)</button>
         <button onclick="if(!funcionPuveActiva('embajador.copiar')) return; copiarMensajeEmbajador(this)">Copiar mensaje</button>
       </div>
-      <p class="nota" style="margin:10px 0 0;">Para Instagram o TikTok: usa "Copiar mensaje" y pégalo en tu bio o en la descripción de tu publicación.</p>
+      <p class="nota" style="margin:10px 0 0;">Para Instagram o TikTok, copia el mensaje y pégalo en tu bio o en la publicación.</p>
       <div class="emb-acciones" style="margin-top:14px;">
         <button onclick="if(funcionPuveActiva('embajador.descargar_folleto')) descargarFolletoEmbajadorPDF(this)">Folleto (PDF)</button>
         <button onclick="if(funcionPuveActiva('embajador.descargar_banner')) descargarBannerEmbajador(this)">Banner (imagen)</button>
@@ -2771,7 +2793,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         const parsed = JSON.parse(guardado);
         if(Array.isArray(parsed)) return parsed;
       }
-    } catch(e){ /* si el respaldo local está corrupto, simplemente empezamos de cero */ }
+    } catch(e){  }
     return [];
   }
 
@@ -2860,10 +2882,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(restantes.length < cola.length && negocioId) await cargarProductos();
   }
 
-  // Selector de entrada: Negocio / Cajero / Embajador. "Cajero" abre un
-  // modal aparte (un solo campo, no necesita tabs); Negocio y Embajador
-  // comparten el mismo formulario de login y solo cambian qué formulario
-  // de registro va debajo de la pestaña "Crear cuenta".
+  
+  
+  
+  
   let modoAcceso = 'negocio';
 
   function elegirTipoAcceso(tipo){
@@ -3083,8 +3105,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     requestAnimationFrame(() => tarjeta.classList.add('visible'));
   }
 
-  // El CEO debería subirle el sueldo al programador..., esperen soy yo y ni sueldo tengo. Compren la membresía por favor no he dormido en 2 semanas :(
- // Actualización: Ya van 3 semanas :(
+  
+ 
   function posicionarTarjetaTutorial(elemento, tarjeta){
     if(!elemento){
       tarjeta.style.top = '50%'; tarjeta.style.left = '50%';
@@ -3215,23 +3237,19 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     btn.disabled = false; btn.textContent = 'Crear cuenta';
     if(error){ mostrarMensaje('mensajeAuth', traducirError(error.message), 'error'); return false; }
 
-    // ---------------------------------------------------------------
-    // VERIFICACIÓN DE CORREO — DESACTIVADA POR AHORA (aún no hay dominio
-    // para enviar correos). No se descarta: para reactivarla, vuelve a
-    // activar "Confirm email" en Supabase (Authentication → Sign In /
-    // Providers → Email), borra el bloque "Inicio de sesión automático"
-    // de abajo y descomenta este bloque.
-    // ---------------------------------------------------------------
-    /*
-    if(!data.session){ mostrarMensaje('mensajeAuth', 'Cuenta creada. Revisa tu correo para confirmar el acceso.', 'exito'); return false; }
-    await entrarApp(data.user);
-    return false;
-    */
+    
+    
+    
+    
+    
+    
+    
+    
 
-    // Inicio de sesión automático: el correo se da por verificado al
-    // registrarse y se entra de inmediato. (Con "Confirm email" apagado en
-    // Supabase, signUp ya devuelve la sesión; si no la devolviera, se
-    // inicia sesión con la contraseña recién creada.)
+    
+    
+    
+    
     let usuario = data.user;
     if(!data.session){
       const { data: datosLogin, error: errLogin } = await sb.auth.signInWithPassword({ email, password });
@@ -3293,9 +3311,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
 
-  // =====================================================
-  //  EMBAJADORES (rol sin negocio: gana comisión por recomendar)
-  // =====================================================
+  
+  
+  
   async function intentarEntrarComoEmbajador(user){
     const { data: emb, error } = await sb.from('embajadores_puve').select('nombre').eq('id', user.id).maybeSingle();
     if(error || !emb) return false;
@@ -3350,7 +3368,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(boton){ const original = boton.textContent; boton.textContent = 'Copiado ✓'; setTimeout(() => boton.textContent = original, 1600); }
   }
 
-  // ---------- Folleto PDF y banner de imagen para el embajador ----------
+  
   async function descargarFolletoEmbajadorPDF(boton){
     if(!window.__embajadorActual || typeof window.jspdf === 'undefined') return;
     const original = boton?.textContent;
@@ -3508,7 +3526,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     await cargarEstadoStripeEmbajador();
   }
 
-  // ---------- Estado de cuenta y retiros del Embajador ----------
+  
 
   async function cargarEstadoStripeEmbajador(){
     const { data, error } = await sb.rpc('mi_cuenta_stripe_embajador');
@@ -3611,14 +3629,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     return false;
   }
 
-  // =====================================================
-  // Control de funciones (activar/desactivar botones + aviso)
-  // =====================================================
-  // Catálogo fijo de funciones importantes del sistema. Se sincroniza a la
-  // tabla controles_funciones_puve (solo agrega/actualiza etiquetas, nunca
-  // pisa el estado activo/inactivo ni la nota que ya haya puesto el
-  // superadmin). Cobertura actual: navegación principal + las acciones más
-  // usadas de cada rol. Se puede ampliar agregando más entradas aquí.
+  
+  
+  
+  
+  
+  
+  
+  
   const CATALOGO_CONTROLES_PUVE = [
     { id: 'admin.nav_productos', categoria: 'Admin', etiqueta: 'Pestaña Productos', descripcion: 'Botón de navegación "Productos" en el punto de venta.' },
     { id: 'admin.nav_gastos', categoria: 'Admin', etiqueta: 'Pestaña Gastos', descripcion: 'Botón de navegación "Gastos".' },
@@ -3642,16 +3660,16 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     { id: 'embajador.descargar_banner', categoria: 'Embajador', etiqueta: 'Descargar banner (imagen)', descripcion: 'Imagen cuadrada con el código y QR del embajador, para publicar en redes sociales.' },
   ];
 
-  // Cualquier usuario logueado: trae solo {activo, nota} por id.
+  
   async function cargarControlesFuncionesPuve(){
     const { data, error } = await sb.rpc('obtener_controles_funciones_puve');
     window.__controlesFuncionesPuve = (!error && data) ? data : {};
   }
 
-  // Úsalo así: onclick="if(funcionPuveActiva('id.del.catalogo')) accionReal()"
-  // Devuelve true si puede ejecutarse. Si está desactivada, muestra el aviso
-  // (con la nota del superadmin, o un texto genérico si no escribió nada) y
-  // devuelve false para que la acción real no se ejecute.
+  
+  
+  
+  
   function funcionPuveActiva(id){
     const c = window.__controlesFuncionesPuve && window.__controlesFuncionesPuve[id];
     if(c && c.activo === false){
@@ -3664,7 +3682,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     return true;
   }
 
-  // ---------- Panel del superadmin: Control de funciones ----------
+  
   let __controlesFuncionesCompletos = [];
 
   async function cargarControlesFunciones(){
@@ -3714,8 +3732,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     cont.innerHTML = html;
   }
 
-  // Clic en la tarjeta: si está activa, la apaga de inmediato y abre el
-  // editor de la nota. Si ya estaba apagada, la vuelve a activar.
+  
+  
   async function alternarControlFuncion(id){
     const item = __controlesFuncionesCompletos.find(c => c.id === id);
     if(!item) return;
@@ -3742,10 +3760,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     await cargarControlesFuncionesPuve();
   }
 
-  // =====================================================
-  // Etapa 1 (Cajero): turno de caja con fondo, sangrías y
-  // autorización con PIN del encargado.
-  // =====================================================
+  
+  
+  
+  
   let __turnoCajaAbierto = null;
 
   async function verificarTurnoCajero(){
@@ -3816,10 +3834,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     return false;
   }
 
-  // ---------- Autorización con PIN del encargado ----------
-  // Uso: pedirAutorizacionAdmin('motivo a mostrar', () => accionReal());
-  // Si el negocio no configuró PIN, o quien actúa no es cajero, no
-  // pide nada y ejecuta la acción de inmediato (no rompe nada).
+  
+  
+  
+  
   let __accionPendientePin = null;
   let __tengoPinConfigurado = false;
 
@@ -3856,7 +3874,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     return false;
   }
 
-  // ---------- Configurar el PIN (panel del encargado) ----------
+  
   async function cargarAnalistas(){
     const { data, error } = await sb.rpc('admin_listar_analistas');
     const cuerpo = document.getElementById('cuerpoAnalistas');
@@ -3930,13 +3948,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   async function entrarApp(user){
     cargarCorreosPuveGlobal();
     cargarControlesFuncionesPuve();
-    // El superadmin puede apagar un botón en cualquier momento mientras
-    // alguien ya tiene la sesión abierta — sin este refresco periódico,
-    // el aviso solo se habría visto hasta el siguiente inicio de sesión.
+    
+    
+    
     if(!window.__intervaloControlesFunciones){
       window.__intervaloControlesFunciones = setInterval(cargarControlesFuncionesPuve, 15000);
     }
     cargarPinConfiguradoGlobal();
+    if(miRol === 'admin' || miRol === 'vendedor') actualizarBadgeSoporteHumano();
     const { data: perfil, error } = await sb
       .from('perfiles')
       .select('nombre, rol, negocio_id, negocios ( nombre, dispositivos_permitidos, baneado, motivo_baneo, bloqueado_por_pago, configuracion, pais, estado, municipio, codigo_postal )')
@@ -3969,7 +3988,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
     negocioId = perfil.negocio_id;
     miRol = perfil.rol;
-    // Si quedó una marca de suplantación de otra sesión, se descarta
+    
     const marcaSup = suplantacionActiva();
     if(marcaSup && marcaSup.uid !== user.id){
       sessionStorage.removeItem('puve_suplantacion'); sessionStorage.removeItem('puve_suplantacion_origen');
@@ -4053,8 +4072,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     }
 
     if(esAnalista){
-      // Nunca ocupa un lugar de dispositivo contratado: no pasa por
-      // verificarDispositivo(), solo entra directo a su única pantalla.
+      
+      
       document.getElementById('vistaAuth').style.display = 'none';
       document.getElementById('vistaBloqueo').style.display = 'none';
       document.getElementById('vistaBaneado').style.display = 'none';
@@ -4122,14 +4141,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   async function reintentarAcceso(){
-    // Antes esto llamaba directo a verificarDispositivo(), que NO vuelve a
-    // checar el pago: si negocio_al_corriente() seguía en false, mi_negocio_id()
-    // devolvía NULL y registrar_dispositivo() tronaba "Usuario sin negocio
-    // asociado" (mostrado bajo el título fijo "Límite de dispositivos alcanzado").
-    // Ahora se re-corre entrarApp(), que sí vuelve a evaluar baneo, plan
-    // pendiente y negocio_al_corriente antes de intentar registrar el
-    // dispositivo, para que el desbloqueo sea automático en cuanto el pago
-    // quede confirmado.
+    
+    
+    
+    
+    
+    
+    
+    
     const { data: u, error } = await sb.auth.getUser();
     if(error || !u?.user){ location.reload(); return; }
     await entrarApp(u.user);
@@ -4187,8 +4206,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       document.getElementById('bloqueFichaPago').style.display = 'none';
 
       const esEncargado = miRol === 'admin';
-      // La ficha manual solo aparece si el superadmin la activó, y de ahí
-      // en fuera igual que siempre: solo el encargado puede pagar.
+      
+      
       document.getElementById('btnGenerarFicha').classList.toggle('oculto', !esEncargado || !fichaManualActiva);
       document.getElementById('btnDescargarFichaBanco').classList.toggle('oculto', !esEncargado);
       document.getElementById('btnPagarUnicoStripe').classList.toggle('oculto', !esEncargado);
@@ -4220,7 +4239,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
 
-  // ---------- Pagar con Stripe (pago único o suscripción automática) ----------
+  
   async function aplicarCuponPago(){
     const codigo = document.getElementById('inputCuponPago').value.trim();
     if(!codigo){ return; }
@@ -4265,7 +4284,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     location.href = data.url;
   }
 
-  // Al volver de Stripe (éxito, cancelado, o del formulario de Connect de un Embajador)
+  
   async function revisarRegresoDeStripe(){
     const params = new URLSearchParams(location.search);
     const resultado = params.get('stripe');
@@ -4276,7 +4295,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(resultado === 'exito'){
       await mostrarPagoConfirmadoStripe();
     } else if(resultado === 'cancelado'){
-      // no se cobró nada; no hace falta avisar
+      
     } else if(connect === 'regreso'){
       const { data, error } = await sb.functions.invoke('stripe-verificar-embajador', {});
       if(!error && document.getElementById('embEstadoStripe')){
@@ -4287,9 +4306,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
 
 
-  // Espera un momento a que el webhook de Stripe termine de escribir el
-  // pago (normalmente toma 1-2 segundos) y muestra un comprobante
-  // descargable en vez de un simple aviso.
+  
+  
+  
   async function mostrarPagoConfirmadoStripe(){
     let pago = null;
     for(let intento = 0; intento < 6 && !pago; intento++){
@@ -4388,9 +4407,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     await mostrarFichaPago(folio, monto, false);
   }
 
-  // Ficha PDF para pagar por transferencia bancaria (SPEI) con los datos que
-  // genera STRIPE: su CLABE, banco, referencia y monto exacto. No usa los datos
-  // bancarios de PUVE. Al acreditarse el depósito, el webhook desbloquea solo.
+  
+  
+  
   async function descargarFichaBancoPDF(){
     if(miRol !== 'admin'){
       mostrarMensaje('mensajePagoPendiente', 'Solo el encargado de este negocio puede descargar la ficha de pago.', 'error');
@@ -4428,7 +4447,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const anchoUtil = pageW - margen * 2;
     const NEGRO = [24, 24, 27], GRIS = [113, 113, 122], GRIS_CLARO = [228, 228, 231], FONDO_SUAVE = [244, 244, 245];
     const esOxxo = d.tipo === 'oxxo';
-    // Dato principal: CLABE (transferencia) o referencia de 14 dígitos (OXXO)
+    
     const principal = esOxxo ? d.referencia : d.clabe;
 
     doc.setFillColor(...NEGRO);
@@ -4453,7 +4472,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     doc.text(String(principal), margen + 18, y + altoClabe / 2 + 8);
     y += altoClabe + 18;
 
-    // Código de barras (como los comprobantes de practicajas / ventanilla)
+    
     if(typeof JsBarcode !== 'undefined' && principal){
       try{
         const canvasBarra = document.createElement('canvas');
@@ -4578,7 +4597,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
   
 
-  // ---------- Comprobante de un pago hecho con tarjeta (Stripe) ----------
+  
   async function generarComprobanteStripe({ concepto, monto, folio, fecha, nombreArchivo }){
     if(typeof window.jspdf === 'undefined'){ alert('No se pudo generar el PDF. Revisa tu conexión e inténtalo de nuevo.'); return; }
     const { jsPDF } = window.jspdf;
@@ -4976,7 +4995,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   async function editarNombreClienteRecompensas(fila){
-    if(fila.querySelector('input')) return; // ya está en edición
+    if(fila.querySelector('input')) return; 
     const id = fila.dataset.clienteId;
     const celda = fila.querySelector('.texto-nombre-cliente').parentElement;
     const nombreActual = fila.querySelector('.texto-nombre-cliente').textContent.trim();
@@ -5496,7 +5515,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('resultadoDeclaracionFiscal').classList.add('oculto');
   }
 
-  // Odio mi vida amigo
+  
   async function generarDeclaracionFiscal(){
     const btn = document.getElementById('btnGenerarDeclaracion');
     btn.disabled = true; btn.textContent = 'Calculando...';
@@ -5631,7 +5650,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     });
   }
 
-  // Aquí hacemos la mierda esa de dibujar y descargar el PDF de la Declaración SAT.
+  
   function dibujarPDFDeclaracionSAT({ datos, rfc, razonSocial, regimen, semilla, prefijoFolio, notaFinal }){
     const { jsPDF } = window.jspdf;
 
@@ -5758,7 +5777,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
 
-  // ---------- Declaración SAT de PUVE (Finanzas, solo superadmin) ----------
+  
   let tipoPeriodoFiscalPuve = 'mensual';
 
   async function cargarDatosFiscalesPuve(){
@@ -6010,13 +6029,13 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.body.classList.remove('menu-movil-abierto');
   }
 
-  // Espejo de las reglas reales de visibilidad del menú (entrarApp /
-  // mostrarAppSuplantada). Es el único lugar donde vive esta lista: si
-  // algún día cambian los permisos de un rol, se ajusta aquí y todo lo
-  // demás (tutoriales, chat de soporte, cualquier otro botón) queda
-  // protegido automáticamente — antes bastaba con que cualquier código
-  // llamara a cambiarSeccion() directo para saltarse lo que el menú
-  // ocultaba (así lo hacía "Ir a Vender" del chat, sin importar el rol).
+  
+  
+  
+  
+  
+  
+  
   function seccionPermitidaParaMi(cual){
     if(esAdminActual) return cual === 'admin';
     const esCajeroAhora = miRol === 'vendedor';
@@ -6039,7 +6058,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   function cambiarSeccion(cual){
-    cargarControlesFuncionesPuve(); // refresco silencioso; no bloquea el cambio de sección
+    cargarControlesFuncionesPuve(); 
     if(!seccionPermitidaParaMi(cual)){
       console.warn('Navegación bloqueada: tu rol no tiene acceso a "' + cual + '".');
       return;
@@ -6056,7 +6075,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(cual === 'inventario'){ if(!productosCache.length) cargarProductos(); cargarProveedores(); cargarOrdenesCompra(); cargarMovimientosInventario(); }
     if(cual === 'analitica'){ if(!productosCache.length) cargarProductos(); cambiarVistaAnalitica('resumen'); cargarAnalitica(); }
     if(cual === 'dispositivos'){ cambiarVistaDispositivos('cajeros'); cargarDispositivos(); cargarCajas(); cargarSolicitudCajeroPendiente(); }
-    if(cual === 'soporte') inicializarChatSoporte();
+    if(cual === 'soporte'){
+      inicializarChatSoporte();
+      actualizarBadgeSoporteHumano();
+      if(!__intervaloChatHumano) __intervaloChatHumano = setInterval(() => { if(!document.getElementById('chatPanelHumano').classList.contains('oculto')) cargarChatHumano(); }, 10000);
+    }
     if(cual === 'config'){
       cambiarVistaConfig('funciones');
       document.getElementById('tabPlanConfig').classList.toggle('oculto', !(miRol === 'admin' && !esAdminActual));
@@ -6079,6 +6102,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.querySelector('[data-vista="backups"]').classList.toggle('oculto', soloLectura);
     document.querySelector('[data-vista="bugs"]').classList.toggle('oculto', soloLectura);
     document.querySelector('[data-vista="controles"]').classList.toggle('oculto', soloLectura);
+    document.querySelector('[data-vista="soporte-humano"]').classList.toggle('oculto', !soloSuperadmin);
     document.getElementById('btnAbrirCrearNegocio').classList.toggle('oculto', soloLectura);
   }
 
@@ -6097,6 +6121,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('vistaAdminBackups').style.display = vista === 'backups' ? 'block' : 'none';
     document.getElementById('vistaAdminBugs').style.display = vista === 'bugs' ? 'block' : 'none';
     document.getElementById('vistaAdminControles').style.display = vista === 'controles' ? 'block' : 'none';
+    document.getElementById('vistaAdminSoporteHumano').style.display = vista === 'soporte-humano' ? 'block' : 'none';
     if(vista === 'finanzas') cargarFinanzas();
     if(vista === 'metricas') cargarMetricasSaas();
     if(vista === 'avisos') cargarAvisosAdmin();
@@ -6105,6 +6130,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(vista === 'backups') cargarBackups();
     if(vista === 'bugs') cargarBugs();
     if(vista === 'controles') cargarControlesFunciones();
+    if(vista === 'soporte-humano') cargarInboxSoporte();
   }
 
   async function cargarProductos(){
@@ -6384,9 +6410,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     }).join('');
   }
 
-  // Actualiza solo la tarjeta de un producto dentro de la lista de
-  // venta (su contador +/-), sin reconstruir toda la lista — así
-  // agregar o quitar del carrito no reinicia el scroll ni parpadea.
+  
+  
+  
   function actualizarStepperEnLista(id){
     const tarjeta = document.querySelector(`.item-producto[data-producto-id="${id}"]`);
     if(!tarjeta) return;
@@ -6671,7 +6697,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     guardarProductosCacheLocal(productosCache);
   }
 
-  // U all i need, u all i need... bro realmente esa canción destruye. Programador nostálgico a las... 4:03 de la mañana.
+  
   async function cobrar(){
     if(!carrito.length) return;
     const btn = document.getElementById('btnCobrar');
@@ -6805,7 +6831,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     cerrarCheckoutMovil();
   }
 
-  // ---------- Checkout de pantalla completa (solo móvil) ----------
+  
   function abrirCheckoutMovil(){
     document.getElementById('panelCarrito').classList.add('abierto-movil');
     document.body.classList.add('checkout-movil-abierto');
@@ -6963,8 +6989,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     renderDelta('deltaVentas', totalVentas, totalVentasAnt);
     renderDelta('deltaIngresos', totalIngresos, totalIngresosAnt);
 
-    // Caché para los filtros (por cajero / método de pago) y la
-    // exportación a CSV — no dispara consultas nuevas.
+    
+    
     window.__ventasAnaliticaCache = ventas;
     poblarFiltrosAnalitica(ventas);
     aplicarFiltrosAnalitica();
@@ -7992,10 +8018,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   
   
   
-  // ---------- Descuento de bienvenida para invitados (referidos) ----------
-  // Mensual: 3 meses con 25% menos ($187.50 con 1 cajero). Anual: $250 menos
-  // en la anualidad. Lo decide el servidor (mi_descuento_referido); aquí solo
-  // se aplica al mostrar y al generar la ficha.
+  
+  
+  
+  
   let descuentoReferido = null;
 
   async function cargarDescuentoReferido(){
@@ -8141,11 +8167,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     return false;
   }
 
-  // ---------- Correos de la empresa (soporte / CEO) ----------
-  // Se cargan una sola vez al abrir la app (cargarCorreosPuveGlobal) y
-  // quedan disponibles en window.__correosPuve para cualquier mensaje o
-  // documento que necesite un correo de contacto en vez de uno fijo en
-  // el código.
+  
+  
+  
+  
+  
   async function cargarCorreosPuveGlobal(){
     const { data, error } = await sb.rpc('obtener_correos_empresa_puve');
     window.__correosPuve = (!error && data) ? data : { empresa: 'soporte@puve.app', ceo: 'soporte@puve.app' };
@@ -8628,7 +8654,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     window.open(data.signedUrl, '_blank');
   }
 
-  // ---------- Chatbot de soporte: base de conocimiento ----------
+  
   function baseConocimientoSegura(){
     return (typeof BASE_CONOCIMIENTO_PUVE !== 'undefined' && Array.isArray(BASE_CONOCIMIENTO_PUVE)) ? BASE_CONOCIMIENTO_PUVE : [];
   }
@@ -8737,7 +8763,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     return dif + (a.length - i) + (b.length - j) <= 1;
   }
 
-  // Estoy cansado jefe
+  
   const PATRONES_REPORTE_PROBLEMA = ['reportar un problema','reportar problema','hay un error','no funciona','esta fallando','esta roto','tengo un problema','se trabo','no me deja','error en el sistema','encontre un bug','un bug','algo salio mal','algo esta mal','fallo el sistema','me marca error','no jala','no sirve'];
   const PATRONES_SUGERENCIA = ['sugerencia','sugerir','sugiero','sugiere','sugieren','me gustaria que','me gustaria sugerir','seria bueno que','propuesta','idea para puve','recomendacion para mejorar','deberian agregar','podrian agregar','falta una funcion','les propongo'];
 
@@ -8856,7 +8882,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     return elegido || null;
   }
 
-  // Guardar la pregunta que el bot todo menso no supo responder, para revisarla
+  
   function registrarPreguntaSinRespuesta(pregunta){
     try {
       if(!enLinea) return;
@@ -8864,10 +8890,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         negocio_id: negocioId || null,
         pregunta: String(pregunta).slice(0, 500)
       }).then(() => {}, () => {});
-    } catch(e){ /* nunca truena la conversación por esto */ }
+    } catch(e){  }
   }
 
-  // ---------- Chatbot de soporte: interfaz ----------
+  
   const SVG_REPORTAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>';
   const SVG_SUGERENCIA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2.05V17h6v-.25c0-.85.4-1.55 1-2.05A7 7 0 0 0 12 2z"/></svg>';
 
@@ -8887,7 +8913,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         .filter(m => !(m.tipo === 'formulario' && m.enviando))
         .slice(-CHAT_STORAGE_MAX);
       lsSet(CHAT_STORAGE_KEY, JSON.stringify(paraGuardar));
-    } catch(e){ /* si falla el guardado local, el chat sigue funcionando en memoria */ }
+    } catch(e){  }
   }
 
   function limpiarHistorialChatGuardado(){
@@ -9000,7 +9026,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     try {
       const { data: userData } = await sb.auth.getUser();
       correo = userData?.user?.email || null;
-    } catch(e){ /* si no se pudo leer el correo, seguimos sin él */ }
+    } catch(e){  }
 
     try {
       const { error } = await sb.from('bugs_puve').insert({
@@ -9030,6 +9056,52 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
     renderizarChat();
   }
+
+  function cambiarPestanaSoporte(cual){
+    document.getElementById('chatPanelAsistente').classList.toggle('oculto', cual !== 'asistente');
+    document.getElementById('chatPanelHumano').classList.toggle('oculto', cual !== 'humano');
+    document.getElementById('tabChatAsistente').classList.toggle('principal', cual === 'asistente');
+    document.getElementById('tabChatHumano').classList.toggle('principal', cual === 'humano');
+    if(cual === 'humano') cargarChatHumano();
+  }
+
+  function pintarChatHumano(mensajes){
+    const cuerpo = document.getElementById('chatCuerpoHumano');
+    if(!mensajes.length){
+      cuerpo.innerHTML = '<div class="chat-burbuja asistente">Escríbenos lo que necesites — una persona del equipo de PUVE te va a contestar aquí mismo.</div>';
+    } else {
+      cuerpo.innerHTML = mensajes.map(m => `<div class="chat-burbuja ${m.rol_mensaje === 'usuario' ? 'usuario' : 'asistente'}">${escapar(m.contenido)}</div>`).join('');
+    }
+    cuerpo.scrollTop = cuerpo.scrollHeight;
+  }
+
+  async function cargarChatHumano(){
+    const { data, error } = await sb.rpc('mi_soporte_humano');
+    if(!error) pintarChatHumano(data || []);
+    actualizarBadgeSoporteHumano();
+  }
+
+  async function actualizarBadgeSoporteHumano(){
+    const { data, error } = await sb.rpc('mi_soporte_humano_sin_leer');
+    const badge = document.getElementById('badgeSoporteHumano');
+    if(!badge) return;
+    const n = (!error && data) ? data : 0;
+    badge.textContent = n;
+    badge.classList.toggle('oculto', !n);
+  }
+
+  async function enviarMensajeSoporteHumano(){
+    const input = document.getElementById('chatInputHumano');
+    const texto = input.value.trim();
+    if(!texto) return;
+    input.value = '';
+    input.style.height = 'auto';
+    const { error } = await sb.rpc('enviar_soporte_humano', { p_contenido: texto });
+    if(error){ alert('No se pudo enviar: ' + error.message); input.value = texto; return; }
+    cargarChatHumano();
+  }
+
+  let __intervaloChatHumano = null;
 
   function autoAjustarChatInput(el){
     el.style.height = 'auto';
@@ -9072,6 +9144,56 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   
+  async function cargarInboxSoporte(){
+    const { data, error } = await sb.rpc('admin_listar_conversaciones_soporte');
+    const cuerpo = document.getElementById('cuerpoInboxSoporte');
+    const badge = document.getElementById('badgeInboxSoporte');
+    if(error){ cuerpo.innerHTML = '<tr><td class="nota">No se pudo cargar: ' + escapar(error.message) + '</td></tr>'; return; }
+    const lista = data || [];
+    const totalSinLeer = lista.reduce((s, c) => s + Number(c.sin_leer || 0), 0);
+    if(badge){ badge.textContent = totalSinLeer; badge.classList.toggle('oculto', !totalSinLeer); }
+    if(!lista.length){ cuerpo.innerHTML = '<tr><td class="nota">Sin conversaciones todavía.</td></tr>'; return; }
+    cuerpo.innerHTML = lista.map(c => `
+      <tr style="cursor:pointer;" onclick="abrirConversacionSoporte('${c.negocio_id}', '${escaparAtributo(c.negocio_nombre)}')">
+        <td>
+          <div style="font-weight:600;">${escapar(c.negocio_nombre)}${Number(c.sin_leer) > 0 ? ` <span style="background:var(--error); color:#fff; border-radius:99px; padding:1px 7px; font-size:11px;">${c.sin_leer}</span>` : ''}</div>
+          <div class="nota" style="margin:2px 0 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:240px;">${escapar(c.ultimo_texto || '')}</div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  async function abrirConversacionSoporte(negocioId, nombre){
+    const panel = document.getElementById('panelConversacionSoporte');
+    panel.innerHTML = '<p class="nota">Cargando...</p>';
+    const { data, error } = await sb.rpc('admin_ver_conversacion_soporte', { p_negocio_id: negocioId });
+    if(error){ panel.innerHTML = '<p class="nota">No se pudo cargar: ' + escapar(error.message) + '</p>'; return; }
+    const mensajes = data || [];
+    panel.innerHTML = `
+      <h3 style="margin:0 0 12px;">${escapar(nombre)}</h3>
+      <div class="chat-panel-integrado" style="height:400px;">
+        <div class="chat-cuerpo" id="chatCuerpoAdminSoporte">${mensajes.map(m => `<div class="chat-burbuja ${m.rol_mensaje === 'usuario' ? 'asistente' : 'usuario'}">${escapar(m.contenido)}</div>`).join('') || '<p class="nota">Sin mensajes.</p>'}</div>
+        <div class="chat-pie">
+          <textarea id="chatInputAdminSoporte" rows="1" placeholder="Escribe tu respuesta..."></textarea>
+          <button type="button" class="principal" onclick="enviarRespuestaSoporte('${negocioId}', '${escaparAtributo(nombre)}')">Enviar</button>
+        </div>
+      </div>
+    `;
+    const cuerpo = document.getElementById('chatCuerpoAdminSoporte');
+    cuerpo.scrollTop = cuerpo.scrollHeight;
+    cargarInboxSoporte();
+  }
+
+  async function enviarRespuestaSoporte(negocioId, nombre){
+    const input = document.getElementById('chatInputAdminSoporte');
+    const texto = input.value.trim();
+    if(!texto) return;
+    input.value = '';
+    const { error } = await sb.rpc('admin_responder_soporte', { p_negocio_id: negocioId, p_contenido: texto });
+    if(error){ alert('No se pudo enviar: ' + error.message); input.value = texto; return; }
+    abrirConversacionSoporte(negocioId, nombre);
+  }
+
   async function cargarBugs(){
     const { data, error } = await sb.from('bugs_puve').select('*, negocios(nombre)').order('creado_en', { ascending: false }).limit(100);
     const cuerpo = document.getElementById('cuerpoBugs');
@@ -9466,7 +9588,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     setTimeout(() => anillo.remove(), 1600);
   }
 
-  // Dejameeee que yo no tengo la culpa de verte caeeeer, que rolón jajaja (quiero dormir)
+  
   function bucleEspectroVoz(){
     rafEspectro = requestAnimationFrame(bucleEspectroVoz);
     const canvas = document.getElementById('canvasEspectroVoz');
@@ -9526,7 +9648,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     });
   }
 
-  // Ya casi, solo hago los últimos retoques. Si tiene éxito haré cosas muy buenas de esto, pero sino, juro que me divertí. Yor fuera.
+  
   function escuchar(){
     return new Promise((resolve, reject) => {
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -9872,8 +9994,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   async function cargarHistorialCortes(){
-    // (esCajero solo existía dentro de otras funciones: aquí lanzaba ReferenceError
-    //  y la tabla nunca se llenaba aunque el corte sí se guardaba)
+    
+    
     const esCajero = miRol === 'vendedor';
     const encabezado = document.getElementById('encabezadoCortes');
     const cuerpo = document.getElementById('cuerpoCortes');
@@ -9931,12 +10053,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('gastoFecha').value = new Date().toISOString().slice(0, 10);
   }
 
-  // =====================================================
-  // Etapa 4 (Admin): Inventario — proveedores, órdenes de compra,
-  // mermas y ajustes de stock.
-  // =====================================================
+  
+  
+  
+  
 
-  // ---------- Proveedores ----------
+  
   async function cargarProveedores(){
     const { data, error } = await sb.from('proveedores').select('*').order('nombre');
     const cuerpo = document.getElementById('cuerpoProveedores');
@@ -9975,7 +10097,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     cargarProveedores();
   }
 
-  // ---------- Órdenes de compra ----------
+  
   let __renglonesOrdenActual = [];
 
   function agregarRenglonOrden(){
@@ -10068,7 +10190,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     cargarOrdenesCompra();
   }
 
-  // ---------- Mermas y ajustes ----------
+  
   function actualizarEtiquetaMovInventario(){
     const esAjuste = document.getElementById('movTipo').value === 'ajuste';
     document.getElementById('etiquetaMovCantidad').textContent = esAjuste ? 'Nuevo stock contado' : 'Cantidad perdida';
@@ -10319,7 +10441,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     try { return JSON.parse(sessionStorage.getItem('puve_suplantacion') || 'null'); } catch(e){ return null; }
   }
 
-  // Barra superior fija: aviso de suplantación + banners de PUVE para todos
+  
   var avisosVisibles = [];
   function pintarBarraSuperior(){
     const cont = document.getElementById('barraSuperiorPuve');
@@ -10337,7 +10459,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     cont.innerHTML = html;
   }
 
-  // ---------- Impersonación ----------
+  
   function suplantarNegocio(id, nombre){
     return suplantarCuenta({ negocio_id: id }, 'el encargado de "' + nombre + '"');
   }
@@ -10409,7 +10531,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     await entrarApp(u.user);
   }
 
-  // ---------- Panel de gestión por negocio (override) ----------
+  
   function cerrarModalGestion(){ document.getElementById('contenedorModalesPuve').innerHTML = ''; }
 
   async function abrirGestionNegocio(id){
@@ -10459,7 +10581,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
                     <div class="nota" style="margin:0; user-select:all;">${escapar(encargado.email)}</div></div>
                <button class="principal" style="width:auto;" onclick="suplantarNegocio('${n.id}', '${nombreAttr}')">Entrar a su cuenta</button>
              </div>
-             <p class="nota" style="margin:8px 0 0;">Entras como él, sin su contraseña. Queda registrado en la bitácora de seguridad.</p>`
+             <p class="nota" style="margin:8px 0 0;">Entras como él, sin su contraseña — queda en la bitácora de seguridad.</p>`
           : `<p class="nota" style="margin:0;">No se encontró el correo del encargado${rCorreo.error ? ' (' + escapar(rCorreo.error.message) + ' — ¿ya corriste puve_superadmin_gestion_saas.sql?)' : ''}.</p>`}
       </div>
 
@@ -10489,7 +10611,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
             ? `<button class="reactivar" onclick="gestionForzarPago('${n.id}', false)">Quitar pago forzado (prueba)</button>`
             : `<button class="eliminar" onclick="gestionForzarPago('${n.id}', true)">Solicitar pago ahora (prueba)</button>`}
         </div>
-        <p class="nota" style="margin:8px 0 0;">"Solicitar pago ahora" es para probar el flujo de cobro: manda al negocio a la pantalla de pago pendiente de inmediato, sin importar si ya pagó este periodo o no. Se quita solo en cuanto haga un pago de verdad (con tarjeta o confirmado a mano), o lo puedes quitar aquí manualmente.</p>
+        <p class="nota" style="margin:8px 0 0;">Manda al negocio a la pantalla de pago de inmediato, sin importar si ya pagó. Se quita solo en cuanto pague de verdad, o lo quitas aquí a mano.</p>
       </div>
 
       <div class="seccion-modal">
@@ -10565,7 +10687,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     await pintarGestionNegocio(id);
   }
 
-  // ---------- Vista previa de pantallas de bloqueo ----------
+  
   async function previsualizarVista(tipo, id){
     const { data: n } = await sb.from('negocios').select('nombre, motivo_baneo, tipo_plan, dispositivos_permitidos').eq('id', id).maybeSingle();
     cerrarModalGestion();
@@ -10602,8 +10724,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   function cerrarVistaPrevia(){
     document.getElementById('vistaBaneado').style.display = 'none';
     document.getElementById('vistaPagoPendiente').style.display = 'none';
-    // btnGenerarFicha se queda oculto por defecto: lo controla el interruptor
-    // global de configuracion_puve, no esta vista previa.
+    
+    
     document.getElementById('btnPagarUnicoStripe').classList.remove('oculto');
     document.getElementById('btnPagarSuscripcionStripe').classList.remove('oculto');
     document.body.classList.remove('vista-previa-activa');
@@ -10611,7 +10733,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('contenedorModalesPuve').innerHTML = '';
   }
 
-  // ---------- Métricas de adopción / churn / DAU ----------
+  
   async function cargarMetricasSaas(){
     const cont = document.getElementById('contenidoMetricas');
     cont.innerHTML = '<p class="nota">Calculando...</p>';
@@ -10675,7 +10797,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       </div>`;
   }
 
-  // Cuenta un "usuario activo" por día (una sola vez por usuario y día)
+  
   async function registrarActividadDiaria(){
     try {
       if(suplantacionActiva() || esAdminActual || !enLinea) return;
@@ -10689,7 +10811,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     } catch(e){}
   }
 
-  // ---------- Avisos en vivo (broadcast) ----------
+  
   var canalAvisos = null, ultimoFetchAvisos = 0;
 
   function avisosDescartados(){
@@ -10803,23 +10925,23 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
 
-  // =====================================================
-  //  INVITA Y GANA (referidos)
-  // =====================================================
-  // Valores de referencia para mostrar la oferta antes de iniciar sesión;
-  // una vez dentro se usan los que devuelve el servidor (configuracion_puve).
+  
+  
+  
+  
+  
   const REFERIDO_PORC_DEFECTO = 25, REFERIDO_MESES_DEFECTO = 3, REFERIDO_DESC_ANUAL_DEFECTO = 250;
 
   function precioReferidoMensualBase(){
     return Math.round(precioMensualDispositivo * (1 - REFERIDO_PORC_DEFECTO / 100) * 100) / 100;
   }
 
-  // Enlace de registro con el código ya cargado; funciona en cualquier servidor
+  
   function enlaceReferido(codigo){
     return location.origin + location.pathname + '?ref=' + encodeURIComponent(codigo);
   }
 
-  // Guarda el código que venga en el enlace (?ref=PUVE-XXXX) y prellena el registro
+  
   (function capturarReferidoDeURL(){
     try {
       const ref = new URLSearchParams(location.search).get('ref');
@@ -10840,8 +10962,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     cambiarTab('registro');
   }
 
-  // Aplica el código a la cuenta recién creada. Si no hay red o falla, la clave
-  // queda guardada y se reintenta en el siguiente inicio de sesión.
+  
+  
   async function aplicarReferidoPendiente(codigoForm){
     let codigo = (codigoForm || '').trim().toUpperCase();
     try { if(!codigo) codigo = (localStorage.getItem('puve_ref') || '').trim().toUpperCase(); } catch(e){}
@@ -11040,7 +11162,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     y += 4;
     y += 4;
 
-    // QR de verificación: lleva al mismo enlace del ticket digital
+    
     let qrUrl = null;
     try {
       if(ticket.venta_id) qrUrl = generarQREstilizadoDataURL(location.origin + location.pathname + '#ticket=' + ticket.venta_id, 320);
@@ -11055,7 +11177,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       y += lado + 10;
     }
 
-    // Leyenda de origen: cuándo y dónde (datos del negocio) se generó
+    
     const lugarDetalle = [ticket.municipio, ticket.estado, ticket.pais].filter(Boolean).join(', ') + (ticket.codigo_postal ? ' · C.P. ' + ticket.codigo_postal : '');
     const lugar = lugarDetalle.trim() || ticket.ubicacion || '';
     const generado = new Date(ticket.fecha).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'medium', hour12: false });
@@ -11210,7 +11332,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   <p class="tarjeta-tutorial-texto" id="textoTutorial"></p>
   <button type="button" class="tarjeta-tutorial-boton" onclick="cerrarTarjetaTutorial()">Entendido</button>
 </div>
-<!-- TOMALA YA TERMINE 🔥🥵 -->
+
 <footer class="pie-pagina">
   <div class="pie-contenido">
     <span>&copy; <span id="footerAnio"></span> PUVE. Todos los derechos reservados.</span>
