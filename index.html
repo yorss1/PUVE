@@ -2471,6 +2471,23 @@
     </div>
 
     <div class="emb-seccion">
+      <p class="emb-titulo">Recursos para compartir</p>
+      <div class="emb-acciones">
+        <button onclick="if(funcionPuveActiva('embajador.compartir')) compartirEmbajadorFacebook()">Facebook</button>
+        <button onclick="if(funcionPuveActiva('embajador.compartir')) compartirEmbajadorTelegram()">Telegram</button>
+      </div>
+      <div class="emb-acciones" style="margin-top:8px;">
+        <button onclick="if(funcionPuveActiva('embajador.compartir')) compartirEmbajadorX()">X (Twitter)</button>
+        <button onclick="if(!funcionPuveActiva('embajador.copiar')) return; copiarMensajeEmbajador(this)">Copiar mensaje</button>
+      </div>
+      <p class="nota" style="margin:10px 0 0;">Para Instagram o TikTok: usa "Copiar mensaje" y pégalo en tu bio o en la descripción de tu publicación.</p>
+      <div class="emb-acciones" style="margin-top:14px;">
+        <button onclick="if(funcionPuveActiva('embajador.descargar_folleto')) descargarFolletoEmbajadorPDF(this)">Folleto (PDF)</button>
+        <button onclick="if(funcionPuveActiva('embajador.descargar_banner')) descargarBannerEmbajador(this)">Banner (imagen)</button>
+      </div>
+    </div>
+
+    <div class="emb-seccion">
       <p class="emb-titulo">Tus referidos</p>
       <div class="emb-fila"><div class="l"><div class="t">Negocios que trajiste</div></div><div class="r" id="embTotal">0</div></div>
       <div class="emb-fila"><div class="l"><div class="t">Ya pagaron</div><div class="s" id="embTasa"></div></div><div class="r" id="embPagados">0</div></div>
@@ -3306,6 +3323,139 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     window.open('https://wa.me/?text=' + encodeURIComponent(mensajeEmbajadorWhatsApp()), '_blank', 'noopener');
   }
 
+  function compartirEmbajadorFacebook(){
+    if(!window.__embajadorActual) return;
+    window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(enlaceEmbajador(window.__embajadorActual.codigo)), '_blank', 'noopener');
+  }
+
+  function compartirEmbajadorTelegram(){
+    if(!window.__embajadorActual) return;
+    const emb = window.__embajadorActual;
+    window.open('https://t.me/share/url?url=' + encodeURIComponent(enlaceEmbajador(emb.codigo)) + '&text=' + encodeURIComponent('Conozco PUVE, un sistema para controlar las ventas de tu negocio. Regístrate con este enlace y me ayudas a mí también:'), '_blank', 'noopener');
+  }
+
+  function compartirEmbajadorX(){
+    if(!window.__embajadorActual) return;
+    window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(mensajeEmbajadorWhatsApp()), '_blank', 'noopener');
+  }
+
+  async function copiarMensajeEmbajador(boton){
+    if(!window.__embajadorActual) return;
+    const texto = mensajeEmbajadorWhatsApp();
+    try { await navigator.clipboard.writeText(texto); }
+    catch(e){
+      const t = document.createElement('textarea'); t.value = texto; document.body.appendChild(t); t.select();
+      try { document.execCommand('copy'); } catch(e2){} t.remove();
+    }
+    if(boton){ const original = boton.textContent; boton.textContent = 'Copiado ✓'; setTimeout(() => boton.textContent = original, 1600); }
+  }
+
+  // ---------- Folleto PDF y banner de imagen para el embajador ----------
+  async function descargarFolletoEmbajadorPDF(boton){
+    if(!window.__embajadorActual || typeof window.jspdf === 'undefined') return;
+    const original = boton?.textContent;
+    if(boton){ boton.disabled = true; boton.textContent = 'Generando...'; }
+    try {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+      const margen = 56;
+      const NEGRO = [24, 24, 27], GRIS = [113, 113, 122];
+      const enlace = enlaceEmbajador(window.__embajadorActual.codigo);
+
+      doc.setFillColor(...NEGRO);
+      doc.rect(0, 0, pageW, pageH, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(30);
+      doc.text('PUVE', margen, 100);
+      doc.setFontSize(20); doc.setFont('helvetica', 'normal');
+      doc.text('Controla las ventas de tu negocio', margen, 132);
+      doc.text('desde tu celular o tableta.', margen, 158);
+
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(15);
+      doc.text('Regístrate gratis 15 días con este código:', margen, 230);
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(margen, 250, 260, 60, 8, 8, 'F');
+      doc.setTextColor(...NEGRO); doc.setFontSize(26); doc.setFont('helvetica', 'bold');
+      doc.text(window.__embajadorActual.codigo, margen + 20, 288);
+
+      const qrDataUrl = generarQREstilizadoDataURL(enlace, 220);
+      doc.addImage(qrDataUrl, 'PNG', pageW - margen - 220, 210, 220, 220);
+      doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+      doc.text('Escanea para registrarte', pageW - margen - 220, 445, { maxWidth: 220 });
+
+      doc.setFontSize(11); doc.setTextColor(...[200, 200, 203]);
+      const lineas = doc.splitTextToSize(enlace, pageW - margen * 2);
+      doc.text(lineas, margen, 350);
+
+      doc.setDrawColor(...[63, 63, 70]); doc.setLineWidth(1);
+      doc.line(margen, pageH - 110, pageW - margen, pageH - 110);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(...GRIS);
+      const nota = 'No necesitas tener tu propio negocio para ganar. Comparte tu código y gana una comisión cuando el negocio que refieres haga su primer pago.';
+      doc.text(doc.splitTextToSize(nota, pageW - margen * 2), margen, pageH - 80);
+
+      doc.save('folleto-puve-' + window.__embajadorActual.codigo + '.pdf');
+    } finally {
+      if(boton){ boton.disabled = false; boton.textContent = original; }
+    }
+  }
+
+  async function descargarBannerEmbajador(boton){
+    if(!window.__embajadorActual) return;
+    const original = boton?.textContent;
+    if(boton){ boton.disabled = true; boton.textContent = 'Generando...'; }
+    try {
+      const tam = 1080;
+      const canvas = document.createElement('canvas');
+      canvas.width = tam; canvas.height = tam;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#18181B';
+      ctx.fillRect(0, 0, tam, tam);
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 64px Inter, sans-serif';
+      ctx.fillText('PUVE', 70, 130);
+
+      ctx.font = '400 40px Inter, sans-serif';
+      ctx.fillText('Controla las ventas de tu negocio', 70, 220);
+      ctx.fillText('desde tu celular.', 70, 268);
+
+      ctx.font = '600 32px Inter, sans-serif';
+      ctx.fillText('Regístrate gratis 15 días con:', 70, 370);
+
+      ctx.fillStyle = '#FFFFFF';
+      trazarRectRedondeado(ctx, 70, 400, 420, 90, 14); ctx.fill();
+      ctx.fillStyle = '#18181B';
+      ctx.font = 'bold 46px Inter, sans-serif';
+      ctx.fillText(window.__embajadorActual.codigo, 96, 460);
+
+      const tamQR = 340;
+      const qrCanvas = document.createElement('canvas');
+      dibujarQREnCanvas(qrCanvas, enlaceEmbajador(window.__embajadorActual.codigo), tamQR);
+      const fondoQR = 24;
+      ctx.fillStyle = '#FFFFFF';
+      trazarRectRedondeado(ctx, tam - tamQR - 70 - fondoQR, tam - tamQR - 70 - fondoQR, tamQR + fondoQR * 2, tamQR + fondoQR * 2, 14); ctx.fill();
+      ctx.drawImage(qrCanvas, tam - tamQR - 70, tam - tamQR - 70, tamQR, tamQR);
+
+      ctx.fillStyle = '#A1A1AA';
+      ctx.font = '400 26px Inter, sans-serif';
+      ctx.fillText('No necesitas negocio propio', 70, tam - 150);
+      ctx.fillText('para ganar comisión.', 70, tam - 115);
+
+      canvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'banner-puve-' + window.__embajadorActual.codigo + '.png';
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+      }, 'image/png');
+    } finally {
+      if(boton){ boton.disabled = false; boton.textContent = original; }
+    }
+  }
+
   async function copiarEmbajador(que){
     if(!window.__embajadorActual) return;
     const texto = que === 'enlace' ? enlaceEmbajador(window.__embajadorActual.codigo) : window.__embajadorActual.codigo;
@@ -3488,6 +3638,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     { id: 'embajador.conectar_stripe', categoria: 'Embajador', etiqueta: 'Conectar con Stripe', descripcion: 'Botón para vincular la cuenta bancaria del embajador vía Stripe Connect.' },
     { id: 'embajador.compartir', categoria: 'Embajador', etiqueta: 'Compartir código', descripcion: 'Botón "Compartir" (WhatsApp) del código de embajador.' },
     { id: 'embajador.copiar', categoria: 'Embajador', etiqueta: 'Copiar enlace', descripcion: 'Botón "Copiar" del enlace de referido del embajador.' },
+    { id: 'embajador.descargar_folleto', categoria: 'Embajador', etiqueta: 'Descargar folleto (PDF)', descripcion: 'Folleto de una página con el código y QR del embajador, listo para imprimir o compartir.' },
+    { id: 'embajador.descargar_banner', categoria: 'Embajador', etiqueta: 'Descargar banner (imagen)', descripcion: 'Imagen cuadrada con el código y QR del embajador, para publicar en redes sociales.' },
   ];
 
   // Cualquier usuario logueado: trae solo {activo, nota} por id.
