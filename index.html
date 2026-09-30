@@ -741,7 +741,7 @@
             <button type="button" class="texto" onclick="copiarPasswordRegistro()" style="flex:1; border:1px solid var(--borde); border-radius:7px; padding:7px 0;">Copiar</button>
             <button type="button" class="texto" id="btnCompartirPassword" onclick="compartirPasswordRegistro()" style="flex:1; border:1px solid var(--borde); border-radius:7px; padding:7px 0;">Compartir</button>
           </div>
-          <p class="nota" style="margin-top:8px;">Guárda tu contraseña en un lugar seguro, la necesitarás para iniciar sesión.</p>
+          <p class="nota" style="margin-top:8px;">Guarda la contraseña en un lugar seguro, la necesitarás para iniciar sesión.</p>
         </div>
         <button class="principal" type="submit" id="btnRegistro">Crear cuenta</button>
       </form>
@@ -757,7 +757,7 @@
           <div style="display:flex; gap:8px; margin-top:8px;">
             <button type="button" class="texto" onclick="navigator.clipboard?.writeText(document.getElementById('embPass').value); mostrarMensaje('mensajeAuth','Contraseña copiada al portapapeles.','exito');" style="flex:1; border:1px solid var(--borde); border-radius:7px; padding:7px 0;">Copiar</button>
           </div>
-          <p class="nota" style="margin-top:8px;">Guárda tu contraseña en un lugar seguro, la necesitarás para iniciar sesión.</p>
+          <p class="nota" style="margin-top:8px;">Guarda la contraseña en un lugar seguro, la necesitarás para iniciar sesión.</p>
         </div>
         <button class="principal" type="submit" id="btnRegistroEmbajador">Crear cuenta de Embajador</button>
       </form>
@@ -807,6 +807,18 @@
             <button type="button" class="texto" onclick="document.getElementById('modalAutorizacionPin').classList.add('oculto'); __accionPendientePin=null;">Cancelar</button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <div class="modal-puve-fondo oculto" id="modalEstadoCuentaCliente" onclick="if(event.target===this) this.classList.add('oculto')">
+      <div class="modal-puve" style="max-width:460px;">
+        <h2 style="margin:0 0 4px;" id="tituloEstadoCuentaCliente">Estado de cuenta</h2>
+        <p class="nota" style="margin:0 0 16px;">Historial de cargos (ventas a crédito) y abonos de este cliente.</p>
+        <div class="envoltura-tabla" style="max-height:360px; overflow-y:auto;"><table>
+          <thead><tr><th>Fecha</th><th>Movimiento</th><th>Método</th><th>Monto</th></tr></thead>
+          <tbody id="cuerpoEstadoCuentaCliente"><tr><td colspan="4" class="nota">Cargando...</td></tr></tbody>
+        </table></div>
+        <button class="texto" type="button" style="width:100%; margin-top:14px;" onclick="document.getElementById('modalEstadoCuentaCliente').classList.add('oculto')">Cerrar</button>
       </div>
     </div>
 
@@ -4752,6 +4764,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <td style="white-space:nowrap;">
           <button type="button" class="texto" style="width:auto; font-size:12px; padding:4px 0;" onclick="event.stopPropagation(); editarLimiteCreditoCliente('${c.id}', '${escaparAtributo(c.telefono)}', ${c.limite_credito})">Crédito</button>
           ${Number(c.saldo_credito) > 0 ? `<button type="button" class="texto" style="width:auto; font-size:12px; padding:4px 0 4px 10px;" onclick="event.stopPropagation(); registrarAbonoClienteDirectorio('${escaparAtributo(c.telefono)}', ${c.saldo_credito})">Cobrar abono</button>` : ''}
+          <button type="button" class="texto" style="width:auto; font-size:12px; padding:4px 0 4px 10px;" onclick="event.stopPropagation(); verEstadoCuentaCliente('${c.id}', '${escaparAtributo(c.nombre || c.telefono)}')">Historial</button>
         </td>
       </tr>
     `).join('');
@@ -4760,6 +4773,26 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       fila.style.cursor = 'pointer';
       fila.querySelector('td:nth-child(2)').addEventListener('click', () => editarNombreClienteRecompensas(fila));
     });
+  }
+
+  async function verEstadoCuentaCliente(clienteId, nombre){
+    document.getElementById('tituloEstadoCuentaCliente').textContent = 'Estado de cuenta — ' + nombre;
+    document.getElementById('cuerpoEstadoCuentaCliente').innerHTML = '<tr><td colspan="4" class="nota">Cargando...</td></tr>';
+    document.getElementById('modalEstadoCuentaCliente').classList.remove('oculto');
+
+    const { data, error } = await sb.rpc('estado_cuenta_cliente', { p_cliente_id: clienteId });
+    const cuerpo = document.getElementById('cuerpoEstadoCuentaCliente');
+    if(error){ cuerpo.innerHTML = '<tr><td colspan="4" class="nota">No se pudo cargar: ' + escapar(error.message) + '</td></tr>'; return; }
+    if(!data || !data.length){ cuerpo.innerHTML = '<tr><td colspan="4" class="nota">Sin movimientos todavía.</td></tr>'; return; }
+    const etiquetas = { cargo: 'Compra a crédito', abono: 'Abono' };
+    cuerpo.innerHTML = data.map(m => `
+      <tr>
+        <td>${new Date(m.creado_en).toLocaleDateString('es-MX')}</td>
+        <td>${etiquetas[m.tipo] || m.tipo}</td>
+        <td>${m.metodo_pago ? escapar(m.metodo_pago) : '—'}</td>
+        <td style="color:${m.tipo === 'cargo' ? 'var(--error)' : 'var(--exito)'}; font-weight:600;">${m.tipo === 'cargo' ? '+' : '-'}${formatoDinero(m.monto)}</td>
+      </tr>
+    `).join('');
   }
 
   async function editarLimiteCreditoCliente(id, telefono, limiteActual){
