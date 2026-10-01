@@ -974,17 +974,17 @@
       <div class="marca">PUVE</div>
       <div class="badge-dispositivos" id="badgeRol" style="display:none;"></div>
       <div class="nav" id="navPrincipal">
-        <button id="navVender" class="activo" onclick="conTutorial('nav-vender', this, cambiarSeccion, 'vender')">Vender</button>
+        <button id="navVender" class="activo" onclick="conTutorial('nav-vender', this, function(){ if(funcionPuveActiva('cajero.nav_vender')) cambiarSeccion('vender'); })">Vender</button>
         <button id="navProductos" onclick="conTutorial('nav-productos', this, function(){ if(funcionPuveActiva('admin.nav_productos')) cambiarSeccion('productos'); })">Productos</button>
         <button id="navCorte" onclick="conTutorial('nav-corte', this, function(){ if(funcionPuveActiva('cajero.nav_corte')) cambiarSeccion('corte'); })">Corte de caja</button>
         <button id="navDevoluciones" class="oculto" onclick="conTutorial('nav-devoluciones', this, function(){ if(funcionPuveActiva('cajero.nav_devoluciones')) cambiarSeccion('devoluciones'); })">Devoluciones</button>
-        <button id="navGastos" class="oculto" onclick="conTutorial('nav-gastos', this, function(){ if(funcionPuveActiva('admin.guardar_gasto')) cambiarSeccion('gastos'); })">Gastos</button>
+        <button id="navGastos" class="oculto" onclick="conTutorial('nav-gastos', this, function(){ if(funcionPuveActiva('admin.nav_gastos')) cambiarSeccion('gastos'); })">Gastos</button>
         <button id="navInventario" class="oculto" onclick="conTutorial('nav-inventario', this, function(){ if(funcionPuveActiva('admin.nav_inventario')) cambiarSeccion('inventario'); })">Inventario</button>
         <button id="navAnalitica" onclick="conTutorial('nav-analitica', this, function(){ if(funcionPuveActiva('analista.nav_analitica')) cambiarSeccion('analitica'); })">Analítica</button>
-        <button id="navDispositivos" onclick="conTutorial('nav-dispositivos', this, cambiarSeccion, 'dispositivos')">Dispositivos</button>
+        <button id="navDispositivos" onclick="conTutorial('nav-dispositivos', this, function(){ if(funcionPuveActiva('admin.nav_dispositivos')) cambiarSeccion('dispositivos'); })">Dispositivos</button>
         <button id="navConfig" class="oculto" onclick="conTutorial('nav-config', this, function(){ if(funcionPuveActiva('admin.nav_config')) cambiarSeccion('config'); })">Configuración</button>
         <button id="navFiscal" class="oculto" onclick="conTutorial('nav-fiscal', this, function(){ if(funcionPuveActiva('admin.nav_fiscal')) cambiarSeccion('fiscal'); })">Declaración SAT</button>
-        <button id="navSoporte" class="oculto" onclick="conTutorial('nav-soporte', this, cambiarSeccion, 'soporte')">Atención a cliente</button>
+        <button id="navSoporte" class="oculto" onclick="conTutorial('nav-soporte', this, function(){ if(funcionPuveActiva('admin.nav_soporte')) cambiarSeccion('soporte'); })">Atención a cliente</button>
         <button id="navAdmin" class="admin oculto" onclick="conTutorial('nav-admin', this, cambiarSeccion, 'admin')">Admin</button>
         <div class="nav-movil-extra">
           <button type="button" onclick="abrirPanelApariencia()">Apariencia</button>
@@ -1783,6 +1783,16 @@
       </div>
 
       <div class="bloque-analitica" style="margin-bottom:20px;">
+        <h3 style="margin-bottom:4px;">Solicitudes de factura</h3>
+        <p class="nota" style="margin:0 0 14px;">Lo que piden tus clientes desde su ticket. Márcalas cuando ya se las hayas hecho llegar.</p>
+        <div id="mensajeSolicitudesFactura" class="mensaje"></div>
+        <div class="envoltura-tabla"><table>
+          <thead><tr><th>Fecha</th><th>Cliente</th><th>RFC</th><th>Uso</th><th>Estado</th><th></th></tr></thead>
+          <tbody id="cuerpoSolicitudesFactura"><tr><td colspan="6" class="nota">Sin solicitudes todavía.</td></tr></tbody>
+        </table></div>
+      </div>
+
+      <div class="bloque-analitica" style="margin-bottom:20px;">
         <h3 style="margin-bottom:10px;">Datos fiscales del negocio</h3>
         <p class="nota" style="margin-bottom:14px;">Se usan para encabezar el documento.</p>
         <div id="mensajeDatosFiscales" class="mensaje"></div>
@@ -2233,7 +2243,7 @@
       </div>
 
       <div id="vistaAdminControles" style="display:none;">
-        <p class="nota" style="margin:0 0 16px;">Apaga cualquier botón sin tocar código. Quien lo use verá el aviso que escribas, en vez de poder usarlo.</p>
+        <p class="nota" style="margin:0 0 16px;">Apaga cualquier botón o pestaña sin tocar código. Si es una pestaña completa, desaparece del menú para todos; si es una acción puntual, el usuario ve el aviso que escribas en vez de poder usarla.</p>
         <input type="search" id="buscadorControles" placeholder="Buscar por nombre..." oninput="pintarControlesFunciones()" style="width:100%; padding:11px 14px; border:1px solid var(--borde); border-radius:8px; background:var(--superficie); color:var(--texto); font-family:'Inter'; font-size:14px; margin-bottom:20px;">
         <div id="mensajeControlesFunciones" class="mensaje"></div>
         <div id="listaControlesFunciones"></div>
@@ -3000,7 +3010,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       try { await navigator.share({ text: texto }); } catch(e){  }
     } else {
       navigator.clipboard?.writeText(val);
-      mostrarMensaje('mensajeAuth', 'Tu navegador no tiene menú para compartir — la copiamos, pégala donde quieras.', 'exito');
+      mostrarMensaje('mensajeAuth', 'Tu navegador no tiene menú para compartir, así que la copiamos — pégala donde quieras.', 'exito');
     }
   }
 
@@ -3638,6 +3648,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   
   
   const CATALOGO_CONTROLES_PUVE = [
+    { id: 'cajero.nav_vender', categoria: 'Cajero', etiqueta: 'Sección Vender', descripcion: 'Toda la pantalla de ventas del cajero. Al desactivarla, el botón desaparece del menú para todos.' },
+    { id: 'admin.nav_dispositivos', categoria: 'Admin', etiqueta: 'Sección Dispositivos', descripcion: 'Pestaña "Dispositivos" completa. Al desactivarla, el botón desaparece del menú para todos.' },
+    { id: 'admin.nav_soporte', categoria: 'Admin', etiqueta: 'Sección Atención a cliente', descripcion: 'Pestaña de soporte (asistente y chat humano). Al desactivarla, el botón desaparece del menú para todos.' },
     { id: 'admin.nav_productos', categoria: 'Admin', etiqueta: 'Pestaña Productos', descripcion: 'Botón de navegación "Productos" en el punto de venta.' },
     { id: 'admin.nav_gastos', categoria: 'Admin', etiqueta: 'Pestaña Gastos', descripcion: 'Botón de navegación "Gastos".' },
     { id: 'admin.nav_config', categoria: 'Admin', etiqueta: 'Pestaña Configuración', descripcion: 'Botón de navegación "Configuración" del negocio.' },
@@ -3664,6 +3677,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   async function cargarControlesFuncionesPuve(){
     const { data, error } = await sb.rpc('obtener_controles_funciones_puve');
     window.__controlesFuncionesPuve = (!error && data) ? data : {};
+    if(miRol && document.getElementById('navVender')) aplicarControlesNav();
   }
 
   
@@ -3684,6 +3698,33 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
   
   let __controlesFuncionesCompletos = [];
+
+  function aplicarControlesNav(){
+    const esCajero = miRol === 'vendedor';
+    const esEncargado = miRol === 'admin';
+    const esAnalista = miRol === 'analista';
+    const mapa = {
+      navVender: ['cajero.nav_vender', !esAdminActual && !esEncargado && !esAnalista],
+      navProductos: ['admin.nav_productos', !esAdminActual && !esAnalista],
+      navCorte: ['cajero.nav_corte', !esAdminActual && !esAnalista && !!configNegocio.corte_caja],
+      navDevoluciones: ['cajero.nav_devoluciones', !esAdminActual && !esAnalista && !!configNegocio.devoluciones],
+      navGastos: ['admin.nav_gastos', !esAdminActual && !esCajero && !esAnalista],
+      navInventario: ['admin.nav_inventario', !esAdminActual && !esCajero && !esAnalista],
+      navAnalitica: ['analista.nav_analitica', !esAdminActual && !esCajero],
+      navDispositivos: ['admin.nav_dispositivos', !esAdminActual && !esCajero && !esAnalista],
+      navConfig: ['admin.nav_config', !esAdminActual && !esCajero && !esAnalista],
+      navFiscal: ['admin.nav_fiscal', !esAdminActual && !esCajero && !esAnalista],
+      navSoporte: ['admin.nav_soporte', !esAdminActual],
+    };
+    for(const idBoton in mapa){
+      const el = document.getElementById(idBoton);
+      if(!el) continue;
+      const [idControl, permitidoPorRol] = mapa[idBoton];
+      const c = window.__controlesFuncionesPuve && window.__controlesFuncionesPuve[idControl];
+      const activo = !(c && c.activo === false);
+      el.classList.toggle('oculto', !permitidoPorRol || !activo);
+    }
+  }
 
   async function cargarControlesFunciones(){
     const catalogoJson = CATALOGO_CONTROLES_PUVE.map(x => ({ id: x.id, categoria: x.categoria, etiqueta: x.etiqueta, descripcion: x.descripcion }));
@@ -4057,6 +4098,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('navConfig').classList.toggle('oculto', esAdminActual || esCajero || esAnalista);
     document.getElementById('navFiscal').classList.toggle('oculto', esAdminActual || esCajero || esAnalista);
     document.getElementById('navSoporte').classList.toggle('oculto', esAdminActual);
+    aplicarControlesNav();
     aplicarConfiguracionUI();
 
     if(esAdminActual){
@@ -4160,7 +4202,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       window.__sessionPagoStripe = paramsRegreso.get('session_id') || null;
       try{ if(window.__sessionPagoStripe) sessionStorage.setItem('puve_sess_pago', window.__sessionPagoStripe); }catch(e){}
       history.replaceState(null, '', location.pathname + location.hash);
-      mostrarMensaje('mensajePagoPendiente', 'Regresaste de Stripe. Si elegiste transferencia u OXXO, descarga tu comprobante de pago abajo, imprímelo y paga. Si pagaste con tarjeta, espera unos segundos y toca "Ya pagué, actualizar".', 'exito');
+      mostrarMensaje('mensajePagoPendiente', 'Ya regresaste de Stripe. Si elegiste transferencia u OXXO, descarga tu comprobante abajo. Si pagaste con tarjeta, espera unos segundos y toca "Ya pagué, actualizar".', 'exito');
     }
     document.getElementById('bloqueBloqueoManual').classList.toggle('oculto', !bloqueoManual);
     document.getElementById('bloquePlanPago').classList.toggle('oculto', !!bloqueoManual);
@@ -5152,6 +5194,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     mostrarMensaje('mensajeConfig', 'Guardado.', 'exito');
     document.getElementById('navCorte').classList.toggle('oculto', esAdminActual || !configNegocio.corte_caja);
     document.getElementById('navDevoluciones').classList.toggle('oculto', esAdminActual || !configNegocio.devoluciones);
+    aplicarControlesNav();
     aplicarConfiguracionUI();
   }
 
@@ -5259,7 +5302,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
     window.__solicitudCambioPlanPendiente = solicitud;
     await mostrarFichaCambioPlan(folio, monto);
-    mostrarMensaje('mensajeCambioPlan', 'Genera tu comprobante y deposita — tu plan cambiará en cuanto termine tu periodo actual pagado.', 'exito');
+    mostrarMensaje('mensajeCambioPlan', 'Genera tu comprobante y deposita — el plan cambia en cuanto termine tu periodo pagado.', 'exito');
   }
 
   async function mostrarFichaCambioPlan(folio, monto){
@@ -5396,7 +5439,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('bloqueFichaCajeroExtra').classList.remove('oculto');
     btn.classList.add('oculto');
 
-    mostrarMensaje('mensajeAgregarCajero', 'Genera tu comprobante y realiza el depósito — tu cajero se activará en cuanto se confirme el pago, no antes. Puedes cancelar esta solicitud desde Dispositivos si cambias de opinión.', 'exito');
+    mostrarMensaje('mensajeAgregarCajero', 'Genera tu comprobante y deposita — el cajero se activa en cuanto se confirme el pago. Puedes cancelarlo desde Dispositivos si cambias de opinión.', 'exito');
     btn.disabled = false;
     await cargarSolicitudCajeroPendiente();
   }
@@ -5454,6 +5497,32 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
   
   let tipoPeriodoFiscal = 'mensual';
+
+  async function cargarSolicitudesFactura(){
+    const { data, error } = await sb.from('solicitudes_factura').select('*').order('creado_en', { ascending: false }).limit(50);
+    const cuerpo = document.getElementById('cuerpoSolicitudesFactura');
+    if(error){ cuerpo.innerHTML = '<tr><td colspan="6" class="nota">No se pudo cargar: ' + escapar(error.message) + '</td></tr>'; return; }
+    if(!data.length){ cuerpo.innerHTML = '<tr><td colspan="6" class="nota">Sin solicitudes todavía.</td></tr>'; return; }
+    const etiquetas = { pendiente: 'Pendiente', facturada: 'Facturada', rechazada: 'Rechazada' };
+    const clases = { pendiente: 'bajo', facturada: 'activo-si', rechazada: 'baneado' };
+    cuerpo.innerHTML = data.map(s => `
+      <tr>
+        <td>${new Date(s.creado_en).toLocaleDateString('es-MX')}</td>
+        <td>${escapar(s.razon_social)}${s.correo ? '<div class="nota" style="margin:2px 0 0;">' + escapar(s.correo) + '</div>' : ''}</td>
+        <td>${escapar(s.rfc)}</td>
+        <td>${escapar(s.uso_cfdi || '—')}</td>
+        <td><span class="badge ${clases[s.estado] || ''}">${etiquetas[s.estado] || s.estado}</span></td>
+        <td class="acciones">${s.estado === 'pendiente' ? `<button class="reactivar" onclick="resolverSolicitudFactura('${s.id}', 'facturada')">Facturada</button><button class="eliminar" onclick="resolverSolicitudFactura('${s.id}', 'rechazada')">Rechazar</button>` : ''}</td>
+      </tr>
+    `).join('');
+  }
+
+  async function resolverSolicitudFactura(id, estado){
+    const notas = estado === 'rechazada' ? prompt('¿Por qué la rechazas? (opcional)') : null;
+    const { error } = await sb.rpc('admin_resolver_solicitud_factura', { p_id: id, p_estado: estado, p_notas: notas });
+    if(error){ mostrarMensaje('mensajeSolicitudesFactura', 'No se pudo actualizar: ' + error.message, 'error'); return; }
+    cargarSolicitudesFactura();
+  }
 
   async function cargarDatosFiscales(){
     const hoy = new Date();
@@ -5968,6 +6037,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('navConfig').classList.toggle('oculto', esCajero);
     document.getElementById('navFiscal').classList.toggle('oculto', esCajero);
     document.getElementById('navSoporte').classList.remove('oculto');
+    aplicarControlesNav();
     aplicarConfiguracionUI();
     await verificarDispositivo();
     return false;
@@ -6089,7 +6159,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       prepararBloqueAgregarCajero();
       renderizarListaTutoriales();
     }
-    if(cual === 'fiscal'){ cargarDatosFiscales(); }
+    if(cual === 'fiscal'){ cargarDatosFiscales(); cargarSolicitudesFactura(); }
     if(cual === 'admin'){ aplicarVisibilidadPanelAdmin(); cargarAdminNegocios(); cargarListaAdmins(); cambiarVistaAdmin('negocios'); }
   }
 
@@ -6728,7 +6798,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     }
 
     if(metodoPago === 'credito' && !enLinea){
-      mostrarMensaje('mensajeVenta', 'Necesitas conexión para vender a crédito — así se valida el límite disponible del cliente.', 'error');
+      mostrarMensaje('mensajeVenta', 'Para vender a crédito necesitas conexión, así se valida el límite del cliente.', 'error');
       btn.textContent = 'Cobrar';
       btn.disabled = false;
       return;
@@ -6736,11 +6806,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
     if(!enLinea){
       if(telefonoCliente){
-        mostrarMensaje('mensajeVenta', 'Sin conexión: la venta se guardará, pero los puntos de recompensa no se pueden acumular ni canjear sin internet.', 'error');
+        mostrarMensaje('mensajeVenta', 'Sin conexión: la venta se guarda, pero los puntos no se pueden acumular ni canjear hasta que vuelva internet.', 'error');
       }
       guardarVentaEnCola(items, total, metodoPago, montoEfectivo);
       aplicarDescuentoLocal(items);
-      if(!telefonoCliente) mostrarMensaje('mensajeVenta', 'Sin conexión: la venta se guardó. Su ticket digital estará disponible en cuanto sincronices.', 'exito');
+      if(!telefonoCliente) mostrarMensaje('mensajeVenta', 'Sin conexión: la venta se guardó, el ticket digital estará listo en cuanto sincronices.', 'exito');
       carrito = [];
       renderizarCarrito();
       renderizarTablaProductos();
@@ -6766,7 +6836,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         enLinea = false;
         guardarVentaEnCola(items, total, metodoPago, montoEfectivo);
         aplicarDescuentoLocal(items);
-        mostrarMensaje('mensajeVenta', 'Se perdió la conexión: la venta se guardó y se enviará automáticamente.', 'exito');
+        mostrarMensaje('mensajeVenta', 'Se perdió la conexión: la venta se guardó y se enviará sola en cuanto vuelva.', 'exito');
         carrito = [];
         renderizarCarrito();
         actualizarIndicadorConexion();
@@ -7628,7 +7698,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       stock: combo.stock
     });
     if(error){ mostrarMensaje('mensajeLiquidacion', 'No se pudo crear el combo: ' + error.message, 'error'); return; }
-    mostrarMensaje('mensajeLiquidacion', 'Combo creado como producto nuevo. Su stock no está ligado a los dos productos originales — ajústalo tú conforme lo vendas.', 'exito');
+    mostrarMensaje('mensajeLiquidacion', 'Combo creado. Su stock es independiente de los productos originales — ajústalo tú conforme lo vendas.', 'exito');
     await cargarProductos();
   }
 
@@ -11086,7 +11156,34 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       </div>
       <p class="nota" style="margin:10px 0 18px;">Pagado con ${escapar(etiquetaMetodoPago(ticket.metodo_pago))}</p>
       <button class="principal" onclick="descargarTicketPublicoPDF()" style="width:100%;">Descargar ticket</button>
+      <button class="texto" id="btnAbrirFacturaPublica" onclick="mostrarFormularioFacturaPublica()" style="width:100%; margin-top:10px;">¿Necesitas factura?</button>
+      <div id="formularioFacturaPublica" class="oculto" style="margin-top:14px; text-align:left;">
+        <div id="mensajeFacturaPublica" class="mensaje"></div>
+        <div class="campo"><label for="facturaRFC">RFC</label><input id="facturaRFC" type="text" maxlength="13" style="text-transform:uppercase;" placeholder="Ej. XAXX010101000"></div>
+        <div class="campo"><label for="facturaRazonSocial">Razón social</label><input id="facturaRazonSocial" type="text" placeholder="Como aparece en tu constancia fiscal"></div>
+        <div class="campo"><label for="facturaUsoCfdi">Uso de la factura</label><input id="facturaUsoCfdi" type="text" placeholder="Ej. Gastos en general"></div>
+        <div class="campo"><label for="facturaCorreo">Correo (opcional)</label><input id="facturaCorreo" type="email" placeholder="Para avisarte cuando esté lista"></div>
+        <button class="principal" type="button" onclick="enviarSolicitudFacturaPublica()" style="width:100%; margin-top:6px;">Enviar solicitud</button>
+      </div>
     `;
+  }
+
+  function mostrarFormularioFacturaPublica(){
+    document.getElementById('btnAbrirFacturaPublica').classList.add('oculto');
+    document.getElementById('formularioFacturaPublica').classList.remove('oculto');
+  }
+
+  async function enviarSolicitudFacturaPublica(){
+    const rfc = document.getElementById('facturaRFC').value.trim();
+    const razonSocial = document.getElementById('facturaRazonSocial').value.trim();
+    const usoCfdi = document.getElementById('facturaUsoCfdi').value.trim();
+    const correo = document.getElementById('facturaCorreo').value.trim();
+    if(!rfc || !razonSocial){ mostrarMensaje('mensajeFacturaPublica', 'Escribe tu RFC y razón social.', 'error'); return; }
+    const { error } = await sb.rpc('solicitar_factura_publica', {
+      p_venta_id: window.__ticketPublicoActual.venta_id, p_rfc: rfc, p_razon_social: razonSocial, p_uso_cfdi: usoCfdi || null, p_correo: correo || null
+    });
+    if(error){ mostrarMensaje('mensajeFacturaPublica', 'No se pudo enviar: ' + error.message, 'error'); return; }
+    document.getElementById('formularioFacturaPublica').innerHTML = '<p class="nota">Listo, ya tenemos tu solicitud. El negocio te la hace llegar en cuanto la generen.</p>';
   }
 
   
