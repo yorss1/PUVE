@@ -95,7 +95,7 @@ li{margin:6px 0}
     <div class="logo">PUVE</div>
     <p class="etiqueta">Documento de privacidad</p>
     <h1>Aviso de privacidad integral</h1>
-    <p class="intro">Última actualización: 12 de septiembre de 2026 · Versión 1.0</p>
+    <p class="intro">Última actualización: 2 de octubre de 2026 · Versión 1.2</p>
   </header>
 
   <div class="aviso">
@@ -145,6 +145,8 @@ li{margin:6px 0}
       <li><strong>Información fiscal:</strong> RFC, razón social, régimen fiscal, código postal fiscal y demás información que el Usuario decida registrar para funciones de facturación o apoyo fiscal.</li>
       <li><strong>Información de clientes finales:</strong> datos que el Usuario introduzca voluntariamente en PUVE, como nombre, correo, teléfono o información fiscal necesaria para una operación comercial.</li>
       <li><strong>Datos técnicos:</strong> dirección IP, navegador, sistema operativo, identificadores técnicos, registros de actividad, errores y eventos de seguridad, cuando sean recabados por la infraestructura utilizada.</li>
+      <li><strong>Datos de cajeros:</strong> nombre de la caja, código de acceso (que no se escribe completo en las bitácoras) e identificador técnico del dispositivo desde el que opera.</li>
+      <li><strong>Datos financieros y patrimoniales:</strong> en el Programa de Embajadores, CLABE, banco y nombre del titular para pagar comisiones; saldos de crédito y puntos de recompensas de clientes finales; y los datos de pago de la suscripción, cuya tarjeta procesa directamente Stripe sin que PUVE almacene el número completo. Estos datos se tratan solo con el consentimiento expreso que el titular otorga al registrarlos y para las finalidades de pago indicadas.</li>
       <li><strong>Datos de uso:</strong> acciones realizadas dentro de la Plataforma, preferencias de configuración y métricas necesarias para operar, mantener, proteger y mejorar el Servicio.</li>
     </ul>
     <p>PUVE procura recabar únicamente los datos pertinentes, adecuados y necesarios para las finalidades informadas en este Aviso.</p>
@@ -199,6 +201,8 @@ li{margin:6px 0}
       <li><strong>Autoridades competentes:</strong> cuando una disposición legal o un requerimiento válido obligue a proporcionar información.</li>
       <li><strong>Asesores profesionales:</strong> abogados, contadores, auditores u otros prestadores sujetos a deberes de confidencialidad, cuando resulte necesario.</li>
     </ul>
+    <p><strong>Proveedores actuales.</strong> Para operar, PUVE se apoya en: <em>Supabase</em> (base de datos, autenticación, almacenamiento y funciones del servidor); <em>Stripe</em> (cobros con tarjeta u OXXO y pagos a Embajadores); <em>Resend</em> (correos de aviso y notificaciones); servicios públicos de tipo de cambio (<em>Frankfurter</em> y <em>ExchangeRate-API</em>, que no reciben datos personales); y para cargar la aplicación, <em>Google Fonts</em> y redes de distribución de código (<em>jsDelivr</em>, <em>unpkg</em>), que pueden registrar la dirección IP del dispositivo. Varios de estos proveedores procesan datos fuera de México, incluido Estados Unidos; esa remisión se realiza para prestar el Servicio y bajo obligaciones de confidencialidad y seguridad. [COMPLETAR: región donde está alojado el proyecto de Supabase.]</p>
+    <p>El reconocimiento de voz opcional (dictado) lo realiza el navegador del propio dispositivo, que puede enviar el audio al proveedor del navegador (por ejemplo Google o Apple) según su política; PUVE no recibe ni guarda ese audio.</p>
     <p>Cuando una transferencia requiera consentimiento, PUVE lo solicitará o habilitará el mecanismo legal aplicable. Las transferencias indispensables para cumplir obligaciones legales, ejecutar la relación jurídica con el Usuario o prestar determinados servicios podrán realizarse sin consentimiento cuando la legislación lo permita.</p>
     <p>PUVE no vende datos personales a terceros.</p>
   </section>
@@ -214,12 +218,14 @@ li{margin:6px 0}
     <h2>8. Seguridad y confidencialidad</h2>
     <p>PUVE implementa medidas administrativas, técnicas y físicas razonables para proteger los datos personales contra daño, pérdida, alteración, destrucción, acceso o tratamiento no autorizado.</p>
     <p>Entre estas medidas se encuentran los controles de acceso, la autenticación, el cifrado o la protección de comunicaciones cuando corresponda, la segregación de permisos, los registros de actividad, los mecanismos de seguridad de infraestructura y los procedimientos de respuesta a incidentes.</p>
+    <p>En concreto: cada negocio solo puede ver sus propios datos (aislamiento por fila en la base de datos); las acciones sensibles de cobro se calculan en el servidor; el PIN de autorización se guarda con hash y se bloquea tras intentos fallidos; los accesos por código de caja tienen límite de intentos; las copias de respaldo se cifran; y los accesos de soporte y cambios sensibles quedan en una bitácora. Si ocurre una vulneración que afecte de forma significativa los derechos patrimoniales o morales de los titulares, PUVE se lo informará sin dilación para que puedan tomar medidas.</p>
     <p>Ningún sistema conectado a Internet puede garantizar seguridad absoluta. Si ocurriera una vulneración que legalmente deba comunicarse al titular, PUVE actuará conforme a la legislación aplicable.</p>
   </section>
 
   <section class="seccion" id="conservacion">
     <h2>9. Conservación, bloqueo y eliminación</h2>
     <p>Los datos se conservarán durante el tiempo necesario para cumplir las finalidades informadas y, posteriormente, durante los plazos que resulten necesarios para atender obligaciones legales, contractuales, fiscales, contables o responsabilidades que pudieran derivarse del tratamiento.</p>
+    <p><strong>Plazos máximos aplicados:</strong> copias de respaldo, 30 días; bitácora de seguridad, 12 meses; contadores técnicos antiabuso, 1 día; registros de eventos de pago, 90 días; preguntas no resueltas del asistente, 6 meses; registros de cobros y comprobantes, el plazo que exijan las obligaciones fiscales y contables [CONFIRMAR CON TU CONTADOR]. La cuenta de un Embajador y sus datos de pago se eliminan al cancelar el programa, salvo lo que deba conservarse por obligación legal.</p>
     <p>Cuando concluya la finalidad y no exista una obligación de conservación, los datos podrán eliminarse, anonimizarse o bloquearse conforme a la legislación aplicable y a las capacidades técnicas del Servicio.</p>
     <p>La eliminación de una cuenta o negocio no implica necesariamente la destrucción inmediata de toda la información, cuando una norma obligue a conservarla o cuando sea necesaria para determinar responsabilidades.</p>
   </section>
@@ -236,6 +242,8 @@ li{margin:6px 0}
       <li>PUVE podrá solicitar información adicional cuando sea necesaria para localizar los datos o validar la identidad del solicitante.</li>
     </ol>
     <p>La solicitud se atenderá dentro de los plazos y bajo los requisitos previstos por la legislación vigente, que reconoce expresamente los derechos ARCO y regula el procedimiento para su ejercicio.</p>
+    <p><strong>Datos de clientes finales de un negocio.</strong> Si eres cliente de un negocio que usa PUVE, ese negocio es el responsable de tus datos y PUVE solo los trata por su cuenta; dirígete primero al negocio para ejercer tus derechos. PUVE colaborará con el negocio para atenderlos.</p>
+    <p><strong>Inconformidades.</strong> Si consideras que tu derecho a la protección de datos fue vulnerado, puedes acudir a la autoridad competente en la materia (actualmente la Secretaría Anticorrupción y Buen Gobierno) [VERIFICAR VIGENCIA CON TU ASESOR LEGAL].</p>
     <p class="nota">Si PUVE requiere modificar este procedimiento, publicará las instrucciones actualizadas en este documento o en un medio equivalente que permita al titular conocerlas.</p>
   </section>
 
@@ -253,11 +261,12 @@ li{margin:6px 0}
 
   <section class="seccion" id="menores">
     <h2>13. Menores de edad</h2>
-    <p>PUVE no está dirigido a menores de edad y no busca recabar deliberadamente datos personales de niñas, niños o adolescentes para la creación de cuentas de usuario. Si alguna persona considera que un menor proporcionó datos personales sin la autorización correspondiente, puede solicitar su revisión a través de los canales de contacto oficiales de PUVE.</p>
+    <p>PUVE no está dirigido a menores de edad y no busca recabar deliberadamente datos personales de niñas, niños o adolescentes para la creación de cuentas de usuario. Para crear una cuenta o acceder con un código de caja, la persona declara que es mayor de 18 años; PUVE guarda constancia de esa declaración y de la aceptación de este Aviso (versión del documento y fecha) con fines de acreditar el consentimiento. Si detectamos que una cuenta pertenece a un menor de edad, la suspenderemos y eliminaremos sus datos, salvo que una ley obligue a conservarlos. Si alguna persona considera que un menor proporcionó datos personales sin la autorización correspondiente, puede solicitar su revisión a través de los canales de contacto oficiales de PUVE.</p>
   </section>
 
   <section class="seccion" id="cambios">
     <h2>14. Cambios al Aviso de Privacidad</h2>
+    <p>Al crear tu cuenta marcas la casilla de aceptación de estos Términos y de este Aviso; PUVE guarda la versión aceptada y la fecha. Si publicamos una versión que cambie de fondo el tratamiento, te lo haremos saber para que la revises.</p>
     <p>PUVE podrá modificar este Aviso para reflejar cambios legales, regulatorios, tecnológicos, operativos o en las funcionalidades del Servicio.</p>
     <p>Las modificaciones se comunicarán mediante la publicación de la versión actualizada en este mismo sitio, dentro de la aplicación o a través de otros medios de contacto disponibles, según la naturaleza del cambio. La fecha de última actualización se indicará al inicio de este documento.</p>
   </section>
@@ -276,7 +285,7 @@ li{margin:6px 0}
   <div class="firma">
     <p><strong>Integridad contractual.</strong> Si alguna disposición de este Aviso fuera declarada inválida o inaplicable, las demás disposiciones conservarán su validez en la medida permitida por la ley.</p>
     <p>Este Aviso debe leerse conjuntamente con los Términos y Condiciones, la Política de Cookies y la Política de Reembolsos y Cancelaciones de PUVE, cuando resulten aplicables.</p>
-    <p><strong>Versión:</strong> 1.0 · <strong>Fecha de vigencia:</strong> 12 de septiembre de 2026.</p>
+    <p><strong>Versión:</strong> 1.2 · <strong>Fecha de vigencia:</strong> 2 de octubre de 2026.</p>
   </div>
 </main>
 
