@@ -739,6 +739,18 @@
           </div>
           <p class="nota" style="margin-top:8px;">Guarda la contraseña en un lugar seguro, la necesitarás para iniciar sesión.</p>
         </div>
+        <div class="campo">
+          <label style="display:flex; gap:8px; align-items:flex-start; font-weight:400; line-height:1.4;">
+            <input id="regMayorEdad" type="checkbox" required style="width:auto; margin-top:3px;">
+            <span>Declaro bajo protesta de decir verdad que soy <strong>mayor de 18 años</strong> (mayor de edad).</span>
+          </label>
+        </div>
+        <div class="campo">
+          <label style="display:flex; gap:8px; align-items:flex-start; font-weight:400; line-height:1.4;">
+            <input id="regAcepto" type="checkbox" required style="width:auto; margin-top:3px;">
+            <span>Acepto los <a href="docs_legales/terminos-y-condiciones.html" target="_blank" rel="noopener noreferrer">Términos y condiciones</a> y he leído el <a href="docs_legales/aviso-de-privacidad.html" target="_blank" rel="noopener noreferrer">Aviso de privacidad</a>.</span>
+          </label>
+        </div>
         <button class="principal" type="submit" id="btnRegistro">Crear cuenta</button>
       </form>
       <form id="formEmbajador" style="display:none;" class="form-auth" onsubmit="return manejarRegistroEmbajador(event)">
@@ -754,6 +766,18 @@
             <button type="button" class="texto" onclick="navigator.clipboard?.writeText(document.getElementById('embPass').value); mostrarMensaje('mensajeAuth','Contraseña copiada al portapapeles.','exito');" style="flex:1; border:1px solid var(--borde); border-radius:7px; padding:7px 0;">Copiar</button>
           </div>
           <p class="nota" style="margin-top:8px;">Guarda la contraseña en un lugar seguro, la necesitarás para iniciar sesión.</p>
+        </div>
+        <div class="campo">
+          <label style="display:flex; gap:8px; align-items:flex-start; font-weight:400; line-height:1.4;">
+            <input id="embMayorEdad" type="checkbox" required style="width:auto; margin-top:3px;">
+            <span>Declaro bajo protesta de decir verdad que soy <strong>mayor de 18 años</strong> (mayor de edad).</span>
+          </label>
+        </div>
+        <div class="campo">
+          <label style="display:flex; gap:8px; align-items:flex-start; font-weight:400; line-height:1.4;">
+            <input id="embAcepto" type="checkbox" required style="width:auto; margin-top:3px;">
+            <span>Acepto los <a href="docs_legales/terminos-y-condiciones.html" target="_blank" rel="noopener noreferrer">Términos y condiciones</a> y he leído el <a href="docs_legales/aviso-de-privacidad.html" target="_blank" rel="noopener noreferrer">Aviso de privacidad</a>.</span>
+          </label>
         </div>
         <button class="principal" type="submit" id="btnRegistroEmbajador">Crear cuenta de Embajador</button>
       </form>
@@ -837,6 +861,12 @@
         <div id="mensajeAuthCajero" class="mensaje"></div>
         <form id="formUnirse" class="form-auth activo" onsubmit="return funcionPuveActiva('cajero.unirse_codigo') ? manejarUnirse(event) : false;">
           <div class="campo"><label for="unirseCodigo">Código de caja</label><input id="unirseCodigo" type="text" required placeholder="Ej. ABC123" style="text-transform:uppercase; letter-spacing:0.05em;" autocomplete="off"></div>
+          <div class="campo">
+            <label style="display:flex; gap:8px; align-items:flex-start; font-weight:400; line-height:1.4;">
+              <input id="unirseAcepto" type="checkbox" required style="width:auto; margin-top:3px;">
+              <span>Declaro que soy <strong>mayor de 18 años</strong>, acepto los <a href="docs_legales/terminos-y-condiciones.html" target="_blank" rel="noopener noreferrer">Términos y condiciones</a> y he leído el <a href="docs_legales/aviso-de-privacidad.html" target="_blank" rel="noopener noreferrer">Aviso de privacidad</a>.</span>
+            </label>
+          </div>
           <button class="principal" type="submit" id="btnUnirse">Entrar</button>
         </form>
       </div>
@@ -1103,7 +1133,7 @@
             <img id="imgTicketQR" alt="Código QR del ticket" style="width:180px; height:180px; display:none; background:#fff; border-radius:6px;">
             <p class="nota oculto" id="avisoErrorQR" style="color:var(--error); margin:8px 0;">—</p>
             <p class="nota" style="margin:10px 0;">El cliente lo escanea con su celular para ver y descargar su ticket.</p>
-            <a id="enlaceTicketQR" href="#" target="_blank" class="nota" style="display:block; word-break:break-all; font-size:11px; margin-bottom:10px;">—</a>
+            <a id="enlaceTicketQR" href="#" target="_blank" rel="noopener noreferrer" class="nota" style="display:block; word-break:break-all; font-size:11px; margin-bottom:10px;">—</a>
             <button class="principal ticket-exito-nueva-venta" onclick="cerrarTicketExito()">Nueva venta</button>
           </div>
         </div>
@@ -2962,7 +2992,15 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const nombre = document.getElementById('embNombre').value.trim();
     const email = document.getElementById('embEmail').value.trim();
     const password = document.getElementById('embPass').value;
-    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { nombre, tipo_cuenta: 'embajador' } } });
+    if(!document.getElementById('embMayorEdad').checked){
+      btn.disabled = false; btn.textContent = 'Crear cuenta de Embajador';
+      mostrarMensaje('mensajeAuth', 'Debes declarar que eres mayor de 18 años para crear tu cuenta.', 'error'); return false;
+    }
+    if(!document.getElementById('embAcepto').checked){
+      btn.disabled = false; btn.textContent = 'Crear cuenta de Embajador';
+      mostrarMensaje('mensajeAuth', 'Debes aceptar los Términos y el Aviso de privacidad para crear tu cuenta.', 'error'); return false;
+    }
+    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { nombre, tipo_cuenta: 'embajador', acepta_terminos: true, mayor_de_edad: true, version_legal: VERSION_LEGAL } } });
 
     btn.disabled = false; btn.textContent = 'Crear cuenta de Embajador';
     if(error){
@@ -2979,6 +3017,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       }
       usuario = datosLogin.user;
     }
+    await registrarAceptacionLegal();
     await entrarApp(usuario);
     return false;
   }
@@ -3232,6 +3271,95 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     return false;
   }
 
+  // Versión vigente de los documentos legales (debe coincidir con docs_legales/*.html).
+  const VERSION_LEGAL = '1.2';
+  async function registrarAceptacionLegal(){
+    try { await sb.rpc('registrar_aceptacion_legal', { p_version: VERSION_LEGAL }); } catch(e){ console.warn('No se pudo registrar la aceptación legal:', e); }
+  }
+
+  // Pantalla de aceptación para cuentas que NO pasaron por un formulario de registro con casillas
+  // (alta hecha por el superadmin, analistas nuevos, cajeros anteriores) o cuando cambia la versión
+  // de los documentos. Devuelve true si puede continuar. Si la función del servidor aún no está
+  // instalada o no hay red, NO bloquea. No aplica durante una suplantación (otra persona no acepta por el titular).
+  async function asegurarAceptacionLegal(){
+    try{
+      if(sessionStorage.getItem('puve_suplantacion')) return true;
+      if(navigator.onLine === false) return true;
+      const { data: ok, error } = await sb.rpc('mi_aceptacion_legal_vigente', { p_version: VERSION_LEGAL });
+      if(error || ok === true) return true;
+    } catch(e){ return true; }
+
+    return await new Promise((resolve) => {
+      const fondo = document.createElement('div');
+      fondo.className = 'modal-puve-fondo';
+      fondo.style.zIndex = '9990';
+      const caja = document.createElement('div');
+      caja.className = 'modal-puve';
+      caja.style.maxWidth = '420px';
+
+      const titulo = document.createElement('h2');
+      titulo.style.margin = '0 0 8px';
+      titulo.textContent = 'Antes de continuar';
+      const intro = document.createElement('p');
+      intro.className = 'nota';
+      intro.style.margin = '0 0 14px';
+      intro.textContent = 'Para usar PUVE necesitamos tu confirmación.';
+
+      const filaEdad = document.createElement('label');
+      filaEdad.style.cssText = 'display:flex; gap:8px; align-items:flex-start; font-weight:400; line-height:1.4; margin-bottom:10px;';
+      const cEdad = document.createElement('input');
+      cEdad.type = 'checkbox'; cEdad.style.cssText = 'width:auto; margin-top:3px;';
+      const tEdad = document.createElement('span');
+      tEdad.textContent = 'Declaro bajo protesta de decir verdad que soy mayor de 18 años (mayor de edad).';
+      filaEdad.append(cEdad, tEdad);
+
+      const filaLeg = document.createElement('label');
+      filaLeg.style.cssText = 'display:flex; gap:8px; align-items:flex-start; font-weight:400; line-height:1.4; margin-bottom:14px;';
+      const cLeg = document.createElement('input');
+      cLeg.type = 'checkbox'; cLeg.style.cssText = 'width:auto; margin-top:3px;';
+      const tLeg = document.createElement('span');
+      const a1 = document.createElement('a'); a1.href = 'docs_legales/terminos-y-condiciones.html'; a1.target = '_blank'; a1.rel = 'noopener noreferrer'; a1.textContent = 'Términos y condiciones';
+      const a2 = document.createElement('a'); a2.href = 'docs_legales/aviso-de-privacidad.html'; a2.target = '_blank'; a2.rel = 'noopener noreferrer'; a2.textContent = 'Aviso de privacidad';
+      tLeg.append('Acepto los ', a1, ' y he leído el ', a2, '.');
+      filaLeg.append(cLeg, tLeg);
+
+      const msg = document.createElement('div');
+      msg.className = 'mensaje';
+      const btnOk = document.createElement('button');
+      btnOk.type = 'button'; btnOk.className = 'principal'; btnOk.textContent = 'Continuar';
+      const btnSalir = document.createElement('button');
+      btnSalir.type = 'button'; btnSalir.className = 'texto'; btnSalir.style.marginTop = '8px'; btnSalir.textContent = 'Cerrar sesión';
+
+      btnOk.onclick = async () => {
+        if(!cEdad.checked || !cLeg.checked){
+          msg.className = 'mensaje error';
+          msg.textContent = 'Marca las dos casillas para continuar.';
+          return;
+        }
+        btnOk.disabled = true;
+        const { error } = await sb.rpc('registrar_aceptacion_legal', { p_version: VERSION_LEGAL });
+        btnOk.disabled = false;
+        if(error){
+          msg.className = 'mensaje error';
+          msg.textContent = 'No se pudo guardar tu confirmación. Intenta de nuevo.';
+          return;
+        }
+        fondo.remove();
+        resolve(true);
+      };
+      btnSalir.onclick = async () => {
+        fondo.remove();
+        try { await sb.auth.signOut(); } catch(e){}
+        location.reload();
+        resolve(false);
+      };
+
+      caja.append(titulo, intro, filaEdad, filaLeg, msg, btnOk, btnSalir);
+      fondo.append(caja);
+      document.body.append(fondo);
+    });
+  }
+
   async function manejarRegistro(e){
     e.preventDefault();
     const btn = document.getElementById('btnRegistro');
@@ -3241,9 +3369,17 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const password = document.getElementById('regPass').value;
     const nombre = document.getElementById('regNombre').value.trim();
     const nombre_negocio = document.getElementById('regNegocio').value.trim();
+    if(!document.getElementById('regMayorEdad').checked){
+      btn.disabled = false; btn.textContent = 'Crear cuenta';
+      mostrarMensaje('mensajeAuth', 'Debes declarar que eres mayor de 18 años para crear tu cuenta.', 'error'); return false;
+    }
+    if(!document.getElementById('regAcepto').checked){
+      btn.disabled = false; btn.textContent = 'Crear cuenta';
+      mostrarMensaje('mensajeAuth', 'Debes aceptar los Términos y el Aviso de privacidad para crear tu cuenta.', 'error'); return false;
+    }
     const codigoInvitacion = (document.getElementById('regReferido').value || '').trim().toUpperCase();
     if(codigoInvitacion){ try { localStorage.setItem('puve_ref', codigoInvitacion); } catch(e){} }
-    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { nombre, nombre_negocio } } });
+    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { nombre, nombre_negocio, acepta_terminos: true, mayor_de_edad: true, version_legal: VERSION_LEGAL } } });
     btn.disabled = false; btn.textContent = 'Crear cuenta';
     if(error){ mostrarMensaje('mensajeAuth', traducirError(error.message), 'error'); return false; }
 
@@ -3270,6 +3406,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       }
       usuario = datosLogin.user;
     }
+    await registrarAceptacionLegal();
     await aplicarReferidoPendiente(codigoInvitacion);
     await entrarApp(usuario);
     return false;
@@ -3281,6 +3418,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     btn.disabled = true; btn.textContent = 'Entrando...';
     ocultarMensaje('mensajeAuthCajero');
     const codigo = document.getElementById('unirseCodigo').value.trim().toUpperCase();
+    if(!document.getElementById('unirseAcepto').checked){
+      mostrarMensaje('mensajeAuthCajero', 'Debes declarar que eres mayor de 18 años y aceptar los Términos y el Aviso de privacidad.', 'error');
+      btn.disabled = false; btn.textContent = 'Entrar';
+      return false;
+    }
 
     try {
       const resp = await fetch(SUPABASE_URL + '/functions/v1/entrar-con-codigo-ts', {
@@ -3290,7 +3432,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           'Authorization': 'Bearer ' + SUPABASE_KEY,
           'apikey': SUPABASE_KEY
         },
-        body: JSON.stringify({ codigo })
+        body: JSON.stringify({ codigo, dispositivo: obtenerIdDispositivo() })
       });
       const resultado = await resp.json();
 
@@ -3311,6 +3453,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       }
 
       cerrarModalCajero();
+      await registrarAceptacionLegal();
       const { data: userData } = await sb.auth.getUser();
       await entrarApp(userData.user);
     } catch(err){
@@ -3754,7 +3897,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         const activo = c.activo !== false;
         html += `
           <div class="ctrl-tarjeta" id="ctrlTarjeta_${c.id}">
-            <div class="ctrl-tarjeta-fila" onclick="alternarControlFuncion('${c.id}')">
+            <div class="ctrl-tarjeta-fila" onclick="alternarControlFuncion(${jsAttr(c.id)})">
               <div>
                 <p class="ctrl-nombre">${escapar(c.etiqueta)}</p>
                 <p class="ctrl-desc">${escapar(c.descripcion || '')}</p>
@@ -3765,7 +3908,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
             <div class="ctrl-editor oculto" id="ctrlEditor_${c.id}" onclick="event.stopPropagation()">
               <label for="ctrlNota_${c.id}" style="font-size:12.5px; font-weight:600; display:block; margin-bottom:6px;">Aviso para quien intente usar esta función</label>
               <textarea id="ctrlNota_${c.id}" placeholder="Ej. Estamos corrigiendo este botón, vuelve a intentarlo en un rato.">${escapar(c.nota || '')}</textarea>
-              <div class="fila-botones-emb"><button type="button" onclick="guardarNotaControlFuncion('${c.id}')">Guardar</button></div>
+              <div class="fila-botones-emb"><button type="button" onclick="guardarNotaControlFuncion(${jsAttr(c.id)})">Guardar</button></div>
             </div>
           </div>`;
       });
@@ -3901,6 +4044,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     e.preventDefault();
     const pin = document.getElementById('inputPinAutorizacion').value.trim();
     if(!pin) return false;
+    if(!/^[0-9]{4,10}$/.test(pin)){ mostrarMensaje('mensajeAutorizacionPin', 'El PIN son solo números.', 'error'); return false; }
     const btn = document.getElementById('btnConfirmarPinAutorizacion');
     btn.disabled = true;
     const { data, error } = await sb.rpc('verificar_pin_autorizacion_puve', { p_pin: pin });
@@ -3911,6 +4055,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     }
     document.getElementById('modalAutorizacionPin').classList.add('oculto');
     const accion = __accionPendientePin; __accionPendientePin = null;
+    // El PIN viaja de nuevo al servidor con la acción sensible; vive solo 60 s en memoria.
+    window.__pinVigente = pin;
+    setTimeout(() => { window.__pinVigente = null; }, 60000);
     if(accion) accion();
     return false;
   }
@@ -3923,7 +4070,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(!data || !data.length){ cuerpo.innerHTML = '<tr><td colspan="3" class="nota">Sin analistas todavía.</td></tr>'; return; }
     cuerpo.innerHTML = data.map(a => `
       <tr><td>${escapar(a.nombre || '—')}</td><td>${escapar(a.email)}</td>
-      <td class="acciones"><button class="eliminar" onclick="quitarAnalista('${a.id}', '${escaparAtributo(a.nombre || a.email)}')">Quitar acceso</button></td></tr>
+      <td class="acciones"><button class="eliminar" onclick="quitarAnalista(${jsAttr(a.id)}, ${jsAttr(a.nombre || a.email)})">Quitar acceso</button></td></tr>
     `).join('');
   }
 
@@ -3987,6 +4134,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   async function entrarApp(user){
+    if(!(await asegurarAceptacionLegal())) return;
     cargarCorreosPuveGlobal();
     cargarControlesFuncionesPuve();
     
@@ -4237,7 +4385,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
     const [{ data: pagoExistente }, { data: cfgPuve }] = await Promise.all([
       sb.from('pagos_puve').select('*').eq('negocio_id', negocioId).eq('periodo', periodo).maybeSingle(),
-      sb.from('configuracion_puve').select('ficha_manual_habilitada').eq('id', 1).maybeSingle()
+      sb.rpc('obtener_config_publica_puve')
     ]);
     const fichaManualActiva = !!cfgPuve?.ficha_manual_habilitada;
 
@@ -4259,7 +4407,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   async function mostrarFichaPago(folio, monto, enRevision){
-    const { data: config } = await sb.from('configuracion_puve').select('*').eq('id', 1).maybeSingle();
+    const { data: config } = await sb.rpc('obtener_datos_deposito_puve');
     window.__fichaActual = { folio, monto };
 
     document.getElementById('bloquePlanPago').style.display = 'none';
@@ -4421,30 +4569,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       mostrarMensaje('mensajePagoPendiente', '[!] Solo el encargado de este negocio puede generar la ficha de pago.', 'error');
       return;
     }
-    const { data: negocio, error: errNeg } = await sb.from('negocios').select('tipo_plan, dispositivos_permitidos').eq('id', negocioId).maybeSingle();
-    if(errNeg){ mostrarMensaje('mensajePagoPendiente', 'No se pudo leer tu plan: ' + errNeg.message, 'error'); return; }
-
-    const tipoPlan = negocio?.tipo_plan || 'mensual';
-    const dispositivos = negocio?.dispositivos_permitidos || 1;
-    const periodo = periodoParaNegocio(tipoPlan);
-    await cargarDescuentoReferido();
-    const monto = montoConReferido(calcularMontoEsperado(dispositivos, tipoPlan), tipoPlan, descuentoReferido);
-
-    const { data: pagoActual } = await sb.from('pagos_puve').select('fecha_pago').eq('negocio_id', negocioId).eq('periodo', periodo).maybeSingle();
-    if(pagoActual?.fecha_pago){
-      mostrarMensaje('mensajePagoPendiente', '[!] Ya hay un pago registrado para este periodo. Si tu negocio sigue marcado como bloqueado, contacta a soporte de PUVE ' + ((window.__correosPuve && window.__correosPuve.empresa) || 'soporte@puve.app'), 'error');
-      return;
-    }
-
-    const { data: folio, error: errFolio } = await sb.rpc('generar_folio_pago', {
-      p_negocio_id: negocioId, p_tipo_plan: tipoPlan, p_cajeros: dispositivos, p_periodo: periodo
-    });
-    if(errFolio){ mostrarMensaje('mensajePagoPendiente', 'No se pudo generar el folio: ' + errFolio.message, 'error'); return; }
-
-    const { error: errUpsert } = await sb.from('pagos_puve').upsert({
-      negocio_id: negocioId, periodo, monto_esperado: monto, folio
-    }, { onConflict: 'negocio_id,periodo' });
-    if(errUpsert){ mostrarMensaje('mensajePagoPendiente', 'No se pudo generar la ficha: ' + errUpsert.message, 'error'); return; }
+    // C-03: el monto, el periodo y el folio los calcula el SERVIDOR (generar_ficha_pago).
+    const { data: ficha, error: errFicha } = await sb.rpc('generar_ficha_pago');
+    if(errFicha){ mostrarMensaje('mensajePagoPendiente', '[!] ' + errFicha.message, 'error'); return; }
+    const folio = ficha.folio, monto = Number(ficha.monto);
 
     await mostrarFichaPago(folio, monto, false);
   }
@@ -4602,12 +4730,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(!ficha) return;
     btn.disabled = true; btn.textContent = 'Enviando...';
 
-    const { data: negocio } = await sb.from('negocios').select('tipo_plan, dispositivos_permitidos, nombre').eq('id', negocioId).maybeSingle();
-    const periodo = periodoParaNegocio(negocio?.tipo_plan || 'mensual');
-
-    const { error } = await sb.from('pagos_puve')
-      .update({ en_revision: true, reportado_en: new Date().toISOString() })
-      .eq('negocio_id', negocioId).eq('periodo', periodo);
+    const { data: revision, error } = await sb.rpc('marcar_pago_en_revision');
 
     if(error){
       mostrarMensaje('mensajePagoPendiente', 'No se pudo enviar: ' + error.message, 'error');
@@ -4615,9 +4738,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       return;
     }
 
-    sb.functions.invoke('notificar-pago-puve', {
-      body: { negocio_id: negocioId, folio: ficha.folio, monto: ficha.monto, plan_tipo: negocio?.tipo_plan, cajeros: negocio?.dispositivos_permitidos }
-    }).catch(() => {});
+    // A-07: la función solo necesita el folio; negocio, plan y monto los lee del servidor.
+    sb.functions.invoke('notificar-pago-puve', { body: { folio: revision?.folio || ficha.folio } }).catch(() => {});
 
     btn.textContent = 'En revisión ✓';
     mostrarMensaje('mensajePagoPendiente', 'Pago enviado a revisión. En cuanto se confirme, tu cuenta se reactiva automáticamente.', 'exito');
@@ -4861,7 +4983,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           <div class="n">${escapar(d.nombre || 'Dispositivo')}</div>
           <div class="f">Última vez: ${new Date(d.ultima_conexion).toLocaleString('es-MX')}</div>
         </div>
-        <button onclick="liberarDispositivoBloqueo('${d.id}')">Liberar</button>
+        <button onclick="liberarDispositivoBloqueo(${jsAttr(d.id)})">Liberar</button>
       </div>
     `).join('');
   }
@@ -4975,9 +5097,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <td>${formatoDinero(c.limite_credito)}</td>
         <td style="${Number(c.saldo_credito) > 0 ? 'color:var(--error); font-weight:600;' : ''}">${formatoDinero(c.saldo_credito)}</td>
         <td style="white-space:nowrap;">
-          <button type="button" class="texto" style="width:auto; font-size:12px; padding:4px 0;" onclick="event.stopPropagation(); editarLimiteCreditoCliente('${c.id}', '${escaparAtributo(c.telefono)}', ${c.limite_credito})">Crédito</button>
-          ${Number(c.saldo_credito) > 0 ? `<button type="button" class="texto" style="width:auto; font-size:12px; padding:4px 0 4px 10px;" onclick="event.stopPropagation(); registrarAbonoClienteDirectorio('${escaparAtributo(c.telefono)}', ${c.saldo_credito})">Cobrar abono</button>` : ''}
-          <button type="button" class="texto" style="width:auto; font-size:12px; padding:4px 0 4px 10px;" onclick="event.stopPropagation(); verEstadoCuentaCliente('${c.id}', '${escaparAtributo(c.nombre || c.telefono)}')">Historial</button>
+          <button type="button" class="texto" style="width:auto; font-size:12px; padding:4px 0;" onclick="event.stopPropagation(); editarLimiteCreditoCliente(${jsAttr(c.id)}, ${jsAttr(c.telefono)}, ${Number(c.limite_credito) || 0})">Crédito</button>
+          ${Number(c.saldo_credito) > 0 ? `<button type="button" class="texto" style="width:auto; font-size:12px; padding:4px 0 4px 10px;" onclick="event.stopPropagation(); registrarAbonoClienteDirectorio(${jsAttr(c.telefono)}, ${Number(c.saldo_credito) || 0})">Cobrar abono</button>` : ''}
+          <button type="button" class="texto" style="width:auto; font-size:12px; padding:4px 0 4px 10px;" onclick="event.stopPropagation(); verEstadoCuentaCliente(${jsAttr(c.id)}, ${jsAttr(c.nombre || c.telefono)})">Historial</button>
         </td>
       </tr>
     `).join('');
@@ -5287,18 +5409,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(errNeg){ mostrarMensaje('mensajeCambioPlan', 'No se pudo leer tu plan: ' + errNeg.message, 'error'); return; }
     if(negocio.tipo_plan === planNuevo){ return; }
 
-    await cargarDescuentoReferido();
-    const monto = montoConReferido(calcularMontoEsperado(negocio.dispositivos_permitidos, planNuevo), planNuevo, descuentoReferido);
-    const periodo = periodoParaNegocio(planNuevo) + '-CAMBIOPLAN-' + Date.now();
-    const { data: folio } = await sb.rpc('generar_folio_pago', {
-      p_negocio_id: negocioId, p_tipo_plan: planNuevo, p_cajeros: negocio.dispositivos_permitidos, p_periodo: periodo
-    });
-
-    const { data: solicitud, error: errIns } = await sb.from('solicitudes_cambio_plan')
-      .insert({ negocio_id: negocioId, plan_nuevo: planNuevo, monto, folio })
-      .select().single();
-
+    // C-03: el servidor calcula monto y folio (incluye el descuento de referido).
+    const { data: solicitud, error: errIns } = await sb.rpc('crear_solicitud_cambio_plan', { p_plan_nuevo: planNuevo });
     if(errIns){ mostrarMensaje('mensajeCambioPlan', 'No se pudo generar la solicitud: ' + errIns.message, 'error'); return; }
+    const folio = solicitud.folio, monto = Number(solicitud.monto);
 
     window.__solicitudCambioPlanPendiente = solicitud;
     await mostrarFichaCambioPlan(folio, monto);
@@ -5306,7 +5420,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   async function mostrarFichaCambioPlan(folio, monto){
-    const { data: config } = await sb.from('configuracion_puve').select('*').eq('id', 1).maybeSingle();
+    const { data: config } = await sb.rpc('obtener_datos_deposito_puve');
     document.getElementById('cambioPlanFolio').textContent = folio || '—';
     document.getElementById('cambioPlanBanco').textContent = config?.banco || '—';
     document.getElementById('cambioPlanTitular').textContent = config?.titular || '—';
@@ -5392,42 +5506,25 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const dia = new Date().getDate();
     
     
-    const cobroInmediato = tipoPlan === 'anual' ? true : (dia <= 15);
+    // C-03: cantidad válida y monto los decide el SERVIDOR (crear_solicitud_cajero_extra).
+    const { data: sol, error: errSol } = await sb.rpc('crear_solicitud_cajero_extra', { p_cantidad: n });
+    if(errSol){ mostrarMensaje('mensajeAgregarCajero', 'No se pudo agregar: ' + errSol.message, 'error'); btn.disabled = false; return; }
 
-    if(!cobroInmediato){
-      
-      
-      const nuevoTotal = Number(negocio.dispositivos_permitidos) + n;
-      const { error: errUpd } = await sb.from('negocios').update({ dispositivos_permitidos: nuevoTotal }).eq('id', negocioId);
-      if(errUpd){ mostrarMensaje('mensajeAgregarCajero', 'No se pudo agregar: ' + errUpd.message, 'error'); btn.disabled = false; return; }
+    if(!sol.cobro_inmediato){
+      const nuevoTotal = Number(sol.dispositivos_permitidos);
       dispositivosPermitidos = nuevoTotal;
       window.__cajeroExtraNegocio = { ...negocio, dispositivos_permitidos: nuevoTotal };
       document.getElementById('cajeroActualCantidad').textContent = nuevoTotal + ' (' + tipoPlan + ')';
-
-      await sb.from('solicitudes_cajero_extra').insert({ negocio_id: negocioId, cajeros_agregados: n, cobro_inmediato: false, monto: 0 });
       mostrarMensaje('mensajeAgregarCajero', n + ' cajero(s) agregado(s) sin costo este mes. Ya puedes crear su(s) caja(s) en Dispositivos.', 'exito');
       btn.disabled = false;
       actualizarResumenCajeroExtra();
       return;
     }
 
-    
-    
-    
-    
-    const monto = calcularMontoEsperado(n, tipoPlan);
-    const periodoExtra = periodoParaNegocio(tipoPlan) + '-EXTRA-' + Date.now();
-    const { data: folio } = await sb.rpc('generar_folio_pago', {
-      p_negocio_id: negocioId, p_tipo_plan: tipoPlan, p_cajeros: n, p_periodo: periodoExtra
-    });
+    const folio = sol.folio, monto = Number(sol.monto);
+    window.__solicitudCajeroExtraPendiente = { id: sol.id, folio, monto, cajeros_agregados: n };
 
-    const { data: solicitudExtra, error: errIns } = await sb.from('solicitudes_cajero_extra').insert({
-      negocio_id: negocioId, cajeros_agregados: n, cobro_inmediato: true, monto, folio
-    }).select().single();
-    if(errIns){ mostrarMensaje('mensajeAgregarCajero', 'No se pudo generar la solicitud: ' + errIns.message, 'error'); btn.disabled = false; return; }
-    window.__solicitudCajeroExtraPendiente = solicitudExtra;
-
-    const { data: config } = await sb.from('configuracion_puve').select('*').eq('id', 1).maybeSingle();
+    const { data: config } = await sb.rpc('obtener_datos_deposito_puve');
 
     document.getElementById('cajeroExtraFolio').textContent = folio || '—';
     document.getElementById('cajeroExtraBanco').textContent = config?.banco || '—';
@@ -5512,7 +5609,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <td>${escapar(s.rfc)}</td>
         <td>${escapar(s.uso_cfdi || '—')}</td>
         <td><span class="badge ${clases[s.estado] || ''}">${etiquetas[s.estado] || s.estado}</span></td>
-        <td class="acciones">${s.estado === 'pendiente' ? `<button class="reactivar" onclick="resolverSolicitudFactura('${s.id}', 'facturada')">Facturada</button><button class="eliminar" onclick="resolverSolicitudFactura('${s.id}', 'rechazada')">Rechazar</button>` : ''}</td>
+        <td class="acciones">${s.estado === 'pendiente' ? `<button class="reactivar" onclick="resolverSolicitudFactura(${jsAttr(s.id)}, 'facturada')">Facturada</button><button class="eliminar" onclick="resolverSolicitudFactura(${jsAttr(s.id)}, 'rechazada')">Rechazar</button>` : ''}</td>
       </tr>
     `).join('');
   }
@@ -6050,7 +6147,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       liberar = confirm('¿Quieres liberar este dispositivo antes de salir?\n\nAceptar = liberarlo (podrás usar tu cuenta en otro dispositivo).\nCancelar = mantenerlo activo (recomendado si solo vas a cerrar por ahora).');
       if(liberar){
         const idDisp = obtenerIdDispositivo();
-        await sb.from('dispositivos').delete().eq('negocio_id', negocioId).eq('identificador', idDisp);
+        await sb.rpc('liberar_mi_dispositivo', { p_identificador: idDisp });
         await sb.rpc('liberar_mi_dispositivo_cajero');
       }
     }
@@ -6257,7 +6354,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         ? categoriasCache.map(c => `
             <span class="badge ok" style="display:inline-flex; align-items:center; gap:6px; padding:5px 6px 5px 10px;">
               ${escapar(c.nombre)}
-              <button onclick="eliminarCategoria('${c.id}')" style="background:none; border:none; cursor:pointer; color:var(--texto-suave); font-size:13px; line-height:1; padding:0;">×</button>
+              <button onclick="eliminarCategoria(${jsAttr(c.id)})" style="background:none; border:none; cursor:pointer; color:var(--texto-suave); font-size:13px; line-height:1; padding:0;">×</button>
             </span>
           `).join('')
         : '<span class="nota" style="margin:0;">Aún no tienes categorías.</span>';
@@ -6267,7 +6364,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(filtro){
       const botones = [{ id: '', nombre: 'Todas' }, ...categoriasCache];
       filtro.innerHTML = botones.map(c => `
-        <button type="button" onclick="filtrarPorCategoria('${c.id}')"
+        <button type="button" onclick="filtrarPorCategoria(${jsAttr(c.id)})"
           style="padding:6px 12px; border-radius:99px; border:1px solid var(--borde); background:${categoriaFiltroActual === c.id ? 'var(--acento)' : 'var(--superficie)'}; color:${categoriaFiltroActual === c.id ? 'var(--texto-sobre-acento)' : 'var(--texto)'}; font-family:'Inter'; font-size:12.5px; font-weight:500; cursor:pointer;">
           ${escapar(c.nombre)}
         </button>
@@ -6345,6 +6442,17 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const div = document.createElement('div');
     div.textContent = texto == null ? '' : texto;
     return div.innerHTML;
+  }
+
+  // C-04: ESCAPE SEGURO PARA JS DENTRO DE UN ATRIBUTO HTML (onclick="f(${jsAttr(x)})").
+  // El navegador decodifica las entidades HTML (&#39; -> ') ANTES de ejecutar el JS, así que
+  // escaparAtributo() NO protege cuando el texto va dentro de una cadena JS. Aquí el valor se
+  // convierte primero en literal JS (JSON.stringify) y luego se escapa para HTML.
+  function jsAttr(valor){
+    return JSON.stringify(valor == null ? '' : String(valor))
+      .replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029')
+      .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+      .replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
   function escaparAtributo(texto){
@@ -6471,9 +6579,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
             <div class="precio">${precioMostrado}</div>
           </div>
           <div class="item-producto-stepper" style="${cantidadActual > 0 ? '' : 'display:none;'}">
-            <button type="button" onclick="event.stopPropagation(); cambiarCantidad('${p.id}', -1);">−</button>
+            <button type="button" onclick="event.stopPropagation(); cambiarCantidad(${jsAttr(p.id)}, -1);">−</button>
             <span>${cantidadActual}</span>
-            <button type="button" onclick="event.stopPropagation(); cambiarCantidad('${p.id}', 1);">+</button>
+            <button type="button" onclick="event.stopPropagation(); cambiarCantidad(${jsAttr(p.id)}, 1);">+</button>
           </div>
         </div>
       `;
@@ -6588,12 +6696,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           <div class="p">$${i.precio.toFixed(2)} c/u</div>
         </div>
         <div class="cant-control">
-          <button onclick="cambiarCantidad('${i.id}', -1)">−</button>
+          <button onclick="cambiarCantidad(${jsAttr(i.id)}, -1)">−</button>
           <span>${i.cantidad}</span>
-          <button onclick="cambiarCantidad('${i.id}', 1)">+</button>
+          <button onclick="cambiarCantidad(${jsAttr(i.id)}, 1)">+</button>
         </div>
         <div class="subtotal-linea">$${(i.precio * i.cantidad).toFixed(2)}</div>
-        <button class="quitar" onclick="quitarDelCarrito('${i.id}')" aria-label="Quitar">×</button>
+        <button class="quitar" onclick="quitarDelCarrito(${jsAttr(i.id)})" aria-label="Quitar">×</button>
       </div>
     `).join('');
     const total = carrito.reduce((s, i) => s + i.precio * i.cantidad, 0);
@@ -7008,7 +7116,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       v.metodo_pago || '—',
       Number(v.total).toFixed(2)
     ]));
-    const csv = filas.map(f => f.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\r\n');
+    // B-05: un nombre de cajero que empiece con = + - @ se ejecutaría como fórmula al abrir el CSV en Excel.
+    const neutralizar = (c) => { const t = String(c); return /^[=+\-@\t\r]/.test(t) ? "'" + t : t; };
+    const csv = filas.map((f, i) => f.map(c => '"' + (i === 0 ? String(c) : neutralizar(c)).replace(/"/g, '""') + '"').join(',')).join('\r\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -7740,7 +7850,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <td>${new Date(d.ultima_conexion).toLocaleString('es-MX')}</td>
         <td><span class="badge activo-si">Activo</span></td>
         <td class="acciones">
-          <button class="eliminar" onclick="revocarDispositivo('${d.id}')">Revocar</button>
+          <button class="eliminar" onclick="revocarDispositivo(${jsAttr(d.id)})">Revocar</button>
         </td>
       </tr>
     `).join('');
@@ -7777,8 +7887,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <td><span class="badge ${c.activo ? 'activo-si' : 'activo-no'}">${c.activo ? 'Activa' : 'Revocada'}</span></td>
         <td>${c.dispositivo_activo ? `<span class="badge bajo">En uso${c.sesion_iniciada_en ? ' desde ' + new Date(c.sesion_iniciada_en).toLocaleString('es-MX') : ''}</span>` : `<span class="badge activo-no">Libre</span>`}</td>
         <td class="acciones">
-          ${c.activo ? `<button class="eliminar" onclick="revocarCaja('${c.id}')">Revocar</button>` : ''}
-          ${c.dispositivo_activo ? `<button class="editar" onclick="liberarDispositivoCaja('${c.id}')">Liberar dispositivo</button>` : ''}
+          ${c.activo ? `<button class="eliminar" onclick="revocarCaja(${jsAttr(c.id)})">Revocar</button>` : ''}
+          ${c.dispositivo_activo ? `<button class="editar" onclick="liberarDispositivoCaja(${jsAttr(c.id)})">Liberar dispositivo</button>` : ''}
         </td>
       </tr>
     `).join('');
@@ -7870,10 +7980,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
           ${x.stripe_payouts_habilitados
-            ? `<button class="principal" style="width:auto; background:#635BFF;" onclick="pagarRetiroConStripe('${x.id}')">Pagar con Stripe</button>`
+            ? `<button class="principal" style="width:auto; background:#635BFF;" onclick="pagarRetiroConStripe(${jsAttr(x.id)})">Pagar con Stripe</button>`
             : ''}
-          <button class="reactivar" onclick="resolverRetiroEmbajador('${x.id}', true)">Marcar pagado (manual)</button>
-          <button class="eliminar" onclick="resolverRetiroEmbajador('${x.id}', false)">Rechazar</button>
+          <button class="reactivar" onclick="resolverRetiroEmbajador(${jsAttr(x.id)}, true)">Marcar pagado (manual)</button>
+          <button class="eliminar" onclick="resolverRetiroEmbajador(${jsAttr(x.id)}, false)">Rechazar</button>
         </div>
       </div>
     `).join('');
@@ -8142,7 +8252,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           <div class="n">${escapar(s.negocios?.nombre || 'Negocio')}</div>
           <div class="f">${new Date(s.creado_en).toLocaleString('es-MX')}</div>
         </div>
-        <button onclick="marcarSolicitudAtendida('${s.id}')">Ya la atendí</button>
+        <button onclick="marcarSolicitudAtendida(${jsAttr(s.id)})">Ya la atendí</button>
       </div>
     `).join('');
   }
@@ -8155,7 +8265,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   let precioMensualDispositivo = 250;
 
   async function cargarPrecioPuve(){
-    const { data, error } = await sb.from('configuracion_puve').select('precio_mensual_dispositivo, comision_embajador_pesos').eq('id', 1).maybeSingle();
+    let { data, error } = await sb.rpc('obtener_config_publica_puve');
+    if(error || !data){
+      ({ data, error } = await sb.from('configuracion_puve').select('precio_mensual_dispositivo, comision_embajador_pesos').eq('id', 1).maybeSingle());
+    }
     if(!error && data?.precio_mensual_dispositivo != null){
       precioMensualDispositivo = Number(data.precio_mensual_dispositivo);
     }
@@ -8283,7 +8396,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           <div class="n">${escapar(p.negocios?.nombre || 'Negocio')} — ${escapar(p.folio || 'sin folio')}</div>
           <div class="f">$${Number(p.monto_esperado).toFixed(2)} · reportado ${p.reportado_en ? new Date(p.reportado_en).toLocaleString('es-MX') : ''}</div>
         </div>
-        <button onclick="marcarPagado('${p.negocio_id}', ${p.monto_esperado}, '${p.periodo}')">Confirmar pago</button>
+        <button onclick="marcarPagado(${jsAttr(p.negocio_id)}, ${Number(p.monto_esperado) || 0}, ${jsAttr(p.periodo)})">Confirmar pago</button>
       </div>
     `).join('');
   }
@@ -8306,7 +8419,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           <div class="n">${escapar(s.negocios?.nombre || 'Negocio')} — ${escapar(s.folio || 'sin folio')} — cambio a ${s.plan_nuevo}</div>
           <div class="f">$${Number(s.monto).toFixed(2)} · solicitado ${s.creado_en ? new Date(s.creado_en).toLocaleString('es-MX') : ''}</div>
         </div>
-        <button onclick="confirmarCambioPlan('${s.id}')">Confirmar pago</button>
+        <button onclick="confirmarCambioPlan(${jsAttr(s.id)})">Confirmar pago</button>
       </div>
     `).join('');
   }
@@ -8334,7 +8447,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           <div class="n">${escapar(s.negocios?.nombre || 'Negocio')} — ${escapar(s.folio || 'sin folio')} — ${s.cajeros_agregados} cajero(s)</div>
           <div class="f">$${Number(s.monto).toFixed(2)} · solicitado ${s.creado_en ? new Date(s.creado_en).toLocaleString('es-MX') : ''}</div>
         </div>
-        <button onclick="confirmarCajeroExtra('${s.id}')">Confirmar pago</button>
+        <button onclick="confirmarCajeroExtra(${jsAttr(s.id)})">Confirmar pago</button>
       </div>
     `).join('');
   }
@@ -8407,7 +8520,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <td class="num">${c.usos_actuales}${c.usos_maximos != null ? ' / ' + c.usos_maximos : ''}</td>
         <td>${c.vigente_hasta ? new Date(c.vigente_hasta + 'T00:00:00').toLocaleDateString('es-MX') : 'Sin límite'}</td>
         <td><span class="badge ${c.activo ? 'activo-si' : 'baneado'}">${c.activo ? 'Activo' : 'Desactivado'}</span></td>
-        <td class="acciones"><button class="${c.activo ? 'eliminar' : 'reactivar'}" onclick="toggleCupon('${c.id}', ${!c.activo})">${c.activo ? 'Desactivar' : 'Activar'}</button></td>
+        <td class="acciones"><button class="${c.activo ? 'eliminar' : 'reactivar'}" onclick="toggleCupon(${jsAttr(c.id)}, ${!c.activo})">${c.activo ? 'Desactivar' : 'Activar'}</button></td>
       </tr>
     `).join('');
   }
@@ -8489,13 +8602,13 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       else { estado = 'Pendiente'; clase = 'bajo'; }
 
       const botonPago = pagado
-        ? `<button class="eliminar" onclick="marcarNoPagado('${n.id}', '${periodo}')">Deshacer</button>`
-        : `<button class="reactivar" onclick="marcarPagado('${n.id}', ${esperado}, '${periodo}')">Marcar pagado</button>`;
+        ? `<button class="eliminar" onclick="marcarNoPagado(${jsAttr(n.id)}, ${jsAttr(periodo)})">Deshacer</button>`
+        : `<button class="reactivar" onclick="marcarPagado(${jsAttr(n.id)}, ${Number(esperado) || 0}, ${jsAttr(periodo)})">Marcar pagado</button>`;
       const botonBloqueo = n.bloqueado_por_pago
-        ? `<button class="editar" onclick="desbloquearPorPago('${n.id}')">Desbloquear</button>`
-        : `<button class="eliminar" onclick="bloquearPorPago('${n.id}')">Bloquear ahora</button>`;
+        ? `<button class="editar" onclick="desbloquearPorPago(${jsAttr(n.id)})">Desbloquear</button>`
+        : `<button class="eliminar" onclick="bloquearPorPago(${jsAttr(n.id)})">Bloquear ahora</button>`;
       const botonReembolso = (pagado && pago?.stripe_payment_id && !pago?.reembolsado)
-        ? `<button class="eliminar" onclick="adminReembolsarPago('${pago.id}', ${Number(pago.monto_pagado || esperado)}, '${escaparAtributo(n.nombre)}')">Reembolsar</button>`
+        ? `<button class="eliminar" onclick="adminReembolsarPago(${jsAttr(pago.id)}, ${Number(pago.monto_pagado || esperado)}, ${jsAttr(n.nombre)})">Reembolsar</button>`
         : (pago?.reembolsado ? `<span class="nota" style="display:inline;">Reembolsado</span>` : '');
       const acciones = esSuperadminActual ? botonPago + botonBloqueo + botonReembolso : '';
 
@@ -8713,7 +8826,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           <div class="n">${escapar(f.name)}</div>
           <div class="f">${f.metadata?.size ? (Math.round(f.metadata.size / 1024)) + ' KB' : ''}</div>
         </div>
-        <button onclick="descargarBackupStorage('${escaparAtributo(f.name)}')">Descargar</button>
+        <button onclick="descargarBackupStorage(${jsAttr(f.name)})">Descargar</button>
       </div>
     `).join('');
   }
@@ -9003,7 +9116,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       const burbuja = `<div class="chat-burbuja ${m.rol === 'usuario' ? 'usuario' : 'asistente'}">${escapar(m.contenido)}</div>`;
       if(m.rol !== 'asistente' || !m.seccion || !seccionPermitidaParaMi(m.seccion)) return burbuja;
       const etiqueta = ETIQUETAS_SECCION_CHAT[m.seccion] || m.seccion;
-      return burbuja + `<div class="chat-accion"><button type="button" class="texto" onclick="cambiarSeccion('${m.seccion}');">Ir a ${escapar(etiqueta)} →</button></div>`;
+      return burbuja + `<div class="chat-accion"><button type="button" class="texto" onclick="cambiarSeccion(${jsAttr(m.seccion)});">Ir a ${escapar(etiqueta)} →</button></div>`;
     }).join('') + `
       <div class="chat-accion" style="display:flex; gap:8px; flex-wrap:wrap;">
         <button type="button" class="texto" onclick="iniciarFormularioChat('bug')">${SVG_REPORTAR} Reportar un problema</button>
@@ -9021,7 +9134,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(m.error){
       return `<div class="chat-burbuja asistente" style="width:100%; max-width:100%;">
         <div style="color:var(--error); margin-bottom:8px;">No se pudo enviar: ${escapar(m.error)}</div>
-        <button type="button" class="texto" onclick="reintentarFormularioChat('${m.id}')">Reintentar</button>
+        <button type="button" class="texto" onclick="reintentarFormularioChat(${jsAttr(m.id)})">Reintentar</button>
       </div>`;
     }
     if(m.enviando){
@@ -9036,8 +9149,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <textarea id="chatFormDescripcion_${m.id}" rows="3" placeholder="${m.formTipo === 'sugerencia' ? 'Cuéntame tu idea con detalle' : '¿Qué pasó? ¿Qué esperabas que pasara?'}"
           style="width:100%; margin-bottom:8px; padding:7px 9px; border:1px solid var(--borde); border-radius:6px; font-family:'Inter'; font-size:13px; resize:vertical; background:var(--superficie); color:var(--texto);">${escapar(m.descripcion || '')}</textarea>
         <div style="display:flex; gap:8px;">
-          <button type="button" class="principal" style="width:auto; padding:7px 14px; font-size:13px;" onclick="enviarFormularioChat('${m.id}')">Enviar</button>
-          <button type="button" class="texto" style="width:auto; padding:7px 0; font-size:13px;" onclick="cancelarFormularioChat('${m.id}')">Cancelar</button>
+          <button type="button" class="principal" style="width:auto; padding:7px 14px; font-size:13px;" onclick="enviarFormularioChat(${jsAttr(m.id)})">Enviar</button>
+          <button type="button" class="texto" style="width:auto; padding:7px 0; font-size:13px;" onclick="cancelarFormularioChat(${jsAttr(m.id)})">Cancelar</button>
         </div>
       </div>
     `;
@@ -9224,7 +9337,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(badge){ badge.textContent = totalSinLeer; badge.classList.toggle('oculto', !totalSinLeer); }
     if(!lista.length){ cuerpo.innerHTML = '<tr><td class="nota">Sin conversaciones todavía.</td></tr>'; return; }
     cuerpo.innerHTML = lista.map(c => `
-      <tr style="cursor:pointer;" onclick="abrirConversacionSoporte('${c.negocio_id}', '${escaparAtributo(c.negocio_nombre)}')">
+      <tr style="cursor:pointer;" onclick="abrirConversacionSoporte(${jsAttr(c.negocio_id)}, ${jsAttr(c.negocio_nombre)})">
         <td>
           <div style="font-weight:600;">${escapar(c.negocio_nombre)}${Number(c.sin_leer) > 0 ? ` <span style="background:var(--error); color:#fff; border-radius:99px; padding:1px 7px; font-size:11px;">${c.sin_leer}</span>` : ''}</div>
           <div class="nota" style="margin:2px 0 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:240px;">${escapar(c.ultimo_texto || '')}</div>
@@ -9245,7 +9358,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <div class="chat-cuerpo" id="chatCuerpoAdminSoporte">${mensajes.map(m => `<div class="chat-burbuja ${m.rol_mensaje === 'usuario' ? 'asistente' : 'usuario'}">${escapar(m.contenido)}</div>`).join('') || '<p class="nota">Sin mensajes.</p>'}</div>
         <div class="chat-pie">
           <textarea id="chatInputAdminSoporte" rows="1" placeholder="Escribe tu respuesta..."></textarea>
-          <button type="button" class="principal" onclick="enviarRespuestaSoporte('${negocioId}', '${escaparAtributo(nombre)}')">Enviar</button>
+          <button type="button" class="principal" onclick="enviarRespuestaSoporte(${jsAttr(negocioId)}, ${jsAttr(nombre)})">Enviar</button>
         </div>
       </div>
     `;
@@ -9289,7 +9402,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <td>${escapar(b.reportado_por_correo || '—')}</td>
         <td><span class="badge ${clases[b.estado] || 'ok'}">${etiquetas[b.estado] || b.estado}</span></td>
         <td>${new Date(b.creado_en).toLocaleDateString('es-MX')}</td>
-        <td class="acciones">${esSuperadminActual ? `<button class="editar" onclick="cambiarEstadoBug('${b.id}')">Cambiar estado</button>` : ''}</td>
+        <td class="acciones">${esSuperadminActual ? `<button class="editar" onclick="cambiarEstadoBug(${jsAttr(b.id)})">Cambiar estado</button>` : ''}</td>
       </tr>
     `).join('') : '<tr><td colspan="6" style="text-align:center; color:var(--texto-suave); padding:24px;">Sin reportes todavía.</td></tr>';
   }
@@ -10140,7 +10253,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     } else {
       cuerpo.innerHTML = data.map(p => `
         <tr><td>${escapar(p.nombre)}</td><td>${escapar(p.contacto || '—')}</td><td>${escapar(p.telefono || '—')}</td>
-        <td class="acciones"><button class="eliminar" onclick="borrarProveedor('${p.id}', '${escaparAtributo(p.nombre)}')">Eliminar</button></td></tr>
+        <td class="acciones"><button class="eliminar" onclick="borrarProveedor(${jsAttr(p.id)}, ${jsAttr(p.nombre)})">Eliminar</button></td></tr>
       `).join('');
     }
     selOrden.innerHTML = '<option value="">(sin proveedor)</option>' + (data || []).map(p => `<option value="${p.id}">${escapar(p.nombre)}</option>`).join('');
@@ -10238,7 +10351,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <td>${escapar(o.proveedores?.nombre || '—')}</td>
         <td>${escapar((o.detalle_orden_compra || []).map(d => d.producto_nombre + ' (' + d.cantidad + ')').join(', '))}</td>
         <td><span class="badge ${clases[o.estado] || ''}">${etiquetas[o.estado] || o.estado}</span></td>
-        <td class="acciones">${o.estado === 'pendiente' ? `<button class="reactivar" onclick="recibirOrdenCompra('${o.id}')">Recibir</button><button class="eliminar" onclick="cancelarOrdenCompra('${o.id}')">Cancelar</button>` : ''}</td>
+        <td class="acciones">${o.estado === 'pendiente' ? `<button class="reactivar" onclick="recibirOrdenCompra(${jsAttr(o.id)})">Recibir</button><button class="eliminar" onclick="cancelarOrdenCompra(${jsAttr(o.id)})">Cancelar</button>` : ''}</td>
       </tr>
     `).join('');
   }
@@ -10371,7 +10484,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <td>${etiquetaCategoriaGasto(g.categoria)}</td>
         <td>${escapar(g.descripcion || '—')}</td>
         <td class="num">${formatoDinero(g.monto)}</td>
-        <td style="text-align:right;"><button onclick="eliminarGasto('${g.id}')" style="background:none; border:none; cursor:pointer; color:var(--texto-suave); font-size:15px; line-height:1; padding:0;">×</button></td>
+        <td style="text-align:right;"><button onclick="eliminarGasto(${jsAttr(g.id)})" style="background:none; border:none; cursor:pointer; color:var(--texto-suave); font-size:15px; line-height:1; padding:0;">×</button></td>
       </tr>
     `).join('') : '<tr><td colspan="5" class="vacio">Sin gastos registrados.</td></tr>';
   }
@@ -10416,7 +10529,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           <td>${it.ya_devuelto}</td>
           <td><input type="number" min="0" max="${disponible}" step="1" value="0" style="width:64px;" ${disponible <= 0 ? 'disabled' : ''} class="input-mini input-cantidad-devolver"></td>
           <td><input type="text" placeholder="Opcional" style="width:120px;" class="input-mini input-motivo-devolver" ${disponible <= 0 ? 'disabled' : ''}></td>
-          <td><button type="button" class="principal" style="width:auto;" ${disponible <= 0 ? 'disabled' : ''} onclick="procesarDevolucion('${it.detalle_id}')">Devolver</button></td>
+          <td><button type="button" class="principal" style="width:auto;" ${disponible <= 0 ? 'disabled' : ''} onclick="procesarDevolucion(${jsAttr(it.detalle_id)})">Devolver</button></td>
         </tr>
       `;
     }).join('');
@@ -10442,14 +10555,17 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const btn = fila.querySelector('button');
     btn.disabled = true; btn.textContent = 'Procesando...';
 
-    const { error } = await sb.rpc('registrar_devolucion', {
+    const { data: devId, error } = await sb.rpc('registrar_devolucion', {
       p_detalle_venta_id: detalleId,
       p_cantidad: cantidad,
-      p_motivo: motivo || null
+      p_motivo: motivo || null,
+      p_pin: window.__pinVigente || null
     });
+    window.__pinVigente = null;
 
-    if(error){
-      mostrarMensaje('mensajeDevoluciones', error.message, 'error');
+    if(error || !devId){
+      // El servidor devuelve vacío cuando el PIN es incorrecto (C-06: ahora se exige allá, no solo aquí).
+      mostrarMensaje('mensajeDevoluciones', error ? error.message : 'PIN incorrecto.', 'error');
       btn.disabled = false; btn.textContent = 'Devolver';
       return;
     }
@@ -10524,7 +10640,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     html += avisosVisibles.map(a => `
       <div class="aviso-banner ${escaparAtributo(a.nivel)}">
         <span>${a.titulo ? '<strong>' + escapar(a.titulo) + ':</strong> ' : ''}${escapar(a.mensaje)}</span>
-        <button aria-label="Cerrar aviso" onclick="descartarAviso('${a.id}')">×</button>
+        <button aria-label="Cerrar aviso" onclick="descartarAviso(${jsAttr(a.id)})">×</button>
       </div>`).join('');
     cont.innerHTML = html;
   }
@@ -10545,7 +10661,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const { data: { session } } = await sb.auth.getSession();
     if(!session){ alert('Tu sesión expiró. Vuelve a iniciar sesión.'); return; }
 
-    const { data, error } = await sb.functions.invoke('impersonar-negocio', { body: cuerpo });
+    const motivo = (prompt('Motivo de esta suplantación (queda en la bitácora, 10 a 300 caracteres):', '') || '').trim();
+    if(motivo.length < 10){ alert('Escribe un motivo de al menos 10 caracteres para continuar.'); return; }
+    const { data, error } = await sb.functions.invoke('impersonar-negocio', { body: { ...cuerpo, motivo } });
     if(error || data?.error){
       let msg = data?.error || error?.message || 'Error desconocido';
       try { const j = await error.context.json(); msg = j.error || msg; } catch(e){}
@@ -10649,7 +10767,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           ? `<div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
                <div><div style="font-weight:600;">${escapar(encargado.nombre || '—')}</div>
                     <div class="nota" style="margin:0; user-select:all;">${escapar(encargado.email)}</div></div>
-               <button class="principal" style="width:auto;" onclick="suplantarNegocio('${n.id}', '${nombreAttr}')">Entrar a su cuenta</button>
+               <button class="principal" style="width:auto;" onclick="suplantarNegocio(${jsAttr(n.id)}, ${jsAttr(nombreAttr)})">Entrar a su cuenta</button>
              </div>
              <p class="nota" style="margin:8px 0 0;">Entras como él, sin su contraseña — queda en la bitácora de seguridad.</p>`
           : `<p class="nota" style="margin:0;">No se encontró el correo del encargado${rCorreo.error ? ' (' + escapar(rCorreo.error.message) + ' — ¿ya corriste puve_superadmin_gestion_saas.sql?)' : ''}.</p>`}
@@ -10661,9 +10779,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       <div class="seccion-modal">
         <h3>Ver lo que ve el cliente</h3>
         <div class="fila-botones">
-          <button class="editar" onclick="previsualizarVista('baneado', '${n.id}')">Pantalla de cuenta suspendida</button>
-          <button class="editar" onclick="previsualizarVista('pago', '${n.id}')">Pantalla de pago pendiente</button>
-          <button class="editar" onclick="previsualizarVista('manual', '${n.id}')">Pantalla de bloqueo manual</button>
+          <button class="editar" onclick="previsualizarVista('baneado', ${jsAttr(n.id)})">Pantalla de cuenta suspendida</button>
+          <button class="editar" onclick="previsualizarVista('pago', ${jsAttr(n.id)})">Pantalla de pago pendiente</button>
+          <button class="editar" onclick="previsualizarVista('manual', ${jsAttr(n.id)})">Pantalla de bloqueo manual</button>
         </div>
         <p class="nota" style="margin:8px 0 0;">Solo es una vista previa: no cambia nada del cliente.</p>
       </div>
@@ -10672,14 +10790,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <h3>Estado real (afecta al cliente ahora mismo)</h3>
         <div class="fila-botones">
           ${n.baneado
-            ? `<button class="reactivar" onclick="gestionReactivar('${n.id}')">Reactivar acceso</button>`
-            : `<button class="eliminar" onclick="gestionSuspender('${n.id}', '${nombreAttr}')">Suspender (muestra "Cuenta suspendida")</button>`}
+            ? `<button class="reactivar" onclick="gestionReactivar(${jsAttr(n.id)})">Reactivar acceso</button>`
+            : `<button class="eliminar" onclick="gestionSuspender(${jsAttr(n.id)}, ${jsAttr(nombreAttr)})">Suspender (muestra "Cuenta suspendida")</button>`}
           ${n.bloqueado_por_pago
-            ? `<button class="reactivar" onclick="gestionDesbloquearPago('${n.id}')">Quitar bloqueo por pago</button>`
-            : `<button class="eliminar" onclick="gestionBloquearPago('${n.id}')">Bloquear por pago (muestra "Pago pendiente")</button>`}
+            ? `<button class="reactivar" onclick="gestionDesbloquearPago(${jsAttr(n.id)})">Quitar bloqueo por pago</button>`
+            : `<button class="eliminar" onclick="gestionBloquearPago(${jsAttr(n.id)})">Bloquear por pago (muestra "Pago pendiente")</button>`}
           ${n.forzar_pago_pendiente
-            ? `<button class="reactivar" onclick="gestionForzarPago('${n.id}', false)">Quitar pago forzado (prueba)</button>`
-            : `<button class="eliminar" onclick="gestionForzarPago('${n.id}', true)">Solicitar pago ahora (prueba)</button>`}
+            ? `<button class="reactivar" onclick="gestionForzarPago(${jsAttr(n.id)}, false)">Quitar pago forzado (prueba)</button>`
+            : `<button class="eliminar" onclick="gestionForzarPago(${jsAttr(n.id)}, true)">Solicitar pago ahora (prueba)</button>`}
         </div>
         <p class="nota" style="margin:8px 0 0;">Manda al negocio a la pantalla de pago de inmediato, sin importar si ya pagó. Se quita solo en cuanto pague de verdad, o lo quitas aquí a mano.</p>
       </div>
@@ -10688,7 +10806,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <h3>Días de gracia</h3>
         <div class="fila-botones">
           <input id="gestionDiasGracia" type="number" min="0" max="365" value="7">
-          <button class="editar" onclick="gestionDarGracia('${n.id}')">Regalar días</button>
+          <button class="editar" onclick="gestionDarGracia(${jsAttr(n.id)})">Regalar días</button>
         </div>
         <p class="nota" style="margin:8px 0 0;">Se suman a partir de hoy (o de la gracia vigente). Escribe 0 para quitarla. Un bloqueo manual por pago sigue mandando sobre la gracia.</p>
       </div>
@@ -10697,7 +10815,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <h3>Límite de cajeros contratados</h3>
         <div class="fila-botones">
           <input id="gestionLimiteCajeros" type="number" min="1" max="1000" value="${n.dispositivos_permitidos}">
-          <button class="editar" onclick="gestionFijarLimite('${n.id}')">Guardar límite</button>
+          <button class="editar" onclick="gestionFijarLimite(${jsAttr(n.id)})">Guardar límite</button>
         </div>
       </div>
 
@@ -10707,7 +10825,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <div class="fila-botones">
           <select id="gestionPeriodoAnular">${opcionesPagos}</select>
           <input id="gestionMotivoAnular" type="text" placeholder="Motivo (obligatorio)" style="max-width:240px;">
-          <button class="eliminar" onclick="gestionAnularCobro('${n.id}')">Anular cobro</button>
+          <button class="eliminar" onclick="gestionAnularCobro(${jsAttr(n.id)})">Anular cobro</button>
         </div>
         <p class="nota" style="margin:8px 0 0;">El pago vuelve a quedar pendiente y sale de la Declaración SAT, pero el historial conserva la anulación con su motivo.</p>`
         : '<p class="nota" style="margin:0;">Este negocio no tiene cobros registrados.</p>'}
@@ -10905,7 +11023,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <div class="modal-puve" style="max-width:440px; text-align:center;">
           <h2>${escapar(a.titulo || 'Aviso de PUVE')}</h2>
           <p style="margin:10px 0 18px; line-height:1.5;">${escapar(a.mensaje)}</p>
-          <button class="principal" style="width:100%;" onclick="descartarAviso('${a.id}')">Entendido</button>
+          <button class="principal" style="width:100%;" onclick="descartarAviso(${jsAttr(a.id)})">Entendido</button>
         </div>
       </div>`;
   }
@@ -10956,7 +11074,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           <div class="f">${escapar(a.mensaje)}</div>
           <div class="f">${new Date(a.inicia_en).toLocaleString('es-MX')}${a.expira_en ? ' → ' + new Date(a.expira_en).toLocaleString('es-MX') : ' → sin caducidad'}</div>
         </div>
-        ${(vigente || programado) ? `<button class="eliminar" onclick="retirarAvisoPuve('${a.id}')">Retirar</button>` : ''}
+        ${(vigente || programado) ? `<button class="eliminar" onclick="retirarAvisoPuve(${jsAttr(a.id)})">Retirar</button>` : ''}
       </div>`;
     }).join('');
   }
