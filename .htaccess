@@ -1,15 +1,24 @@
-RewriteEngine On
-
-RewriteCond %{THE_REQUEST} ^[A-Z]{3,9}\ /index\.html\ HTTP/
-
-DirectoryIndex index.html index.php
-
 <FilesMatch "^\.">
   Require all denied
 </FilesMatch>
 
-<FilesMatch "\.(sql|env|bak|zip|log|ini|conf|yml|yaml)$">
+<FilesMatch "\.(sql|env|bak|zip|log|ini|conf|yml|yaml|ts|md|sh|py)$">
   Require all denied
 </FilesMatch>
 
 Options -Indexes
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "DENY"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "camera=(self), microphone=(self), geolocation=(), payment=()"
+  Header always set Strict-Transport-Security "max-age=31536000"
+  Header always set Content-Security-Policy "frame-ancestors 'none'"
+</IfModule>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTP:X-Forwarded-Proto} =http
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
