@@ -1,8 +1,0 @@
-.htaccess
-.assetsignore
-*.sql
-*.ts
-*.md
-*.py
-*.zip
-*.txt
