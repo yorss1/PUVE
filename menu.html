@@ -4,9 +4,34 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="referrer" content="no-referrer">
-<meta name="robots" content="noindex">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://challenges.cloudflare.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://ckzueunptmlqmtypowmg.supabase.co; frame-src https://challenges.cloudflare.com; img-src data:; base-uri 'none'; form-action 'none'">
+<meta name="description" content="Menú digital: haz tu pedido desde la mesa.">
+<meta name="author" content="PUVE">
+<meta name="robots" content="noindex, nofollow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="PUVE">
+<meta property="og:title" content="Menú" id="ogTitle">
+<meta property="og:description" content="Menú digital: haz tu pedido desde la mesa.">
+<meta property="og:locale" content="es_MX">
+<meta property="og:image" content="img/og-image-cuadrada.png">
+<meta property="og:image:secure_url" content="img/og-image-cuadrada.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="600">
+<meta property="og:image:height" content="600">
+<meta property="og:image:alt" content="PUVE — Punto de Venta Digital">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Menú" id="twTitle">
+<meta name="twitter:description" content="Menú digital: haz tu pedido desde la mesa.">
+<meta name="twitter:image" content="img/og-image-cuadrada.png">
+<meta name="twitter:image:alt" content="PUVE — Punto de Venta Digital">
+<link rel="apple-touch-icon" href="img/logo_mini.png" id="appleIcon">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Menú" id="appTitle">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#000000">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://challenges.cloudflare.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://ckzueunptmlqmtypowmg.supabase.co; frame-src https://challenges.cloudflare.com; img-src 'self' data: https://ckzueunptmlqmtypowmg.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Menú</title>
+<link rel="icon" href="img/logo_mini.png" type="image/png" sizes="any" id="favicon">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
 <style>
   :root{ --t:#171614; --s:#85827B; --b:rgba(30,27,20,.10); --f:#EEEDEA; --v:rgba(255,255,255,.82); --v2:#fff; --a:#171614; --as:#fff; --ok:#1A9455; --er:#DC3F45; --serif:'Instrument Serif',Georgia,serif; }
@@ -20,6 +45,7 @@
   .chip{ flex:none; scroll-snap-align:start; padding:9px 17px; border-radius:99px; border:1px solid var(--b); background:var(--v2); font-size:13px; font-weight:500; white-space:nowrap; } .chip.on{ background:var(--a); color:var(--as); border-color:var(--a); }
   .grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } @media (min-width:560px){ .grid{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
   .p{ background:var(--v); border:1px solid var(--b); border-radius:20px; padding:14px; display:flex; flex-direction:column; justify-content:space-between; min-height:112px; gap:10px; }
+  .p img{ width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:14px; background:var(--b); display:block; }
   .p b{ font-weight:600; font-size:14px; line-height:1.25; } .pr{ font:400 23px var(--serif); } .row{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
   .st{ display:flex; align-items:center; gap:10px; } .st button,.add{ width:34px; height:34px; border-radius:50%; border:1px solid var(--b); background:var(--v2); font-weight:700; font-size:18px; line-height:1; } .add{ background:var(--a); color:var(--as); border:0; } .st span{ min-width:16px; text-align:center; font-weight:600; }
   .barra{ position:fixed; left:12px; right:12px; bottom:calc(12px + env(safe-area-inset-bottom)); max-width:616px; margin:0 auto; z-index:5; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 10px 10px 22px; border-radius:30px; background:var(--v2); border:1px solid var(--b); box-shadow:0 14px 36px rgba(60,55,45,.22); }
@@ -70,8 +96,13 @@
     if(guardado){ seguimiento = guardado; return verSeguimiento(); }
     api({ accion:'menu', negocio:NEG }).then(function(r){
       if(!r.ok || !r.d || !r.d.productos) return aviso(r.status === 429 ? 'Hay muchas consultas ahora. Intenta en un momento.' : 'El menú no está disponible por ahora. Pide ayuda al personal.');
-      menu = r.d; document.title = 'Menú · ' + menu.negocio; pintarMenu();
+      menu = r.d; document.title = 'Menú · ' + menu.negocio; marcaNegocio(); pintarMenu();
     });
+  }
+  function marcaNegocio(){
+    var set = function(id, attr, val){ var e = document.getElementById(id); if(e) e.setAttribute(attr, val); };
+    set('ogTitle', 'content', 'Menú · ' + menu.negocio); set('twTitle', 'content', 'Menú · ' + menu.negocio); set('appTitle', 'content', menu.negocio);
+    if(/^[0-9a-f-]{36}\/favicon\.png$/.test(menu.favicon || '')){ var u = SUPA + '/storage/v1/object/public/fotos-negocios/' + menu.favicon; set('favicon', 'href', u); set('appleIcon', 'href', u); }
   }
   function total(){ var t = 0; menu.productos.forEach(function(p){ t += (carrito[p.id] || 0) * Number(p.precio); }); return t; }
   function cuenta(){ var n = 0; for(var k in carrito) n += carrito[k]; return n; }
@@ -98,7 +129,9 @@
     var ps = menu.productos.filter(function(p){ return !cat || p.categoria_id === cat; });
     if(!ps.length) g.appendChild($('div', 'centro', 'No hay productos en esta categoría.'));
     ps.forEach(function(p){
-      var card = $('div', 'p'); card.appendChild($('b', '', p.nombre));
+      var card = $('div', 'p');
+      if(/^[0-9a-f-]{36}\/[0-9a-f-]{36}\.jpg$/.test(p.foto || '')){ var im = document.createElement('img'); im.alt = p.nombre; im.loading = 'lazy'; im.decoding = 'async'; im.referrerPolicy = 'no-referrer'; im.src = SUPA + '/storage/v1/object/public/fotos-negocios/' + p.foto; card.appendChild(im); }
+      card.appendChild($('b', '', p.nombre));
       var fila = $('div', 'row'); fila.appendChild($('span', 'pr', money(p.precio))); fila.appendChild(control(p)); card.appendChild(fila); g.appendChild(card);
     }); resumen();
   }

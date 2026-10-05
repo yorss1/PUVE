@@ -34,7 +34,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="theme-color" content="#000000">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; connect-src 'self' https://ckzueunptmlqmtypowmg.supabase.co; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; base-uri 'self'; form-action 'self'; object-src 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; connect-src 'self' https://ckzueunptmlqmtypowmg.supabase.co; img-src 'self' data: https://ckzueunptmlqmtypowmg.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; base-uri 'self'; form-action 'self'; object-src 'none';">
 <title>PUVE</title>
 <link rel="icon" href="img/logo_mini.png" type="image/png" sizes="any">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -864,6 +864,11 @@
   .qr-card{ background:#fff; color:#000; border:1px solid var(--borde); border-radius:18px; padding:12px; text-align:center; break-inside:avoid; } .qr-card svg{ width:100%; height:auto; display:block; }
   .qr-card b{ display:block; font:400 24px var(--serif); margin-top:6px; } .qr-card small{ font-size:11px; color:#555; }
   @media print{ body *{ visibility:hidden; } #qrMesasSalida,#qrMesasSalida *{ visibility:visible; } #qrMesasSalida{ position:absolute; left:0; top:0; width:100%; grid-template-columns:repeat(3,1fr); } }
+
+  /* ===== Fotos de platillos e ícono del negocio ===== */
+  .foto-fila{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; } .foto-acc{ display:flex; gap:8px; flex-wrap:wrap; }
+  .foto-prev{ width:104px; height:78px; border-radius:14px; overflow:hidden; background:var(--sub); display:grid; place-items:center; font-size:12px; color:var(--texto-suave); }
+  .foto-prev img{ width:100%; height:100%; object-fit:cover; display:block; } .favicon-prev{ width:48px; height:48px; border-radius:12px; background:var(--sub); object-fit:contain; }
 </style>
 </head>
 <body>
@@ -1381,6 +1386,18 @@
             <div class="campo"><label for="pCosto">Costo</label><input id="pCosto" type="number" step="0.01" min="0" placeholder="0.00"></div>
             <div class="campo"><label for="pStock">Stock</label><input id="pStock" type="number" step="1" min="0" required placeholder="0"></div>
             <div class="campo"><label for="pCaducidad">Caducidad (opcional)</label><input id="pCaducidad" type="date"></div>
+            <div class="campo oculto" id="campoFotoPlatillo">
+              <label>Foto del platillo</label>
+              <div class="foto-fila">
+                <div class="foto-prev" id="fotoPrev">Sin foto</div>
+                <div class="foto-acc">
+                  <button type="button" onclick="elegirFotoPlatillo(true)">Tomar foto</button>
+                  <button type="button" onclick="elegirFotoPlatillo(false)">Elegir de la galería</button>
+                  <button type="button" class="texto" onclick="quitarFotoPlatillo()">Quitar</button>
+                </div>
+              </div>
+              <div class="nota" id="fotoEstado"></div>
+            </div>
           </div>
           <div style="display:flex; gap:10px; margin-top:16px;">
             <button class="principal" type="submit" id="btnGuardarProducto" style="width:auto;">Guardar</button>
@@ -1788,6 +1805,18 @@
       </div>
 
       <div id="vistaConfigFunciones">
+        <div class="bloque-analitica" id="bloqueFavicon">
+          <h3>Ícono del negocio</h3>
+          <p class="nota">Es la imagen que aparece en la pestaña del navegador y al guardar tu página en la pantalla de inicio. Puedes dejar el ícono de PUVE o usar el tuyo (se recorta cuadrado y se reduce a un archivo diminuto).</p>
+          <div id="mensajeFavicon" class="mensaje"></div>
+          <div class="foto-fila">
+            <img id="faviconPrev" class="favicon-prev" alt="Ícono actual" src="img/logo_mini.png">
+            <div class="foto-acc">
+              <button type="button" onclick="subirFaviconNegocio()">Subir mi imagen</button>
+              <button type="button" class="texto" onclick="restablecerFaviconNegocio()">Usar el ícono de PUVE</button>
+            </div>
+          </div>
+        </div>
         <div class="bloque-analitica oculto" id="bloquePedidosQr">
           <h3>Pedidos por QR</h3>
           <p class="nota">Tus clientes escanean el QR de su mesa, arman su pedido desde el celular y te llega aquí al instante para que lo aceptes y le des un tiempo estimado. No se pide ningún dato personal y el cobro lo sigues haciendo tú.</p>
@@ -4462,6 +4491,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('navDevoluciones').classList.toggle('oculto', esAdminActual || esAnalista || !configNegocio.devoluciones);
     document.getElementById('navGastos').classList.toggle('oculto', esAdminActual || esCajero || esAnalista);
     actualizarNavPedidos(esAdminActual || esAnalista);
+    aplicarVocabularioGiro(); cargarFaviconNegocio();
     document.getElementById('navInventario').classList.toggle('oculto', esAdminActual || esCajero || esAnalista);
     document.getElementById('navAnalitica').classList.toggle('oculto', esAdminActual || esCajero);
     document.getElementById('navDispositivos').classList.toggle('oculto', esAdminActual || esCajero || esAnalista);
@@ -6461,6 +6491,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     cerrarMenuMovil();
     if(cual === 'vender' || cual === 'productos'){ cargarProductos(); }
     if(cual === 'pedidos') refrescarPedidosQr();
+    if(cual === 'productos') aplicarVocabularioGiro();
     if(cual === 'corte') cargarHistorialCortes();
     if(cual === 'devoluciones'){ cargarHistorialDevoluciones(); document.getElementById('formBuscarVentaDevolucion').reset(); document.getElementById('resultadoBuscarVenta').classList.add('oculto'); ocultarMensaje('mensajeDevoluciones'); }
     if(cual === 'gastos'){ cargarGastos(); document.getElementById('panelGasto').classList.remove('activo'); ocultarMensaje('mensajeGasto'); }
@@ -6701,6 +6732,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       document.getElementById('productoId').value = '';
       document.getElementById('btnGuardarProducto').textContent = 'Guardar';
       ocultarMensaje('mensajeProducto');
+      limpiarFotoPendiente();
     }
   }
 
@@ -6714,6 +6746,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('pStock').value = p.stock;
     document.getElementById('pCaducidad').value = p.fecha_caducidad || '';
     document.getElementById('btnGuardarProducto').textContent = 'Actualizar';
+    fotoForm = { original: p.foto_path || null, actual: p.foto_path || null, subida: null }; pintarFotoForm(); estadoFoto('');
     alternarFormulario(true);
   }
 
@@ -6740,11 +6773,13 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       stock: parseFloat(document.getElementById('pStock').value) || 0,
       fecha_caducidad: document.getElementById('pCaducidad').value || null,
     };
+    if(document.body.classList.contains('giro-restaurante')) registro.foto_path = fotoForm.actual;
     let error;
     if(id){ ({ error } = await sb.from('productos').update(registro).eq('id', id)); }
     else { ({ error } = await sb.from('productos').insert(registro)); }
     btn.disabled = false;
     if(error){ mostrarMensaje('mensajeProducto', 'No se pudo guardar: ' + error.message, 'error'); return false; }
+    confirmarFotoGuardada();
     alternarFormulario(false);
     await cargarProductos();
     return false;
@@ -6755,6 +6790,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(!confirm('¿Eliminar este producto?')) return;
     const { error } = await sb.from('productos').delete().eq('id', id);
     if(error){ alert('No se pudo eliminar: ' + error.message); return; }
+    const pf = (productosCache.find(x => x.id === id) || {}).foto_path; if(pf) quitarArchivoPuve(pf);
     await cargarProductos();
   }
 
@@ -7457,6 +7493,107 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     mostrarMensaje('mensajePedidosQrCfg', 'Listo: los QR anteriores ya no sirven. Genera los nuevos.', 'exito');
   }
   document.getElementById('cfgTipoNegocio').addEventListener('change', () => setTimeout(actualizarBloquePedidosQr, 700));
+
+  // ===== Personalización por giro + imágenes seguras (fotos de platillos y favicon) =====
+  const BUCKET_IMG = 'fotos-negocios';
+  const urlImgPuve = (p) => SUPABASE_URL + '/storage/v1/object/public/' + BUCKET_IMG + '/' + p;
+  const RUTA_FOTO = /^[0-9a-f-]{36}\/[0-9a-f-]{36}\.jpg$/, RUTA_FAV = /^[0-9a-f-]{36}\/favicon\.png$/;
+
+  function aplicarVocabularioGiro(){
+    const rest = (configNegocio.tipo_negocio || '') === 'restaurante';
+    document.body.classList.toggle('giro-restaurante', rest);
+    const txt = (el, nuevo) => { if(!el || el.children.length) return; if(el.dataset.orig === undefined) el.dataset.orig = el.textContent; el.textContent = rest ? nuevo : el.dataset.orig; };
+    const ph = (el, nuevo) => { if(!el) return; if(el.dataset.orig === undefined) el.dataset.orig = el.placeholder; el.placeholder = rest ? nuevo : el.dataset.orig; };
+    txt(document.getElementById('navProductos'), 'Menú');
+    txt(document.querySelector('#seccionProductos .encabezado-seccion h2'), 'Menú');
+    txt(document.getElementById('btnNuevo'), 'Nuevo platillo');
+    txt(document.querySelector('label[for="pNombre"]'), 'Nombre del platillo'); ph(document.getElementById('pNombre'), 'Tacos al pastor');
+    txt(document.querySelector('label[for="pStock"]'), 'Disponibles hoy (0 = agotado)');
+    txt(document.querySelector('#bloqueCategorias .nota'), 'Organiza tu menú por secciones: entradas, platos fuertes, bebidas, postres…');
+    ph(document.getElementById('nuevaCategoriaNombre'), 'Ej. Entradas, Platos fuertes, Bebidas, Postres...'); ph(document.getElementById('buscarProducto'), 'Buscar platillo');
+    const sku = document.getElementById('pSku'); if(sku && sku.closest('.campo')) sku.closest('.campo').style.display = rest ? 'none' : '';
+    document.querySelectorAll('[onclick*="abrirEscaner"]').forEach(b => { b.style.display = rest ? 'none' : ''; });
+    const cf = document.getElementById('campoFotoPlatillo'); if(cf) cf.classList.toggle('oculto', !rest);
+  }
+
+  // Re-codifica la imagen en el navegador: se pierden metadatos/EXIF y cualquier contenido oculto; solo salen píxeles nuevos.
+  async function procesarImagenPuve(archivo, o){
+    if(!archivo || !/^image\//.test(archivo.type) || /svg/i.test(archivo.type)) throw new Error('Elige una foto (JPG, PNG o WebP).');
+    if(archivo.size > 15 * 1024 * 1024) throw new Error('La imagen pesa más de 15 MB.');
+    let bmp; try { bmp = await createImageBitmap(archivo, { imageOrientation: 'from-image' }); } catch(e){ throw new Error('No se pudo leer la imagen. Prueba con otra foto.'); }
+    if(bmp.width < 32 || bmp.height < 32 || bmp.width > 10000 || bmp.height > 10000){ bmp.close(); throw new Error('El tamaño de la imagen no es válido.'); }
+    let sx = 0, sy = 0, sw = bmp.width, sh = bmp.height;
+    if(o.cuadrada){ const s = Math.min(sw, sh); sx = (sw - s) / 2; sy = (sh - s) / 2; sw = sh = s; }
+    const esc = Math.min(1, o.lado / Math.max(sw, sh)), w = Math.max(1, Math.round(sw * esc)), h = Math.max(1, Math.round(sh * esc));
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h; const cx = cv.getContext('2d');
+    if(o.tipo === 'image/jpeg'){ cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h); }
+    cx.imageSmoothingQuality = 'high'; cx.drawImage(bmp, sx, sy, sw, sh, 0, 0, w, h); bmp.close();
+    const blob = await new Promise(r => cv.toBlob(r, o.tipo, o.calidad));
+    if(!blob || blob.type !== o.tipo) throw new Error('Tu navegador no pudo preparar la imagen.');
+    if(blob.size > 190 * 1024) throw new Error('La imagen sigue pesando demasiado; prueba con otra.');
+    return blob;
+  }
+  function pedirArchivoImagen(camara){
+    return new Promise(res => { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; if(camara) i.setAttribute('capture', 'environment'); i.onchange = () => res(i.files[0] || null); i.click(); });
+  }
+  async function subirImagenPuve(path, blob){
+    const { error } = await sb.storage.from(BUCKET_IMG).upload(path, blob, { contentType: blob.type, upsert: true, cacheControl: '3600' });
+    if(error) throw new Error(error.message || 'No se pudo subir la imagen');
+  }
+  function quitarArchivoPuve(path){ try { if(path) sb.storage.from(BUCKET_IMG).remove([path]); } catch(e){} }
+
+  // ----- Foto del platillo (formulario de producto, giro Restaurante) -----
+  let fotoForm = { original: null, actual: null, subida: null };
+  function pintarFotoForm(){
+    const pv = document.getElementById('fotoPrev'); if(!pv) return; pv.textContent = '';
+    if(fotoForm.actual && RUTA_FOTO.test(fotoForm.actual)){ const im = document.createElement('img'); im.alt = 'Foto del platillo'; im.src = urlImgPuve(fotoForm.actual); pv.appendChild(im); } else pv.textContent = 'Sin foto';
+  }
+  function estadoFoto(t){ const e = document.getElementById('fotoEstado'); if(e) e.textContent = t || ''; }
+  async function elegirFotoPlatillo(camara){
+    const f = await pedirArchivoImagen(camara); if(!f) return;
+    if(!enLinea){ estadoFoto('Necesitas conexión para subir la foto.'); return; }
+    estadoFoto('Preparando la foto…');
+    try {
+      const blob = await procesarImagenPuve(f, { lado: 720, cuadrada: false, tipo: 'image/jpeg', calidad: 0.78 });
+      const path = negocioId + '/' + crypto.randomUUID() + '.jpg'; await subirImagenPuve(path, blob);
+      if(fotoForm.subida) quitarArchivoPuve(fotoForm.subida);
+      fotoForm.subida = path; fotoForm.actual = path; pintarFotoForm(); estadoFoto('Foto lista (' + Math.round(blob.size / 1024) + ' KB). Se guarda al presionar Guardar.');
+    } catch(e){ estadoFoto(e.message); }
+  }
+  function quitarFotoPlatillo(){ if(fotoForm.subida){ quitarArchivoPuve(fotoForm.subida); fotoForm.subida = null; } fotoForm.actual = null; pintarFotoForm(); estadoFoto(''); }
+  function limpiarFotoPendiente(){ if(fotoForm.subida) quitarArchivoPuve(fotoForm.subida); fotoForm = { original: null, actual: null, subida: null }; pintarFotoForm(); estadoFoto(''); }
+  function confirmarFotoGuardada(){ if(fotoForm.original && fotoForm.original !== fotoForm.actual) quitarArchivoPuve(fotoForm.original); fotoForm.subida = null; }
+
+  // ----- Ícono (favicon) del negocio -----
+  let faviconNegocioCargado = false;
+  function aplicarFaviconNegocio(path){
+    const l = document.querySelector('link[rel="icon"]'); if(!l) return;
+    if(l.dataset.orig === undefined) l.dataset.orig = l.getAttribute('href');
+    const ok = path && RUTA_FAV.test(path);
+    l.href = ok ? urlImgPuve(path) + '?v=' + Date.now() : l.dataset.orig;
+    const pv = document.getElementById('faviconPrev'); if(pv) pv.src = ok ? urlImgPuve(path) + '?v=' + Date.now() : l.dataset.orig;
+  }
+  async function cargarFaviconNegocio(){
+    if(faviconNegocioCargado || !negocioId) return; faviconNegocioCargado = true;
+    const { data } = await sb.from('negocios').select('favicon_path').eq('id', negocioId).maybeSingle();
+    aplicarFaviconNegocio(data && data.favicon_path);
+  }
+  async function subirFaviconNegocio(){
+    const f = await pedirArchivoImagen(false); if(!f) return; ocultarMensaje('mensajeFavicon');
+    try {
+      const blob = await procesarImagenPuve(f, { lado: 64, cuadrada: true, tipo: 'image/png' });
+      const path = negocioId + '/favicon.png'; await subirImagenPuve(path, blob);
+      const { error } = await sb.rpc('guardar_favicon_negocio', { p_path: path }); if(error) throw new Error(error.message);
+      aplicarFaviconNegocio(path); mostrarMensaje('mensajeFavicon', 'Listo: tu ícono quedó actualizado (' + (blob.size / 1024).toFixed(1) + ' KB).', 'exito');
+    } catch(e){ mostrarMensaje('mensajeFavicon', e.message || 'No se pudo actualizar el ícono', 'error'); }
+  }
+  async function restablecerFaviconNegocio(){
+    ocultarMensaje('mensajeFavicon');
+    const { error } = await sb.rpc('guardar_favicon_negocio', { p_path: null });
+    if(error){ mostrarMensaje('mensajeFavicon', error.message || 'No se pudo restablecer', 'error'); return; }
+    quitarArchivoPuve(negocioId + '/favicon.png'); aplicarFaviconNegocio(null); mostrarMensaje('mensajeFavicon', 'Se restableció el ícono predeterminado de PUVE.', 'exito');
+  }
+  document.getElementById('cfgTipoNegocio').addEventListener('change', () => setTimeout(aplicarVocabularioGiro, 700));
 
   function conTransicionPuve(fn){
     if(document.startViewTransition && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)){ try { document.startViewTransition(fn); return; } catch(e){} }
@@ -11508,7 +11645,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
   function limpiarAvisosPuve(){
     generacionAvisos++;
-    try { cerrarCanalPedidosQr(); } catch(e){}
+    try { cerrarCanalPedidosQr(); faviconNegocioCargado = false; aplicarFaviconNegocio(null); } catch(e){}
     if(canalAvisos){ try { sb.removeChannel(canalAvisos); } catch(e){} canalAvisos = null; }
     avisosVisibles = [];
     ultimoFetchAvisos = 0;
