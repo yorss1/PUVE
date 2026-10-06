@@ -871,8 +871,14 @@
   .foto-prev img{ width:100%; height:100%; object-fit:cover; display:block; } .favicon-prev{ width:48px; height:48px; border-radius:12px; background:var(--sub); object-fit:contain; }
 
   /* ===== Giros y tarjetas QR ===== */
-  body.giro-tienda .filtro-cats{ display:none; } body.giro-servicios .cant-control{ display:none; }
+  body.giro-servicios .cant-control{ display:none; }
   .qr-acc{ display:flex; justify-content:center; margin-top:8px; } .qr-acc button{ min-height:34px; padding:6px 12px; font-size:12px; }
+
+  /* ===== Abarrotes: cobro rápido, sin captura de cliente (salvo crédito) ===== */
+  .cobro-rapido{ margin:0 0 12px; } .cr-etq{ font-size:12.5px; font-weight:500; color:var(--texto-suave); margin:0 0 6px; }
+  .cr-teclas{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; } .cr-tecla{ min-height:48px; padding:0; font-size:15px; border-radius:14px; }
+  .cr-tecla.activa{ background:var(--acento); color:var(--texto-sobre-acento); border-color:var(--acento); } .cr-tecla:disabled{ opacity:.3; }
+  .cr-cambio{ display:flex; justify-content:space-between; align-items:baseline; margin-top:10px; font-size:13px; color:var(--texto-suave); } .cr-cambio:empty{ display:none; } .cr-cambio b{ font:400 36px var(--serif); color:var(--texto); }
 </style>
 </head>
 <body>
@@ -1194,7 +1200,7 @@
       <div class="campo"><label for="ubiGiro">¿Cuál es el giro de tu negocio?</label>
         <select id="ubiGiro" required>
           <option value="">Selecciona...</option>
-          <option value="tienda">Abarrotes / minisúper / conveniencia</option>
+          <option value="tienda">Tienda de abarrotes / conveniencia</option>
               <option value="cafeteria">Cafetería</option>
               <option value="restaurante">Restaurante / comida</option>
               <option value="ferreteria">Ferretería</option>
@@ -1305,7 +1311,13 @@
           </div>
 
 
-          <div style="margin:0 0 10px;">
+          <div class="cobro-rapido oculto" id="bloqueCobroRapido">
+        <div class="cr-etq">¿Con cuánto paga?</div>
+        <div class="cr-teclas" id="teclasCobroRapido"></div>
+        <div class="cr-cambio" id="cambioCobroRapido"></div>
+      </div>
+
+      <div style="margin:0 0 10px;">
             <button type="button" class="texto" id="btnMostrarMoneda" onclick="mostrarBloqueMoneda()" style="width:100%; text-align:left; padding:6px 0; font-size:13px; color:var(--texto-suave); border:none;">+ Cliente paga en otra moneda</button>
             <div class="oculto" id="bloqueMonedaVenta">
               <select id="monedaPago" class="input-mini" onchange="actualizarConversionMoneda()" style="width:100%;">
@@ -1404,6 +1416,17 @@
             <div class="campo"><label for="pCosto">Costo</label><input id="pCosto" type="number" step="0.01" min="0" placeholder="0.00"></div>
             <div class="campo"><label for="pStock">Stock</label><input id="pStock" type="number" step="1" min="0" required placeholder="0"></div>
             <div class="campo"><label for="pCaducidad">Caducidad (opcional)</label><input id="pCaducidad" type="date"></div>
+            <div class="campo oculto campo-ropa"><label for="pTalla">Talla</label><input id="pTalla" type="text" maxlength="12" placeholder="M, 28, 9.5"></div>
+            <div class="campo oculto campo-ropa"><label for="pColor">Color</label><input id="pColor" type="text" maxlength="30" placeholder="Negro"></div>
+            <div class="campo oculto campo-ropa">
+              <label>Código de barras propio y etiquetas</label>
+              <div class="foto-acc">
+                <button type="button" onclick="generarSkuPuve()">Generar código</button>
+                <input id="etqCopias" type="number" min="1" max="200" value="1" class="input-mini" style="width:84px;" aria-label="Copias">
+                <button type="button" onclick="imprimirEtiquetaForm()">Imprimir etiquetas</button>
+              </div>
+              <div class="nota" id="etqEstado">Para prendas sin código de fábrica. Cada talla y color es una variante con su propio código.</div>
+            </div>
             <div class="campo oculto" id="campoFotoPlatillo">
               <label>Foto del platillo</label>
               <div class="foto-fila">
@@ -1894,7 +1917,7 @@
             <label for="cfgTipoNegocio">Giro</label>
             <select id="cfgTipoNegocio" onchange="conTutorialToggle('cfg-tipo-negocio', this, function(){ guardarConfiguracion(); mostrarSugerenciaTipoNegocio(); })">
               <option value="">Selecciona...</option>
-              <option value="tienda">Abarrotes / minisúper / conveniencia</option>
+              <option value="tienda">Tienda de abarrotes / conveniencia</option>
               <option value="cafeteria">Cafetería</option>
               <option value="restaurante">Restaurante / comida</option>
               <option value="ferreteria">Ferretería</option>
@@ -6524,6 +6547,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(cual === 'vender' || cual === 'productos'){ cargarProductos(); }
     if(cual === 'pedidos') refrescarPedidosQr();
     if(cual === 'productos') aplicarVocabularioGiro();
+    if(cual === 'vender') setTimeout(enfocarEscanerVenta, 200);
     if(cual === 'corte') cargarHistorialCortes();
     if(cual === 'devoluciones'){ cargarHistorialDevoluciones(); document.getElementById('formBuscarVentaDevolucion').reset(); document.getElementById('resultadoBuscarVenta').classList.add('oculto'); ocultarMensaje('mensajeDevoluciones'); }
     if(cual === 'gastos'){ cargarGastos(); document.getElementById('panelGasto').classList.remove('activo'); ocultarMensaje('mensajeGasto'); }
@@ -6764,7 +6788,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       document.getElementById('productoId').value = '';
       document.getElementById('btnGuardarProducto').textContent = 'Guardar';
       ocultarMensaje('mensajeProducto');
-      limpiarFotoPendiente();
+      limpiarFotoPendiente(); ['pTalla', 'pColor'].forEach(id => { const e = document.getElementById(id); if(e) e.value = ''; });
     }
   }
 
@@ -6779,6 +6803,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('pCaducidad').value = p.fecha_caducidad || '';
     document.getElementById('btnGuardarProducto').textContent = 'Actualizar';
     fotoForm = { original: p.foto_path || null, actual: p.foto_path || null, subida: null }; pintarFotoForm(); estadoFoto('');
+    if(document.body.classList.contains('giro-ropa')){ document.getElementById('pNombre').value = p.modelo || p.nombre; document.getElementById('pTalla').value = p.talla || ''; document.getElementById('pColor').value = p.color || ''; }
     alternarFormulario(true);
   }
 
@@ -6806,6 +6831,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       fecha_caducidad: document.getElementById('pCaducidad').value || null,
     };
     if(document.body.classList.contains('giro-restaurante')) registro.foto_path = fotoForm.actual;
+    if(document.body.classList.contains('giro-ropa')){ const talla = document.getElementById('pTalla').value.trim(), color = document.getElementById('pColor').value.trim(), base = registro.nombre; registro.modelo = base; registro.talla = talla || null; registro.color = color || null; registro.nombre = [base, talla, color].filter(Boolean).join(' '); }
     let error;
     if(id){ ({ error } = await sb.from('productos').update(registro).eq('id', id)); }
     else { ({ error } = await sb.from('productos').insert(registro)); }
@@ -6859,7 +6885,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       contenedor.innerHTML = '<div class="vacio">No hay productos que coincidan.</div>';
       return;
     }
-    contenedor.innerHTML = filtrados.map(p => {
+    const entradas = agruparVariantesRopa(filtrados);
+    contenedor.innerHTML = entradas.map(p => {
+      if(p.__grupo) return tileGrupoVariantes(p);
       const sinStock = Number(p.stock) <= 0;
       const enLiquidacion = p.en_liquidacion && p.precio_liquidacion != null;
       const precioMostrado = enLiquidacion
@@ -6973,6 +7001,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   function renderizarCarrito(){
+    actualizarCobroRapido();
     const contenedor = document.getElementById('lineasCarrito');
     const vacio = document.getElementById('carritoVacio');
     const btnCobrar = document.getElementById('btnCobrar');
@@ -7034,6 +7063,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
   function actualizarBloqueMetodoPago(){
     const metodo = document.getElementById('metodoPagoVenta').value;
+    document.body.classList.toggle('pago-credito', metodo === 'credito'); actualizarCobroRapido();
     const bloque = document.getElementById('bloqueMontoEfectivoMixto');
     const nota = document.getElementById('notaMontoEfectivoMixto');
     if(metodo === 'credito'){
@@ -7581,7 +7611,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       nota: 'Organiza tu menú por secciones: entradas, platos fuertes, bebidas, postres…', catPh: 'Ej. Entradas, Platos fuertes, Bebidas, Postres...', sinSku: true, sinEscaner: true, foto: true },
     servicios: { nav: 'Servicios', h: 'Servicios', nuevo: 'Nuevo servicio', nombre: 'Nombre del servicio', ph: 'Corte de cabello', stock: 'Cupo disponible (pon un número alto, ej. 999)', buscar: 'Buscar servicio',
       nota: 'Agrupa tus servicios: cabello, barba, uñas, faciales, masajes…', catPh: 'Ej. Cabello, Barba, Uñas, Faciales...', sinSku: true, sinEscaner: true },
-    ropa: { nav: 'Artículos', h: 'Artículos', nuevo: 'Nuevo artículo', nombre: 'Nombre del artículo', ph: 'Playera básica', buscar: 'Buscar artículo',
+    ropa: { nav: 'Artículos', h: 'Artículos', nuevo: 'Nuevo artículo', nombre: 'Modelo (nombre base)', ph: 'Playera básica', buscar: 'Buscar artículo',
       nota: 'Organiza por temporada, género o tipo de prenda: playeras, jeans, calzado, accesorios…', catPh: 'Ej. Playeras, Jeans, Calzado, Accesorios...' }
   };
   function aplicarVocabularioGiro(){
@@ -7595,6 +7625,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     txt(document.querySelector('#bloqueCategorias .nota'), g('nota')); ph(document.getElementById('nuevaCategoriaNombre'), g('catPh')); ph(document.getElementById('buscarProducto'), g('buscar'));
     const sku = document.getElementById('pSku'); if(sku && sku.closest('.campo')) sku.closest('.campo').style.display = (v && v.sinSku) ? 'none' : '';
     document.querySelectorAll('[onclick*="abrirEscaner"]').forEach(b => { b.style.display = (v && v.sinEscaner) ? 'none' : ''; });
+    document.querySelectorAll('.campo-ropa').forEach(e => e.classList.toggle('oculto', giro !== 'ropa'));
     const cf = document.getElementById('campoFotoPlatillo'); if(cf) cf.classList.toggle('oculto', !(v && v.foto));
   }
 
@@ -7676,6 +7707,135 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     quitarArchivoPuve(negocioId + '/favicon.png'); aplicarFaviconNegocio(null); mostrarMensaje('mensajeFavicon', 'Se restableció el ícono predeterminado de PUVE.', 'exito');
   }
   document.getElementById('cfgTipoNegocio').addEventListener('change', () => setTimeout(aplicarVocabularioGiro, 700));
+
+  // ===== Abarrotes / minisúper: cobro rápido y escáner físico continuo =====
+  let recibidoRapido = null;
+  function actualizarCobroRapido(){
+    const caja = document.getElementById('bloqueCobroRapido'); if(!caja) return;
+    const sel = document.getElementById('metodoPagoVenta'), total = carrito.reduce((s, i) => s + i.precio * i.cantidad, 0);
+    const activo = document.body.classList.contains('giro-tienda') && sel && sel.value === 'efectivo' && total > 0;
+    caja.classList.toggle('oculto', !activo);
+    if(!activo){ recibidoRapido = null; return; }
+    if(typeof recibidoRapido === 'number' && recibidoRapido + 0.001 < total) recibidoRapido = null;
+    const teclas = document.getElementById('teclasCobroRapido'); teclas.textContent = '';
+    [['exacto', 'Exacto'], [20, '$20'], [50, '$50'], [100, '$100'], [200, '$200'], [500, '$500']].forEach(([val, etq]) => {
+      const b = el('button', 'cr-tecla' + (recibidoRapido === val ? ' activa' : ''), etq); b.type = 'button';
+      b.disabled = val !== 'exacto' && val + 0.001 < total; b.onclick = () => { recibidoRapido = val; actualizarCobroRapido(); }; teclas.appendChild(b);
+    });
+    const cambio = document.getElementById('cambioCobroRapido'); cambio.textContent = '';
+    if(recibidoRapido !== null){ const recibido = recibidoRapido === 'exacto' ? total : recibidoRapido; cambio.appendChild(el('span', '', 'Cambio')); cambio.appendChild(el('b', '', '$' + Math.max(0, recibido - total).toFixed(2))); }
+  }
+  const escanerFisicoActivo = () => !((VOCAB_GIRO[configNegocio.tipo_negocio] || {}).sinEscaner) && configNegocio.codigo_barras !== false;
+  const modalAbiertoPuve = () => !!document.querySelector('.modal-puve-fondo:not(.oculto)');
+  function modoEscanerContinuo(){
+    return document.body.classList.contains('giro-tienda') && document.getElementById('seccionVender').classList.contains('activa') && window.matchMedia('(hover: hover)').matches && !modalAbiertoPuve();
+  }
+  function enfocarEscanerVenta(){ if(modoEscanerContinuo()){ const i = document.getElementById('buscarProducto'); if(i) i.focus(); } }
+  function configurarEscanerContinuo(){
+    const inp = document.getElementById('buscarProducto'); if(!inp) return;
+    // Lector USB/Bluetooth: escribe el código y manda Enter. Si coincide con un producto, suma 1 al instante, sin ventanas.
+    inp.addEventListener('keydown', (ev) => {
+      if(ev.key !== 'Enter' || !escanerFisicoActivo()) return;
+      const codigo = inp.value.trim(); if(!codigo) return;
+      const prod = productosCache.find(p => (p.sku || '').trim() === codigo);
+      if(prod){ ev.preventDefault(); agregarAlCarrito(prod.id); inp.value = ''; renderizarListaVenta(); }
+      else if(/^\d{6,}$/.test(codigo)){ ev.preventDefault(); inp.value = ''; renderizarListaVenta(); mostrarMensaje('mensajeVenta', 'No existe un producto con el código ' + codigo + '.', 'error'); }
+    });
+    // El foco siempre vuelve al campo del lector (solo en computadora y solo en giro Abarrotes), sin pelear con otros campos ni ventanas.
+    inp.addEventListener('blur', () => setTimeout(() => { const a = document.activeElement; if(modoEscanerContinuo() && (!a || a === document.body)) inp.focus(); }, 120));
+    document.addEventListener('keydown', (ev) => {
+      if(!modoEscanerContinuo() || ev.ctrlKey || ev.metaKey || ev.altKey || (ev.key.length !== 1 && ev.key !== 'Enter')) return;
+      const a = document.activeElement; if(a && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)) return; inp.focus();
+    }, true);
+  }
+  configurarEscanerContinuo();
+
+  // ===== Ropa, calzado y accesorios: variantes (talla/color), código de barras propio y etiquetas =====
+  function agruparVariantesRopa(lista){
+    if(!document.body.classList.contains('giro-ropa')) return lista;
+    const grupos = new Map(), salida = [];
+    lista.forEach(p => {
+      if(!p.modelo){ salida.push(p); return; }
+      const k = p.modelo.toLowerCase();
+      if(!grupos.has(k)){ const g = { __grupo: true, modelo: p.modelo, items: [] }; grupos.set(k, g); salida.push(g); }
+      grupos.get(k).items.push(p);
+    });
+    return salida;
+  }
+  function tileGrupoVariantes(g){
+    const stock = g.items.reduce((s, p) => s + Math.max(0, Number(p.stock)), 0), precios = g.items.map(p => (p.en_liquidacion && p.precio_liquidacion != null) ? Number(p.precio_liquidacion) : Number(p.precio));
+    const min = Math.min(...precios), max = Math.max(...precios);
+    return `<div class="item-producto grupo-variantes ${stock <= 0 ? 'sinstock' : ''}" onclick="abrirSelectorVariantes(${jsAttr(g.modelo)})">
+      <div class="item-producto-fila"><div><div class="nombre">${escapar(g.modelo)}</div><div class="meta">${stock <= 0 ? 'Sin stock' : g.items.length + ' variantes · ' + stock + ' pzs'}</div></div>
+      <div class="precio">${min === max ? '' : '<span class="meta">desde </span>'}$${min.toFixed(2)}</div></div></div>`;
+  }
+  function abrirSelectorVariantes(modelo){
+    const vars = productosCache.filter(p => (p.modelo || '') === modelo); if(!vars.length) return;
+    const unicos = (k) => Array.from(new Set(vars.map(v => v[k] || '').filter(Boolean)));
+    const tallas = unicos('talla'), colores = unicos('color');
+    let talla = tallas.length === 1 ? tallas[0] : null, color = colores.length === 1 ? colores[0] : null;
+    const fondo = el('div', 'modal-puve-fondo'), caja = el('div', 'modal-puve'); caja.style.maxWidth = '420px'; fondo.appendChild(caja);
+    const cerrar = () => fondo.remove(); fondo.onclick = (e) => { if(e.target === fondo) cerrar(); };
+    caja.appendChild(el('h2', '', modelo));
+    const buscar = (t, c) => vars.find(v => (v.talla || '') === (t || '') && (v.color || '') === (c || ''));
+    const hayStock = (t, c) => vars.some(v => (t == null || (v.talla || '') === t) && (c == null || (v.color || '') === c) && Number(v.stock) > 0);
+    const resumen = el('div', 'nota'), msg = el('div', 'mensaje'), ok = el('button', 'principal', 'Agregar al carrito'); ok.type = 'button'; ok.style.cssText = 'width:100%; margin-top:12px;';
+    const bloque = (titulo, opciones, tipo) => {
+      if(!opciones.length) return;
+      caja.appendChild(el('div', 'cr-etq', titulo)); const fila = el('div', 'filtro-cats'); fila.style.flexWrap = 'wrap'; caja.appendChild(fila);
+      const pintar = () => { fila.textContent = ''; opciones.forEach(o => {
+        const b = el('button', 'chip-cat' + ((tipo === 'talla' ? talla : color) === o ? ' activo' : ''), o); b.type = 'button';
+        b.disabled = tipo === 'talla' ? !hayStock(o, color) : !hayStock(talla, o);
+        b.onclick = () => { if(tipo === 'talla') talla = o; else color = o; refrescar(); }; fila.appendChild(b); }); };
+      bloque[tipo] = pintar; pintar();
+    };
+    const refrescar = () => {
+      if(bloque.talla) bloque.talla(); if(bloque.color) bloque.color();
+      const listo = (!tallas.length || talla) && (!colores.length || color), v = listo ? buscar(talla, color) : null;
+      resumen.textContent = !listo ? 'Elige ' + [!talla && tallas.length ? 'talla' : '', !color && colores.length ? 'color' : ''].filter(Boolean).join(' y ') + '.' : v ? '$' + Number(v.en_liquidacion && v.precio_liquidacion != null ? v.precio_liquidacion : v.precio).toFixed(2) + ' · Stock: ' + Number(v.stock) : 'Esa combinación no existe.';
+      ok.disabled = !v || Number(v.stock) <= 0;
+    };
+    bloque('Talla', tallas, 'talla'); bloque('Color', colores, 'color');
+    caja.appendChild(resumen); caja.appendChild(msg); caja.appendChild(ok);
+    const sec = el('button', 'texto', 'Cerrar'); sec.type = 'button'; sec.style.cssText = 'width:100%; margin-top:6px;'; sec.onclick = cerrar; caja.appendChild(sec);
+    ok.onclick = () => { const v = buscar(talla, color); if(v){ agregarAlCarrito(v.id); cerrar(); } };
+    document.body.appendChild(fondo); refrescar();
+  }
+
+  // ----- EAN-13 propio (prefijo 200 = uso interno de tienda) -----
+  const EAN_L = ['0001101','0011001','0010011','0111101','0100011','0110001','0101111','0111011','0110111','0001011'];
+  const EAN_G = ['0100111','0110011','0011011','0100001','0011101','0111001','0000101','0010001','0001001','0010111'];
+  const EAN_PAR = ['LLLLLL','LLGLGG','LLGGLG','LLGGGL','LGLLGG','LGGLLG','LGGGLL','LGLGLG','LGLGGL','LGGLGL'];
+  function ean13Digito(d12){ let s = 0; for(let i = 0; i < 12; i++) s += Number(d12[i]) * (i % 2 ? 3 : 1); return String((10 - s % 10) % 10); }
+  function ean13Valido(c){ return /^\d{13}$/.test(c) && ean13Digito(c.slice(0, 12)) === c[12]; }
+  function ean13Bits(c){
+    const par = EAN_PAR[Number(c[0])]; let b = '101';
+    for(let i = 1; i <= 6; i++) b += (par[i - 1] === 'L' ? EAN_L : EAN_G)[Number(c[i])];
+    b += '01010'; for(let i = 7; i <= 12; i++) b += EAN_L[Number(c[i])].split('').map(x => x === '1' ? '0' : '1').join('');
+    return b + '101';
+  }
+  function generarSkuPuve(){
+    const usados = new Set(productosCache.map(p => (p.sku || '').trim())); let c;
+    do { const r = crypto.getRandomValues(new Uint8Array(9)); const d = '200' + Array.from(r).map(x => x % 10).join(''); c = d + ean13Digito(d); } while(usados.has(c));
+    document.getElementById('pSku').value = c; document.getElementById('etqEstado').textContent = 'Código generado. Guarda el artículo para conservarlo.';
+  }
+  function imprimirEtiquetaForm(){
+    const est = document.getElementById('etqEstado'), sku = document.getElementById('pSku').value.trim();
+    if(!ean13Valido(sku)){ est.textContent = 'Primero genera el código de barras (o escribe un EAN-13 válido).'; return; }
+    const J = window.jspdf && window.jspdf.jsPDF; if(!J){ est.textContent = 'No se pudo cargar el generador de PDF. Revisa tu conexión.'; return; }
+    const copias = Math.max(1, Math.min(200, parseInt(document.getElementById('etqCopias').value, 10) || 1));
+    const modelo = document.getElementById('pNombre').value.trim() || 'Artículo', detalle = [document.getElementById('pTalla').value.trim(), document.getElementById('pColor').value.trim()].filter(Boolean).join(' · ');
+    const precio = parseFloat(document.getElementById('pPrecio').value) || 0, doc = new J({ unit: 'mm', format: [50, 30], orientation: 'landscape' }), bits = ean13Bits(sku), mod = 0.32, x0 = (50 - 95 * mod) / 2;
+    for(let n = 0; n < copias; n++){
+      if(n) doc.addPage([50, 30], 'landscape');
+      doc.setTextColor(0, 0, 0); doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.text(doc.splitTextToSize(modelo, 31)[0], 2, 5);
+      doc.setFontSize(11); doc.text('$' + precio.toFixed(2), 48, 5.6, { align: 'right' });
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(6.8); if(detalle) doc.text(doc.splitTextToSize(detalle, 46)[0], 2, 9);
+      doc.setFillColor(0, 0, 0); for(let i = 0; i < bits.length;){ if(bits[i] === '1'){ let j = i; while(bits[j] === '1') j++; doc.rect(x0 + i * mod, 11.5, (j - i) * mod, 12.5, 'F'); i = j; } else i++; }
+      doc.setFontSize(6.5); doc.text(sku, 25, 27.6, { align: 'center' });
+    }
+    doc.save('etiquetas-' + sku + '.pdf'); est.textContent = copias + (copias === 1 ? ' etiqueta lista' : ' etiquetas listas') + ' (50 × 30 mm).';
+  }
 
   function conTransicionPuve(fn){
     if(document.startViewTransition && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)){ try { document.startViewTransition(fn); return; } catch(e){} }
