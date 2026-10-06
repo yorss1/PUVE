@@ -879,6 +879,11 @@
   .cr-teclas{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; } .cr-tecla{ min-height:48px; padding:0; font-size:15px; border-radius:14px; }
   .cr-tecla.activa{ background:var(--acento); color:var(--texto-sobre-acento); border-color:var(--acento); } .cr-tecla:disabled{ opacity:.3; }
   .cr-cambio{ display:flex; justify-content:space-between; align-items:baseline; margin-top:10px; font-size:13px; color:var(--texto-suave); } .cr-cambio:empty{ display:none; } .cr-cambio b{ font:400 36px var(--serif); color:var(--texto); }
+
+  /* ===== Ropa: vales de saldo a favor ===== */
+  .bloque-vale{ display:none; margin:0 0 10px; } body.giro-ropa .bloque-vale{ display:block; }
+  .vale-aplicado{ display:flex; justify-content:space-between; align-items:center; gap:8px; padding:10px 12px; border-radius:14px; background:var(--exito-bg); color:var(--exito); font-size:13px; font-weight:600; }
+  .vale-pendiente{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:10px 0; padding:12px 14px; border-radius:16px; background:var(--vid2); border:1px solid var(--borde); font-size:13px; }
 </style>
 </head>
 <body>
@@ -1311,7 +1316,12 @@
           </div>
 
 
-          <div class="cobro-rapido oculto" id="bloqueCobroRapido">
+          <div class="bloque-vale" id="bloqueVale">
+        <button type="button" class="texto" id="btnAbrirVale" onclick="abrirEntradaVale()" style="width:100%; text-align:left; padding:6px 0; font-size:13px; color:var(--texto-suave);">+ Canjear vale de saldo a favor</button>
+        <div class="oculto" id="entradaVale"><div class="form-agregar-admin"><input id="valeFolio" type="text" placeholder="V-XXXXXXXX" maxlength="10" style="text-transform:uppercase;" onkeydown="if(event.key==='Enter'){event.preventDefault();aplicarValeDesdeInput();}"><button type="button" class="principal" style="width:auto;" onclick="aplicarValeDesdeInput()">Aplicar</button></div></div>
+        <div class="vale-aplicado oculto" id="valeAplicado"><span id="valeAplicadoTxt"></span><button type="button" class="texto" onclick="quitarValeAplicado()">Quitar</button></div>
+      </div>
+      <div class="cobro-rapido oculto" id="bloqueCobroRapido">
         <div class="cr-etq">¿Con cuánto paga?</div>
         <div class="cr-teclas" id="teclasCobroRapido"></div>
         <div class="cr-cambio" id="cambioCobroRapido"></div>
@@ -1507,6 +1517,7 @@
         <h3>Buscar venta</h3>
         <p class="nota">El folio son los primeros 8 caracteres del ticket — el mismo que ve el cliente en su QR.</p>
         <div id="mensajeDevoluciones" class="mensaje"></div>
+      <div class="oculto vale-pendiente" id="valePendiente"><span id="valePendienteTxt"></span><button type="button" class="principal" style="width:auto;" onclick="emitirValePendiente()">Dar vale</button><button type="button" class="texto" onclick="descartarValePendiente()">No, solo devolución</button></div>
         <form id="formBuscarVentaDevolucion" onsubmit="return manejarSubmitBuscarDevolucion(event)">
           <div class="form-agregar-admin">
             <input id="folioDevolucion" type="text" placeholder="Ej. A1B2C3D4" style="text-transform:uppercase;" required>
@@ -7001,7 +7012,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   function renderizarCarrito(){
-    actualizarCobroRapido();
+    actualizarCobroRapido(); actualizarBloqueVale();
     const contenedor = document.getElementById('lineasCarrito');
     const vacio = document.getElementById('carritoVacio');
     const btnCobrar = document.getElementById('btnCobrar');
@@ -7240,6 +7251,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       return;
     }
 
+    if(valeAplicado){
+      const falla = !enLinea ? 'Para canjear un vale necesitas conexión.' : metodoPago !== 'efectivo' ? 'El vale solo se puede usar con pago en efectivo.' : total + 0.001 < valeAplicado.monto ? 'La compra debe ser de al menos ' + dineroVale(valeAplicado.monto) + ' para usar este vale.' : '';
+      if(falla){ mostrarMensaje('mensajeVenta', falla, 'error'); btn.textContent = 'Cobrar'; btn.disabled = false; return; }
+    }
     if(!enLinea){
       if(telefonoCliente){
         mostrarMensaje('mensajeVenta', 'Sin conexión: la venta se guarda, pero los puntos no se pueden acumular ni canjear hasta que vuelva internet.', 'error');
@@ -7257,18 +7272,13 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       return;
     }
 
-    const { data: ventaId, error } = await sb.rpc('registrar_venta', {
-      p_items: items,
-      p_metodo_pago: metodoPago,
-      p_telefono_cliente: telefonoCliente,
-      p_puntos_a_canjear: puntosACanjear,
-      p_monto_efectivo: montoEfectivo,
-      p_nombre_cliente: nombreCliente
-    });
+    const paramsVenta = { p_items: items, p_metodo_pago: metodoPago, p_telefono_cliente: telefonoCliente, p_puntos_a_canjear: puntosACanjear, p_monto_efectivo: montoEfectivo, p_nombre_cliente: nombreCliente };
+    if(valeAplicado) paramsVenta.p_vale_folio = valeAplicado.folio;
+    const { data: ventaId, error } = await sb.rpc(valeAplicado ? 'registrar_venta_con_vale' : 'registrar_venta', paramsVenta);
     btn.textContent = 'Cobrar';
 
     if(error){
-      if(esErrorDeRed(error)){
+      if(esErrorDeRed(error) && !valeAplicado){
         enLinea = false;
         guardarVentaEnCola(items, total, metodoPago, montoEfectivo);
         aplicarDescuentoLocal(items);
@@ -7285,7 +7295,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       return;
     }
 
-    mostrarMensaje('mensajeVenta', 'Venta registrada correctamente.', 'exito');
+    mostrarMensaje('mensajeVenta', valeAplicado ? 'Venta registrada. Vale canjeado: cobra ' + dineroVale(total - valeAplicado.monto) + '.' : 'Venta registrada correctamente.', 'exito');
+    if(valeAplicado) quitarValeAplicado();
     document.getElementById('recompensaTelefono').value = '';
     reiniciarEstadoRecompensaVenta();
     reiniciarMetodoPagoVenta();
@@ -7737,6 +7748,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     inp.addEventListener('keydown', (ev) => {
       if(ev.key !== 'Enter' || !escanerFisicoActivo()) return;
       const codigo = inp.value.trim(); if(!codigo) return;
+      if(RUTA_VALE.test(codigo.toUpperCase())){ ev.preventDefault(); inp.value = ''; aplicarValeCodigo(codigo); return; }
       const prod = productosCache.find(p => (p.sku || '').trim() === codigo);
       if(prod){ ev.preventDefault(); agregarAlCarrito(prod.id); inp.value = ''; renderizarListaVenta(); }
       else if(/^\d{6,}$/.test(codigo)){ ev.preventDefault(); inp.value = ''; renderizarListaVenta(); mostrarMensaje('mensajeVenta', 'No existe un producto con el código ' + codigo + '.', 'error'); }
@@ -7835,6 +7847,68 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       doc.setFontSize(6.5); doc.text(sku, 25, 27.6, { align: 'center' });
     }
     doc.save('etiquetas-' + sku + '.pdf'); est.textContent = copias + (copias === 1 ? ' etiqueta lista' : ' etiquetas listas') + ' (50 × 30 mm).';
+  }
+
+  // ===== Ropa: cambios con vale de saldo a favor =====
+  const RUTA_VALE = /^V-[A-Z2-9]{8}$/;
+  let valeAplicado = null, valesPendientes = [];
+  const dineroVale = (n) => '$' + Number(n).toFixed(2);
+  function totalCarritoVale(){ return carrito.reduce((s, i) => s + i.precio * i.cantidad, 0); }
+
+  // --- Devoluciones: ofrecer el vale por lo devuelto ---
+  function agregarValePendiente(id){
+    valesPendientes.push(id); document.getElementById('valePendienteTxt').textContent = valesPendientes.length + (valesPendientes.length === 1 ? ' prenda devuelta' : ' prendas devueltas') + ' en este cambio. ¿Entregas el saldo como vale?';
+    document.getElementById('valePendiente').classList.remove('oculto');
+  }
+  function descartarValePendiente(){ valesPendientes = []; document.getElementById('valePendiente').classList.add('oculto'); }
+  async function emitirValePendiente(){
+    if(!valesPendientes.length) return;
+    const { data, error } = await sb.rpc('crear_vale_por_devoluciones', { p_ids: valesPendientes });
+    if(error || !data){ mostrarMensaje('mensajeDevoluciones', 'No se pudo crear el vale: ' + ((error && error.message) || 'intenta de nuevo'), 'error'); return; }
+    descartarValePendiente(); mostrarValeEmitido(data);
+  }
+  function mostrarValeEmitido(v){
+    const fondo = el('div', 'modal-puve-fondo'), caja = el('div', 'modal-puve'); caja.style.cssText = 'max-width:380px; text-align:center;'; fondo.appendChild(caja);
+    caja.appendChild(el('h2', '', 'Vale de saldo a favor')); const f = el('div', '', v.folio); f.style.cssText = 'font:400 38px var(--serif); letter-spacing:.06em; margin:8px 0;'; caja.appendChild(f);
+    const m = el('div', '', dineroVale(v.monto)); m.style.cssText = 'font:400 30px var(--serif);'; caja.appendChild(m);
+    caja.appendChild(el('p', 'nota', 'Válido hasta el ' + new Date(v.vence_en).toLocaleDateString('es-MX') + '. Un solo uso.'));
+    const d = el('button', 'principal', 'Descargar vale (PDF)'); d.type = 'button'; d.style.cssText = 'width:100%; margin-top:10px;'; d.onclick = () => valePdf(v); caja.appendChild(d);
+    const c = el('button', 'texto', 'Cerrar'); c.type = 'button'; c.style.cssText = 'width:100%; margin-top:6px;'; c.onclick = () => fondo.remove(); caja.appendChild(c); document.body.appendChild(fondo);
+  }
+  function valePdf(v){
+    const J = window.jspdf && window.jspdf.jsPDF; if(!J){ alert('No se pudo cargar el generador de PDF. Revisa tu conexión.'); return; }
+    const W = 80, H = 120, cx = W / 2, doc = new J({ unit: 'mm', format: [W, H] }), ORO = [154, 123, 79];
+    const e = document.getElementById('nombreNegocioBarra'), nombre = ((e && e.textContent.trim()) || 'Tienda').toUpperCase();
+    const esp = (txt, yy, tam, cs, color) => { doc.setFont('times', 'normal'); doc.setFontSize(tam); doc.setTextColor(color[0], color[1], color[2]);
+      const l = Array.from(txt), ancho = l.reduce((s, ch) => s + doc.getTextWidth(ch), 0) + cs * (l.length - 1); let px = cx - ancho / 2; l.forEach(ch => { doc.text(ch, px, yy); px += doc.getTextWidth(ch) + cs; }); };
+    doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.35); doc.rect(3, 3, W - 6, H - 6); doc.setDrawColor(ORO[0], ORO[1], ORO[2]); doc.setLineWidth(0.12); doc.rect(4.6, 4.6, W - 9.2, H - 9.2);
+    let tam = 9; doc.setFont('times', 'normal'); doc.setFontSize(tam); while(tam > 6 && Array.from(nombre).reduce((s, ch) => s + doc.getTextWidth(ch), 0) + 1.4 * (nombre.length - 1) > W - 20){ tam -= 0.5; doc.setFontSize(tam); }
+    esp(nombre, 16, tam, 1.4, [0, 0, 0]); doc.setDrawColor(ORO[0], ORO[1], ORO[2]); doc.setLineWidth(0.2); doc.line(cx - 14, 22, cx - 3, 22); doc.line(cx + 3, 22, cx + 14, 22);
+    doc.setFillColor(ORO[0], ORO[1], ORO[2]); doc.triangle(cx - 1.4, 22, cx, 20.6, cx + 1.4, 22, 'F'); doc.triangle(cx - 1.4, 22, cx, 23.4, cx + 1.4, 22, 'F');
+    esp('VALE DE SALDO A FAVOR', 31, 7.5, 1.6, [90, 90, 90]); doc.setFont('times', 'normal'); doc.setFontSize(34); doc.setTextColor(0, 0, 0); doc.text(dineroVale(v.monto), cx, 46, { align: 'center' });
+    esp('FOLIO', 54, 6.5, 2.4, [110, 110, 110]); esp(v.folio, 62, 17, 1.8, [0, 0, 0]);
+    const m = qrMatrizPuve(v.folio), lado = 30, mod = lado / m.length, qx = cx - lado / 2, qy = 68; doc.setFillColor(0, 0, 0); m.forEach((fila, r) => fila.forEach((on, c) => { if(on) doc.rect(qx + c * mod, qy + r * mod, mod + 0.03, mod + 0.03, 'F'); }));
+    doc.setFont('times', 'italic'); doc.setFontSize(9); doc.setTextColor(40, 40, 40); doc.text('Válido hasta el ' + new Date(v.vence_en).toLocaleDateString('es-MX'), cx, 105, { align: 'center' });
+    doc.setFontSize(7.5); doc.text('Un solo uso · No canjeable por efectivo', cx, 110, { align: 'center' }); doc.save('vale-' + v.folio + '.pdf');
+  }
+
+  // --- Caja: canjear el vale ---
+  function abrirEntradaVale(){ document.getElementById('entradaVale').classList.remove('oculto'); document.getElementById('btnAbrirVale').classList.add('oculto'); document.getElementById('valeFolio').focus(); }
+  async function aplicarValeCodigo(codigo){
+    const folio = String(codigo || '').trim().toUpperCase(); ocultarMensaje('mensajeVenta');
+    if(!RUTA_VALE.test(folio)){ mostrarMensaje('mensajeVenta', 'El folio del vale no es válido (ej. V-8K3M2QXA).', 'error'); return; }
+    const { data, error } = await sb.rpc('consultar_vale', { p_folio: folio });
+    if(error || !data){ mostrarMensaje('mensajeVenta', 'No se encontró ese vale en tu negocio.', 'error'); return; }
+    if(data.estado !== 'vigente'){ mostrarMensaje('mensajeVenta', data.estado === 'usado' ? 'Ese vale ya fue utilizado.' : 'Ese vale ya venció.', 'error'); return; }
+    valeAplicado = { folio: data.folio, monto: Number(data.monto) }; document.getElementById('valeFolio').value = ''; document.getElementById('entradaVale').classList.add('oculto');
+    const sel = document.getElementById('metodoPagoVenta'); if(sel.value !== 'efectivo'){ sel.value = 'efectivo'; actualizarBloqueMetodoPago(); } actualizarBloqueVale();
+  }
+  function aplicarValeDesdeInput(){ aplicarValeCodigo(document.getElementById('valeFolio').value); }
+  function quitarValeAplicado(){ valeAplicado = null; document.getElementById('entradaVale').classList.add('oculto'); document.getElementById('btnAbrirVale').classList.remove('oculto'); actualizarBloqueVale(); }
+  function actualizarBloqueVale(){
+    const caja = document.getElementById('valeAplicado'); if(!caja) return; caja.classList.toggle('oculto', !valeAplicado); if(!valeAplicado) return;
+    const total = totalCarritoVale(), txt = document.getElementById('valeAplicadoTxt');
+    txt.textContent = total + 0.001 < valeAplicado.monto ? 'Vale ' + valeAplicado.folio + ' (' + dineroVale(valeAplicado.monto) + '): agrega artículos por al menos ese valor.' : 'Vale ' + valeAplicado.folio + ' −' + dineroVale(valeAplicado.monto) + ' → cobra ' + dineroVale(total - valeAplicado.monto);
   }
 
   function conTransicionPuve(fn){
@@ -10914,6 +10988,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   function escanearParaVender(codigo){
+    if(RUTA_VALE.test(String(codigo).trim().toUpperCase())){ aplicarValeCodigo(codigo); return; }
     const producto = productosCache.find(p => (p.sku || '').trim() === codigo.trim());
     if(producto){
       agregarAlCarrito(producto.id);
@@ -11406,6 +11481,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     }
 
     mostrarMensaje('mensajeDevoluciones', 'Devolución registrada y stock actualizado.', 'exito');
+    if(document.body.classList.contains('giro-ropa')) agregarValePendiente(devId);
     document.getElementById('folioDevolucion').value = ventaEncontradaDevolucion.folio;
     await buscarVentaDevolucion({ preventDefault(){} });
     await cargarHistorialDevoluciones();
