@@ -869,6 +869,10 @@
   .foto-fila{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; } .foto-acc{ display:flex; gap:8px; flex-wrap:wrap; }
   .foto-prev{ width:104px; height:78px; border-radius:14px; overflow:hidden; background:var(--sub); display:grid; place-items:center; font-size:12px; color:var(--texto-suave); }
   .foto-prev img{ width:100%; height:100%; object-fit:cover; display:block; } .favicon-prev{ width:48px; height:48px; border-radius:12px; background:var(--sub); object-fit:contain; }
+
+  /* ===== Giros y tarjetas QR ===== */
+  body.giro-tienda .filtro-cats{ display:none; } body.giro-servicios .cant-control{ display:none; }
+  .qr-acc{ display:flex; justify-content:center; margin-top:8px; } .qr-acc button{ min-height:34px; padding:6px 12px; font-size:12px; }
 </style>
 </head>
 <body>
@@ -1187,6 +1191,20 @@
         <div class="campo"><label for="ubiEstado">Estado</label><input id="ubiEstado" type="text" required placeholder="Jalisco"></div>
         <div class="campo"><label for="ubiMunicipio">Municipio / Ciudad</label><input id="ubiMunicipio" type="text" required placeholder="Guadalajara"></div>
         <div class="campo"><label for="ubiCP">Código postal</label><input id="ubiCP" type="text" required placeholder="44100"></div>
+      <div class="campo"><label for="ubiGiro">¿Cuál es el giro de tu negocio?</label>
+        <select id="ubiGiro" required>
+          <option value="">Selecciona...</option>
+          <option value="tienda">Abarrotes / minisúper / conveniencia</option>
+              <option value="cafeteria">Cafetería</option>
+              <option value="restaurante">Restaurante / comida</option>
+              <option value="ferreteria">Ferretería</option>
+              <option value="ropa">Ropa, calzado y accesorios</option>
+              <option value="farmacia">Farmacia</option>
+              <option value="papeleria">Papelería</option>
+              <option value="servicios">Servicios (barbería, salón, spa)</option>
+        </select>
+        <p class="nota" style="margin-top:6px;">Con esto adaptamos PUVE a tu negocio desde el primer día. Podrás cambiarlo después en Configuración.</p>
+      </div>
         <button class="principal" type="submit" id="btnGuardarUbicacion">Continuar</button>
       </form>
     </div>
@@ -1827,7 +1845,7 @@
             <div class="campo"><label for="qrCantidadMesas">Número de mesas</label><input id="qrCantidadMesas" type="number" min="1" max="100" value="10"></div>
             <div style="display:flex; flex-wrap:wrap; gap:8px;">
               <button type="button" onclick="generarQrMesas()">Generar QR de mesas</button>
-              <button type="button" id="btnImprimirQr" class="oculto" onclick="window.print()">Imprimir</button>
+              <button type="button" id="btnImprimirQr" class="oculto" onclick="descargarPdfQr()">Descargar PDF de todas las mesas</button>
               <button type="button" class="texto" onclick="invalidarQrMesas()">Invalidar QR impresos</button>
             </div>
             <div id="qrMesasSalida" class="qr-mesas"></div>
@@ -1876,13 +1894,14 @@
             <label for="cfgTipoNegocio">Giro</label>
             <select id="cfgTipoNegocio" onchange="conTutorialToggle('cfg-tipo-negocio', this, function(){ guardarConfiguracion(); mostrarSugerenciaTipoNegocio(); })">
               <option value="">Selecciona...</option>
-              <option value="tienda">Tienda de abarrotes / conveniencia</option>
+              <option value="tienda">Abarrotes / minisúper / conveniencia</option>
               <option value="cafeteria">Cafetería</option>
               <option value="restaurante">Restaurante / comida</option>
               <option value="ferreteria">Ferretería</option>
-              <option value="ropa">Ropa y accesorios</option>
+              <option value="ropa">Ropa, calzado y accesorios</option>
               <option value="farmacia">Farmacia</option>
               <option value="papeleria">Papelería</option>
+              <option value="servicios">Servicios (barbería, salón, spa)</option>
               
             </select>
           </div>
@@ -5477,6 +5496,15 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         { funcion:'Agregar producto por voz', razon:'Muy útil si el cajero tiene las manos ocupadas empacando pedidos — ya la tienes en Productos.' },
       ]
     },
+    servicios: {
+      corte_caja: true, categorias: true, codigo_barras: false, devoluciones: false, recompensas: true,
+      items: [
+        { funcion:'Categorías de servicios', on:true, razon:'Cabello, barba, uñas, faciales, masajes…' },
+        { funcion:'Corte de caja', on:true, razon:'Control de lo que cobra cada turno.' },
+        { funcion:'Recompensas por teléfono', on:true, razon:'Tus clientes regresan cada pocas semanas: prémialos.' },
+        { funcion:'Lector de códigos', razon:'Se oculta: en un servicio se elige tocando, no escaneando.' },
+      ]
+    },
     ferreteria: {
       corte_caja: true, categorias: true, codigo_barras: true, devoluciones: true, recompensas: false,
       items: [
@@ -6365,11 +6393,15 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       codigo_postal: document.getElementById('ubiCP').value.trim()
     };
 
-    const { error } = await sb.from('negocios').update(datos).eq('id', negocioId);
+    const giro = document.getElementById('ubiGiro').value, pre = PRESETS_TIPO_NEGOCIO[giro];
+    if(!giro || !pre){ btn.disabled = false; btn.textContent = 'Continuar'; mostrarMensaje('mensajeUbicacion', 'Elige el giro de tu negocio.', 'error'); return false; }
+    const cfgNuevo = Object.assign({}, configNegocio, { tipo_negocio: giro, corte_caja: pre.corte_caja, categorias: pre.categorias, codigo_barras: pre.codigo_barras, devoluciones: pre.devoluciones });
+    const { error } = await sb.from('negocios').update(Object.assign({}, datos, { configuracion: cfgNuevo })).eq('id', negocioId);
     btn.disabled = false; btn.textContent = 'Continuar';
 
     if(error){ mostrarMensaje('mensajeUbicacion', 'No se pudo guardar: ' + error.message, 'error'); return false; }
 
+    configNegocio = cfgNuevo; aplicarVocabularioGiro();
     document.getElementById('vistaUbicacion').style.display = 'none';
     const esCajero = miRol === 'vendedor';
     const esEncargado = miRol === 'admin';
@@ -7461,6 +7493,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('estadoPedidosQr').textContent = activo ? 'Estado: activo. Tus clientes ya pueden pedir con el QR de su mesa.' : 'Estado: desactivado.';
     const btn = document.getElementById('btnTogglePedidosQr'); btn.textContent = activo ? 'Desactivar pedidos por QR' : 'Activar pedidos por QR'; btn.dataset.activo = activo ? '1' : '0';
     document.getElementById('panelMesasQr').classList.toggle('oculto', !activo);
+    if(activo) cargarQrGuardados();
   }
   async function alternarPedidosQr(){
     const nuevo = document.getElementById('btnTogglePedidosQr').dataset.activo !== '1';
@@ -7469,28 +7502,72 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(error){ mostrarMensaje('mensajePedidosQrCfg', error.message || 'No se pudo cambiar', 'error'); return; }
     pintarEstadoPedidosQr(nuevo); cerrarCanalPedidosQr(); cargarEstadoPedidosQr();
   }
+  // ----- QR de mesas: persistentes y con tarjeta PDF individual -----
+  let qrFilas = [];
+  function urlMesaQr(r){ const u = new URL('menu.html', location.href); u.hash = 'n=' + negocioId + '&m=' + encodeURIComponent(r.mesa) + '&f=' + r.firma; return u.href; }
+  function pintarQrMesas(filas){
+    qrFilas = filas || []; const salida = document.getElementById('qrMesasSalida'); salida.textContent = '';
+    qrFilas.forEach(r => {
+      const card = el('div', 'qr-card'), cuadro = el('div', 'qr-svg'); cuadro.innerHTML = qrSvgPuve(urlMesaQr(r));
+      card.appendChild(cuadro); card.appendChild(el('b', '', 'Mesa ' + r.mesa));
+      const acc = el('div', 'qr-acc'), b = el('button', '', 'Descargar tarjeta PDF'); b.type = 'button'; b.onclick = () => descargarPdfQr([r]); acc.appendChild(b); card.appendChild(acc); salida.appendChild(card);
+    });
+    document.getElementById('btnImprimirQr').classList.toggle('oculto', !qrFilas.length);
+    if(qrFilas.length) document.getElementById('qrCantidadMesas').value = qrFilas.length;
+  }
+  async function cargarQrGuardados(){ const { data, error } = await sb.rpc('mis_qr_mesas'); if(!error) pintarQrMesas(data); }
   async function generarQrMesas(){
     ocultarMensaje('mensajePedidosQrCfg');
     const n = parseInt(document.getElementById('qrCantidadMesas').value, 10);
     if(!(n >= 1 && n <= 100)){ mostrarMensaje('mensajePedidosQrCfg', 'Escribe un número de mesas entre 1 y 100.', 'error'); return; }
     const { data, error } = await sb.rpc('generar_qr_mesas', { p_cantidad: n });
     if(error){ mostrarMensaje('mensajePedidosQrCfg', error.message || 'No se pudieron generar', 'error'); return; }
-    const salida = document.getElementById('qrMesasSalida'); salida.textContent = '';
-    try {
-      (data || []).forEach(r => {
-        const u = new URL('menu.html', location.href); u.hash = 'n=' + negocioId + '&m=' + encodeURIComponent(r.mesa) + '&f=' + r.firma;
-        const card = el('div', 'qr-card'), cuadro = el('div', 'qr-svg'); cuadro.innerHTML = qrSvgPuve(u.href);
-        card.appendChild(cuadro); card.appendChild(el('b', '', 'Mesa ' + r.mesa)); card.appendChild(el('small', '', 'Escanea y pide desde tu mesa')); salida.appendChild(card);
-      });
-      document.getElementById('btnImprimirQr').classList.remove('oculto');
-    } catch(e){ mostrarMensaje('mensajePedidosQrCfg', 'No se pudo dibujar el QR: ' + e.message, 'error'); }
+    try { pintarQrMesas(data); } catch(e){ mostrarMensaje('mensajePedidosQrCfg', 'No se pudo dibujar el QR: ' + e.message, 'error'); }
+  }
+  function tarjetaQrPdf(doc, x, y, W, H, nombre, mesa, m, marcas){
+    const ORO = [154, 123, 79], cx = x + W / 2;
+    const esp = (txt, yy, tam, cs, color) => {
+      doc.setFont('times', 'normal'); doc.setFontSize(tam); doc.setTextColor(color[0], color[1], color[2]);
+      const letras = Array.from(txt), ancho = letras.reduce((s, ch) => s + doc.getTextWidth(ch), 0) + cs * (letras.length - 1); let px = cx - ancho / 2;
+      letras.forEach(ch => { doc.text(ch, px, yy); px += doc.getTextWidth(ch) + cs; }); return ancho;
+    };
+    doc.setFillColor(255, 255, 255); doc.rect(x, y, W, H, 'F');
+    doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.35); doc.rect(x + 3, y + 3, W - 6, H - 6);
+    doc.setDrawColor(ORO[0], ORO[1], ORO[2]); doc.setLineWidth(0.12); doc.rect(x + 4.6, y + 4.6, W - 9.2, H - 9.2);
+    let tam = 9.5; doc.setFont('times', 'normal'); doc.setFontSize(tam);
+    while(tam > 6 && Array.from(nombre).reduce((s, ch) => s + doc.getTextWidth(ch), 0) + 1.4 * (nombre.length - 1) > W - 22){ tam -= 0.5; doc.setFontSize(tam); }
+    esp(nombre, y + 17, tam, 1.4, [0, 0, 0]);
+    doc.setDrawColor(ORO[0], ORO[1], ORO[2]); doc.setLineWidth(0.2); doc.line(cx - 16, y + 24, cx - 3, y + 24); doc.line(cx + 3, y + 24, cx + 16, y + 24);
+    doc.setFillColor(ORO[0], ORO[1], ORO[2]); doc.triangle(cx - 1.4, y + 24, cx, y + 22.6, cx + 1.4, y + 24, 'F'); doc.triangle(cx - 1.4, y + 24, cx, y + 25.4, cx + 1.4, y + 24, 'F');
+    esp('MESA', y + 33, 8, 3, [110, 110, 110]);
+    const txtMesa = String(mesa); doc.setFont('times', 'normal'); doc.setFontSize(txtMesa.length > 3 ? 30 : 44); doc.setTextColor(0, 0, 0); doc.text(txtMesa, cx, y + 49, { align: 'center' });
+    const lado = 50, mod = lado / m.length, qx = cx - lado / 2, qy = y + 56; doc.setFillColor(0, 0, 0);
+    m.forEach((fila, r) => fila.forEach((on, c) => { if(on) doc.rect(qx + c * mod, qy + r * mod, mod + 0.03, mod + 0.03, 'F'); }));
+    doc.setFont('times', 'italic'); doc.setFontSize(10.5); doc.setTextColor(40, 40, 40);
+    doc.text('Escanea para ver el menú', cx, y + 114.5, { align: 'center' }); doc.text('y pide desde tu mesa', cx, y + 119.5, { align: 'center' });
+    if(marcas){ doc.setDrawColor(120, 120, 120); doc.setLineWidth(0.15);
+      [[x, y, -1, -1], [x + W, y, 1, -1], [x, y + H, -1, 1], [x + W, y + H, 1, 1]].forEach(([px, py, dx, dy]) => { doc.line(px + dx * 1, py, px + dx * 3.5, py); doc.line(px, py + dy * 1, px, py + dy * 3.5); }); }
+    doc.setTextColor(0, 0, 0);
+  }
+  function descargarPdfQr(filas){
+    filas = (filas && filas.length) ? filas : qrFilas; if(!filas.length) return;
+    const J = window.jspdf && window.jspdf.jsPDF;
+    if(!J){ mostrarMensaje('mensajePedidosQrCfg', 'No se pudo cargar el generador de PDF. Revisa tu conexión e intenta de nuevo.', 'error'); return; }
+    const W = 95, H = 130, unica = filas.length === 1, doc = unica ? new J({ unit: 'mm', format: [W, H] }) : new J({ unit: 'mm', format: 'letter' });
+    const e = document.getElementById('nombreNegocioBarra'), nombre = ((e && e.textContent.trim()) || 'Restaurante').toUpperCase();
+    filas.forEach((r, i) => {
+      let ox = 0, oy = 0;
+      if(!unica){ const pos = i % 4; if(pos === 0 && i) doc.addPage(); ox = 8.95 + (pos % 2) * (W + 8); oy = 5.7 + Math.floor(pos / 2) * (H + 8); }
+      tarjetaQrPdf(doc, ox, oy, W, H, nombre, r.mesa, qrMatrizPuve(urlMesaQr(r)), !unica);
+    });
+    doc.save(unica ? 'QR-mesa-' + filas[0].mesa + '.pdf' : 'QR-mesas.pdf');
   }
   async function invalidarQrMesas(){
     if(!confirm('Los QR que ya imprimiste dejarán de funcionar y tendrás que generar e imprimir otros. ¿Continuar?')) return;
     const { error } = await sb.rpc('pedidos_qr_configurar', { p_activo: true, p_rotar: true });
     if(error){ mostrarMensaje('mensajePedidosQrCfg', error.message || 'No se pudo invalidar', 'error'); return; }
     document.getElementById('qrMesasSalida').textContent = ''; document.getElementById('btnImprimirQr').classList.add('oculto');
-    mostrarMensaje('mensajePedidosQrCfg', 'Listo: los QR anteriores ya no sirven. Genera los nuevos.', 'exito');
+    cargarQrGuardados(); mostrarMensaje('mensajePedidosQrCfg', 'Listo: los QR anteriores ya no sirven. Descarga e imprime los nuevos.', 'exito');
   }
   document.getElementById('cfgTipoNegocio').addEventListener('change', () => setTimeout(actualizarBloquePedidosQr, 700));
 
@@ -7499,21 +7576,26 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   const urlImgPuve = (p) => SUPABASE_URL + '/storage/v1/object/public/' + BUCKET_IMG + '/' + p;
   const RUTA_FOTO = /^[0-9a-f-]{36}\/[0-9a-f-]{36}\.jpg$/, RUTA_FAV = /^[0-9a-f-]{36}\/favicon\.png$/;
 
+  const VOCAB_GIRO = {
+    restaurante: { nav: 'Menú', h: 'Menú', nuevo: 'Nuevo platillo', nombre: 'Nombre del platillo', ph: 'Tacos al pastor', stock: 'Disponibles hoy (0 = agotado)', buscar: 'Buscar platillo',
+      nota: 'Organiza tu menú por secciones: entradas, platos fuertes, bebidas, postres…', catPh: 'Ej. Entradas, Platos fuertes, Bebidas, Postres...', sinSku: true, sinEscaner: true, foto: true },
+    servicios: { nav: 'Servicios', h: 'Servicios', nuevo: 'Nuevo servicio', nombre: 'Nombre del servicio', ph: 'Corte de cabello', stock: 'Cupo disponible (pon un número alto, ej. 999)', buscar: 'Buscar servicio',
+      nota: 'Agrupa tus servicios: cabello, barba, uñas, faciales, masajes…', catPh: 'Ej. Cabello, Barba, Uñas, Faciales...', sinSku: true, sinEscaner: true },
+    ropa: { nav: 'Artículos', h: 'Artículos', nuevo: 'Nuevo artículo', nombre: 'Nombre del artículo', ph: 'Playera básica', buscar: 'Buscar artículo',
+      nota: 'Organiza por temporada, género o tipo de prenda: playeras, jeans, calzado, accesorios…', catPh: 'Ej. Playeras, Jeans, Calzado, Accesorios...' }
+  };
   function aplicarVocabularioGiro(){
-    const rest = (configNegocio.tipo_negocio || '') === 'restaurante';
-    document.body.classList.toggle('giro-restaurante', rest);
-    const txt = (el, nuevo) => { if(!el || el.children.length) return; if(el.dataset.orig === undefined) el.dataset.orig = el.textContent; el.textContent = rest ? nuevo : el.dataset.orig; };
-    const ph = (el, nuevo) => { if(!el) return; if(el.dataset.orig === undefined) el.dataset.orig = el.placeholder; el.placeholder = rest ? nuevo : el.dataset.orig; };
-    txt(document.getElementById('navProductos'), 'Menú');
-    txt(document.querySelector('#seccionProductos .encabezado-seccion h2'), 'Menú');
-    txt(document.getElementById('btnNuevo'), 'Nuevo platillo');
-    txt(document.querySelector('label[for="pNombre"]'), 'Nombre del platillo'); ph(document.getElementById('pNombre'), 'Tacos al pastor');
-    txt(document.querySelector('label[for="pStock"]'), 'Disponibles hoy (0 = agotado)');
-    txt(document.querySelector('#bloqueCategorias .nota'), 'Organiza tu menú por secciones: entradas, platos fuertes, bebidas, postres…');
-    ph(document.getElementById('nuevaCategoriaNombre'), 'Ej. Entradas, Platos fuertes, Bebidas, Postres...'); ph(document.getElementById('buscarProducto'), 'Buscar platillo');
-    const sku = document.getElementById('pSku'); if(sku && sku.closest('.campo')) sku.closest('.campo').style.display = rest ? 'none' : '';
-    document.querySelectorAll('[onclick*="abrirEscaner"]').forEach(b => { b.style.display = rest ? 'none' : ''; });
-    const cf = document.getElementById('campoFotoPlatillo'); if(cf) cf.classList.toggle('oculto', !rest);
+    const giro = configNegocio.tipo_negocio || '', v = VOCAB_GIRO[giro] || null;
+    document.body.className = document.body.className.replace(/\bgiro-\S+/g, '').trim(); if(giro) document.body.classList.add('giro-' + giro);
+    const txt = (el, nuevo) => { if(!el || el.children.length) return; if(el.dataset.orig === undefined) el.dataset.orig = el.textContent; el.textContent = nuevo != null ? nuevo : el.dataset.orig; };
+    const ph = (el, nuevo) => { if(!el) return; if(el.dataset.orig === undefined) el.dataset.orig = el.placeholder; el.placeholder = nuevo != null ? nuevo : el.dataset.orig; };
+    const g = (k) => (v && v[k] != null) ? v[k] : null;
+    txt(document.getElementById('navProductos'), g('nav')); txt(document.querySelector('#seccionProductos .encabezado-seccion h2'), g('h')); txt(document.getElementById('btnNuevo'), g('nuevo'));
+    txt(document.querySelector('label[for="pNombre"]'), g('nombre')); ph(document.getElementById('pNombre'), g('ph')); txt(document.querySelector('label[for="pStock"]'), g('stock'));
+    txt(document.querySelector('#bloqueCategorias .nota'), g('nota')); ph(document.getElementById('nuevaCategoriaNombre'), g('catPh')); ph(document.getElementById('buscarProducto'), g('buscar'));
+    const sku = document.getElementById('pSku'); if(sku && sku.closest('.campo')) sku.closest('.campo').style.display = (v && v.sinSku) ? 'none' : '';
+    document.querySelectorAll('[onclick*="abrirEscaner"]').forEach(b => { b.style.display = (v && v.sinEscaner) ? 'none' : ''; });
+    const cf = document.getElementById('campoFotoPlatillo'); if(cf) cf.classList.toggle('oculto', !(v && v.foto));
   }
 
   // Re-codifica la imagen en el navegador: se pierden metadatos/EXIF y cualquier contenido oculto; solo salen píxeles nuevos.
