@@ -884,6 +884,24 @@
   .bloque-vale{ display:none; margin:0 0 10px; } body.giro-ropa .bloque-vale{ display:block; }
   .vale-aplicado{ display:flex; justify-content:space-between; align-items:center; gap:8px; padding:10px 12px; border-radius:14px; background:var(--exito-bg); color:var(--exito); font-size:13px; font-weight:600; }
   .vale-pendiente{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:10px 0; padding:12px 14px; border-radius:16px; background:var(--vid2); border:1px solid var(--borde); font-size:13px; }
+
+  /* ===== Servicios: equipo, comisiones, venta cruzada ===== */
+  .empleados-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:10px; } .empleado-btn{ min-height:64px; border-radius:18px; font-size:16px; }
+  .empleado-fila{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 0; border-bottom:1px solid var(--borde); } .empleado-fila.inactivo{ opacity:.5; } .empleado-nombre{ flex:1 1 140px; font-weight:600; }
+  .cross-sell{ margin:0 0 10px; } .saldo-banco{ display:flex; flex-direction:column; gap:2px; margin:6px 0 20px; } .saldo-banco span{ font-size:13px; color:var(--texto-suave); }
+  .saldo-banco b{ font:400 64px/1 var(--serif); letter-spacing:-.02em; } .saldo-banco small{ color:var(--texto-suave); font-size:13px; }
+  .comision-bloque{ padding:16px 0; border-top:1px solid var(--borde); } .comision-cab{ display:flex; justify-content:space-between; align-items:baseline; font-size:17px; } .comision-linea{ font-size:13.5px; padding:3px 0 0 12px; color:var(--texto-suave); }
+
+  /* ===== Agenda ===== */
+  .ag-barra{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:0 0 14px; } .ag-fecha{ font:400 26px var(--serif); text-transform:capitalize; flex:1 1 220px; }
+  .ag-horario{ display:flex; gap:6px; align-items:center; font-size:12.5px; color:var(--texto-suave); } .ag-horario select{ padding:6px 8px; border-radius:12px; }
+  .ag-scroll{ overflow:auto; border:1px solid var(--linea); border-radius:22px; background:var(--vid); max-height:calc(100vh - 270px); } .ag-tabla{ display:grid; min-width:max-content; }
+  .ag-esq,.ag-cab{ position:sticky; top:0; z-index:3; background:var(--fondo); padding:12px 8px; font-weight:600; font-size:13px; text-align:center; border-bottom:1px solid var(--borde); } .ag-esq{ left:0; z-index:4; }
+  .ag-horas{ position:sticky; left:0; z-index:2; background:var(--fondo); border-right:1px solid var(--borde); } .ag-horas span{ position:absolute; right:6px; font-size:11px; color:var(--texto-suave); transform:translateY(-50%); }
+  .ag-col{ position:relative; border-left:1px solid var(--borde); cursor:pointer; background-image:repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hora) - 1px), var(--borde) calc(var(--hora) - 1px), var(--borde) var(--hora)); }
+  .ag-cita{ position:absolute; left:4px; right:4px; display:flex; flex-direction:column; align-items:flex-start; gap:1px; padding:5px 8px; border-radius:12px; border:1px solid var(--borde); background:var(--acento); color:var(--texto-sobre-acento); text-align:left; overflow:hidden; font-size:12px; line-height:1.2; }
+  .ag-cita b{ font-size:11px; opacity:.8; } .ag-cita span{ font-weight:600; } .ag-cita small{ opacity:.75; } .ag-completada{ background:var(--exito-bg); color:var(--exito); border-color:var(--exito); } .ag-no_asistio{ background:var(--sub); color:var(--texto-suave); }
+  .ag-ahora{ position:absolute; left:0; right:0; height:0; border-top:2px solid var(--error); z-index:1; pointer-events:none; }
 </style>
 </head>
 <body>
@@ -1233,6 +1251,8 @@
       <div class="nav" id="navPrincipal">
         <button id="navVender" class="activo" onclick="conTutorial('nav-vender', this, function(){ if(funcionPuveActiva('cajero.nav_vender')) cambiarSeccion('vender'); })">Vender</button>
         <button id="navPedidos" class="oculto" onclick="cambiarSeccion('pedidos')">Pedidos<span id="badgePedidosQr" class="badge-pedidos oculto"></span></button>
+        <button id="navAgenda" class="oculto" onclick="cambiarSeccion('agenda')">Agenda</button>
+        <button id="navComisiones" class="oculto" onclick="cambiarSeccion('comisiones')">Comisiones</button>
         <button id="navProductos" onclick="conTutorial('nav-productos', this, function(){ if(funcionPuveActiva('admin.nav_productos')) cambiarSeccion('productos'); })">Productos</button>
         <button id="navCorte" onclick="conTutorial('nav-corte', this, function(){ if(funcionPuveActiva('cajero.nav_corte')) cambiarSeccion('corte'); })">Corte de caja</button>
         <button id="navDevoluciones" class="oculto" onclick="conTutorial('nav-devoluciones', this, function(){ if(funcionPuveActiva('cajero.nav_devoluciones')) cambiarSeccion('devoluciones'); })">Devoluciones</button>
@@ -1316,7 +1336,9 @@
           </div>
 
 
-          <div class="bloque-vale" id="bloqueVale">
+          <div class="nota oculto" id="resumenServicios" style="margin:0 0 8px;"></div>
+      <div class="cross-sell oculto" id="panelCrossSell"><div class="cr-etq">Añade al ticket</div><div class="filtro-cats" id="crossFila" style="margin:0;"></div></div>
+      <div class="bloque-vale" id="bloqueVale">
         <button type="button" class="texto" id="btnAbrirVale" onclick="abrirEntradaVale()" style="width:100%; text-align:left; padding:6px 0; font-size:13px; color:var(--texto-suave);">+ Canjear vale de saldo a favor</button>
         <div class="oculto" id="entradaVale"><div class="form-agregar-admin"><input id="valeFolio" type="text" placeholder="V-XXXXXXXX" maxlength="10" style="text-transform:uppercase;" onkeydown="if(event.key==='Enter'){event.preventDefault();aplicarValeDesdeInput();}"><button type="button" class="principal" style="width:auto;" onclick="aplicarValeDesdeInput()">Aplicar</button></div></div>
         <div class="vale-aplicado oculto" id="valeAplicado"><span id="valeAplicadoTxt"></span><button type="button" class="texto" onclick="quitarValeAplicado()">Quitar</button></div>
@@ -1426,6 +1448,8 @@
             <div class="campo"><label for="pCosto">Costo</label><input id="pCosto" type="number" step="0.01" min="0" placeholder="0.00"></div>
             <div class="campo"><label for="pStock">Stock</label><input id="pStock" type="number" step="1" min="0" required placeholder="0"></div>
             <div class="campo"><label for="pCaducidad">Caducidad (opcional)</label><input id="pCaducidad" type="date"></div>
+            <div class="campo oculto campo-servicio"><label for="pTipo">¿Qué vas a agregar?</label><select id="pTipo"><option value="servicio">Servicio (corte, tinte, masaje…)</option><option value="producto">Producto para vender (cera, champú…)</option></select></div>
+            <div class="campo oculto" id="campoDuracion"><label for="pDuracion">Duración (minutos)</label><input id="pDuracion" type="number" min="5" max="600" step="5" placeholder="45"></div>
             <div class="campo oculto campo-ropa"><label for="pTalla">Talla</label><input id="pTalla" type="text" maxlength="12" placeholder="M, 28, 9.5"></div>
             <div class="campo oculto campo-ropa"><label for="pColor">Color</label><input id="pColor" type="text" maxlength="30" placeholder="Negro"></div>
             <div class="campo oculto campo-ropa">
@@ -1556,6 +1580,34 @@
       </div>
       <div id="mensajePedidosQr" class="mensaje"></div>
       <div id="listaPedidosQr" class="pedidos-cols"></div>
+    </div>
+  </div>
+
+  <div class="seccion" id="seccionAgenda">
+    <div class="contenido">
+      <div class="encabezado-seccion">
+        <div><h2>Agenda</h2><p>Citas por empleado. Toca un espacio libre para agendar.</p></div>
+        <button type="button" class="principal" style="width:auto;" onclick="nuevaCitaRapida()">Nueva cita</button>
+      </div>
+      <div id="mensajeAgenda" class="mensaje"></div>
+      <div class="ag-barra">
+        <div class="periodo-selector"><button type="button" onclick="moverAgenda(-1)" aria-label="Día anterior">‹</button><button type="button" onclick="moverAgenda(0)">Hoy</button><button type="button" onclick="moverAgenda(1)" aria-label="Día siguiente">›</button></div>
+        <div class="ag-fecha" id="agFechaTxt"></div>
+        <div class="ag-horario">Horario <select id="agDesde"></select> a <select id="agHasta"></select></div>
+      </div>
+      <div class="ag-scroll" id="agendaGrid"></div>
+    </div>
+  </div>
+
+  <div class="seccion" id="seccionComisiones">
+    <div class="contenido">
+      <div class="encabezado-seccion">
+        <div><h2>Comisiones</h2><p>Lo que ganó cada empleado por los servicios que realizó.</p></div>
+        <div class="periodo-selector" id="periodoComisiones"><button type="button" class="activo" data-p="hoy" onclick="cambiarPeriodoComisiones('hoy')">Hoy</button><button type="button" data-p="semana" onclick="cambiarPeriodoComisiones('semana')">Semana</button><button type="button" data-p="mes" onclick="cambiarPeriodoComisiones('mes')">Mes</button></div>
+      </div>
+      <div id="mensajeComisiones" class="mensaje"></div>
+      <div class="saldo-banco"><span>Comisiones del periodo</span><b id="totalComisiones">$0.00</b><small id="subtotalComisiones"></small></div>
+      <div id="listaComisiones"></div>
     </div>
   </div>
 
@@ -1857,6 +1909,13 @@
       </div>
 
       <div id="vistaConfigFunciones">
+        <div class="bloque-analitica oculto" id="bloqueEmpleados">
+          <h3>Tu equipo</h3>
+          <p class="nota">Agrega a tus barberos, estilistas o terapeutas y su porcentaje de comisión. Al cobrar un servicio eliges quién lo realizó y las comisiones se calculan solas.</p>
+          <div id="mensajeEmpleados" class="mensaje"></div>
+          <div class="form-agregar-admin"><input id="empNombre" type="text" maxlength="60" placeholder="Nombre"><input id="empPct" type="number" min="0" max="100" step="0.5" placeholder="% comisión" style="width:110px;"><button type="button" class="principal" style="width:auto;" onclick="agregarEmpleado()">Agregar</button></div>
+          <div id="listaEmpleados" style="margin-top:12px;"></div>
+        </div>
         <div class="bloque-analitica" id="bloqueFavicon">
           <h3>Ícono del negocio</h3>
           <p class="nota">Es la imagen que aparece en la pestaña del navegador y al guardar tu página en la pantalla de inicio. Puedes dejar el ícono de PUVE o usar el tuyo (se recorta cuadrado y se reduce a un archivo diminuto).</p>
@@ -3575,7 +3634,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   // Versión vigente de los documentos legales (debe coincidir con docs_legales/*.html).
-  const VERSION_LEGAL = '1.3';
+  const VERSION_LEGAL = '1.4';
   async function registrarAceptacionLegal(){
     try { await sb.rpc('registrar_aceptacion_legal', { p_version: VERSION_LEGAL }); } catch(e){ console.warn('No se pudo registrar la aceptación legal:', e); }
   }
@@ -6529,6 +6588,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     switch(cual){
       case 'vender':       return esCajeroAhora;
       case 'productos':    return esCajeroAhora || esEncargadoAhora;
+      case 'agenda':       return (esCajeroAhora || esEncargadoAhora) && document.body.classList.contains('giro-servicios');
+      case 'comisiones':   return esEncargadoAhora && document.body.classList.contains('giro-servicios');
       case 'pedidos':      return (esCajeroAhora || esEncargadoAhora) && pedidosQrActivo === true;
       case 'corte':        return (esCajeroAhora || esEncargadoAhora) && !!configNegocio.corte_caja;
       case 'devoluciones': return (esCajeroAhora || esEncargadoAhora) && !!configNegocio.devoluciones;
@@ -6550,13 +6611,15 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       console.warn('Navegación bloqueada: tu rol no tiene acceso a "' + cual + '".');
       return;
     }
-    ['Vender','Pedidos','Productos','Corte','Devoluciones','Gastos','Inventario','Analitica','Dispositivos','Config','Fiscal','Soporte','Admin'].forEach(s => {
+    ['Vender','Agenda','Pedidos','Comisiones','Productos','Corte','Devoluciones','Gastos','Inventario','Analitica','Dispositivos','Config','Fiscal','Soporte','Admin'].forEach(s => {
       document.getElementById('nav'+s).classList.toggle('activo', s.toLowerCase() === cual);
       document.getElementById('seccion'+s).classList.toggle('activa', s.toLowerCase() === cual);
     });
     cerrarMenuMovil();
     if(cual === 'vender' || cual === 'productos'){ cargarProductos(); }
     if(cual === 'pedidos') refrescarPedidosQr();
+    if(cual === 'comisiones') cambiarPeriodoComisiones(periodoComisiones);
+    if(cual === 'agenda') abrirAgenda();
     if(cual === 'productos') aplicarVocabularioGiro();
     if(cual === 'vender') setTimeout(enfocarEscanerVenta, 200);
     if(cual === 'corte') cargarHistorialCortes();
@@ -6575,7 +6638,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       document.getElementById('tabPlanConfig').classList.toggle('oculto', !(miRol === 'admin' && !esAdminActual));
       document.getElementById('tabInvitaConfig').classList.toggle('oculto', !(miRol === 'admin' && !esAdminActual));
       cargarFormularioConfig();
-      actualizarBloquePedidosQr();
+      actualizarBloquePedidosQr(); actualizarBloqueEmpleados();
       prepararBloqueMejorarPlan();
       prepararBloqueAgregarCajero();
       renderizarListaTutoriales();
@@ -6799,7 +6862,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       document.getElementById('productoId').value = '';
       document.getElementById('btnGuardarProducto').textContent = 'Guardar';
       ocultarMensaje('mensajeProducto');
-      limpiarFotoPendiente(); ['pTalla', 'pColor'].forEach(id => { const e = document.getElementById(id); if(e) e.value = ''; });
+      limpiarFotoPendiente(); if(document.getElementById('pTipo')){ document.getElementById('pTipo').value = 'servicio'; document.getElementById('pDuracion').value = ''; ajustarFormServicio(); } ['pTalla', 'pColor'].forEach(id => { const e = document.getElementById(id); if(e) e.value = ''; });
     }
   }
 
@@ -6814,6 +6877,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('pCaducidad').value = p.fecha_caducidad || '';
     document.getElementById('btnGuardarProducto').textContent = 'Actualizar';
     fotoForm = { original: p.foto_path || null, actual: p.foto_path || null, subida: null }; pintarFotoForm(); estadoFoto('');
+    if(document.body.classList.contains('giro-servicios')){ document.getElementById('pTipo').value = p.tipo || 'producto'; document.getElementById('pDuracion').value = p.duracion_min || ''; ajustarFormServicio(); }
     if(document.body.classList.contains('giro-ropa')){ document.getElementById('pNombre').value = p.modelo || p.nombre; document.getElementById('pTalla').value = p.talla || ''; document.getElementById('pColor').value = p.color || ''; }
     alternarFormulario(true);
   }
@@ -6842,6 +6906,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       fecha_caducidad: document.getElementById('pCaducidad').value || null,
     };
     if(document.body.classList.contains('giro-restaurante')) registro.foto_path = fotoForm.actual;
+    if(document.body.classList.contains('giro-servicios')){ registro.tipo = document.getElementById('pTipo').value; if(registro.tipo === 'servicio'){ registro.duracion_min = parseInt(document.getElementById('pDuracion').value, 10) || null; registro.stock = 999999; } else registro.duracion_min = null; }
     if(document.body.classList.contains('giro-ropa')){ const talla = document.getElementById('pTalla').value.trim(), color = document.getElementById('pColor').value.trim(), base = registro.nombre; registro.modelo = base; registro.talla = talla || null; registro.color = color || null; registro.nombre = [base, talla, color].filter(Boolean).join(' '); }
     let error;
     if(id){ ({ error } = await sb.from('productos').update(registro).eq('id', id)); }
@@ -6950,6 +7015,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   });
 
   function agregarAlCarrito(id){
+    const p0 = productosCache.find(x => x.id === id);
+    if(document.body.classList.contains('giro-servicios') && esServicioProd(p0)){ pedirEmpleado(p0); return; }
+    agregarAlCarritoOriginal(id);
+  }
+  function agregarAlCarritoOriginal(id){
     const producto = productosCache.find(p => p.id === id);
     if(!producto) return;
     const enLiquidacion = producto.en_liquidacion && producto.precio_liquidacion != null;
@@ -7012,7 +7082,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   function renderizarCarrito(){
-    actualizarCobroRapido(); actualizarBloqueVale();
+    actualizarCobroRapido(); actualizarBloqueVale(); actualizarCrossSell(); actualizarResumenServicios();
     const contenedor = document.getElementById('lineasCarrito');
     const vacio = document.getElementById('carritoVacio');
     const btnCobrar = document.getElementById('btnCobrar');
@@ -7255,6 +7325,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       const falla = !enLinea ? 'Para canjear un vale necesitas conexión.' : metodoPago !== 'efectivo' ? 'El vale solo se puede usar con pago en efectivo.' : total + 0.001 < valeAplicado.monto ? 'La compra debe ser de al menos ' + dineroVale(valeAplicado.monto) + ' para usar este vale.' : '';
       if(falla){ mostrarMensaje('mensajeVenta', falla, 'error'); btn.textContent = 'Cobrar'; btn.disabled = false; return; }
     }
+    if(!enLinea && carrito.some(i => i.empleado_id) && !confirm('Sin conexión: la venta se guardará, pero NO se asignará a empleados (no habrá comisión). ¿Continuar?')){ btn.textContent = 'Cobrar'; btn.disabled = false; return; }
     if(!enLinea){
       if(telefonoCliente){
         mostrarMensaje('mensajeVenta', 'Sin conexión: la venta se guarda, pero los puntos no se pueden acumular ni canjear hasta que vuelva internet.', 'error');
@@ -7274,11 +7345,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
     const paramsVenta = { p_items: items, p_metodo_pago: metodoPago, p_telefono_cliente: telefonoCliente, p_puntos_a_canjear: puntosACanjear, p_monto_efectivo: montoEfectivo, p_nombre_cliente: nombreCliente };
     if(valeAplicado) paramsVenta.p_vale_folio = valeAplicado.folio;
-    const { data: ventaId, error } = await sb.rpc(valeAplicado ? 'registrar_venta_con_vale' : 'registrar_venta', paramsVenta);
+    let nombreRpc = valeAplicado ? 'registrar_venta_con_vale' : 'registrar_venta';
+    const asignaciones = carrito.filter(i => i.empleado_id).map(i => ({ producto_id: i.id, empleado_id: i.empleado_id }));
+    if(asignaciones.length && !valeAplicado){ nombreRpc = 'registrar_venta_servicios'; paramsVenta.p_asignaciones = asignaciones; }
+    const { data: ventaId, error } = await sb.rpc(nombreRpc, paramsVenta);
     btn.textContent = 'Cobrar';
 
     if(error){
-      if(esErrorDeRed(error) && !valeAplicado){
+      if(esErrorDeRed(error) && !valeAplicado && !asignaciones.length){
         enLinea = false;
         guardarVentaEnCola(items, total, metodoPago, montoEfectivo);
         aplicarDescuentoLocal(items);
@@ -7297,6 +7371,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
     mostrarMensaje('mensajeVenta', valeAplicado ? 'Venta registrada. Vale canjeado: cobra ' + dineroVale(total - valeAplicado.monto) + '.' : 'Venta registrada correctamente.', 'exito');
     if(valeAplicado) quitarValeAplicado();
+    completarCitaTrasVenta(ventaId, items);
     document.getElementById('recompensaTelefono').value = '';
     reiniciarEstadoRecompensaVenta();
     reiniciarMetodoPagoVenta();
@@ -7620,7 +7695,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   const VOCAB_GIRO = {
     restaurante: { nav: 'Menú', h: 'Menú', nuevo: 'Nuevo platillo', nombre: 'Nombre del platillo', ph: 'Tacos al pastor', stock: 'Disponibles hoy (0 = agotado)', buscar: 'Buscar platillo',
       nota: 'Organiza tu menú por secciones: entradas, platos fuertes, bebidas, postres…', catPh: 'Ej. Entradas, Platos fuertes, Bebidas, Postres...', sinSku: true, sinEscaner: true, foto: true },
-    servicios: { nav: 'Servicios', h: 'Servicios', nuevo: 'Nuevo servicio', nombre: 'Nombre del servicio', ph: 'Corte de cabello', stock: 'Cupo disponible (pon un número alto, ej. 999)', buscar: 'Buscar servicio',
+    servicios: { nav: 'Servicios', h: 'Servicios', nuevo: 'Nuevo servicio', nombre: 'Nombre del servicio', ph: 'Corte de cabello', stock: 'Existencias (solo para productos de venta)', buscar: 'Buscar servicio',
       nota: 'Agrupa tus servicios: cabello, barba, uñas, faciales, masajes…', catPh: 'Ej. Cabello, Barba, Uñas, Faciales...', sinSku: true, sinEscaner: true },
     ropa: { nav: 'Artículos', h: 'Artículos', nuevo: 'Nuevo artículo', nombre: 'Modelo (nombre base)', ph: 'Playera básica', buscar: 'Buscar artículo',
       nota: 'Organiza por temporada, género o tipo de prenda: playeras, jeans, calzado, accesorios…', catPh: 'Ej. Playeras, Jeans, Calzado, Accesorios...' }
@@ -7638,6 +7713,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.querySelectorAll('[onclick*="abrirEscaner"]').forEach(b => { b.style.display = (v && v.sinEscaner) ? 'none' : ''; });
     document.querySelectorAll('.campo-ropa').forEach(e => e.classList.toggle('oculto', giro !== 'ropa'));
     const cf = document.getElementById('campoFotoPlatillo'); if(cf) cf.classList.toggle('oculto', !(v && v.foto));
+    const nc = document.getElementById('navComisiones'); if(nc) nc.classList.toggle('oculto', !(giro === 'servicios' && miRol === 'admin' && !esAdminActual));
+    const na = document.getElementById('navAgenda'); if(na) na.classList.toggle('oculto', !(giro === 'servicios' && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
+    if(giro === 'servicios') cargarEmpleados(); ajustarFormServicio();
   }
 
   // Re-codifica la imagen en el navegador: se pierden metadatos/EXIF y cualquier contenido oculto; solo salen píxeles nuevos.
@@ -7910,6 +7988,213 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const total = totalCarritoVale(), txt = document.getElementById('valeAplicadoTxt');
     txt.textContent = total + 0.001 < valeAplicado.monto ? 'Vale ' + valeAplicado.folio + ' (' + dineroVale(valeAplicado.monto) + '): agrega artículos por al menos ese valor.' : 'Vale ' + valeAplicado.folio + ' −' + dineroVale(valeAplicado.monto) + ' → cobra ' + dineroVale(total - valeAplicado.monto);
   }
+
+  // ===== Servicios: empleados, asignación al cobrar, venta cruzada y comisiones =====
+  let empleadosCache = [], empleadosCargados = false;
+  const dineroSv = (n) => '$' + Number(n).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const esServicioProd = (p) => !!p && p.tipo === 'servicio';
+  async function cargarEmpleados(forzar){
+    if(empleadosCargados && !forzar) return; empleadosCargados = true;
+    const { data, error } = await sb.from('empleados').select('id,nombre,comision_pct,activo').order('nombre');
+    if(!error){ empleadosCache = data || []; renderizarEmpleados(); }
+  }
+
+  // --- Al agregar un servicio al carrito: ¿quién lo hizo? ---
+  function pedirEmpleado(prod){
+    const activos = empleadosCache.filter(e => e.activo);
+    if(!activos.length){ agregarAlCarritoOriginal(prod.id); mostrarMensaje('mensajeVenta', 'Agrega a tu equipo en Configuración para asignar los servicios y calcular comisiones.', 'exito'); return; }
+    const fondo = el('div', 'modal-puve-fondo'), caja = el('div', 'modal-puve'); caja.style.maxWidth = '400px'; fondo.appendChild(caja);
+    const cerrar = () => fondo.remove(); fondo.onclick = (e) => { if(e.target === fondo) cerrar(); };
+    caja.appendChild(el('h2', '', '¿Quién lo realizó?')); caja.appendChild(el('p', 'nota', prod.nombre));
+    const grid = el('div', 'empleados-grid'); caja.appendChild(grid);
+    const poner = (emp) => { agregarAlCarritoOriginal(prod.id); const it = carrito.find(i => i.id === prod.id); if(it){ if(emp){ it.empleado_id = emp.id; it.empleado_nombre = emp.nombre; } else { delete it.empleado_id; delete it.empleado_nombre; } } actualizarResumenServicios(); cerrar(); };
+    activos.forEach(e => { const b = el('button', 'empleado-btn', e.nombre); b.type = 'button'; b.onclick = () => poner(e); grid.appendChild(b); });
+    const s = el('button', 'texto', 'Sin asignar'); s.type = 'button'; s.style.cssText = 'width:100%; margin-top:8px;'; s.onclick = () => poner(null); caja.appendChild(s);
+    document.body.appendChild(fondo);
+  }
+  function actualizarResumenServicios(){
+    const r = document.getElementById('resumenServicios'); if(!r) return;
+    const lineas = carrito.filter(i => i.empleado_nombre).map(i => i.nombre + ' → ' + i.empleado_nombre); r.textContent = lineas.join(' · '); r.classList.toggle('oculto', !lineas.length);
+  }
+  // --- Venta cruzada: productos físicos a un toque durante el cobro ---
+  function actualizarCrossSell(){
+    const panel = document.getElementById('panelCrossSell'); if(!panel) return;
+    const activo = document.body.classList.contains('giro-servicios') && carrito.length > 0;
+    const rk = new Map((idsMasVendidos || []).map((id, i) => [id, i]));
+    const prods = activo ? productosCache.filter(p => p.tipo === 'producto' && Number(p.stock) > 0).sort((a, b) => (rk.has(a.id) ? rk.get(a.id) : 1e9) - (rk.has(b.id) ? rk.get(b.id) : 1e9)).slice(0, 8) : [];
+    panel.classList.toggle('oculto', !prods.length); const fila = document.getElementById('crossFila'); fila.textContent = '';
+    prods.forEach(p => { const b = el('button', 'chip-cat', p.nombre + ' · $' + Number(p.precio).toFixed(2)); b.type = 'button'; b.onclick = () => agregarAlCarritoOriginal(p.id); fila.appendChild(b); });
+  }
+  // --- Configuración: equipo ---
+  function actualizarBloqueEmpleados(){
+    const b = document.getElementById('bloqueEmpleados'); if(!b) return;
+    const ver = (configNegocio.tipo_negocio || '') === 'servicios' && miRol === 'admin' && !esAdminActual; b.classList.toggle('oculto', !ver); if(ver) cargarEmpleados(true);
+  }
+  function renderizarEmpleados(){
+    const cont = document.getElementById('listaEmpleados'); if(!cont) return; cont.textContent = '';
+    if(!empleadosCache.length){ cont.appendChild(el('p', 'nota', 'Aún no tienes empleados. Agrégalos para asignarles servicios y calcular su comisión.')); return; }
+    empleadosCache.forEach(e => {
+      const fila = el('div', 'empleado-fila' + (e.activo ? '' : ' inactivo')); fila.appendChild(el('span', 'empleado-nombre', e.nombre));
+      const pct = el('input', 'input-mini'); pct.type = 'number'; pct.min = 0; pct.max = 100; pct.step = '0.5'; pct.value = e.comision_pct; pct.style.width = '84px'; pct.setAttribute('aria-label', 'Comisión %');
+      pct.onchange = async () => { const v = Math.max(0, Math.min(100, parseFloat(pct.value) || 0)); const { error } = await sb.from('empleados').update({ comision_pct: v }).eq('id', e.id); if(error) mostrarMensaje('mensajeEmpleados', error.message, 'error'); else { e.comision_pct = v; pct.value = v; } };
+      fila.appendChild(pct); fila.appendChild(el('span', 'nota', '% comisión'));
+      const t = el('button', 'texto', e.activo ? 'Desactivar' : 'Activar'); t.type = 'button'; t.onclick = async () => { const { error } = await sb.from('empleados').update({ activo: !e.activo }).eq('id', e.id); if(error) mostrarMensaje('mensajeEmpleados', error.message, 'error'); else cargarEmpleados(true); };
+      fila.appendChild(t); cont.appendChild(fila);
+    });
+  }
+  async function agregarEmpleado(){
+    ocultarMensaje('mensajeEmpleados'); const nombre = document.getElementById('empNombre').value.trim(), pct = Math.max(0, Math.min(100, parseFloat(document.getElementById('empPct').value) || 0));
+    if(!nombre){ mostrarMensaje('mensajeEmpleados', 'Escribe el nombre del empleado.', 'error'); return; }
+    const { error } = await sb.from('empleados').insert({ negocio_id: negocioId, nombre: nombre, comision_pct: pct });
+    if(error){ mostrarMensaje('mensajeEmpleados', error.message, 'error'); return; }
+    document.getElementById('empNombre').value = ''; document.getElementById('empPct').value = ''; cargarEmpleados(true);
+  }
+  // --- Comisiones (estilo bancario: el total arriba, el detalle en texto) ---
+  let periodoComisiones = 'hoy';
+  function cambiarPeriodoComisiones(p){ periodoComisiones = p; document.querySelectorAll('#periodoComisiones button').forEach(b => b.classList.toggle('activo', b.dataset.p === p)); cargarComisiones(); }
+  async function cargarComisiones(){
+    const d = new Date(); d.setHours(0, 0, 0, 0); if(periodoComisiones === 'semana') d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); if(periodoComisiones === 'mes') d.setDate(1);
+    const { data, error } = await sb.from('comisiones_servicio').select('empleado_id,empleado_nombre,producto_nombre,monto,comision_pct,comision_monto').gte('creado_en', d.toISOString()).limit(5000);
+    if(error){ mostrarMensaje('mensajeComisiones', 'No se pudieron cargar las comisiones: ' + error.message, 'error'); return; }
+    ocultarMensaje('mensajeComisiones'); const por = new Map(); let total = 0, vendido = 0, n = 0;
+    (data || []).forEach(r => { const k = r.empleado_id || r.empleado_nombre; if(!por.has(k)) por.set(k, { nombre: r.empleado_nombre, pct: r.comision_pct, n: 0, vendido: 0, com: 0, serv: new Map() });
+      const e = por.get(k); e.n++; e.vendido += Number(r.monto); e.com += Number(r.comision_monto); const s = e.serv.get(r.producto_nombre) || { n: 0, m: 0 }; s.n++; s.m += Number(r.monto); e.serv.set(r.producto_nombre, s); total += Number(r.comision_monto); vendido += Number(r.monto); n++; });
+    document.getElementById('totalComisiones').textContent = dineroSv(total); document.getElementById('subtotalComisiones').textContent = n + (n === 1 ? ' servicio' : ' servicios') + ' · ' + dineroSv(vendido) + ' vendidos';
+    const lista = document.getElementById('listaComisiones'); lista.textContent = '';
+    if(!por.size){ lista.appendChild(el('div', 'vacio', 'Sin servicios con empleado asignado en este periodo.')); return; }
+    Array.from(por.values()).sort((a, b) => b.com - a.com).forEach(e => {
+      const bloque = el('div', 'comision-bloque'), cab = el('div', 'comision-cab'); cab.appendChild(el('b', '', e.nombre)); cab.appendChild(el('b', '', dineroSv(e.com))); bloque.appendChild(cab);
+      bloque.appendChild(el('div', 'nota', e.n + (e.n === 1 ? ' servicio' : ' servicios') + ' · ' + dineroSv(e.vendido) + ' vendidos · comisión ' + Number(e.pct) + '%'));
+      e.serv.forEach((s, nombre) => bloque.appendChild(el('div', 'comision-linea', s.n + ' × ' + nombre + ' — ' + dineroSv(s.m)))); lista.appendChild(bloque);
+    });
+  }
+  // --- Formulario de producto: servicio o producto ---
+  function ajustarFormServicio(){
+    const sv = document.body.classList.contains('giro-servicios'), tipo = document.getElementById('pTipo'), esServ = sv && tipo.value === 'servicio';
+    document.querySelectorAll('.campo-servicio').forEach(e => e.classList.toggle('oculto', !sv));
+    const dur = document.getElementById('campoDuracion'); if(dur) dur.classList.toggle('oculto', !esServ);
+    const st = document.getElementById('pStock'); if(st && st.closest('.campo')){ st.closest('.campo').style.display = esServ ? 'none' : ''; if(esServ) st.value = '999999'; else if(st.value === '999999') st.value = ''; }
+  }
+  document.getElementById('pTipo').addEventListener('change', ajustarFormServicio);
+
+  // ===== Agenda de citas (Servicios) =====
+  let agendaFecha = new Date(), citasDia = [], canalCitas = null, citaPorCobrar = null, agendaTimer = null;
+  const PX_MIN = 1.15;
+  const agendaHoras = (() => { try { const v = (localStorage.getItem('puve_agenda_horas') || '9-20').split('-').map(Number); if(v[0] >= 0 && v[1] <= 24 && v[0] < v[1]) return { ini: v[0], fin: v[1] }; } catch(e){} return { ini: 9, fin: 20 }; })();
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const fechaInput = (d) => d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  const horaTxt = (d) => pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  const mismoDia = (a, b) => a.toDateString() === b.toDateString();
+  const agendaActiva = () => document.getElementById('seccionAgenda').classList.contains('activa');
+
+  function abrirAgenda(){
+    const d = document.getElementById('agDesde'), h = document.getElementById('agHasta');
+    if(!d.options.length){ for(let i = 0; i <= 23; i++){ const o = el('option', '', pad2(i) + ':00'); o.value = i; d.appendChild(o); } for(let i = 1; i <= 24; i++){ const o = el('option', '', pad2(i) + ':00'); o.value = i; h.appendChild(o); }
+      const cambiar = () => { const a = Number(d.value), b = Number(h.value); if(a >= b) return; agendaHoras.ini = a; agendaHoras.fin = b; try { localStorage.setItem('puve_agenda_horas', a + '-' + b); } catch(e){} renderizarAgenda(); };
+      d.onchange = cambiar; h.onchange = cambiar; }
+    d.value = agendaHoras.ini; h.value = agendaHoras.fin; abrirCanalCitas();
+    cargarEmpleados().then(() => cargarCitasDia()); clearInterval(agendaTimer); agendaTimer = setInterval(() => { if(agendaActiva()) renderizarAgenda(); }, 60000);
+  }
+  function moverAgenda(dias){ if(dias === 0) agendaFecha = new Date(); else { agendaFecha = new Date(agendaFecha); agendaFecha.setDate(agendaFecha.getDate() + dias); } cargarCitasDia(); }
+  async function cargarCitasDia(){
+    const a = new Date(agendaFecha); a.setHours(0, 0, 0, 0); const b = new Date(a); b.setDate(b.getDate() + 1);
+    const { data, error } = await sb.from('citas').select('id,empleado_id,producto_id,servicio_nombre,cliente_nombre,cliente_telefono,inicio,fin,estado,notas')
+      .gte('inicio', a.toISOString()).lt('inicio', b.toISOString()).neq('estado', 'cancelada').order('inicio');
+    if(error){ mostrarMensaje('mensajeAgenda', 'No se pudo cargar la agenda: ' + error.message, 'error'); return; }
+    ocultarMensaje('mensajeAgenda'); citasDia = data || []; renderizarAgenda();
+  }
+  function renderizarAgenda(){
+    const cont = document.getElementById('agendaGrid'); if(!cont) return; cont.textContent = '';
+    document.getElementById('agFechaTxt').textContent = agendaFecha.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+    const emps = empleadosCache.filter(e => e.activo);
+    if(!emps.length){ cont.appendChild(el('div', 'vacio', 'Agrega a tu equipo en Configuración para usar la agenda.')); return; }
+    const alto = (agendaHoras.fin - agendaHoras.ini) * 60 * PX_MIN, tabla = el('div', 'ag-tabla'); tabla.style.gridTemplateColumns = '52px repeat(' + emps.length + ', minmax(150px, 1fr))';
+    tabla.appendChild(el('div', 'ag-esq')); emps.forEach(e => tabla.appendChild(el('div', 'ag-cab', e.nombre)));
+    const horas = el('div', 'ag-horas'); horas.style.height = alto + 'px';
+    for(let h = agendaHoras.ini; h < agendaHoras.fin; h++){ const l = el('span', '', pad2(h) + ':00'); l.style.top = ((h - agendaHoras.ini) * 60 * PX_MIN) + 'px'; horas.appendChild(l); } tabla.appendChild(horas);
+    const base = new Date(agendaFecha); base.setHours(agendaHoras.ini, 0, 0, 0);
+    emps.forEach(e => {
+      const col = el('div', 'ag-col'); col.style.height = alto + 'px'; col.style.setProperty('--hora', (60 * PX_MIN) + 'px');
+      col.onclick = (ev) => { if(ev.target !== col) return; const min = Math.floor((ev.offsetY / PX_MIN) / 15) * 15; abrirModalCita({ empleadoId: e.id, inicio: new Date(base.getTime() + min * 60000) }); };
+      citasDia.filter(c => c.empleado_id === e.id).forEach(c => {
+        const ini = new Date(c.inicio), fin = new Date(c.fin), top = ((ini - base) / 60000) * PX_MIN, h = Math.max(24, ((fin - ini) / 60000) * PX_MIN - 2); if(top + h < 0 || top > alto) return;
+        const b = el('button', 'ag-cita ag-' + c.estado); b.type = 'button'; b.style.top = Math.max(0, top) + 'px'; b.style.height = h + 'px';
+        b.appendChild(el('b', '', horaTxt(ini) + '–' + horaTxt(fin))); b.appendChild(el('span', '', c.cliente_nombre)); b.appendChild(el('small', '', c.servicio_nombre));
+        b.onclick = (ev) => { ev.stopPropagation(); abrirDetalleCita(c); }; col.appendChild(b);
+      });
+      if(mismoDia(agendaFecha, new Date())){ const m = (Date.now() - base.getTime()) / 60000; if(m >= 0 && m <= (agendaHoras.fin - agendaHoras.ini) * 60){ const l = el('div', 'ag-ahora'); l.style.top = (m * PX_MIN) + 'px'; col.appendChild(l); } }
+      tabla.appendChild(col);
+    });
+    cont.appendChild(tabla);
+  }
+  function modalBase(titulo, ancho){
+    const fondo = el('div', 'modal-puve-fondo'), caja = el('div', 'modal-puve'); caja.style.maxWidth = (ancho || 440) + 'px'; fondo.appendChild(caja); fondo.onclick = (e) => { if(e.target === fondo) fondo.remove(); };
+    caja.appendChild(el('h2', '', titulo)); document.body.appendChild(fondo); return { fondo, caja };
+  }
+  function abrirModalCita(o){
+    const rep = !!o.cita, { fondo, caja } = modalBase(rep ? 'Reprogramar cita' : 'Nueva cita');
+    const campo = (etq, nodo) => { const c = el('div', 'campo'); c.appendChild(el('label', '', etq)); c.appendChild(nodo); caja.appendChild(c); return nodo; };
+    const servs = productosCache.filter(p => p.tipo === 'servicio');
+    if(!rep && !servs.length){ caja.appendChild(el('p', 'nota', 'Primero agrega tus servicios en la sección Servicios (tipo "Servicio" y su duración).')); const c = el('button', 'texto', 'Cerrar'); c.type = 'button'; c.onclick = () => fondo.remove(); caja.appendChild(c); return; }
+    const cliente = rep ? null : campo('Cliente', Object.assign(el('input'), { type: 'text', maxLength: 80, placeholder: 'Nombre' }));
+    const tel = rep ? null : campo('Teléfono (opcional)', Object.assign(el('input'), { type: 'tel', maxLength: 20, placeholder: '33 1234 5678' }));
+    const sel = rep ? null : campo('Servicio', el('select')); if(sel) servs.forEach(s => { const op = el('option', '', s.nombre + ' · ' + (s.duracion_min || 30) + ' min'); op.value = s.id; sel.appendChild(op); });
+    const emp = campo('Empleado', el('select')); empleadosCache.filter(e => e.activo).forEach(e => { const op = el('option', '', e.nombre); op.value = e.id; if(e.id === (o.empleadoId || (o.cita && o.cita.empleado_id))) op.selected = true; emp.appendChild(op); });
+    const ini = o.inicio || new Date(o.cita.inicio);
+    const fecha = campo('Fecha', Object.assign(el('input'), { type: 'date', value: fechaInput(ini) })), hora = campo('Hora', Object.assign(el('input'), { type: 'time', step: 900, value: horaTxt(ini) }));
+    const notas = rep ? null : campo('Notas (opcional)', Object.assign(el('input'), { type: 'text', maxLength: 200 }));
+    const fin = el('div', 'nota'), msg = el('div', 'mensaje'); caja.appendChild(fin); caja.appendChild(msg);
+    const durMin = () => rep ? Math.round((new Date(o.cita.fin) - new Date(o.cita.inicio)) / 60000) : ((servs.find(s => s.id === sel.value) || {}).duracion_min || 30);
+    const calc = () => { const f = fecha.value.split('-').map(Number), h = hora.value.split(':').map(Number); return new Date(f[0], f[1] - 1, f[2], h[0], h[1]); };
+    const actFin = () => { const d = calc(); fin.textContent = isNaN(d) ? '' : 'Termina a las ' + horaTxt(new Date(d.getTime() + durMin() * 60000)) + ' (' + durMin() + ' min)'; };
+    [sel, fecha, hora].forEach(x => x && x.addEventListener('change', actFin)); actFin();
+    const ok = el('button', 'principal', rep ? 'Guardar cambio' : 'Agendar'); ok.type = 'button'; ok.style.cssText = 'width:100%; margin-top:12px;';
+    ok.onclick = async () => {
+      const d = calc(); msg.className = 'mensaje';
+      if(isNaN(d)){ msg.className = 'mensaje error'; msg.textContent = 'Elige fecha y hora.'; return; }
+      if(!rep && !cliente.value.trim()){ msg.className = 'mensaje error'; msg.textContent = 'Escribe el nombre del cliente.'; return; }
+      ok.disabled = true;
+      const { error } = rep ? await sb.rpc('reprogramar_cita', { p_id: o.cita.id, p_empleado: emp.value, p_inicio: d.toISOString() })
+        : await sb.rpc('crear_cita', { p_empleado: emp.value, p_producto: sel.value, p_cliente: cliente.value.trim(), p_telefono: tel.value.trim() || null, p_inicio: d.toISOString(), p_notas: notas.value.trim() || null });
+      ok.disabled = false; if(error){ msg.className = 'mensaje error'; msg.textContent = error.message || 'No se pudo guardar la cita.'; return; }
+      fondo.remove(); agendaFecha = d; cargarCitasDia();
+    };
+    caja.appendChild(ok); const c = el('button', 'texto', 'Cancelar'); c.type = 'button'; c.style.cssText = 'width:100%; margin-top:6px;'; c.onclick = () => fondo.remove(); caja.appendChild(c);
+  }
+  function abrirDetalleCita(c){
+    const { fondo, caja } = modalBase(c.cliente_nombre, 400), emp = empleadosCache.find(e => e.id === c.empleado_id), ini = new Date(c.inicio), fin = new Date(c.fin);
+    [c.servicio_nombre, horaTxt(ini) + ' – ' + horaTxt(fin) + ' · ' + ini.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' }), 'Con ' + (emp ? emp.nombre : 'empleado'), c.cliente_telefono ? 'Tel. ' + c.cliente_telefono : '', c.notas ? 'Nota: ' + c.notas : '',
+      { agendada: 'Pendiente', completada: 'Atendida y cobrada', no_asistio: 'No asistió' }[c.estado] || ''].filter(Boolean).forEach(t => caja.appendChild(el('div', 'pedido-linea', t)));
+    const acc = el('div', 'pedido-acc'); caja.appendChild(acc); const btn = (txt, cls, fn) => { const b = el('button', cls, txt); b.type = 'button'; b.onclick = fn; acc.appendChild(b); };
+    const estado = async (nuevo, pregunta) => { if(!confirm(pregunta)) return; const { error } = await sb.rpc('cambiar_estado_cita', { p_id: c.id, p_estado: nuevo }); fondo.remove(); if(error) mostrarMensaje('mensajeAgenda', error.message, 'error'); cargarCitasDia(); };
+    if(c.estado === 'agendada'){
+      if(miRol === 'vendedor') btn('Cobrar', 'principal', () => { fondo.remove(); cobrarCita(c); });
+      btn('Reprogramar', '', () => { fondo.remove(); abrirModalCita({ cita: c }); });
+      btn('No asistió', 'texto', () => estado('no_asistio', '¿Marcar que ' + c.cliente_nombre + ' no asistió?'));
+      btn('Cancelar cita', 'texto', () => estado('cancelada', '¿Cancelar la cita de ' + c.cliente_nombre + '?'));
+    }
+    btn('Cerrar', 'texto', () => fondo.remove());
+  }
+  async function cobrarCita(c){
+    if(carrito.length && !confirm('El carrito ya tiene productos. ¿Reemplazarlos por el servicio de ' + c.cliente_nombre + '?')) return;
+    if(!productosCache.length) await cargarProductos();
+    const prod = productosCache.find(p => p.id === c.producto_id); if(!prod){ alert('Ese servicio ya no existe en tu catálogo.'); return; }
+    const emp = empleadosCache.find(e => e.id === c.empleado_id); carrito = []; agregarAlCarritoOriginal(prod.id);
+    const it = carrito.find(i => i.id === prod.id); if(it && emp){ it.empleado_id = emp.id; it.empleado_nombre = emp.nombre; }
+    citaPorCobrar = { id: c.id, producto_id: prod.id }; cambiarSeccion('vender'); renderizarCarrito();
+    mostrarMensaje('mensajeVenta', 'Cita de ' + c.cliente_nombre + ' cargada. Agrega productos si se los lleva y cobra.', 'exito');
+  }
+  function completarCitaTrasVenta(ventaId, items){
+    if(!citaPorCobrar) return; const cp = citaPorCobrar; citaPorCobrar = null;
+    if(items.some(i => i.producto_id === cp.producto_id)) sb.rpc('completar_cita', { p_id: cp.id, p_venta: ventaId }).then(() => { if(agendaActiva()) cargarCitasDia(); });
+  }
+  function abrirCanalCitas(){
+    if(canalCitas || !negocioId) return;
+    canalCitas = sb.channel('citas-' + negocioId).on('postgres_changes', { event: '*', schema: 'public', table: 'citas', filter: 'negocio_id=eq.' + negocioId }, () => { if(agendaActiva()) cargarCitasDia(); }).subscribe();
+  }
+  function cerrarCanalCitas(){ if(canalCitas){ try { sb.removeChannel(canalCitas); } catch(e){} canalCitas = null; } clearInterval(agendaTimer); citaPorCobrar = null; }
+
+  function nuevaCitaRapida(){ const d = new Date(agendaFecha), n = new Date(); d.setHours(n.getHours(), Math.ceil(n.getMinutes() / 15) * 15, 0, 0); abrirModalCita({ empleadoId: null, inicio: d }); }
 
   function conTransicionPuve(fn){
     if(document.startViewTransition && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)){ try { document.startViewTransition(fn); return; } catch(e){} }
@@ -11963,7 +12248,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
   function limpiarAvisosPuve(){
     generacionAvisos++;
-    try { cerrarCanalPedidosQr(); faviconNegocioCargado = false; aplicarFaviconNegocio(null); } catch(e){}
+    try { cerrarCanalPedidosQr(); cerrarCanalCitas(); faviconNegocioCargado = false; aplicarFaviconNegocio(null); } catch(e){}
     if(canalAvisos){ try { sb.removeChannel(canalAvisos); } catch(e){} canalAvisos = null; }
     avisosVisibles = [];
     ultimoFetchAvisos = 0;
