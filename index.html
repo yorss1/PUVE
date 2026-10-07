@@ -902,6 +902,9 @@
   .ag-cita{ position:absolute; left:4px; right:4px; display:flex; flex-direction:column; align-items:flex-start; gap:1px; padding:5px 8px; border-radius:12px; border:1px solid var(--borde); background:var(--acento); color:var(--texto-sobre-acento); text-align:left; overflow:hidden; font-size:12px; line-height:1.2; }
   .ag-cita b{ font-size:11px; opacity:.8; } .ag-cita span{ font-weight:600; } .ag-cita small{ opacity:.75; } .ag-completada{ background:var(--exito-bg); color:var(--exito); border-color:var(--exito); } .ag-no_asistio{ background:var(--sub); color:var(--texto-suave); }
   .ag-ahora{ position:absolute; left:0; right:0; height:0; border-top:2px solid var(--error); z-index:1; pointer-events:none; }
+
+  /* ===== Cafetería ===== */
+  .grupo-card{ padding:14px 0; border-top:1px solid var(--borde); } .pedido-opc{ font-size:12.5px; color:var(--texto-suave); padding:0 0 3px 14px; }
 </style>
 </head>
 <body>
@@ -1576,7 +1579,7 @@
     <div class="contenido">
       <div class="encabezado-seccion">
         <div><h2>Pedidos</h2><p>Pedidos que tus clientes hacen escaneando el QR de su mesa.</p></div>
-        <label class="pedidos-sonido"><input type="checkbox" id="pedidosSonido" checked> Sonido de aviso</label>
+        <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;"><button type="button" id="btnVistaBarra" onclick="alternarVistaBarra()">Vista barra</button><label class="pedidos-sonido"><input type="checkbox" id="pedidosSonido" checked> Sonido de aviso</label></div>
       </div>
       <div id="mensajePedidosQr" class="mensaje"></div>
       <div id="listaPedidosQr" class="pedidos-cols"></div>
@@ -1909,6 +1912,19 @@
       </div>
 
       <div id="vistaConfigFunciones">
+        <div class="bloque-analitica oculto" id="bloquePersonalizaciones">
+          <h3>Personalizaciones de bebidas</h3>
+          <p class="nota">Crea grupos como Tamaño, Leche o Extras con sus opciones y precio adicional. Se ofrecen al tomar el pedido en caja y en el menú por QR de tus clientes.</p>
+          <div id="mensajePersonalizaciones" class="mensaje"></div>
+          <div class="form-agregar-admin" style="flex-wrap:wrap;">
+            <input id="grpNombre" type="text" maxlength="40" placeholder="Nuevo grupo (ej. Leche)">
+            <select id="grpTipo"><option value="uno">Elige una</option><option value="varios">Puede elegir varias</option></select>
+            <select id="grpCategoria"></select>
+            <label class="pedidos-sonido"><input type="checkbox" id="grpRequerido"> Obligatorio</label>
+            <button type="button" class="principal" style="width:auto;" onclick="agregarGrupo()">Agregar grupo</button>
+          </div>
+          <div id="listaGrupos" style="margin-top:12px;"></div>
+        </div>
         <div class="bloque-analitica oculto" id="bloqueEmpleados">
           <h3>Tu equipo</h3>
           <p class="nota">Agrega a tus barberos, estilistas o terapeutas y su porcentaje de comisión. Al cobrar un servicio eliges quién lo realizó y las comisiones se calculan solas.</p>
@@ -3634,7 +3650,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   // Versión vigente de los documentos legales (debe coincidir con docs_legales/*.html).
-  const VERSION_LEGAL = '1.4';
+  const VERSION_LEGAL = '1.5';
   async function registrarAceptacionLegal(){
     try { await sb.rpc('registrar_aceptacion_legal', { p_version: VERSION_LEGAL }); } catch(e){ console.warn('No se pudo registrar la aceptación legal:', e); }
   }
@@ -4652,7 +4668,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('vistaApp').classList.add('activo'); refrescarAvisosPuve(true);
     try { configNegocio = Object.assign({ corte_caja: true, categorias: true, codigo_barras: true, devoluciones: true, recompensas: { activo: false, pesos_por_punto: 10, valor_punto: 0.5 }, clientes: false, tipo_negocio: null }, JSON.parse(lsGet('puve_config_negocio') || '{}')); } catch(e){}
     aplicarConfiguracionUI();
-    productosCache = obtenerProductosCacheLocal();
+    productosCache = filtrarExtras(obtenerProductosCacheLocal());
     renderizarTablaProductos();
     renderizarListaVenta();
     actualizarIndicadorConexion();
@@ -6638,7 +6654,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       document.getElementById('tabPlanConfig').classList.toggle('oculto', !(miRol === 'admin' && !esAdminActual));
       document.getElementById('tabInvitaConfig').classList.toggle('oculto', !(miRol === 'admin' && !esAdminActual));
       cargarFormularioConfig();
-      actualizarBloquePedidosQr(); actualizarBloqueEmpleados();
+      actualizarBloquePedidosQr(); actualizarBloqueEmpleados(); actualizarBloquePersonalizaciones();
       prepararBloqueMejorarPlan();
       prepararBloqueAgregarCajero();
       renderizarListaTutoriales();
@@ -6689,7 +6705,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
   async function cargarProductos(){
     if(!enLinea){
-      productosCache = obtenerProductosCacheLocal();
+      productosCache = filtrarExtras(obtenerProductosCacheLocal());
       renderizarTablaProductos();
       renderizarListaVenta();
       return;
@@ -6700,7 +6716,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     ]);
     if(error){
       if(esErrorDeRed(error)){
-        productosCache = obtenerProductosCacheLocal();
+        productosCache = filtrarExtras(obtenerProductosCacheLocal());
         renderizarTablaProductos();
         renderizarListaVenta();
         return;
@@ -6708,7 +6724,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       mostrarMensaje('mensajeProducto', 'No se pudieron cargar los productos: ' + error.message, 'error');
       return;
     }
-    productosCache = data;
+    productosCache = filtrarExtras(data);
     if(!errCats) categoriasCache = cats;
     guardarProductosCacheLocal(data);
     renderizarCategorias();
@@ -6905,7 +6921,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       stock: parseFloat(document.getElementById('pStock').value) || 0,
       fecha_caducidad: document.getElementById('pCaducidad').value || null,
     };
-    if(document.body.classList.contains('giro-restaurante')) registro.foto_path = fotoForm.actual;
+    if(document.body.classList.contains('giro-restaurante') || document.body.classList.contains('giro-cafeteria')) registro.foto_path = fotoForm.actual;
     if(document.body.classList.contains('giro-servicios')){ registro.tipo = document.getElementById('pTipo').value; if(registro.tipo === 'servicio'){ registro.duracion_min = parseInt(document.getElementById('pDuracion').value, 10) || null; registro.stock = 999999; } else registro.duracion_min = null; }
     if(document.body.classList.contains('giro-ropa')){ const talla = document.getElementById('pTalla').value.trim(), color = document.getElementById('pColor').value.trim(), base = registro.nombre; registro.modelo = base; registro.talla = talla || null; registro.color = color || null; registro.nombre = [base, talla, color].filter(Boolean).join(' '); }
     let error;
@@ -7017,6 +7033,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   function agregarAlCarrito(id){
     const p0 = productosCache.find(x => x.id === id);
     if(document.body.classList.contains('giro-servicios') && esServicioProd(p0)){ pedirEmpleado(p0); return; }
+    if(p0 && esCafeteria() && gruposDe(p0).length){ abrirPersonalizarPos(p0); return; }
     agregarAlCarritoOriginal(id);
   }
   function agregarAlCarritoOriginal(id){
@@ -7505,7 +7522,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(!negocioId) return;
     const { data, error } = await sb.from('negocios').select('pedidos_qr_activo').eq('id', negocioId).maybeSingle();
     if(error) return;
-    const activo = !!(data && data.pedidos_qr_activo) && configNegocio.tipo_negocio === 'restaurante';
+    const activo = !!(data && data.pedidos_qr_activo) && ['restaurante', 'cafeteria'].includes(configNegocio.tipo_negocio);
     document.getElementById('navPedidos').classList.toggle('oculto', !activo);
     if(activo){ pedidosQrActivo = true; abrirCanalPedidosQr(); } else { cerrarCanalPedidosQr(); pedidosQrActivo = false; }
   }
@@ -7531,7 +7548,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(!negocioId) return;
     const desde = new Date(); desde.setHours(0, 0, 0, 0);
     const { data, error } = await sb.from('pedidos_qr')
-      .select('id,mesa,estado,nota,total,minutos_estimados,creado_en,pedido_qr_items(producto_id,producto_nombre,cantidad,precio_unitario)')
+      .select('id,mesa,cliente_alias,estado,nota,total,minutos_estimados,creado_en,pedido_qr_items(producto_id,producto_nombre,cantidad,precio_unitario,opciones)')
       .or('estado.in.(por_confirmar,preparando,listo),creado_en.gte.' + desde.toISOString()).order('creado_en', { ascending: true }).limit(200);
     if(error) return;
     pedidosQrCache = data || [];
@@ -7546,6 +7563,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   function renderizarPedidosQr(){
     const cont = document.getElementById('listaPedidosQr'); if(!cont) return; cont.textContent = '';
     if(!pedidosQrCache.length){ cont.appendChild(el('div', 'vacio', 'Aún no hay pedidos. Cuando un cliente escanee el QR de su mesa y envíe su pedido, aparecerá aquí con aviso sonoro.')); return; }
+    if(vistaBarraPedidos){ renderizarVistaBarra(cont); return; }
     [['por_confirmar', 'Por confirmar'], ['preparando', 'En preparación'], ['listo', 'Listos para entregar'], ['cerrados', 'Entregados o cancelados hoy']].forEach(([clave, titulo]) => {
       const lista = pedidosQrCache.filter(p => clave === 'cerrados' ? (p.estado === 'entregado' || p.estado === 'cancelado') : p.estado === clave);
       if(!lista.length) return;
@@ -7555,8 +7573,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
   function tarjetaPedidoQr(p){
     const card = el('div', 'pedido-card'), cab = el('div', 'pedido-cab'), min = Math.max(0, Math.round((Date.now() - new Date(p.creado_en).getTime()) / 60000));
-    cab.appendChild(el('b', '', 'Mesa ' + p.mesa)); cab.appendChild(el('span', '', min < 1 ? 'ahora' : 'hace ' + min + ' min')); card.appendChild(cab);
-    (p.pedido_qr_items || []).forEach(i => card.appendChild(el('div', 'pedido-linea', i.cantidad + ' × ' + i.producto_nombre)));
+    cab.appendChild(el('b', '', p.mesa === 'BARRA' ? 'Barra' + (p.cliente_alias ? ' · ' + p.cliente_alias : '') : 'Mesa ' + p.mesa)); cab.appendChild(el('span', '', min < 1 ? 'ahora' : 'hace ' + min + ' min')); card.appendChild(cab);
+    (p.pedido_qr_items || []).forEach(i => { card.appendChild(el('div', 'pedido-linea', i.cantidad + ' × ' + i.producto_nombre)); if((i.opciones || []).length) card.appendChild(el('div', 'pedido-opc', i.opciones.map(o => o.g + ': ' + o.o).join(' · '))); });
     if(p.nota) card.appendChild(el('div', 'pedido-nota', '“' + p.nota + '”'));
     card.appendChild(el('div', 'pedido-linea', 'Total: $' + Number(p.total).toFixed(2)));
     if(p.estado === 'preparando' && p.minutos_estimados) card.appendChild(el('div', 'nota', 'Le dijiste al cliente: ~' + p.minutos_estimados + ' min'));
@@ -7587,10 +7605,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(!productosCache.length) await cargarProductos();
     const faltan = []; carrito = [];
     (p.pedido_qr_items || []).forEach(it => {
-      const prod = productosCache.find(x => x.id === it.producto_id);
-      if(!prod || Number(prod.stock) < it.cantidad){ faltan.push(it.producto_nombre); return; }
+      const prod = productosCache.find(x => x.id === it.producto_id), ya = carrito.find(c => c.id === it.producto_id);
+      if(!prod || Number(prod.stock) < (ya ? ya.cantidad : 0) + it.cantidad){ faltan.push(it.producto_nombre); return; }
       const liq = prod.en_liquidacion && prod.precio_liquidacion != null;
-      carrito.push({ id: prod.id, nombre: prod.nombre, precio: liq ? Number(prod.precio_liquidacion) : Number(prod.precio), cantidad: it.cantidad, stock: Number(prod.stock) });
+      if(ya) ya.cantidad += it.cantidad; else carrito.push({ id: prod.id, nombre: prod.nombre, precio: liq ? Number(prod.precio_liquidacion) : Number(prod.precio), cantidad: it.cantidad, stock: Number(prod.stock) });
+      (it.opciones || []).forEach(o => { const ex = o.pid ? extrasPorId.get(o.pid) : null; if(!ex) return; const e = carrito.find(c => c.id === ex.id); if(e) e.cantidad += it.cantidad; else carrito.push({ id: ex.id, nombre: ex.nombre, precio: Number(ex.precio), cantidad: it.cantidad, stock: Number(ex.stock) }); });
     });
     cambiarSeccion('vender'); renderizarCarrito();
     mostrarMensaje('mensajeVenta', faltan.length ? 'Pedido de la mesa ' + p.mesa + ' cargado. Sin stock o ya no existe: ' + faltan.join(', ') : 'Pedido de la mesa ' + p.mesa + ' cargado. Cóbralo como siempre.', faltan.length ? 'error' : 'exito');
@@ -7599,7 +7618,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   // ----- Configuración: activar y generar QR de mesas (solo encargado, giro Restaurante) -----
   async function actualizarBloquePedidosQr(){
     const b = document.getElementById('bloquePedidosQr'); if(!b) return;
-    const esRest = document.getElementById('cfgTipoNegocio').value === 'restaurante';
+    const esRest = ['restaurante', 'cafeteria'].includes(document.getElementById('cfgTipoNegocio').value);
     b.classList.toggle('oculto', !(esRest && miRol === 'admin' && !esAdminActual));
     if(!esRest) return;
     const { data } = await sb.from('negocios').select('pedidos_qr_activo').eq('id', negocioId).maybeSingle();
@@ -7620,22 +7639,22 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
   // ----- QR de mesas: persistentes y con tarjeta PDF individual -----
   let qrFilas = [];
-  function urlMesaQr(r){ const u = new URL('menu.html', location.href); u.hash = 'n=' + negocioId + '&m=' + encodeURIComponent(r.mesa) + '&f=' + r.firma; return u.href; }
+  function urlMesaQr(r){ const u = new URL('pedir.html', location.href); u.hash = 'n=' + negocioId + '&m=' + encodeURIComponent(r.mesa) + '&f=' + r.firma; return u.href; }
   function pintarQrMesas(filas){
     qrFilas = filas || []; const salida = document.getElementById('qrMesasSalida'); salida.textContent = '';
     qrFilas.forEach(r => {
       const card = el('div', 'qr-card'), cuadro = el('div', 'qr-svg'); cuadro.innerHTML = qrSvgPuve(urlMesaQr(r));
-      card.appendChild(cuadro); card.appendChild(el('b', '', 'Mesa ' + r.mesa));
+      card.appendChild(cuadro); card.appendChild(el('b', '', r.mesa === 'BARRA' ? 'Barra · Para llevar' : 'Mesa ' + r.mesa));
       const acc = el('div', 'qr-acc'), b = el('button', '', 'Descargar tarjeta PDF'); b.type = 'button'; b.onclick = () => descargarPdfQr([r]); acc.appendChild(b); card.appendChild(acc); salida.appendChild(card);
     });
     document.getElementById('btnImprimirQr').classList.toggle('oculto', !qrFilas.length);
-    if(qrFilas.length) document.getElementById('qrCantidadMesas').value = qrFilas.length;
+    if(qrFilas.length) document.getElementById('qrCantidadMesas').value = qrFilas.filter(r => r.mesa !== 'BARRA').length;
   }
   async function cargarQrGuardados(){ const { data, error } = await sb.rpc('mis_qr_mesas'); if(!error) pintarQrMesas(data); }
   async function generarQrMesas(){
     ocultarMensaje('mensajePedidosQrCfg');
     const n = parseInt(document.getElementById('qrCantidadMesas').value, 10);
-    if(!(n >= 1 && n <= 100)){ mostrarMensaje('mensajePedidosQrCfg', 'Escribe un número de mesas entre 1 y 100.', 'error'); return; }
+    if(!(n >= (configNegocio.tipo_negocio === 'cafeteria' ? 0 : 1) && n <= 100)){ mostrarMensaje('mensajePedidosQrCfg', 'Escribe un número de mesas entre 1 y 100.', 'error'); return; }
     const { data, error } = await sb.rpc('generar_qr_mesas', { p_cantidad: n });
     if(error){ mostrarMensaje('mensajePedidosQrCfg', error.message || 'No se pudieron generar', 'error'); return; }
     try { pintarQrMesas(data); } catch(e){ mostrarMensaje('mensajePedidosQrCfg', 'No se pudo dibujar el QR: ' + e.message, 'error'); }
@@ -7655,7 +7674,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     esp(nombre, y + 17, tam, 1.4, [0, 0, 0]);
     doc.setDrawColor(ORO[0], ORO[1], ORO[2]); doc.setLineWidth(0.2); doc.line(cx - 16, y + 24, cx - 3, y + 24); doc.line(cx + 3, y + 24, cx + 16, y + 24);
     doc.setFillColor(ORO[0], ORO[1], ORO[2]); doc.triangle(cx - 1.4, y + 24, cx, y + 22.6, cx + 1.4, y + 24, 'F'); doc.triangle(cx - 1.4, y + 24, cx, y + 25.4, cx + 1.4, y + 24, 'F');
-    esp('MESA', y + 33, 8, 3, [110, 110, 110]);
+    esp(mesa === 'BARRA' ? 'PARA LLEVAR' : 'MESA', y + 33, 8, 3, [110, 110, 110]);
     const txtMesa = String(mesa); doc.setFont('times', 'normal'); doc.setFontSize(txtMesa.length > 3 ? 30 : 44); doc.setTextColor(0, 0, 0); doc.text(txtMesa, cx, y + 49, { align: 'center' });
     const lado = 50, mod = lado / m.length, qx = cx - lado / 2, qy = y + 56; doc.setFillColor(0, 0, 0);
     m.forEach((fila, r) => fila.forEach((on, c) => { if(on) doc.rect(qx + c * mod, qy + r * mod, mod + 0.03, mod + 0.03, 'F'); }));
@@ -7695,6 +7714,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   const VOCAB_GIRO = {
     restaurante: { nav: 'Menú', h: 'Menú', nuevo: 'Nuevo platillo', nombre: 'Nombre del platillo', ph: 'Tacos al pastor', stock: 'Disponibles hoy (0 = agotado)', buscar: 'Buscar platillo',
       nota: 'Organiza tu menú por secciones: entradas, platos fuertes, bebidas, postres…', catPh: 'Ej. Entradas, Platos fuertes, Bebidas, Postres...', sinSku: true, sinEscaner: true, foto: true },
+    cafeteria: { nav: 'Menú', h: 'Menú', nuevo: 'Nuevo producto', nombre: 'Nombre (ej. Latte)', ph: 'Latte', stock: 'Disponibles (0 = agotado)', buscar: 'Buscar bebida o producto',
+      nota: 'Organiza tu carta: café caliente, café frío, té, repostería…', catPh: 'Ej. Café caliente, Frappés, Té, Repostería...', foto: true },
     servicios: { nav: 'Servicios', h: 'Servicios', nuevo: 'Nuevo servicio', nombre: 'Nombre del servicio', ph: 'Corte de cabello', stock: 'Existencias (solo para productos de venta)', buscar: 'Buscar servicio',
       nota: 'Agrupa tus servicios: cabello, barba, uñas, faciales, masajes…', catPh: 'Ej. Cabello, Barba, Uñas, Faciales...', sinSku: true, sinEscaner: true },
     ropa: { nav: 'Artículos', h: 'Artículos', nuevo: 'Nuevo artículo', nombre: 'Modelo (nombre base)', ph: 'Playera básica', buscar: 'Buscar artículo',
@@ -7715,7 +7736,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const cf = document.getElementById('campoFotoPlatillo'); if(cf) cf.classList.toggle('oculto', !(v && v.foto));
     const nc = document.getElementById('navComisiones'); if(nc) nc.classList.toggle('oculto', !(giro === 'servicios' && miRol === 'admin' && !esAdminActual));
     const na = document.getElementById('navAgenda'); if(na) na.classList.toggle('oculto', !(giro === 'servicios' && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
-    if(giro === 'servicios') cargarEmpleados(); ajustarFormServicio();
+    if(giro === 'servicios') cargarEmpleados(); if(giro === 'cafeteria') cargarGrupos(); ajustarFormServicio();
   }
 
   // Re-codifica la imagen en el navegador: se pierden metadatos/EXIF y cualquier contenido oculto; solo salen píxeles nuevos.
@@ -8195,6 +8216,113 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   function cerrarCanalCitas(){ if(canalCitas){ try { sb.removeChannel(canalCitas); } catch(e){} canalCitas = null; } clearInterval(agendaTimer); citaPorCobrar = null; }
 
   function nuevaCitaRapida(){ const d = new Date(agendaFecha), n = new Date(); d.setHours(n.getHours(), Math.ceil(n.getMinutes() / 15) * 15, 0, 0); abrirModalCita({ empleadoId: null, inicio: d }); }
+
+  // ===== Cafetería: personalizaciones de bebidas (grupos y opciones) =====
+  let gruposCache = [], gruposCargados = false, extrasPorId = new Map();
+  function filtrarExtras(lista){ extrasPorId = new Map((lista || []).filter(p => p.tipo === 'extra').map(p => [p.id, p])); return (lista || []).filter(p => p.tipo !== 'extra'); }
+  const esCafeteria = () => document.body.classList.contains('giro-cafeteria');
+  const gruposDe = (p) => gruposCache.filter(g => g.activo && g.opciones.some(o => o.activo) && (!g.categoria_id || g.categoria_id === p.categoria_id));
+  async function cargarGrupos(forzar){
+    if(gruposCargados && !forzar) return; gruposCargados = true;
+    const [g, o] = await Promise.all([sb.from('grupos_opciones').select('*').order('orden').order('nombre'), sb.from('opciones_producto').select('*').order('orden').order('nombre')]);
+    if(g.error || o.error) return;
+    gruposCache = (g.data || []).map(x => Object.assign({}, x, { opciones: (o.data || []).filter(y => y.grupo_id === x.id) })); renderizarGrupos();
+  }
+  function anadirExtraCarrito(o, cant){
+    const ex = o.producto_extra_id ? extrasPorId.get(o.producto_extra_id) : null; if(!ex) return;
+    const e = carrito.find(i => i.id === ex.id); if(e) e.cantidad += cant; else carrito.push({ id: ex.id, nombre: ex.nombre, precio: Number(ex.precio), cantidad: cant, stock: Number(ex.stock) });
+  }
+  // --- Caja: personalizar la bebida en 2 toques ---
+  function abrirPersonalizarPos(p){
+    const gs = gruposDe(p), sel = {}, btns = {}; gs.forEach(g => { sel[g.id] = []; });
+    const fondo = el('div', 'modal-puve-fondo'), caja = el('div', 'modal-puve'); caja.style.maxWidth = '440px'; fondo.appendChild(caja);
+    const cerrar = () => fondo.remove(); fondo.onclick = (e) => { if(e.target === fondo) cerrar(); }; caja.appendChild(el('h2', '', p.nombre));
+    const ok = el('button', 'principal', ''); ok.type = 'button'; ok.style.cssText = 'width:100%; margin-top:14px;';
+    const refrescar = () => {
+      let faltan = false, extra = 0; gs.forEach(g => { sel[g.id].forEach(id => { extra += Number((g.opciones.find(o => o.id === id) || {}).extra || 0); }); if(g.requerido && !sel[g.id].length) faltan = true; });
+      Object.keys(btns).forEach(id => btns[id].classList.toggle('activo', gs.some(g => sel[g.id].includes(id)))); ok.disabled = faltan;
+      ok.textContent = faltan ? 'Elige las opciones obligatorias' : 'Agregar · $' + (Number(p.precio) + extra).toFixed(2);
+    };
+    gs.forEach(g => {
+      caja.appendChild(el('div', 'cr-etq', g.nombre + (g.requerido ? ' · obligatorio' : g.tipo === 'varios' ? ' · varias' : '')));
+      const fila = el('div', 'filtro-cats'); fila.style.flexWrap = 'wrap'; caja.appendChild(fila);
+      g.opciones.filter(o => o.activo).forEach(o => {
+        const b = el('button', 'chip-cat', o.nombre + (Number(o.extra) > 0 ? ' +$' + Number(o.extra).toFixed(0) : '')); b.type = 'button'; btns[o.id] = b;
+        b.onclick = () => { const s = sel[g.id], i = s.indexOf(o.id); if(g.tipo === 'uno') sel[g.id] = (i >= 0 && !g.requerido) ? [] : [o.id]; else if(i >= 0) s.splice(i, 1); else s.push(o.id); refrescar(); }; fila.appendChild(b);
+      });
+    });
+    ok.onclick = () => {
+      const antes = (carrito.find(i => i.id === p.id) || { cantidad: 0 }).cantidad; agregarAlCarritoOriginal(p.id);
+      if((carrito.find(i => i.id === p.id) || { cantidad: 0 }).cantidad <= antes) { cerrar(); return; }
+      gs.forEach(g => sel[g.id].forEach(id => { const o = g.opciones.find(x => x.id === id); if(o) anadirExtraCarrito(o, 1); })); renderizarCarrito(); cerrar();
+    };
+    caja.appendChild(ok); const c = el('button', 'texto', 'Sin personalizar'); c.type = 'button'; c.style.cssText = 'width:100%; margin-top:6px;'; c.onclick = () => { agregarAlCarritoOriginal(p.id); cerrar(); }; caja.appendChild(c);
+    document.body.appendChild(fondo); refrescar();
+  }
+  // --- Configuración: crear y editar los grupos ---
+  function actualizarBloquePersonalizaciones(){
+    const b = document.getElementById('bloquePersonalizaciones'); if(!b) return;
+    const ver = (configNegocio.tipo_negocio || '') === 'cafeteria' && miRol === 'admin' && !esAdminActual; b.classList.toggle('oculto', !ver); if(ver) cargarGrupos(true);
+  }
+  function renderizarGrupos(){
+    const sc = document.getElementById('grpCategoria'); if(sc){ const v = sc.value; sc.textContent = ''; const t = el('option', '', 'Todos los productos'); t.value = ''; sc.appendChild(t); categoriasCache.forEach(c => { const o = el('option', '', 'Solo ' + c.nombre); o.value = c.id; sc.appendChild(o); }); sc.value = v; }
+    const cont = document.getElementById('listaGrupos'); if(!cont) return; cont.textContent = '';
+    if(!gruposCache.length){ cont.appendChild(el('p', 'nota', 'Aún no tienes personalizaciones. Ejemplo: grupo "Tamaño" (obligatorio) con Chico, Mediano +$10 y Grande +$20; grupo "Leche" con Entera, Almendra +$10, Avena +$10.')); return; }
+    gruposCache.forEach(g => {
+      const card = el('div', 'grupo-card'), cab = el('div', 'comision-cab'); const cat = categoriasCache.find(c => c.id === g.categoria_id);
+      cab.appendChild(el('b', '', g.nombre)); const del = el('button', 'texto', 'Eliminar grupo'); del.type = 'button'; del.onclick = () => borrarGrupo(g); cab.appendChild(del); card.appendChild(cab);
+      card.appendChild(el('div', 'nota', (g.tipo === 'uno' ? 'Elige una' : 'Puede elegir varias') + (g.requerido ? ' · Obligatorio' : ' · Opcional') + ' · ' + (cat ? 'Solo en ' + cat.nombre : 'Todos los productos')));
+      g.opciones.forEach(o => {
+        const f = el('div', 'empleado-fila'); f.appendChild(el('span', 'empleado-nombre', o.nombre)); const px = el('input', 'input-mini'); px.type = 'number'; px.min = 0; px.max = 500; px.step = '1'; px.value = o.extra; px.style.width = '84px'; px.setAttribute('aria-label', 'Precio adicional');
+        px.onchange = () => cambiarExtraOpcion(o, px); f.appendChild(px); f.appendChild(el('span', 'nota', '$ extra')); const d = el('button', 'texto', 'Quitar'); d.type = 'button'; d.onclick = () => borrarOpcion(o); f.appendChild(d); card.appendChild(f);
+      });
+      const nf = el('div', 'form-agregar-admin'), n = el('input'), x = el('input'); n.type = 'text'; n.maxLength = 40; n.placeholder = 'Nueva opción (ej. Avena)'; x.type = 'number'; x.min = 0; x.max = 500; x.placeholder = '$ extra'; x.style.width = '90px';
+      const a = el('button', 'principal', 'Agregar'); a.type = 'button'; a.style.width = 'auto'; a.onclick = () => agregarOpcion(g, n, x); agregarHijosPuve(nf, [n, x, a]); card.appendChild(nf); cont.appendChild(card);
+    });
+  }
+  function agregarHijosPuve(e, k){ k.forEach(x => e.appendChild(x)); return e; }
+  async function agregarGrupo(){
+    ocultarMensaje('mensajePersonalizaciones'); const nombre = document.getElementById('grpNombre').value.trim(); if(!nombre){ mostrarMensaje('mensajePersonalizaciones', 'Escribe el nombre del grupo.', 'error'); return; }
+    const { error } = await sb.from('grupos_opciones').insert({ negocio_id: negocioId, nombre: nombre, tipo: document.getElementById('grpTipo').value, requerido: document.getElementById('grpRequerido').checked, categoria_id: document.getElementById('grpCategoria').value || null, orden: gruposCache.length });
+    if(error){ mostrarMensaje('mensajePersonalizaciones', error.message, 'error'); return; } document.getElementById('grpNombre').value = ''; cargarGrupos(true);
+  }
+  async function borrarGrupo(g){ if(!confirm('¿Eliminar el grupo "' + g.nombre + '" y sus opciones?')) return; const { error } = await sb.from('grupos_opciones').delete().eq('id', g.id); if(error) mostrarMensaje('mensajePersonalizaciones', error.message, 'error'); else cargarGrupos(true); }
+  async function agregarOpcion(g, inp, px){
+    ocultarMensaje('mensajePersonalizaciones'); const nombre = inp.value.trim(), extra = Math.max(0, Math.min(500, parseFloat(px.value) || 0)); if(!nombre){ mostrarMensaje('mensajePersonalizaciones', 'Escribe el nombre de la opción.', 'error'); return; }
+    // Cada opción tiene un producto "extra" oculto: así el cobro, el ticket y los reportes registran cada extra.
+    const { data: prod, error: e1 } = await sb.from('productos').insert({ negocio_id: negocioId, nombre: '+ ' + nombre + ' (' + g.nombre + ')', precio: extra, costo: 0, stock: 999999, tipo: 'extra' }).select('id').single();
+    if(e1 || !prod){ mostrarMensaje('mensajePersonalizaciones', 'No se pudo crear la opción: ' + ((e1 && e1.message) || ''), 'error'); return; }
+    const { error } = await sb.from('opciones_producto').insert({ negocio_id: negocioId, grupo_id: g.id, nombre: nombre, extra: extra, producto_extra_id: prod.id, orden: g.opciones.length });
+    if(error){ await sb.from('productos').delete().eq('id', prod.id); mostrarMensaje('mensajePersonalizaciones', error.message, 'error'); return; }
+    cargarGrupos(true); cargarProductos();
+  }
+  async function cambiarExtraOpcion(o, px){
+    const v = Math.max(0, Math.min(500, parseFloat(px.value) || 0)); const { error } = await sb.from('opciones_producto').update({ extra: v }).eq('id', o.id);
+    if(error){ mostrarMensaje('mensajePersonalizaciones', error.message, 'error'); return; } if(o.producto_extra_id) await sb.from('productos').update({ precio: v }).eq('id', o.producto_extra_id); o.extra = v; px.value = v; cargarProductos();
+  }
+  async function borrarOpcion(o){
+    const { error } = await sb.from('opciones_producto').delete().eq('id', o.id); if(error){ mostrarMensaje('mensajePersonalizaciones', error.message, 'error'); return; }
+    if(o.producto_extra_id) await sb.from('productos').delete().eq('id', o.producto_extra_id); cargarGrupos(true); cargarProductos();
+  }
+
+  // ----- Vista barra: agrupa lo idéntico de todos los pedidos (misma bebida y mismas opciones) para prepararlo junto -----
+  let vistaBarraPedidos = false;
+  function alternarVistaBarra(){ vistaBarraPedidos = !vistaBarraPedidos; document.getElementById('btnVistaBarra').textContent = vistaBarraPedidos ? 'Vista por pedido' : 'Vista barra'; renderizarPedidosQr(); }
+  function renderizarVistaBarra(cont){
+    const mapa = new Map();
+    pedidosQrCache.filter(p => p.estado === 'por_confirmar' || p.estado === 'preparando').forEach(p => (p.pedido_qr_items || []).forEach(i => {
+      const ops = (i.opciones || []).map(o => o.o).sort().join(', '), k = i.producto_nombre + '|' + ops;
+      if(!mapa.has(k)) mapa.set(k, { nombre: i.producto_nombre, ops: ops, cant: 0, mesas: [], primero: p.creado_en });
+      const g = mapa.get(k); g.cant += i.cantidad; const et = p.mesa === 'BARRA' ? (p.cliente_alias || 'Barra') : 'Mesa ' + p.mesa; if(!g.mesas.includes(et)) g.mesas.push(et); if(p.creado_en < g.primero) g.primero = p.creado_en;
+    }));
+    if(!mapa.size){ cont.appendChild(el('div', 'vacio', 'No hay nada por preparar.')); return; }
+    const col = el('div', 'pedidos-col'); col.appendChild(el('h3', '', 'Por preparar (agrupado)'));
+    Array.from(mapa.values()).sort((a, b) => a.primero < b.primero ? -1 : 1).forEach(g => {
+      const card = el('div', 'pedido-card'), cab = el('div', 'pedido-cab'); cab.appendChild(el('b', '', g.cant + ' × ' + g.nombre)); card.appendChild(cab);
+      if(g.ops) card.appendChild(el('div', 'pedido-opc', g.ops)); card.appendChild(el('div', 'nota', g.mesas.join(' · '))); col.appendChild(card);
+    });
+    cont.appendChild(col);
+  }
 
   function conTransicionPuve(fn){
     if(document.startViewTransition && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)){ try { document.startViewTransition(fn); return; } catch(e){} }
