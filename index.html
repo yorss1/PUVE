@@ -1913,8 +1913,8 @@
 
       <div id="vistaConfigFunciones">
         <div class="bloque-analitica oculto" id="bloquePersonalizaciones">
-          <h3>Personalizaciones de bebidas</h3>
-          <p class="nota">Crea grupos como Tamaño, Leche o Extras con sus opciones y precio adicional. Se ofrecen al tomar el pedido en caja y en el menú por QR de tus clientes.</p>
+          <h3>Opciones para personalizar</h3>
+          <p class="nota">Aquí defines lo que tus clientes podrán elegir al pedir (tamaño, leche, extras…) y cuánto cuesta. Ellos lo eligen desde su celular al escanear el QR, y tú también al tomar el pedido en caja.</p>
           <div id="mensajePersonalizaciones" class="mensaje"></div>
           <div class="form-agregar-admin" style="flex-wrap:wrap;">
             <input id="grpNombre" type="text" maxlength="40" placeholder="Nuevo grupo (ej. Leche)">
@@ -2857,7 +2857,10 @@
           <line x1="4" y1="16.5" x2="6.3" y2="15.9"/>
         </svg>
       </button>
-      <button type="button" class="btn-escanear" id="btnVincularTelefono" onclick="iniciarVinculoTelefono()" style="display:none; color:#E4E4E7; border-color:rgba(255,255,255,0.35);">Usar mi teléfono como escáner</button>
+      <button type="button" class="btn-circular-escaner oculto" id="btnZoomEscaner" onclick="ciclarZoomEscaner()" aria-label="Cambiar zoom" title="Zoom">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="20" y2="20"/><line x1="10.5" y1="8" x2="10.5" y2="13"/><line x1="8" y1="10.5" x2="13" y2="10.5"/></svg>
+        </button>
+        <button type="button" class="btn-escanear" id="btnVincularTelefono" onclick="iniciarVinculoTelefono()" style="display:none; color:#E4E4E7; border-color:rgba(255,255,255,0.35);">Usar mi teléfono como escáner</button>
       <button class="texto" onclick="cerrarEscaner()" style="color:#E4E4E7; border:1px solid rgba(255,255,255,0.3); border-radius:7px; padding:8px 16px;">Cancelar</button>
     </div>
   </div>
@@ -7848,7 +7851,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       if(ev.key !== 'Enter' || !escanerFisicoActivo()) return;
       const codigo = inp.value.trim(); if(!codigo) return;
       if(RUTA_VALE.test(codigo.toUpperCase())){ ev.preventDefault(); inp.value = ''; aplicarValeCodigo(codigo); return; }
-      const prod = productosCache.find(p => (p.sku || '').trim() === codigo);
+      const prod = productosCache.find(p => mismoCodigoBarras(p.sku, codigo));
       if(prod){ ev.preventDefault(); agregarAlCarrito(prod.id); inp.value = ''; renderizarListaVenta(); }
       else if(/^\d{6,}$/.test(codigo)){ ev.preventDefault(); inp.value = ''; renderizarListaVenta(); mostrarMensaje('mensajeVenta', 'No existe un producto con el código ' + codigo + '.', 'error'); }
     });
@@ -8267,7 +8270,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   function renderizarGrupos(){
     const sc = document.getElementById('grpCategoria'); if(sc){ const v = sc.value; sc.textContent = ''; const t = el('option', '', 'Todos los productos'); t.value = ''; sc.appendChild(t); categoriasCache.forEach(c => { const o = el('option', '', 'Solo ' + c.nombre); o.value = c.id; sc.appendChild(o); }); sc.value = v; }
     const cont = document.getElementById('listaGrupos'); if(!cont) return; cont.textContent = '';
-    if(!gruposCache.length){ cont.appendChild(el('p', 'nota', 'Aún no tienes personalizaciones. Ejemplo: grupo "Tamaño" (obligatorio) con Chico, Mediano +$10 y Grande +$20; grupo "Leche" con Entera, Almendra +$10, Avena +$10.')); return; }
+    if(!gruposCache.length){
+      cont.appendChild(el('p', 'nota', 'Todavía no hay opciones: tus clientes no verán nada para personalizar. Empieza con las típicas de una cafetería (Tamaño, Leche, Temperatura y Extras); luego puedes cambiar precios, quitar o agregar. Elige arriba a qué categoría aplican (por ejemplo tus bebidas).'));
+      const b = el('button', 'principal', 'Cargar opciones típicas de cafetería'); b.type = 'button'; b.style.width = 'auto'; b.onclick = instalarOpcionesCafeteria; cont.appendChild(b); return;
+    }
     gruposCache.forEach(g => {
       const card = el('div', 'grupo-card'), cab = el('div', 'comision-cab'); const cat = categoriasCache.find(c => c.id === g.categoria_id);
       cab.appendChild(el('b', '', g.nombre)); const del = el('button', 'texto', 'Eliminar grupo'); del.type = 'button'; del.onclick = () => borrarGrupo(g); cab.appendChild(del); card.appendChild(cab);
@@ -8281,6 +8287,26 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     });
   }
   function agregarHijosPuve(e, k){ k.forEach(x => e.appendChild(x)); return e; }
+  async function instalarOpcionesCafeteria(){
+    ocultarMensaje('mensajePersonalizaciones'); const cat = document.getElementById('grpCategoria').value || null;
+    if(!cat && !confirm('No elegiste una categoría: las opciones se ofrecerán en TODOS tus productos (también comida). ¿Continuar?')) return;
+    const plantilla = [
+      { n: 'Tamaño', t: 'uno', r: true, o: [['Chico', 0], ['Mediano', 10], ['Grande', 20]] },
+      { n: 'Leche', t: 'uno', r: false, o: [['Entera', 0], ['Deslactosada', 0], ['Almendra', 10], ['Avena', 10], ['Soya', 10]] },
+      { n: 'Temperatura', t: 'uno', r: false, o: [['Normal', 0], ['Extra caliente', 0], ['Tibia', 0]] },
+      { n: 'Extras', t: 'varios', r: false, o: [['Shot extra', 15], ['Jarabe de vainilla', 8], ['Jarabe de caramelo', 8], ['Sin azúcar', 0], ['Poca espuma', 0]] }
+    ].filter(g => !gruposCache.some(x => x.nombre.toLowerCase() === g.n.toLowerCase()));
+    if(!plantilla.length){ mostrarMensaje('mensajePersonalizaciones', 'Ya tienes esos grupos.', 'error'); return; }
+    const { data: grupos, error: e1 } = await sb.from('grupos_opciones').insert(plantilla.map((g, i) => ({ negocio_id: negocioId, nombre: g.n, tipo: g.t, requerido: g.r, categoria_id: cat, orden: gruposCache.length + i }))).select('id');
+    if(e1 || !grupos || grupos.length !== plantilla.length){ mostrarMensaje('mensajePersonalizaciones', 'No se pudieron crear los grupos: ' + ((e1 && e1.message) || ''), 'error'); return; }
+    const plano = []; plantilla.forEach((g, gi) => g.o.forEach((o, oi) => plano.push({ g: g.n, gid: grupos[gi].id, nombre: o[0], extra: o[1], orden: oi })));
+    const { data: prods, error: e2 } = await sb.from('productos').insert(plano.map(p => ({ negocio_id: negocioId, nombre: '+ ' + p.nombre + ' (' + p.g + ')', precio: p.extra, costo: 0, stock: 999999, tipo: 'extra' }))).select('id');
+    if(e2 || !prods || prods.length !== plano.length){ await sb.from('grupos_opciones').delete().in('id', grupos.map(g => g.id)); mostrarMensaje('mensajePersonalizaciones', 'No se pudieron crear las opciones: ' + ((e2 && e2.message) || ''), 'error'); return; }
+    const { error: e3 } = await sb.from('opciones_producto').insert(plano.map((p, i) => ({ negocio_id: negocioId, grupo_id: p.gid, nombre: p.nombre, extra: p.extra, producto_extra_id: prods[i].id, orden: p.orden })));
+    if(e3){ await sb.from('productos').delete().in('id', prods.map(p => p.id)); await sb.from('grupos_opciones').delete().in('id', grupos.map(g => g.id)); mostrarMensaje('mensajePersonalizaciones', e3.message, 'error'); return; }
+    mostrarMensaje('mensajePersonalizaciones', 'Listo: ya puedes ajustar precios y opciones. Tus clientes las verán al pedir.', 'exito'); cargarGrupos(true); cargarProductos();
+  }
+
   async function agregarGrupo(){
     ocultarMensaje('mensajePersonalizaciones'); const nombre = document.getElementById('grpNombre').value.trim(); if(!nombre){ mostrarMensaje('mensajePersonalizaciones', 'Escribe el nombre del grupo.', 'error'); return; }
     const { error } = await sb.from('grupos_opciones').insert({ negocio_id: negocioId, nombre: nombre, tipo: document.getElementById('grpTipo').value, requerido: document.getElementById('grpRequerido').checked, categoria_id: document.getElementById('grpCategoria').value || null, orden: gruposCache.length });
@@ -8323,6 +8349,118 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     });
     cont.appendChild(col);
   }
+
+  // ===== Lector de códigos v2: nativo (ML) + ZXing con preprocesado, pantalla completa y cualquier posición =====
+  const FORMATOS_NATIVOS = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'code_93', 'codabar', 'itf', 'qr_code', 'data_matrix'];
+  const SIN_CHECKSUM = ['code_39', 'code_93', 'codabar', 'itf'];
+  const escanerDisponible = () => (typeof ZXing !== 'undefined') || ('BarcodeDetector' in window);
+  const normCodigo = (c) => { c = String(c || '').trim(); return /^\d+$/.test(c) ? c.replace(/^0+/, '') : c; };
+  const mismoCodigoBarras = (a, b) => normCodigo(a) !== '' && normCodigo(a) === normCodigo(b);
+  let motorEscanerActual = null;
+
+  function checksumValido(texto, formato){
+    if(!['ean_13', 'ean_8', 'upc_a'].includes(formato) || !/^\d+$/.test(texto)) return true;
+    const d = texto.split('').map(Number), ver = d.pop(); let s = 0; d.reverse().forEach((x, i) => { s += x * (i % 2 === 0 ? 3 : 1); }); return (10 - s % 10) % 10 === ver;
+  }
+  // --- Preprocesado de imagen (todo sobre buffers de grises de 1 byte por píxel) ---
+  function grisLuminancia(rgba, n){ const g = new Uint8ClampedArray(n); for(let i = 0, j = 0; i < n; i++, j += 4) g[i] = (rgba[j] * 77 + rgba[j + 1] * 150 + rgba[j + 2] * 29) >> 8; return g; }
+  // "Canal más oscuro": una barra de cualquier color (rojo, azul, verde) sale oscura y el fondo blanco sigue claro → mucho más contraste que la luminancia.
+  function grisMinimo(rgba, n){ const g = new Uint8ClampedArray(n); for(let i = 0, j = 0; i < n; i++, j += 4){ const r = rgba[j], v = rgba[j + 1], b = rgba[j + 2]; g[i] = r < v ? (r < b ? r : b) : (v < b ? v : b); } return g; }
+  function estirarContraste(g){
+    const h = new Uint32Array(256); for(let i = 0; i < g.length; i++) h[g[i]]++; const n = g.length; let a = 0, lo = 0, hi = 255, c = 0;
+    for(a = 0; a < 256; a++){ c += h[a]; if(c >= n * 0.02){ lo = a; break; } } c = 0; for(a = 255; a >= 0; a--){ c += h[a]; if(c >= n * 0.02){ hi = a; break; } }
+    if(hi - lo < 8) return g; const o = new Uint8ClampedArray(n), k = 255 / (hi - lo); for(let i = 0; i < n; i++) o[i] = (g[i] - lo) * k; return o;
+  }
+  function afilar(g, w, h){ const o = new Uint8ClampedArray(g.length); for(let y = 1; y < h - 1; y++) for(let x = 1; x < w - 1; x++){ const i = y * w + x; o[i] = 5 * g[i] - g[i - 1] - g[i + 1] - g[i - w] - g[i + w]; } return o; }
+  function invertir(g){ const o = new Uint8ClampedArray(g.length); for(let i = 0; i < g.length; i++) o[i] = 255 - g[i]; return o; }
+  function rotar90(g, w, h){ const o = new Uint8ClampedArray(g.length); for(let y = 0; y < h; y++) for(let x = 0; x < w; x++) o[x * h + (h - 1 - y)] = g[y * w + x]; return o; }
+  const nombreFormato = (f) => { try { return String(ZXing.BarcodeFormat[f]).toLowerCase(); } catch(e){ return ''; } };
+
+  function crearLectorZXing(){
+    if(typeof ZXing === 'undefined') return null;
+    const B = ZXing.BarcodeFormat, hints = new Map();
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [B.EAN_13, B.EAN_8, B.UPC_A, B.UPC_E, B.CODE_128, B.CODE_39, B.CODE_93, B.CODABAR, B.ITF, B.QR_CODE, B.DATA_MATRIX]);
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+    const mr = new ZXing.MultiFormatReader(); mr.setHints(hints);
+    return { decodificar(g, w, h, Bin){ try { const r = mr.decodeWithState(new ZXing.BinaryBitmap(new Bin(new ZXing.RGBLuminanceSource(g, w, h)))); return { texto: r.getText(), formato: nombreFormato(r.getBarcodeFormat()) }; } catch(e){ return null; } } };
+  }
+  // Estrategias: cada vuelta prueba una distinta; así un código rojo, borroso, gastado, de lado o invertido acaba saliendo en menos de un segundo.
+  function crearEstrategias(rd){
+    const H = ZXing.HybridBinarizer, G = ZXing.GlobalHistogramBinarizer;
+    return [
+      (f) => rd.decodificar(f.min(), f.w, f.h, H),
+      (f) => rd.decodificar(f.lum(), f.w, f.h, H),
+      (f) => rd.decodificar(estirarContraste(f.min()), f.w, f.h, G),
+      (f) => rd.decodificar(afilar(estirarContraste(f.min()), f.w, f.h), f.w, f.h, H),
+      (f) => rd.decodificar(rotar90(estirarContraste(f.min()), f.w, f.h), f.h, f.w, H),
+      (f) => { const c = f.centro(); return c && rd.decodificar(estirarContraste(grisMinimo(c.d, c.w * c.h)), c.w, c.h, H); },
+      (f) => rd.decodificar(invertir(estirarContraste(f.lum())), f.w, f.h, H),
+      (f) => rd.decodificar(estirarContraste(f.lum()), f.w, f.h, G)
+    ];
+  }
+
+  async function iniciarMotorEscaner(idVideo, onResultado){
+    const video = document.getElementById(idVideo), idMsg = idVideo === 'videoEscaneoRemoto' ? 'mensajeEscaneoRemoto' : 'mensajeEscaner';
+    const msg = (t) => { const e = document.getElementById(idMsg); if(e) e.textContent = t; };
+    const intentos = [
+      { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } } },
+      { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } },
+      { video: { facingMode: { ideal: 'environment' } } }, { video: true }
+    ];
+    let stream = null, ultimoError = null;
+    for(const c of intentos){ try { stream = await navigator.mediaDevices.getUserMedia(c); break; } catch(e){ ultimoError = e; if(e && ['NotAllowedError', 'NotFoundError', 'NotReadableError', 'SecurityError'].includes(e.name)) break; } }
+    if(!stream) throw ultimoError || new Error('No se pudo acceder a la cámara');
+    video.srcObject = stream; video.muted = true; video.setAttribute('playsinline', ''); try { await video.play(); } catch(e){}
+    const track = stream.getVideoTracks()[0], cap = (track.getCapabilities && track.getCapabilities()) || {};
+    const aplicar = async (adv) => { try { await track.applyConstraints({ advanced: [adv] }); return true; } catch(e){ return false; } };
+    if(cap.focusMode && cap.focusMode.includes('continuous')) await aplicar({ focusMode: 'continuous' });
+    if(cap.exposureMode && cap.exposureMode.includes('continuous')) await aplicar({ exposureMode: 'continuous' });
+    if(cap.whiteBalanceMode && cap.whiteBalanceMode.includes('continuous')) await aplicar({ whiteBalanceMode: 'continuous' });
+    const niveles = cap.zoom ? [1, 1.6, 2.5, 4].filter(z => z >= cap.zoom.min - 0.01 && z <= cap.zoom.max + 0.01) : []; let nivelZoom = niveles.length > 1 ? 1 : 0;
+    if(niveles.length > 1) await aplicar({ zoom: niveles[nivelZoom] });
+    const bz = document.getElementById('btnZoomEscaner'); if(bz && idVideo === 'videoEscaner') bz.classList.toggle('oculto', niveles.length < 2);
+    video.onclick = async () => { if(cap.focusMode && cap.focusMode.includes('single-shot')){ await aplicar({ focusMode: 'single-shot' }); setTimeout(() => { if(cap.focusMode.includes('continuous')) aplicar({ focusMode: 'continuous' }); }, 1500); } };
+
+    let detector = null;
+    if('BarcodeDetector' in window){ try { const sop = await window.BarcodeDetector.getSupportedFormats(); const fm = FORMATOS_NATIVOS.filter(f => sop.includes(f)); if(fm.length) detector = new window.BarcodeDetector({ formats: fm }); } catch(e){} }
+    const rd = crearLectorZXing(), estrategias = rd ? crearEstrategias(rd) : [];
+    const canvas = document.createElement('canvas'), ctx = canvas.getContext('2d', { willReadFrequently: true });
+    let activo = true, timer = null, i = 0, nativoFalla = 0, previo = { t: '', ms: 0 }, oscuros = 0;
+
+    function capturar(){
+      const vw = video.videoWidth, vh = video.videoHeight, k = Math.min(1, 1280 / Math.max(vw, vh)), w = Math.round(vw * k), h = Math.round(vh * k); canvas.width = w; canvas.height = h; ctx.drawImage(video, 0, 0, w, h);
+      const rgba = ctx.getImageData(0, 0, w, h).data, n = w * h; let lum = null, min = null;
+      return { w: w, h: h, rgba: rgba, lum: () => lum || (lum = grisLuminancia(rgba, n)), min: () => min || (min = grisMinimo(rgba, n)),
+        centro: () => { const cw = Math.round(vw * 0.6), ch = Math.round(vh * 0.6), tw = Math.min(1280, Math.round(cw * 1.6)), th = Math.round(tw * ch / cw); canvas.width = tw; canvas.height = th; ctx.drawImage(video, (vw - cw) / 2, (vh - ch) / 2, cw, ch, 0, 0, tw, th); return { d: ctx.getImageData(0, 0, tw, th).data, w: tw, h: th }; } };
+    }
+    function aceptar(texto, formato){
+      texto = String(texto || '').trim(); if(!texto || !checksumValido(texto, formato)) return false;
+      if(SIN_CHECKSUM.includes(formato)){ const ahora = Date.now(); if(previo.t !== texto || ahora - previo.ms > 1800){ previo = { t: texto, ms: ahora }; return false; } }
+      activo = false; clearTimeout(timer); try { if(navigator.vibrate) navigator.vibrate(60); } catch(e){}
+      setTimeout(() => onResultado({ getText: () => texto, getFormato: () => formato }), 0); return true;
+    }
+    async function ciclo(){
+      if(!activo) return;
+      if(video.readyState >= 2 && video.videoWidth){
+        try {
+          if(detector && nativoFalla < 5){ try { const r = await detector.detect(video); for(const x of r){ if(aceptar(x.rawValue, x.format)) return; } } catch(e){ nativoFalla++; } }
+          if(activo && estrategias.length){
+            const f = capturar(); let s = 0; for(let k = 0; k < 20; k += 5) s += f.rgba[k * Math.floor(f.rgba.length / 20)] || 0; oscuros = (s / 4 < 45) ? oscuros + 1 : 0;
+            if(oscuros === 10) msg('Hay poca luz: enciende la linterna 🔦 para leer mejor.');
+            const r = estrategias[i++ % estrategias.length](f); if(r && aceptar(r.texto, r.formato)) return;
+          }
+        } catch(e){}
+      }
+      if(activo) timer = setTimeout(ciclo, 25);
+    }
+    msg('Muestra el código a la cámara, en cualquier posición: se lee solo.');
+    const motor = {
+      reset(){ activo = false; clearTimeout(timer); try { stream.getTracks().forEach(t => t.stop()); } catch(e){} try { video.srcObject = null; video.onclick = null; } catch(e){} if(motorEscanerActual === motor) motorEscanerActual = null; },
+      async ciclarZoom(){ if(niveles.length < 2) return; nivelZoom = (nivelZoom + 1) % niveles.length; await aplicar({ zoom: niveles[nivelZoom] }); msg('Zoom ' + niveles[nivelZoom] + '×'); }
+    };
+    motorEscanerActual = motor; setTimeout(ciclo, 0); return motor;
+  }
+  async function ciclarZoomEscaner(){ if(motorEscanerActual) await motorEscanerActual.ciclarZoom(); }
 
   function conTransicionPuve(fn){
     if(document.startViewTransition && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)){ try { document.startViewTransition(fn); return; } catch(e){} }
@@ -10887,19 +11025,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   
   
   async function decodificarConReintentos(hints, idVideo, onResultado){
-    const opciones = listaConstraintsCamara();
-    let ultimoError = null;
-    for(const constraints of opciones){
-      const lector = new ZXing.BrowserMultiFormatReader(hints);
-      try{
-        await lector.decodeFromConstraints(constraints, idVideo, onResultado);
-        return lector;
-      } catch(e){
-        try{ lector.reset(); }catch(e2){}
-        ultimoError = e;
-      }
-    }
-    throw ultimoError || new Error('No se pudo acceder a la cámara');
+    return await iniciarMotorEscaner(idVideo, onResultado);
   }
 
   async function abrirEscaner(callback){
@@ -10909,8 +11035,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('marcoEscaneo').classList.remove('oculto');
     document.getElementById('bloqueVinculo').classList.add('oculto');
     document.getElementById('btnVincularTelefono').style.display = 'none';
-    document.getElementById('btnLinternaEscaner').classList.add('oculto');
-    document.getElementById('mensajeEscaner').textContent = 'Apunta la cámara al código de barras...';
+    document.getElementById('btnLinternaEscaner').classList.add('oculto'); document.getElementById('btnZoomEscaner').classList.add('oculto');
+    document.getElementById('mensajeEscaner').textContent = 'Iniciando la cámara...';
 
     if(!window.isSecureContext){
       document.getElementById('mensajeEscaner').textContent = 'Esta página no se abrió con HTTPS — por seguridad, los navegadores bloquean la cámara en conexiones sin HTTPS. Ábrela con https:// e inténtalo de nuevo.';
@@ -10918,7 +11044,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       return;
     }
 
-    if(!(await esperarLibreria(() => typeof ZXing !== 'undefined'))){
+    if(!(await esperarLibreria(escanerDisponible))){
       document.getElementById('mensajeEscaner').textContent = 'El lector no cargó (revisa tu conexión).';
       document.getElementById('btnVincularTelefono').style.display = 'inline-block';
       return;
@@ -11402,7 +11528,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
   function escanearParaVender(codigo){
     if(RUTA_VALE.test(String(codigo).trim().toUpperCase())){ aplicarValeCodigo(codigo); return; }
-    const producto = productosCache.find(p => (p.sku || '').trim() === codigo.trim());
+    const producto = productosCache.find(p => mismoCodigoBarras(p.sku, codigo));
     if(producto){
       agregarAlCarrito(producto.id);
       mostrarMensaje('mensajeVenta', 'Agregado: ' + producto.nombre, 'exito');
@@ -12758,7 +12884,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       return;
     }
 
-    if(!(await esperarLibreria(() => typeof ZXing !== 'undefined'))){
+    if(!(await esperarLibreria(escanerDisponible))){
       document.getElementById('mensajeEscaneoRemoto').textContent = 'No se pudo cargar el lector. Revisa tu conexión e intenta de nuevo.';
       return;
     }
