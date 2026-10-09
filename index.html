@@ -905,6 +905,9 @@
 
   /* ===== Cafetería ===== */
   .grupo-card{ padding:14px 0; border-top:1px solid var(--borde); } .pedido-opc{ font-size:12.5px; color:var(--texto-suave); padding:0 0 3px 14px; }
+
+  /* ===== Promociones por clima ===== */
+  .clima-banner{ margin:0 0 12px; padding:10px 14px; border-radius:16px; background:var(--exito-bg); color:var(--exito); font-size:13px; font-weight:600; }
 </style>
 </head>
 <body>
@@ -1286,6 +1289,7 @@
 
   <div class="seccion activa" id="seccionVender">
     <div class="contenido">
+      <div class="clima-banner oculto" id="bannerClima"></div>
       <div class="encabezado-seccion">
         <div><h2>Nueva venta</h2><p>Selecciona productos para agregarlos al carrito.</p></div>
       </div>
@@ -1912,6 +1916,21 @@
       </div>
 
       <div id="vistaConfigFunciones">
+        <div class="bloque-analitica oculto" id="bloqueClima">
+          <h3>Promociones por clima</h3>
+          <p class="nota">Si llueve, hace frío o hace calor, PUVE baja solo el precio de lo que tú elijas y lo regresa a la normalidad cuando pasa. Aplica en caja y en el menú por QR. El clima lo consulta el servidor, no el cajero.</p>
+          <div id="mensajeClima" class="mensaje"></div>
+          <p class="nota" id="estadoClima"></p>
+          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;"><button type="button" onclick="detectarZonaClima()">Detectar mi zona</button><button type="button" class="texto" onclick="revisarClima(true, true)">Revisar clima ahora</button></div>
+          <div class="form-agregar-admin" style="flex-wrap:wrap;">
+            <select id="clCondicion" onchange="ajustarFormClima()"><option value="lluvia">Cuando llueva</option><option value="frio">Cuando haga frío (°C o menos)</option><option value="calor">Cuando haga calor (°C o más)</option></select>
+            <span id="clUmbralBox" class="oculto"><input id="clUmbral" type="number" min="-30" max="60" step="1" placeholder="°C" style="width:84px;"></span>
+            <select id="clCategoria"></select>
+            <input id="clPct" type="number" min="1" max="90" step="1" placeholder="% de descuento" style="width:130px;">
+            <button type="button" class="principal" style="width:auto;" onclick="agregarReglaClima()">Agregar regla</button>
+          </div>
+          <div id="listaReglasClima" style="margin-top:12px;"></div>
+        </div>
         <div class="bloque-analitica oculto" id="bloquePersonalizaciones">
           <h3>Opciones para personalizar</h3>
           <p class="nota">Aquí defines lo que tus clientes podrán elegir al pedir (tamaño, leche, extras…) y cuánto cuesta. Ellos lo eligen desde su celular al escanear el QR, y tú también al tomar el pedido en caja.</p>
@@ -6657,7 +6676,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       document.getElementById('tabPlanConfig').classList.toggle('oculto', !(miRol === 'admin' && !esAdminActual));
       document.getElementById('tabInvitaConfig').classList.toggle('oculto', !(miRol === 'admin' && !esAdminActual));
       cargarFormularioConfig();
-      actualizarBloquePedidosQr(); actualizarBloqueEmpleados(); actualizarBloquePersonalizaciones();
+      actualizarBloquePedidosQr(); actualizarBloqueEmpleados(); actualizarBloquePersonalizaciones(); actualizarBloqueClima();
       prepararBloqueMejorarPlan();
       prepararBloqueAgregarCajero();
       renderizarListaTutoriales();
@@ -7739,7 +7758,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const cf = document.getElementById('campoFotoPlatillo'); if(cf) cf.classList.toggle('oculto', !(v && v.foto));
     const nc = document.getElementById('navComisiones'); if(nc) nc.classList.toggle('oculto', !(giro === 'servicios' && miRol === 'admin' && !esAdminActual));
     const na = document.getElementById('navAgenda'); if(na) na.classList.toggle('oculto', !(giro === 'servicios' && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
-    if(giro === 'servicios') cargarEmpleados(); if(giro === 'cafeteria') cargarGrupos(); ajustarFormServicio();
+    if(giro === 'servicios') cargarEmpleados(); if(giro === 'cafeteria') cargarGrupos(); if(GIROS_CLIMA.includes(giro)) iniciarClima(); ajustarFormServicio();
   }
 
   // Re-codifica la imagen en el navegador: se pierden metadatos/EXIF y cualquier contenido oculto; solo salen píxeles nuevos.
@@ -8461,6 +8480,73 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     motorEscanerActual = motor; setTimeout(ciclo, 0); return motor;
   }
   async function ciclarZoomEscaner(){ if(motorEscanerActual) await motorEscanerActual.ciclarZoom(); }
+
+  // ===== Promociones por clima (cafetería, restaurante, tienda de conveniencia) =====
+  const GIROS_CLIMA = ['cafeteria', 'restaurante', 'tienda'];
+  let reglasClima = [], climaEstado = null, climaTimer = null, climaPrevio = null;
+  const climaDisponible = () => GIROS_CLIMA.includes(configNegocio.tipo_negocio || '');
+  async function revisarClima(manual, forzar){
+    if(!climaDisponible() || !enLinea) return;
+    const { data, error } = await sb.functions.invoke('clima-promos', { body: { accion: 'revisar', forzar: !!forzar } });
+    if(error || !data){ if(manual) mostrarMensaje('mensajeClima', 'No se pudo consultar el clima. Intenta de nuevo.', 'error'); return; }
+    climaEstado = data; pintarClima();
+    const firma = JSON.stringify((data.activas || []).map(a => a.id).sort());
+    if(climaPrevio !== null && firma !== climaPrevio) cargarProductos();   // los precios cambiaron en el servidor: refrescar lo que se ve
+    else if(climaPrevio === null && (data.activas || []).length) cargarProductos();
+    climaPrevio = firma;
+  }
+  function iniciarClima(){ if(climaTimer || !climaDisponible()) return; revisarClima(false, false); climaTimer = setInterval(() => revisarClima(false, false), 20 * 60000); }
+  function detenerClima(){ clearInterval(climaTimer); climaTimer = null; climaEstado = null; climaPrevio = null; pintarClima(); }
+  function pintarClima(){
+    const b = document.getElementById('bannerClima'), e = climaEstado, act = (e && e.activas) || [];
+    if(b){ b.classList.toggle('oculto', !act.length); b.textContent = act.length ? 'Promoción por clima activa: ' + act.map(a => a.nombre).join(' · ') : ''; }
+    const s = document.getElementById('estadoClima'); if(!s) return;
+    if(!e) s.textContent = 'Consultando el clima…';
+    else if(e.sin_ubicacion) s.textContent = 'Aún no sabemos dónde está tu negocio. Toca "Detectar mi zona".';
+    else if(e.temperatura === null || e.temperatura === undefined) s.textContent = 'Clima no disponible por ahora.';
+    else s.textContent = 'Ahora en tu zona: ' + Number(e.temperatura).toFixed(0) + ' °C' + (e.lluvia ? ', lloviendo' : ', sin lluvia') + (act.length ? ' · Promociones activas: ' + act.length : ' · Sin promociones activas');
+  }
+  function actualizarBloqueClima(){
+    const b = document.getElementById('bloqueClima'); if(!b) return;
+    const ver = climaDisponible() && miRol === 'admin' && !esAdminActual; b.classList.toggle('oculto', !ver); if(!ver) return;
+    const sc = document.getElementById('clCategoria'); if(sc){ const v = sc.value; sc.textContent = ''; const t = el('option', '', 'Todos los productos'); t.value = ''; sc.appendChild(t); categoriasCache.forEach(c => { const o = el('option', '', 'Solo ' + c.nombre); o.value = c.id; sc.appendChild(o); }); sc.value = v; }
+    ajustarFormClima(); cargarReglasClima(); pintarClima(); revisarClima(false, false);
+  }
+  function ajustarFormClima(){ const c = document.getElementById('clCondicion').value; document.getElementById('clUmbralBox').classList.toggle('oculto', c === 'lluvia'); }
+  function descripcionRegla(r){
+    const cat = categoriasCache.find(c => c.id === r.categoria_id), cond = r.condicion === 'lluvia' ? 'Cuando llueva' : r.condicion === 'frio' ? 'Cuando haga ' + Number(r.umbral) + ' °C o menos' : 'Cuando haga ' + Number(r.umbral) + ' °C o más';
+    return cond + ' → −' + Number(r.descuento_pct) + '% en ' + (cat ? cat.nombre : 'todos los productos');
+  }
+  async function cargarReglasClima(){
+    const { data, error } = await sb.from('reglas_clima').select('*').order('creado_en'); if(error) return; reglasClima = data || [];
+    const cont = document.getElementById('listaReglasClima'); if(!cont) return; cont.textContent = '';
+    if(!reglasClima.length){ cont.appendChild(el('p', 'nota', 'Aún no tienes reglas. Ejemplos: "Cuando llueva → −20% en Helados" o "Cuando haga 30 °C o más → −15% en Frappés".')); return; }
+    reglasClima.forEach(r => {
+      const f = el('div', 'empleado-fila' + (r.activa ? '' : ' inactivo')); f.appendChild(el('span', 'empleado-nombre', descripcionRegla(r)));
+      const t = el('button', 'texto', r.activa ? 'Pausar' : 'Activar'); t.type = 'button'; t.onclick = async () => { const { error: e } = await sb.from('reglas_clima').update({ activa: !r.activa }).eq('id', r.id); if(e) mostrarMensaje('mensajeClima', e.message, 'error'); else { await cargarReglasClima(); revisarClima(true, true); } };
+      const d = el('button', 'texto', 'Eliminar'); d.type = 'button'; d.onclick = async () => { if(!confirm('¿Eliminar esta regla?')) return; const { error: e } = await sb.from('reglas_clima').delete().eq('id', r.id); if(e) mostrarMensaje('mensajeClima', e.message, 'error'); else { await cargarReglasClima(); revisarClima(true, true); } };
+      f.appendChild(t); f.appendChild(d); cont.appendChild(f);
+    });
+  }
+  async function agregarReglaClima(){
+    ocultarMensaje('mensajeClima'); const condicion = document.getElementById('clCondicion').value, pct = parseFloat(document.getElementById('clPct').value), um = parseFloat(document.getElementById('clUmbral').value);
+    if(!(pct >= 1 && pct <= 90)){ mostrarMensaje('mensajeClima', 'El descuento debe estar entre 1% y 90%.', 'error'); return; }
+    if(condicion !== 'lluvia' && !(um >= -30 && um <= 60)){ mostrarMensaje('mensajeClima', 'Escribe la temperatura en °C.', 'error'); return; }
+    const cat = categoriasCache.find(c => c.id === document.getElementById('clCategoria').value);
+    const fila = { negocio_id: negocioId, condicion: condicion, umbral: condicion === 'lluvia' ? null : um, categoria_id: cat ? cat.id : null, descuento_pct: pct, nombre: '' };
+    fila.nombre = descripcionRegla(Object.assign({}, fila)).slice(0, 80);
+    const { error } = await sb.from('reglas_clima').insert(fila); if(error){ mostrarMensaje('mensajeClima', error.message, 'error'); return; }
+    document.getElementById('clPct').value = ''; await cargarReglasClima(); revisarClima(true, true);
+  }
+  async function detectarZonaClima(){
+    ocultarMensaje('mensajeClima'); mostrarMensaje('mensajeClima', 'Buscando tu zona…', 'exito');
+    const enviar = async (cuerpo) => {
+      const { data, error } = await sb.functions.invoke('clima-promos', { body: Object.assign({ accion: 'ubicar' }, cuerpo) });
+      if(error || !data || data.error){ mostrarMensaje('mensajeClima', (data && data.error) || 'No se pudo detectar tu zona.', 'error'); return; }
+      climaEstado = data; climaPrevio = JSON.stringify((data.activas || []).map(a => a.id).sort()); pintarClima(); cargarProductos(); mostrarMensaje('mensajeClima', 'Zona guardada. El clima se revisa solo cada 20 minutos mientras uses PUVE.', 'exito');
+    };
+    if(navigator.geolocation) navigator.geolocation.getCurrentPosition(p => enviar({ lat: p.coords.latitude, lon: p.coords.longitude }), () => enviar({}), { timeout: 8000, maximumAge: 600000 }); else enviar({});
+  }
 
   function conTransicionPuve(fn){
     if(document.startViewTransition && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)){ try { document.startViewTransition(fn); return; } catch(e){} }
@@ -12502,7 +12588,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
   function limpiarAvisosPuve(){
     generacionAvisos++;
-    try { cerrarCanalPedidosQr(); cerrarCanalCitas(); faviconNegocioCargado = false; aplicarFaviconNegocio(null); } catch(e){}
+    try { cerrarCanalPedidosQr(); cerrarCanalCitas(); detenerClima(); faviconNegocioCargado = false; aplicarFaviconNegocio(null); } catch(e){}
     if(canalAvisos){ try { sb.removeChannel(canalAvisos); } catch(e){} canalAvisos = null; }
     avisosVisibles = [];
     ultimoFetchAvisos = 0;
