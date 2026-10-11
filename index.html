@@ -908,6 +908,152 @@
 
   /* ===== Promociones por clima ===== */
   .clima-banner{ margin:0 0 12px; padding:10px 14px; border-radius:16px; background:var(--exito-bg); color:var(--exito); font-size:13px; font-weight:600; }
+
+  /* ===== v5 · ORGANIZACIÓN DE PANTALLAS ==========================================================
+     Solo distribución, jerarquía y espacio de trabajo. Sin cambios de marca ni de lógica. ======= */
+
+  /* — Menú lateral agrupado por tarea (Operación · Catálogo · Gestión · Cuenta) — */
+  .nav-grupo{ display:flex; flex-direction:column; gap:2px; }
+  .nav-grupo:not(:has(> button:not(.oculto))){ display:none; }
+  .nav-grupo-titulo{ font:600 10.5px 'Inter',-apple-system,sans-serif; letter-spacing:.09em; text-transform:uppercase; color:var(--texto-suave); padding:2px 16px 4px; opacity:.85; }
+  @media (min-width:821px){
+    .nav{ gap:14px; }
+    .nav button{ padding:9px 16px; }
+  }
+  @media (max-width:820px){
+    .nav-grupo{ gap:0; }
+    .nav-grupo-titulo{ padding:16px 22px 6px; }
+  }
+
+  /* — Utilidades compartidas — */
+  th.num, td.num{ text-align:right; }
+  .tabs-vista{ margin-bottom:20px; }
+  .barra-filtros{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:0 0 18px; }
+  .barra-filtros .periodo-selector{ width:auto; }
+  @media (max-width:640px){ .barra-filtros .periodo-selector{ width:100%; } }
+
+  /* — Tarjetas de producto: contenido siempre alineado al borde izquierdo — */
+  .item-producto{ align-items:stretch; }
+
+  /* — VENDER · franja de turno compacta dentro del encabezado — */
+  .franja-turno{ display:flex; align-items:center; gap:12px; padding:5px 5px 5px 16px; border-radius:99px; background:var(--vid); border:1px solid var(--linea); box-shadow:var(--sombra); max-width:100%; }
+  .franja-turno .nota{ margin:0; font-size:13px; color:var(--texto-suave); }
+  .franja-turno .nota strong{ color:var(--texto); }
+  .franja-turno button{ min-height:36px; padding:0 16px; font-size:12.5px; white-space:nowrap; }
+  #seccionVender .encabezado-seccion{ margin-bottom:14px; }
+  #seccionVender .encabezado-seccion h2{ font-size:28px; }
+  #seccionVender .encabezado-seccion p{ display:none; }
+
+  /* — VENDER · carrito: artículos (zona flexible) → total → cobro (siempre visibles) — */
+  .carrito-lineas:has(#bloqueTicketQR:not(.oculto)) #carritoVacio{ display:none; }
+  .carrito-lineas #bloqueTicketQR{ margin:4px 0 0; padding-top:10px; text-align:center; }
+  .carrito-lineas #imgTicketQR{ width:150px !important; height:150px !important; }
+  .cart-opcion{ margin:0 0 2px; }
+  .carrito-cobro .campo.cart-metodo{ margin:0 0 8px; }
+  .carrito-cobro .cobro-rapido{ margin:0 0 8px; }
+  .carrito-cobro .cr-tecla{ min-height:42px; }
+  .carrito-cobro .cr-cambio b{ font-size:30px; }
+  .carrito-cobro .mensaje{ margin:6px 0 0; }
+  .carrito-cobro .mensaje:not(.error):not(.exito){ margin:0; }
+
+  @media (min-width:821px){
+    /* el POS ocupa la pantalla: cada panel se desplaza por separado, "Cobrar" nunca queda fuera de vista */
+    #seccionVender.activa{ display:flex; flex-direction:column; height:100vh; height:100dvh; }
+    #seccionVender .contenido{ flex:1 1 auto; min-height:0; width:100%; display:flex; flex-direction:column; padding:22px 28px 20px; }
+    #seccionVender .encabezado-seccion, #seccionVender .clima-banner{ flex:none; }
+    #seccionVender .pos{ flex:1 1 auto; min-height:0; align-items:stretch; grid-template-rows:minmax(0,1fr); }
+    #seccionVender .pos > div:first-child{ display:flex; flex-direction:column; min-height:0; }
+    #seccionVender .buscador, #seccionVender .filtro-cats, #seccionVender #notaListaVenta{ flex:none; }
+    #seccionVender .lista-productos{ flex:1 1 auto; min-height:0; overflow-y:auto; align-content:start; padding:2px 8px 12px 2px; margin-right:-8px; }
+    #seccionVender .carrito{ position:static; top:auto; height:auto; max-height:none; min-height:0; overflow-y:auto; padding:20px 20px 18px; }
+    .carrito h3{ order:0; flex:none; margin:0 0 6px; }
+    .carrito-lineas{ flex:1 1 0; min-height:92px; overflow-y:auto; padding-right:4px; margin-right:-4px; }
+    #lineasCarrito{ order:0; flex:none; min-height:0; overflow:visible; }
+    .carrito .total-carrito{ order:0; flex:none; flex-direction:row; align-items:baseline; justify-content:space-between; gap:12px; margin:8px 0 0; padding:12px 0 10px; border:0; border-top:1px solid var(--borde); }
+    .carrito .total-carrito span:last-child{ font-size:46px; line-height:1; }
+    .carrito-cobro{ flex:none; }
+    #btnCobrar{ order:0; position:static; margin-top:10px; height:58px; }
+    #bloqueTicketQR{ order:0; }
+    .carrito-lineas .ticket-exito-nueva-venta{ position:sticky; bottom:0; width:100%; }
+    /* método de pago: botones a la vista (1 toque) en lugar de lista desplegable */
+    #metodoPagoVenta{ display:none; }
+    .metodo-pago-movil{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+    .metodo-pago-movil button{ flex:1 1 30%; padding:9px 6px; min-height:42px; border-radius:14px; font-size:13px; }
+  }
+  @media (min-width:821px) and (max-width:1100px){ .pos{ grid-template-columns:minmax(0,1fr) 340px; } }
+  @media (min-width:821px) and (max-height:780px){
+    #seccionVender .contenido{ padding-top:14px; padding-bottom:14px; }
+    #seccionVender .encabezado-seccion{ margin-bottom:10px; }
+    #seccionVender .encabezado-seccion h2{ font-size:24px; }
+    #seccionVender .carrito{ padding:14px 16px; }
+    .carrito .total-carrito{ padding:8px 0 6px; }
+    .carrito .total-carrito span:last-child{ font-size:36px; }
+    .carrito-cobro .cr-tecla{ min-height:36px; }
+    .metodo-pago-movil button{ min-height:36px; padding:6px 4px; }
+    #btnCobrar{ height:50px; }
+  }
+
+  @media (max-width:820px){
+    #seccionVender .encabezado-seccion{ margin-bottom:10px; gap:8px; }
+    #seccionVender .encabezado-seccion h2{ font-size:24px; }
+    .franja-turno{ width:100%; justify-content:space-between; padding:5px 5px 5px 14px; }
+    .franja-turno .nota{ font-size:12px; }
+    .franja-turno button{ min-height:34px; padding:0 12px; font-size:12px; }
+    .carrito-lineas{ display:block; }
+  }
+
+  /* — PRODUCTOS · el catálogo manda; categorías y clima quedan a un costado — */
+  .prod-layout{ display:grid; gap:20px; align-items:start; }
+  .prod-principal{ min-width:0; }
+  .prod-principal .panel-form{ margin-bottom:20px; }
+  .prod-lateral{ display:flex; flex-direction:column; gap:20px; min-width:0; }
+  .prod-lateral .bloque-analitica{ margin-bottom:0; padding:20px; }
+  @media (min-width:1180px){ .prod-layout{ grid-template-columns:minmax(0,1fr) 288px; gap:16px; } }
+  .prod-lateral .form-agregar-admin{ flex-wrap:nowrap; }
+  .prod-lateral .form-agregar-admin input{ min-width:0; }
+  #tablaProductos thead th, #tablaProductos tbody td{ padding-left:12px; padding-right:12px; }
+  #tablaProductos tbody td:first-child{ min-width:170px; }
+  .rej-producto{ grid-template-columns:repeat(4,minmax(0,1fr)); }
+  .rej-producto .c-2{ grid-column:span 2; }
+  .rej-producto .c-full{ grid-column:1 / -1; }
+  .rej-producto{ align-items:start; }
+  .rej-producto .campo select{ padding:12px 15px !important; border-radius:14px !important; }
+  @media (max-width:700px){ .rej-producto{ grid-template-columns:1fr 1fr; } .rej-producto .c-2{ grid-column:1 / -1; } }
+
+  /* — CONFIGURACIÓN · funciones y giro primero; seguridad y accesos aparte — */
+  .cfg-grid{ display:grid; gap:20px; align-items:start; }
+  .cfg-col{ display:flex; flex-direction:column; gap:20px; min-width:0; }
+  .cfg-col > .bloque-analitica{ margin-bottom:0; }
+  .cfg-col button{ white-space:nowrap; }
+  @media (min-width:1100px){ .cfg-grid{ grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); } }
+
+  /* — ANALÍTICA · pestañas → barra de periodo/filtros → contenido; rejillas que usan el ancho — */
+  .ana-grid{ display:grid; gap:20px; grid-template-columns:minmax(0,1fr); align-items:start; }
+  .ana-grid > .bloque-analitica{ margin-bottom:0; }
+  @media (min-width:1100px){
+    .ana-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .ana-grid > .span-2{ grid-column:1 / -1; }
+  }
+  @media (min-width:1051px){ #vistaAnaliticaResumen .kpis{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
+
+  /* — DECLARACIÓN SAT · declarar (principal) junto a los datos fiscales (apoyo) — */
+  .fiscal-grid{ display:grid; gap:20px; align-items:start; margin-top:20px; }
+  .fiscal-grid > .bloque-analitica{ margin-bottom:0; }
+  @media (min-width:1000px){ .fiscal-grid{ grid-template-columns:minmax(0,1.25fr) minmax(0,1fr); } }
+
+  /* — ADMIN PUVE · pestañas en su propia fila; filtros a la izquierda, acciones a la derecha — */
+  .tabs-admin{ display:flex; width:100%; overflow-x:auto; scrollbar-width:none; }
+  .tabs-admin::-webkit-scrollbar{ display:none; }
+  .tabs-admin button{ flex:0 0 auto; white-space:nowrap; }
+  .barra-negocios{ display:flex; flex-wrap:wrap; align-items:center; gap:12px 16px; margin:0 0 16px; }
+  .barra-negocios .barra-negocios-filtros{ display:grid; grid-template-columns:minmax(220px,2fr) repeat(4,minmax(110px,1fr)) auto; gap:8px; align-items:center; flex:1 1 640px; margin:0; }
+  .barra-negocios .barra-negocios-filtros input{ min-width:0; width:100%; }
+  .barra-negocios-acciones{ display:flex; flex-wrap:wrap; gap:8px; margin-left:auto; }
+  @media (max-width:900px){ .barra-negocios .barra-negocios-filtros{ grid-template-columns:1fr 1fr; } .barra-negocios-acciones{ margin-left:0; } }
+
+  /* — SOPORTE · el chat usa un ancho cómodo — */
+  @media (min-width:900px){ .chat-panel-integrado{ max-width:820px; } }
+
 </style>
 </head>
 <body>
@@ -1255,20 +1401,32 @@
       <div class="marca">PUVE</div>
       <div class="badge-dispositivos" id="badgeRol" style="display:none;"></div>
       <div class="nav" id="navPrincipal">
-        <button id="navVender" class="activo" onclick="conTutorial('nav-vender', this, function(){ if(funcionPuveActiva('cajero.nav_vender')) cambiarSeccion('vender'); })">Vender</button>
-        <button id="navPedidos" class="oculto" onclick="cambiarSeccion('pedidos')">Pedidos<span id="badgePedidosQr" class="badge-pedidos oculto"></span></button>
-        <button id="navAgenda" class="oculto" onclick="cambiarSeccion('agenda')">Agenda</button>
-        <button id="navComisiones" class="oculto" onclick="cambiarSeccion('comisiones')">Comisiones</button>
-        <button id="navProductos" onclick="conTutorial('nav-productos', this, function(){ if(funcionPuveActiva('admin.nav_productos')) cambiarSeccion('productos'); })">Productos</button>
-        <button id="navCorte" onclick="conTutorial('nav-corte', this, function(){ if(funcionPuveActiva('cajero.nav_corte')) cambiarSeccion('corte'); })">Corte de caja</button>
-        <button id="navDevoluciones" class="oculto" onclick="conTutorial('nav-devoluciones', this, function(){ if(funcionPuveActiva('cajero.nav_devoluciones')) cambiarSeccion('devoluciones'); })">Devoluciones</button>
-        <button id="navGastos" class="oculto" onclick="conTutorial('nav-gastos', this, function(){ if(funcionPuveActiva('admin.nav_gastos')) cambiarSeccion('gastos'); })">Gastos</button>
-        <button id="navInventario" class="oculto" onclick="conTutorial('nav-inventario', this, function(){ if(funcionPuveActiva('admin.nav_inventario')) cambiarSeccion('inventario'); })">Inventario</button>
-        <button id="navAnalitica" onclick="conTutorial('nav-analitica', this, function(){ if(funcionPuveActiva('analista.nav_analitica')) cambiarSeccion('analitica'); })">Analítica</button>
-        <button id="navDispositivos" onclick="conTutorial('nav-dispositivos', this, function(){ if(funcionPuveActiva('admin.nav_dispositivos')) cambiarSeccion('dispositivos'); })">Dispositivos</button>
-        <button id="navConfig" class="oculto" onclick="conTutorial('nav-config', this, function(){ if(funcionPuveActiva('admin.nav_config')) cambiarSeccion('config'); })">Configuración</button>
-        <button id="navFiscal" class="oculto" onclick="conTutorial('nav-fiscal', this, function(){ if(funcionPuveActiva('admin.nav_fiscal')) cambiarSeccion('fiscal'); })">Declaración SAT</button>
-        <button id="navSoporte" class="oculto" onclick="conTutorial('nav-soporte', this, function(){ if(funcionPuveActiva('admin.nav_soporte')) cambiarSeccion('soporte'); })">Atención a cliente</button>
+        <div class="nav-grupo" role="group" aria-label="Operación">
+          <span class="nav-grupo-titulo" aria-hidden="true">Operación</span>
+          <button id="navVender" class="activo" onclick="conTutorial('nav-vender', this, function(){ if(funcionPuveActiva('cajero.nav_vender')) cambiarSeccion('vender'); })">Vender</button>
+          <button id="navPedidos" class="oculto" onclick="cambiarSeccion('pedidos')">Pedidos<span id="badgePedidosQr" class="badge-pedidos oculto"></span></button>
+          <button id="navAgenda" class="oculto" onclick="cambiarSeccion('agenda')">Agenda</button>
+          <button id="navCorte" onclick="conTutorial('nav-corte', this, function(){ if(funcionPuveActiva('cajero.nav_corte')) cambiarSeccion('corte'); })">Corte de caja</button>
+          <button id="navDevoluciones" class="oculto" onclick="conTutorial('nav-devoluciones', this, function(){ if(funcionPuveActiva('cajero.nav_devoluciones')) cambiarSeccion('devoluciones'); })">Devoluciones</button>
+        </div>
+        <div class="nav-grupo" role="group" aria-label="Catálogo">
+          <span class="nav-grupo-titulo" aria-hidden="true">Catálogo</span>
+          <button id="navProductos" onclick="conTutorial('nav-productos', this, function(){ if(funcionPuveActiva('admin.nav_productos')) cambiarSeccion('productos'); })">Productos</button>
+          <button id="navInventario" class="oculto" onclick="conTutorial('nav-inventario', this, function(){ if(funcionPuveActiva('admin.nav_inventario')) cambiarSeccion('inventario'); })">Inventario</button>
+        </div>
+        <div class="nav-grupo" role="group" aria-label="Gestión">
+          <span class="nav-grupo-titulo" aria-hidden="true">Gestión</span>
+          <button id="navComisiones" class="oculto" onclick="cambiarSeccion('comisiones')">Comisiones</button>
+          <button id="navGastos" class="oculto" onclick="conTutorial('nav-gastos', this, function(){ if(funcionPuveActiva('admin.nav_gastos')) cambiarSeccion('gastos'); })">Gastos</button>
+          <button id="navAnalitica" onclick="conTutorial('nav-analitica', this, function(){ if(funcionPuveActiva('analista.nav_analitica')) cambiarSeccion('analitica'); })">Analítica</button>
+          <button id="navFiscal" class="oculto" onclick="conTutorial('nav-fiscal', this, function(){ if(funcionPuveActiva('admin.nav_fiscal')) cambiarSeccion('fiscal'); })">Declaración SAT</button>
+        </div>
+        <div class="nav-grupo" role="group" aria-label="Cuenta">
+          <span class="nav-grupo-titulo" aria-hidden="true">Cuenta</span>
+          <button id="navDispositivos" onclick="conTutorial('nav-dispositivos', this, function(){ if(funcionPuveActiva('admin.nav_dispositivos')) cambiarSeccion('dispositivos'); })">Dispositivos</button>
+          <button id="navConfig" class="oculto" onclick="conTutorial('nav-config', this, function(){ if(funcionPuveActiva('admin.nav_config')) cambiarSeccion('config'); })">Configuración</button>
+          <button id="navSoporte" class="oculto" onclick="conTutorial('nav-soporte', this, function(){ if(funcionPuveActiva('admin.nav_soporte')) cambiarSeccion('soporte'); })">Atención a cliente</button>
+        </div>
         <button id="navAdmin" class="admin oculto" onclick="conTutorial('nav-admin', this, cambiarSeccion, 'admin')">Admin</button>
         <div class="nav-movil-extra">
           <button type="button" onclick="abrirPanelApariencia()">Apariencia</button>
@@ -1290,13 +1448,12 @@
   <div class="seccion activa" id="seccionVender">
     <div class="contenido">
       <div class="clima-banner oculto" id="bannerClima"></div>
-      <div class="encabezado-seccion">
+      <div class="encabezado-seccion enc-vender">
         <div><h2>Nueva venta</h2><p>Selecciona productos para agregarlos al carrito.</p></div>
-      </div>
-
-      <div class="oculto" id="franjaTurnoCajero" style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 14px; border:1px solid var(--borde); border-radius:9px; margin-bottom:16px; background:var(--fondo);">
-        <span class="nota" id="textoFranjaTurno" style="margin:0;">—</span>
-        <button type="button" class="editar" style="width:auto;" onclick="abrirModalSangria()">Registrar retiro (sangría)</button>
+        <div class="oculto franja-turno" id="franjaTurnoCajero">
+          <span class="nota" id="textoFranjaTurno">—</span>
+          <button type="button" class="editar" onclick="abrirModalSangria()">Registrar retiro (sangría)</button>
+        </div>
       </div>
       <div class="pos">
         <div>
@@ -1314,12 +1471,27 @@
             Seguir comprando
           </button>
           <h3>Carrito</h3>
-          <div id="mensajeVenta" class="mensaje"></div>
+          <div class="carrito-lineas">
           <div id="lineasCarrito"></div>
           <div class="carrito-vacio oculto" id="carritoVacio">Aún no has agregado productos.</div>
+          <div id="bloqueTicketQR" class="oculto ticket-exito" >
+            <div class="ticket-exito-icono">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+            <p class="ticket-exito-titulo">Venta cobrada</p>
+            <p class="ticket-exito-monto" id="montoTicketExito">$0.00</p>
+            <img id="imgTicketQR" alt="Código QR del ticket" style="width:180px; height:180px; display:none; background:#fff; border-radius:6px;">
+            <p class="nota oculto" id="avisoErrorQR" style="color:var(--error); margin:8px 0;">—</p>
+            <p class="nota" style="margin:10px 0;">El cliente lo escanea con su celular para ver y descargar su ticket.</p>
+            <a id="enlaceTicketQR" href="#" target="_blank" rel="noopener noreferrer" class="nota" style="display:block; word-break:break-all; font-size:11px; margin-bottom:10px;">—</a>
+            <button class="principal ticket-exito-nueva-venta" onclick="cerrarTicketExito()">Nueva venta</button>
+          </div>
+          </div>
+          <div class="nota oculto" id="resumenServicios" style="margin:0 0 8px;"></div>
+      <div class="cross-sell oculto" id="panelCrossSell"><div class="cr-etq">Añade al ticket</div><div class="filtro-cats" id="crossFila" style="margin:0;"></div></div>
           <div class="total-carrito"><span>Total</span><span id="totalCarrito">$0.00</span></div>
-
-          <div class="campo" style="margin:0 0 10px;">
+          <div class="carrito-cobro">
+          <div class="campo cart-metodo">
             <label for="metodoPagoVenta">Método de pago</label>
             <select id="metodoPagoVenta" onchange="actualizarBloqueMetodoPago()">
               <option value="efectivo">Efectivo</option>
@@ -1341,22 +1513,17 @@
               <p class="nota" id="notaMontoEfectivoMixto" style="margin:6px 0 0;"></p>
             </div>
           </div>
-
-
-          <div class="nota oculto" id="resumenServicios" style="margin:0 0 8px;"></div>
-      <div class="cross-sell oculto" id="panelCrossSell"><div class="cr-etq">Añade al ticket</div><div class="filtro-cats" id="crossFila" style="margin:0;"></div></div>
-      <div class="bloque-vale" id="bloqueVale">
-        <button type="button" class="texto" id="btnAbrirVale" onclick="abrirEntradaVale()" style="width:100%; text-align:left; padding:6px 0; font-size:13px; color:var(--texto-suave);">+ Canjear vale de saldo a favor</button>
-        <div class="oculto" id="entradaVale"><div class="form-agregar-admin"><input id="valeFolio" type="text" placeholder="V-XXXXXXXX" maxlength="10" style="text-transform:uppercase;" onkeydown="if(event.key==='Enter'){event.preventDefault();aplicarValeDesdeInput();}"><button type="button" class="principal" style="width:auto;" onclick="aplicarValeDesdeInput()">Aplicar</button></div></div>
-        <div class="vale-aplicado oculto" id="valeAplicado"><span id="valeAplicadoTxt"></span><button type="button" class="texto" onclick="quitarValeAplicado()">Quitar</button></div>
-      </div>
       <div class="cobro-rapido oculto" id="bloqueCobroRapido">
         <div class="cr-etq">¿Con cuánto paga?</div>
         <div class="cr-teclas" id="teclasCobroRapido"></div>
         <div class="cr-cambio" id="cambioCobroRapido"></div>
       </div>
-
-      <div style="margin:0 0 10px;">
+      <div class="bloque-vale cart-opcion" id="bloqueVale">
+        <button type="button" class="texto" id="btnAbrirVale" onclick="abrirEntradaVale()" style="width:100%; text-align:left; padding:6px 0; font-size:13px; color:var(--texto-suave);">+ Canjear vale de saldo a favor</button>
+        <div class="oculto" id="entradaVale"><div class="form-agregar-admin"><input id="valeFolio" type="text" placeholder="V-XXXXXXXX" maxlength="10" style="text-transform:uppercase;" onkeydown="if(event.key==='Enter'){event.preventDefault();aplicarValeDesdeInput();}"><button type="button" class="principal" style="width:auto;" onclick="aplicarValeDesdeInput()">Aplicar</button></div></div>
+        <div class="vale-aplicado oculto" id="valeAplicado"><span id="valeAplicadoTxt"></span><button type="button" class="texto" onclick="quitarValeAplicado()">Quitar</button></div>
+      </div>
+      <div class="cart-opcion">
             <button type="button" class="texto" id="btnMostrarMoneda" onclick="mostrarBloqueMoneda()" style="width:100%; text-align:left; padding:6px 0; font-size:13px; color:var(--texto-suave); border:none;">+ Cliente paga en otra moneda</button>
             <div class="oculto" id="bloqueMonedaVenta">
               <select id="monedaPago" class="input-mini" onchange="actualizarConversionMoneda()" style="width:100%;">
@@ -1371,8 +1538,7 @@
               <p class="nota oculto" id="bloqueConversionMoneda" style="margin-top:8px;"></p>
             </div>
           </div>
-
-          <div class="oculto" id="areaClienteVenta" style="margin:0 0 10px;">
+          <div class="oculto cart-opcion" id="areaClienteVenta">
             <button type="button" class="texto" id="btnMostrarCliente" onclick="mostrarBloqueCliente()" style="width:100%; text-align:left; padding:6px 0; font-size:13px; color:var(--texto-suave); border:none;">+ Datos del cliente</button>
             <div class="oculto" id="bloqueClienteVenta" style="padding:12px; border:1px solid var(--borde); border-radius:8px; background:var(--fondo);">
               <div style="font-weight:600; font-size:13px; margin-bottom:8px; color:var(--texto);">Cliente</div>
@@ -1389,20 +1555,8 @@
               <p class="nota oculto" id="infoCreditoCliente" style="margin:0;"></p>
             </div>
           </div>
-
+          <div id="mensajeVenta" class="mensaje"></div>
           <button class="principal" id="btnCobrar" onclick="conTutorial('btn-cobrar', this, function(){ if(funcionPuveActiva('cajero.cobrar')) cobrar(); })" disabled>Cobrar</button>
-
-          <div id="bloqueTicketQR" class="oculto ticket-exito" style="margin-top:16px; padding-top:16px; border-top:1px solid var(--borde); text-align:center;">
-            <div class="ticket-exito-icono">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            </div>
-            <p class="ticket-exito-titulo">Venta cobrada</p>
-            <p class="ticket-exito-monto" id="montoTicketExito">$0.00</p>
-            <img id="imgTicketQR" alt="Código QR del ticket" style="width:180px; height:180px; display:none; background:#fff; border-radius:6px;">
-            <p class="nota oculto" id="avisoErrorQR" style="color:var(--error); margin:8px 0;">—</p>
-            <p class="nota" style="margin:10px 0;">El cliente lo escanea con su celular para ver y descargar su ticket.</p>
-            <a id="enlaceTicketQR" href="#" target="_blank" rel="noopener noreferrer" class="nota" style="display:block; word-break:break-all; font-size:11px; margin-bottom:10px;">—</a>
-            <button class="principal ticket-exito-nueva-venta" onclick="cerrarTicketExito()">Nueva venta</button>
           </div>
         </div>
       </div>
@@ -1427,42 +1581,15 @@
         </div>
       </div>
 
-      <div class="bloque-analitica oculto" id="bloqueClima" style="margin-bottom:20px;">
-        <h3>Promociones por clima <span class="nota">(opcional)</span></h3>
-        <p class="nota">Apagadas por defecto. Si las activas, cuando llueva o haga frío o calor PUVE baja solo el precio de lo que elijas y lo regresa a la normalidad cuando pasa. Aplica en caja y en el menú por QR. El clima lo consulta el servidor, no el cajero.</p>
-        <div id="mensajeClima" class="mensaje"></div>
-        <label class="pedidos-sonido" style="margin-bottom:10px;"><input type="checkbox" id="climaPromosOn" onchange="alternarPromosClima(this.checked)"> Activar promociones por clima</label>
-        <div id="climaPromosCuerpo" class="oculto">
-          <p class="nota" id="estadoClima"></p>
-          <div class="form-agregar-admin" style="flex-wrap:wrap;">
-            <select id="clCondicion" onchange="ajustarFormClima()"><option value="lluvia">Cuando llueva</option><option value="frio">Cuando haga frío (°C o menos)</option><option value="calor">Cuando haga calor (°C o más)</option></select>
-            <span id="clUmbralBox" class="oculto"><input id="clUmbral" type="number" min="-30" max="60" step="1" placeholder="°C" style="width:84px;"></span>
-            <select id="clCategoria"></select>
-            <input id="clPct" type="number" min="1" max="90" step="1" placeholder="% de descuento" style="width:130px;">
-            <button type="button" class="principal" style="width:auto;" onclick="agregarReglaClima()">Agregar regla</button>
-          </div>
-          <div id="listaReglasClima" style="margin-top:12px;"></div>
-        </div>
-      </div>
-
-      <div class="bloque-analitica" id="bloqueCategorias" style="margin-bottom:20px;">
-        <h3>Categorías</h3>
-        <p class="nota">Organiza tus productos para encontrarlos más rápido al vender.</p>
-        <div id="mensajeCategorias" class="mensaje"></div>
-        <div class="form-agregar-admin">
-          <input id="nuevaCategoriaNombre" type="text" placeholder="Ej. Bebidas, Abarrotes, Limpieza...">
-          <button class="principal" onclick="crearCategoria()" style="width:auto;">Agregar</button>
-        </div>
-        <div id="listaCategorias" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
-      </div>
-
+      <div class="prod-layout">
+        <div class="prod-principal">
       <div class="panel-form" id="panelForm">
         <div id="mensajeProducto" class="mensaje"></div>
         <form id="formProducto" onsubmit="return funcionPuveActiva('admin.guardar_producto') ? manejarSubmitGuardarProducto(event) : false;">
           <input type="hidden" id="productoId">
-          <div class="rejilla">
-            <div class="campo"><label for="pNombre">Nombre</label><input id="pNombre" type="text" required placeholder="Refresco 600ml"></div>
-            <div class="campo"><label for="pSku">SKU / código de barras</label>
+          <div class="rejilla rej-producto">
+            <div class="campo c-2"><label for="pNombre">Nombre</label><input id="pNombre" type="text" required placeholder="Refresco 600ml"></div>
+            <div class="campo c-2"><label for="pSku">SKU / código de barras</label>
               <div style="display:flex; gap:6px;">
                 <input id="pSku" type="text" placeholder="Opcional" style="flex:1;">
                 <button type="button" class="btn-escanear" onclick="abrirEscaner(function(t){ document.getElementById('pSku').value = t; })"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
@@ -1477,7 +1604,7 @@
             <div class="campo oculto" id="campoDuracion"><label for="pDuracion">Duración (minutos)</label><input id="pDuracion" type="number" min="5" max="600" step="5" placeholder="45"></div>
             <div class="campo oculto campo-ropa"><label for="pTalla">Talla</label><input id="pTalla" type="text" maxlength="12" placeholder="M, 28, 9.5"></div>
             <div class="campo oculto campo-ropa"><label for="pColor">Color</label><input id="pColor" type="text" maxlength="30" placeholder="Negro"></div>
-            <div class="campo oculto campo-ropa">
+            <div class="campo oculto campo-ropa c-full">
               <label>Código de barras propio y etiquetas</label>
               <div class="foto-acc">
                 <button type="button" onclick="generarSkuPuve()">Generar código</button>
@@ -1486,7 +1613,7 @@
               </div>
               <div class="nota" id="etqEstado">Para prendas sin código de fábrica. Cada talla y color es una variante con su propio código.</div>
             </div>
-            <div class="campo oculto" id="campoFotoPlatillo">
+            <div class="campo oculto c-full" id="campoFotoPlatillo">
               <label>Foto del platillo</label>
               <div class="foto-fila">
                 <div class="foto-prev" id="fotoPrev">Sin foto</div>
@@ -1507,11 +1634,42 @@
       </div>
       <div class="envoltura-tabla">
       <table id="tablaProductos">
-        <thead><tr><th>Nombre</th><th>SKU</th><th>Categoría</th><th>Precio</th><th>Costo</th><th>Stock</th><th></th></tr></thead>
+        <thead><tr><th>Nombre</th><th>SKU</th><th>Categoría</th><th class="num">Precio</th><th class="num">Costo</th><th class="num">Stock</th><th></th></tr></thead>
         <tbody id="cuerpoTabla"></tbody>
       </table>
       </div>
       <div class="vacio oculto" id="estadoVacio">Aún no has agregado productos.</div>
+        </div>
+        <div class="prod-lateral">
+      <div class="bloque-analitica" id="bloqueCategorias">
+        <h3>Categorías</h3>
+        <p class="nota">Organiza tus productos para encontrarlos más rápido al vender.</p>
+        <div id="mensajeCategorias" class="mensaje"></div>
+        <div class="form-agregar-admin">
+          <input id="nuevaCategoriaNombre" type="text" placeholder="Ej. Bebidas, Abarrotes, Limpieza...">
+          <button class="principal" onclick="crearCategoria()" style="width:auto;">Agregar</button>
+        </div>
+        <div id="listaCategorias" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+      </div>
+      <div class="bloque-analitica oculto" id="bloqueClima">
+        <h3>Promociones por clima <span class="nota">(opcional)</span></h3>
+        <p class="nota">Apagadas por defecto. Si las activas, cuando llueva o haga frío o calor PUVE baja solo el precio de lo que elijas y lo regresa a la normalidad cuando pasa. Aplica en caja y en el menú por QR. El clima lo consulta el servidor, no el cajero.</p>
+        <div id="mensajeClima" class="mensaje"></div>
+        <label class="pedidos-sonido" style="margin-bottom:10px;"><input type="checkbox" id="climaPromosOn" onchange="alternarPromosClima(this.checked)"> Activar promociones por clima</label>
+        <div id="climaPromosCuerpo" class="oculto">
+          <p class="nota" id="estadoClima"></p>
+          <div class="form-agregar-admin" style="flex-wrap:wrap;">
+            <select id="clCondicion" onchange="ajustarFormClima()"><option value="lluvia">Cuando llueva</option><option value="frio">Cuando haga frío (°C o menos)</option><option value="calor">Cuando haga calor (°C o más)</option></select>
+            <span id="clUmbralBox" class="oculto"><input id="clUmbral" type="number" min="-30" max="60" step="1" placeholder="°C" style="width:84px;"></span>
+            <select id="clCategoria"></select>
+            <input id="clPct" type="number" min="1" max="90" step="1" placeholder="% de descuento" style="width:130px;">
+            <button type="button" class="principal" style="width:auto;" onclick="agregarReglaClima()">Agregar regla</button>
+          </div>
+          <div id="listaReglasClima" style="margin-top:12px;"></div>
+        </div>
+      </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1695,21 +1853,13 @@
         <div><h2>Inventario</h2><p>Proveedores, órdenes de compra, mermas y ajustes de stock.</p></div>
       </div>
 
-      <div class="bloque-analitica" style="margin-bottom:20px;">
-        <h3>Proveedores</h3>
-        <div id="mensajeProveedores" class="mensaje"></div>
-        <div class="form-agregar-admin">
-          <input id="proveedorNombre" type="text" placeholder="Nombre del proveedor">
-          <input id="proveedorContacto" type="text" placeholder="Contacto (opcional)">
-          <input id="proveedorTelefono" type="text" placeholder="Teléfono (opcional)">
-          <button class="principal" type="button" onclick="crearProveedor()" style="width:auto;">Agregar</button>
-        </div>
-        <div class="envoltura-tabla"><table>
-          <thead><tr><th>Nombre</th><th>Contacto</th><th>Teléfono</th><th></th></tr></thead>
-          <tbody id="cuerpoProveedores"><tr><td colspan="4" class="nota">Sin proveedores todavía.</td></tr></tbody>
-        </table></div>
+      <div class="periodo-selector tabs-vista" id="tabsInventario">
+        <button class="activo" data-vista="ordenes" onclick="cambiarVistaInventario('ordenes')">Órdenes de compra</button>
+        <button data-vista="mermas" onclick="cambiarVistaInventario('mermas')">Mermas y ajustes</button>
+        <button data-vista="proveedores" onclick="cambiarVistaInventario('proveedores')">Proveedores</button>
       </div>
 
+      <div id="vistaInventarioOrdenes">
       <div class="bloque-analitica" style="margin-bottom:20px;">
         <h3>Órdenes de compra</h3>
         <p class="nota" style="margin:0 0 12px;">Al recibirla, el stock sube solo y queda en el historial de abajo.</p>
@@ -1728,7 +1878,8 @@
           <tbody id="cuerpoOrdenesCompra"><tr><td colspan="5" class="nota">Sin órdenes todavía.</td></tr></tbody>
         </table></div>
       </div>
-
+      </div>
+      <div id="vistaInventarioMermas" style="display:none;">
       <div class="bloque-analitica">
         <h3>Mermas y ajustes de inventario</h3>
         <div id="mensajeMovInventario" class="mensaje"></div>
@@ -1745,37 +1896,52 @@
           <tbody id="cuerpoMovimientos"><tr><td colspan="6" class="nota">Sin movimientos todavía.</td></tr></tbody>
         </table></div>
       </div>
+      </div>
+      <div id="vistaInventarioProveedores" style="display:none;">
+      <div class="bloque-analitica" style="margin-bottom:20px;">
+        <h3>Proveedores</h3>
+        <div id="mensajeProveedores" class="mensaje"></div>
+        <div class="form-agregar-admin">
+          <input id="proveedorNombre" type="text" placeholder="Nombre del proveedor">
+          <input id="proveedorContacto" type="text" placeholder="Contacto (opcional)">
+          <input id="proveedorTelefono" type="text" placeholder="Teléfono (opcional)">
+          <button class="principal" type="button" onclick="crearProveedor()" style="width:auto;">Agregar</button>
+        </div>
+        <div class="envoltura-tabla"><table>
+          <thead><tr><th>Nombre</th><th>Contacto</th><th>Teléfono</th><th></th></tr></thead>
+          <tbody id="cuerpoProveedores"><tr><td colspan="4" class="nota">Sin proveedores todavía.</td></tr></tbody>
+        </table></div>
+      </div>
+      </div>
     </div>
   </div>
 
   <div class="seccion" id="seccionAnalitica">
     <div class="contenido">
       <div class="encabezado-seccion">
-        <div><h2>Analítica</h2><p>Basado en tus ventas registradas.</p></div>
-        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-          <div class="periodo-selector">
-            <button class="activo" data-dias="7" onclick="cambiarPeriodo(7)">7 días</button>
-            <button data-dias="30" onclick="cambiarPeriodo(30)">30 días</button>
-            <button data-dias="90" onclick="cambiarPeriodo(90)">90 días</button>
-          </div>
-          <button class="principal" id="btnDescargarPDF" onclick="generarPDFNegocio()" style="width:auto;">Descargar reporte</button>
-        </div>
+                <div><h2>Analítica</h2><p>Basado en tus ventas registradas.</p></div>
+        <button class="principal" id="btnDescargarPDF" onclick="generarPDFNegocio()" style="width:auto;">Descargar reporte</button>
       </div>
 
-      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
-        <select id="filtroAnaliticaCajero" onchange="aplicarFiltrosAnalitica()" style="padding:8px 10px; border:1px solid var(--borde); border-radius:7px; background:var(--superficie); color:var(--texto); font-family:'Inter'; font-size:13px;"><option value="">Todos los cajeros</option></select>
-        <select id="filtroAnaliticaMetodo" onchange="aplicarFiltrosAnalitica()" style="padding:8px 10px; border:1px solid var(--borde); border-radius:7px; background:var(--superficie); color:var(--texto); font-family:'Inter'; font-size:13px;"><option value="">Todos los métodos de pago</option></select>
-        <button class="editar" type="button" style="width:auto;" onclick="exportarCSVAnalitica()">Exportar CSV</button>
-      </div>
-      <p class="nota" id="notaFiltroAnalitica" style="margin:-10px 0 16px; display:none;">Los filtros solo mueven Ventas, Ingresos y Ticket promedio, y lo que exportas — el resto de la pantalla sigue mostrando todo el periodo.</p>
-
-      <div class="periodo-selector" style="margin-bottom:20px;">
+      <div class="periodo-selector tabs-vista">
         <button class="activo" data-vista="resumen" onclick="cambiarVistaAnalitica('resumen')">Resumen</button>
         <button data-vista="ventas" onclick="cambiarVistaAnalitica('ventas')">Ventas</button>
         <button data-vista="productos" onclick="cambiarVistaAnalitica('productos')">Productos</button>
         <button data-vista="clientes" id="tabClientesAnalitica" class="oculto" onclick="cambiarVistaAnalitica('clientes')">Clientes</button>
         <button data-vista="clima" id="tabClimaAnalitica" class="oculto" onclick="cambiarVistaAnalitica('clima')">Clima</button>
       </div>
+
+      <div class="barra-filtros">
+          <div class="periodo-selector">
+            <button class="activo" data-dias="7" onclick="cambiarPeriodo(7)">7 días</button>
+            <button data-dias="30" onclick="cambiarPeriodo(30)">30 días</button>
+            <button data-dias="90" onclick="cambiarPeriodo(90)">90 días</button>
+          </div>
+        <select id="filtroAnaliticaCajero" onchange="aplicarFiltrosAnalitica()" style="padding:8px 10px; border:1px solid var(--borde); border-radius:7px; background:var(--superficie); color:var(--texto); font-family:'Inter'; font-size:13px;"><option value="">Todos los cajeros</option></select>
+        <select id="filtroAnaliticaMetodo" onchange="aplicarFiltrosAnalitica()" style="padding:8px 10px; border:1px solid var(--borde); border-radius:7px; background:var(--superficie); color:var(--texto); font-family:'Inter'; font-size:13px;"><option value="">Todos los métodos de pago</option></select>
+        <button class="editar" type="button" style="width:auto; margin-left:auto;" onclick="exportarCSVAnalitica()">Exportar CSV</button>
+      </div>
+      <p class="nota" id="notaFiltroAnalitica" style="margin:-6px 0 16px; display:none;">Los filtros solo mueven Ventas, Ingresos y Ticket promedio, y lo que exportas — el resto de la pantalla sigue mostrando todo el periodo.</p>
 
       <div id="vistaAnaliticaResumen">
         <div class="kpis">
@@ -1803,8 +1969,8 @@
         </div>
       </div>
 
-      <div id="vistaAnaliticaVentas" style="display:none;">
-        <div class="bloque-analitica">
+      <div id="vistaAnaliticaVentas" class="ana-grid" style="display:none;">
+        <div class="bloque-analitica span-2">
           <h3>Ventas por día</h3>
           <p class="nota">Total vendido cada día del periodo.</p>
           <div id="graficoDias"></div>
@@ -1822,7 +1988,7 @@
           <div id="listaHoras"><div class="vacio">Sin datos en este periodo.</div></div>
         </div>
 
-        <div class="bloque-analitica">
+        <div class="bloque-analitica span-2">
           <h3>Ventas por cajero</h3>
           <p class="nota">Quién vendió más, cuántos tickets hizo cada quien y en qué hora está más activo.</p>
           <div class="envoltura-tabla">
@@ -1847,14 +2013,14 @@
       <div id="climaGrupos"></div>
     </div>
 
-    <div id="vistaAnaliticaProductos" style="display:none;">
-        <div class="bloque-analitica oculto" id="bloqueEnRiesgo" style="border-color:var(--alerta); background:var(--alerta-bg);">
+    <div id="vistaAnaliticaProductos" class="ana-grid" style="display:none;">
+        <div class="bloque-analitica oculto span-2" id="bloqueEnRiesgo" style="border-color:var(--alerta); background:var(--alerta-bg);">
           <h3 id="tituloEnRiesgo" style="margin-bottom:4px;">—</h3>
           <p class="nota" style="margin:0 0 14px;">Antes de que se conviertan en pérdida total.</p>
           <div id="listaEnRiesgo"></div>
         </div>
 
-        <div class="bloque-analitica">
+        <div class="bloque-analitica span-2">
           <h3>Stock bajo</h3>
           <p class="nota">Productos que conviene reabastecer pronto.</p>
           <div id="listaStockBajo"><div class="vacio">Todo tu inventario está en buen nivel.</div></div>
@@ -1947,91 +2113,8 @@
         <button data-vista="ayuda" onclick="cambiarVistaConfig('ayuda')">Ayuda</button>
       </div>
 
-      <div id="vistaConfigFunciones">
-        <div class="bloque-analitica oculto" id="bloquePersonalizaciones">
-          <h3>Opciones para personalizar</h3>
-          <p class="nota">Aquí defines lo que tus clientes podrán elegir al pedir (tamaño, leche, extras…) y cuánto cuesta. Ellos lo eligen desde su celular al escanear el QR, y tú también al tomar el pedido en caja.</p>
-          <div id="mensajePersonalizaciones" class="mensaje"></div>
-          <div class="form-agregar-admin" style="flex-wrap:wrap;">
-            <input id="grpNombre" type="text" maxlength="40" placeholder="Nuevo grupo (ej. Leche)">
-            <select id="grpTipo"><option value="uno">Elige una</option><option value="varios">Puede elegir varias</option></select>
-            <select id="grpCategoria"></select>
-            <label class="pedidos-sonido"><input type="checkbox" id="grpRequerido"> Obligatorio</label>
-            <button type="button" class="principal" style="width:auto;" onclick="agregarGrupo()">Agregar grupo</button>
-          </div>
-          <div id="listaGrupos" style="margin-top:12px;"></div>
-        </div>
-        <div class="bloque-analitica oculto" id="bloqueEmpleados">
-          <h3>Tu equipo</h3>
-          <p class="nota">Agrega a tus barberos, estilistas o terapeutas y su porcentaje de comisión. Al cobrar un servicio eliges quién lo realizó y las comisiones se calculan solas.</p>
-          <div id="mensajeEmpleados" class="mensaje"></div>
-          <div class="form-agregar-admin"><input id="empNombre" type="text" maxlength="60" placeholder="Nombre"><input id="empPct" type="number" min="0" max="100" step="0.5" placeholder="% comisión" style="width:110px;"><button type="button" class="principal" style="width:auto;" onclick="agregarEmpleado()">Agregar</button></div>
-          <div id="listaEmpleados" style="margin-top:12px;"></div>
-        </div>
-        <div class="bloque-analitica" id="bloqueFavicon">
-          <h3>Ícono del negocio</h3>
-          <p class="nota">Es la imagen que aparece en la pestaña del navegador y al guardar tu página en la pantalla de inicio. Puedes dejar el ícono de PUVE o usar el tuyo (se recorta cuadrado y se reduce a un archivo diminuto).</p>
-          <div id="mensajeFavicon" class="mensaje"></div>
-          <div class="foto-fila">
-            <img id="faviconPrev" class="favicon-prev" alt="Ícono actual" src="img/logo_mini.png">
-            <div class="foto-acc">
-              <button type="button" onclick="subirFaviconNegocio()">Subir mi imagen</button>
-              <button type="button" class="texto" onclick="restablecerFaviconNegocio()">Usar el ícono de PUVE</button>
-            </div>
-          </div>
-        </div>
-        <div class="bloque-analitica oculto" id="bloquePedidosQr">
-          <h3>Pedidos por QR</h3>
-          <p class="nota">Tus clientes escanean el QR de su mesa, arman su pedido desde el celular y te llega aquí al instante para que lo aceptes y le des un tiempo estimado. No se pide ningún dato personal y el cobro lo sigues haciendo tú.</p>
-          <div id="mensajePedidosQrCfg" class="mensaje"></div>
-          <p class="nota" id="estadoPedidosQr"></p>
-          <button type="button" class="principal" id="btnTogglePedidosQr" onclick="alternarPedidosQr()" style="width:auto;">Activar pedidos por QR</button>
-          <div id="panelMesasQr" class="oculto" style="margin-top:18px;">
-            <div class="campo"><label for="qrCantidadMesas">Número de mesas</label><input id="qrCantidadMesas" type="number" min="1" max="100" value="10"></div>
-            <div style="display:flex; flex-wrap:wrap; gap:8px;">
-              <button type="button" onclick="generarQrMesas()">Generar QR de mesas</button>
-              <button type="button" id="btnImprimirQr" class="oculto" onclick="descargarPdfQr()">Descargar PDF de todas las mesas</button>
-              <button type="button" class="texto" onclick="invalidarQrMesas()">Invalidar QR impresos</button>
-            </div>
-            <div id="qrMesasSalida" class="qr-mesas"></div>
-          </div>
-        </div>
-        <div class="bloque-analitica">
-          <h3>PIN de autorización</h3>
-          <p class="nota">Se pide para quitar un producto del carrito o procesar una devolución. Si no lo configuras, esas dos acciones no piden nada, como siempre.</p>
-          <div id="mensajePinAutorizacion" class="mensaje"></div>
-          <p class="nota" id="estadoPinAutorizacion" style="margin:0 0 12px; font-weight:600;">—</p>
-          <div class="rejilla" style="grid-template-columns:1fr 1fr; align-items:end;">
-            <div class="campo"><label for="inputNuevoPin">PIN (mínimo 4 dígitos)</label><input id="inputNuevoPin" type="password" inputmode="numeric" autocomplete="off" placeholder="••••"></div>
-            <div style="display:flex; gap:8px;">
-              <button class="principal" type="button" style="width:auto;" onclick="guardarPinAutorizacion()">Guardar PIN</button>
-              <button class="texto" type="button" id="btnQuitarPinAutorizacion" style="width:auto;" onclick="quitarPinAutorizacion()">Quitar PIN</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="bloque-analitica">
-          <h3>Analistas</h3>
-          <p class="nota">Invita a alguien a ver tu Analítica sin poder tocar nada más — no vende, no edita productos, y no cuenta como un dispositivo contratado.</p>
-          <div id="mensajeAnalistas" class="mensaje"></div>
-          <div class="rejilla" style="grid-template-columns:1fr 1fr; align-items:end;">
-            <div class="campo"><label for="analistaNombre">Nombre</label><input id="analistaNombre" type="text" placeholder="Ej. Contador"></div>
-            <div class="campo"><label for="analistaCorreo">Correo</label><input id="analistaCorreo" type="email" placeholder="correo@ejemplo.com"></div>
-          </div>
-          <button class="principal" type="button" style="width:auto; margin-top:10px;" onclick="invitarAnalista()">Invitar</button>
-          <div id="bloquePasswordAnalista" class="oculto" style="margin-top:14px; padding:14px 16px; border:1px solid var(--borde); border-radius:9px; background:var(--fondo);">
-            <p class="nota" style="margin:0 0 8px;">Comparte esta contraseña con el analista — no se vuelve a mostrar:</p>
-            <div style="display:flex; gap:8px; align-items:center;">
-              <span id="passwordAnalistaGenerada" style="font-family:'IBM Plex Mono', monospace; font-size:16px; font-weight:600;">—</span>
-              <button type="button" class="texto" onclick="navigator.clipboard?.writeText(document.getElementById('passwordAnalistaGenerada').textContent); mostrarMensaje('mensajeAnalistas','Contraseña copiada.','exito')">Copiar</button>
-            </div>
-          </div>
-          <div class="envoltura-tabla" style="margin-top:16px;"><table>
-            <thead><tr><th>Nombre</th><th>Correo</th><th></th></tr></thead>
-            <tbody id="cuerpoAnalistas"><tr><td colspan="3" class="nota">Sin analistas todavía.</td></tr></tbody>
-          </table></div>
-        </div>
-
+      <div id="vistaConfigFunciones" class="cfg-grid">
+        <div class="cfg-col">
         <div class="bloque-analitica">
           <h3>Tipo de negocio</h3>
           <p class="nota">Elige tu giro y te sugerimos qué activar. Elegirlo no cambia nada por sí solo.</p>
@@ -2055,8 +2138,8 @@
             <button type="button" class="principal" style="width:auto;" onclick="aplicarSugerenciaTipoNegocio()">Aplicar la configuración sugerida</button>
           </div>
         </div>
-
         <div class="bloque-analitica">
+          <h3>Funciones del negocio</h3>
           <div class="fila-config">
             <div>
               <div style="font-weight:600; font-size:14px;">Corte de caja</div>
@@ -2107,6 +2190,91 @@
             <label class="interruptor"><input type="checkbox" id="cfgClientesActivo" onchange="conTutorialToggle('cfg-clientes', this.closest('.fila-config'), guardarConfiguracion)"><span class="deslizador"></span></label>
           </div>
           <div id="mensajeConfig" class="mensaje" style="margin-top:12px;"></div>
+        </div>
+        <div class="bloque-analitica oculto" id="bloquePedidosQr">
+          <h3>Pedidos por QR</h3>
+          <p class="nota">Tus clientes escanean el QR de su mesa, arman su pedido desde el celular y te llega aquí al instante para que lo aceptes y le des un tiempo estimado. No se pide ningún dato personal y el cobro lo sigues haciendo tú.</p>
+          <div id="mensajePedidosQrCfg" class="mensaje"></div>
+          <p class="nota" id="estadoPedidosQr"></p>
+          <button type="button" class="principal" id="btnTogglePedidosQr" onclick="alternarPedidosQr()" style="width:auto;">Activar pedidos por QR</button>
+          <div id="panelMesasQr" class="oculto" style="margin-top:18px;">
+            <div class="campo"><label for="qrCantidadMesas">Número de mesas</label><input id="qrCantidadMesas" type="number" min="1" max="100" value="10"></div>
+            <div style="display:flex; flex-wrap:wrap; gap:8px;">
+              <button type="button" onclick="generarQrMesas()">Generar QR de mesas</button>
+              <button type="button" id="btnImprimirQr" class="oculto" onclick="descargarPdfQr()">Descargar PDF de todas las mesas</button>
+              <button type="button" class="texto" onclick="invalidarQrMesas()">Invalidar QR impresos</button>
+            </div>
+            <div id="qrMesasSalida" class="qr-mesas"></div>
+          </div>
+        </div>
+        <div class="bloque-analitica oculto" id="bloquePersonalizaciones">
+          <h3>Opciones para personalizar</h3>
+          <p class="nota">Aquí defines lo que tus clientes podrán elegir al pedir (tamaño, leche, extras…) y cuánto cuesta. Ellos lo eligen desde su celular al escanear el QR, y tú también al tomar el pedido en caja.</p>
+          <div id="mensajePersonalizaciones" class="mensaje"></div>
+          <div class="form-agregar-admin" style="flex-wrap:wrap;">
+            <input id="grpNombre" type="text" maxlength="40" placeholder="Nuevo grupo (ej. Leche)">
+            <select id="grpTipo"><option value="uno">Elige una</option><option value="varios">Puede elegir varias</option></select>
+            <select id="grpCategoria"></select>
+            <label class="pedidos-sonido"><input type="checkbox" id="grpRequerido"> Obligatorio</label>
+            <button type="button" class="principal" style="width:auto;" onclick="agregarGrupo()">Agregar grupo</button>
+          </div>
+          <div id="listaGrupos" style="margin-top:12px;"></div>
+        </div>
+        <div class="bloque-analitica oculto" id="bloqueEmpleados">
+          <h3>Tu equipo</h3>
+          <p class="nota">Agrega a tus barberos, estilistas o terapeutas y su porcentaje de comisión. Al cobrar un servicio eliges quién lo realizó y las comisiones se calculan solas.</p>
+          <div id="mensajeEmpleados" class="mensaje"></div>
+          <div class="form-agregar-admin"><input id="empNombre" type="text" maxlength="60" placeholder="Nombre"><input id="empPct" type="number" min="0" max="100" step="0.5" placeholder="% comisión" style="width:110px;"><button type="button" class="principal" style="width:auto;" onclick="agregarEmpleado()">Agregar</button></div>
+          <div id="listaEmpleados" style="margin-top:12px;"></div>
+        </div>
+        </div>
+        <div class="cfg-col">
+        <div class="bloque-analitica">
+          <h3>PIN de autorización</h3>
+          <p class="nota">Se pide para quitar un producto del carrito o procesar una devolución. Si no lo configuras, esas dos acciones no piden nada, como siempre.</p>
+          <div id="mensajePinAutorizacion" class="mensaje"></div>
+          <p class="nota" id="estadoPinAutorizacion" style="margin:0 0 12px; font-weight:600;">—</p>
+          <div class="rejilla" style="grid-template-columns:1fr 1fr; align-items:end;">
+            <div class="campo"><label for="inputNuevoPin">PIN (mínimo 4 dígitos)</label><input id="inputNuevoPin" type="password" inputmode="numeric" autocomplete="off" placeholder="••••"></div>
+            <div style="display:flex; gap:8px;">
+              <button class="principal" type="button" style="width:auto;" onclick="guardarPinAutorizacion()">Guardar PIN</button>
+              <button class="texto" type="button" id="btnQuitarPinAutorizacion" style="width:auto;" onclick="quitarPinAutorizacion()">Quitar PIN</button>
+            </div>
+          </div>
+        </div>
+        <div class="bloque-analitica">
+          <h3>Analistas</h3>
+          <p class="nota">Invita a alguien a ver tu Analítica sin poder tocar nada más — no vende, no edita productos, y no cuenta como un dispositivo contratado.</p>
+          <div id="mensajeAnalistas" class="mensaje"></div>
+          <div class="rejilla" style="grid-template-columns:1fr 1fr; align-items:end;">
+            <div class="campo"><label for="analistaNombre">Nombre</label><input id="analistaNombre" type="text" placeholder="Ej. Contador"></div>
+            <div class="campo"><label for="analistaCorreo">Correo</label><input id="analistaCorreo" type="email" placeholder="correo@ejemplo.com"></div>
+          </div>
+          <button class="principal" type="button" style="width:auto; margin-top:10px;" onclick="invitarAnalista()">Invitar</button>
+          <div id="bloquePasswordAnalista" class="oculto" style="margin-top:14px; padding:14px 16px; border:1px solid var(--borde); border-radius:9px; background:var(--fondo);">
+            <p class="nota" style="margin:0 0 8px;">Comparte esta contraseña con el analista — no se vuelve a mostrar:</p>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <span id="passwordAnalistaGenerada" style="font-family:'IBM Plex Mono', monospace; font-size:16px; font-weight:600;">—</span>
+              <button type="button" class="texto" onclick="navigator.clipboard?.writeText(document.getElementById('passwordAnalistaGenerada').textContent); mostrarMensaje('mensajeAnalistas','Contraseña copiada.','exito')">Copiar</button>
+            </div>
+          </div>
+          <div class="envoltura-tabla" style="margin-top:16px;"><table>
+            <thead><tr><th>Nombre</th><th>Correo</th><th></th></tr></thead>
+            <tbody id="cuerpoAnalistas"><tr><td colspan="3" class="nota">Sin analistas todavía.</td></tr></tbody>
+          </table></div>
+        </div>
+        <div class="bloque-analitica" id="bloqueFavicon">
+          <h3>Ícono del negocio</h3>
+          <p class="nota">Es la imagen que aparece en la pestaña del navegador y al guardar tu página en la pantalla de inicio. Puedes dejar el ícono de PUVE o usar el tuyo (se recorta cuadrado y se reduce a un archivo diminuto).</p>
+          <div id="mensajeFavicon" class="mensaje"></div>
+          <div class="foto-fila">
+            <img id="faviconPrev" class="favicon-prev" alt="Ícono actual" src="img/logo_mini.png">
+            <div class="foto-acc">
+              <button type="button" onclick="subirFaviconNegocio()">Subir mi imagen</button>
+              <button type="button" class="texto" onclick="restablecerFaviconNegocio()">Usar el ícono de PUVE</button>
+            </div>
+          </div>
+        </div>
         </div>
       </div>
 
@@ -2226,7 +2394,7 @@
         <div><h2>Declaración SAT</h2><p>Resumen de apoyo generado con tus propias ventas y costos registrados en PUVE.</p></div>
       </div>
 
-      <div class="bloque-analitica" style="margin-bottom:20px;">
+      <div class="bloque-analitica">
         <h3 style="margin-bottom:4px;">Solicitudes de factura</h3>
         <p class="nota" style="margin:0 0 14px;">Lo que piden tus clientes desde su ticket. Márcalas cuando ya se las hayas hecho llegar.</p>
         <div id="mensajeSolicitudesFactura" class="mensaje"></div>
@@ -2236,30 +2404,8 @@
         </table></div>
       </div>
 
-      <div class="bloque-analitica" style="margin-bottom:20px;">
-        <h3 style="margin-bottom:10px;">Datos fiscales del negocio</h3>
-        <p class="nota" style="margin-bottom:14px;">Se usan para encabezar el documento.</p>
-        <div id="mensajeDatosFiscales" class="mensaje"></div>
-        <form onsubmit="return guardarDatosFiscales(event)">
-          <div class="campo"><label for="fiscalRFC">RFC</label><input id="fiscalRFC" type="text" maxlength="13" style="text-transform:uppercase;" placeholder="Ej. XAXX010101000"></div>
-          <div class="campo"><label for="fiscalRazonSocial">Nombre / Razón social</label><input id="fiscalRazonSocial" type="text" placeholder="Como aparece en tu constancia de situación fiscal"></div>
-          <div class="campo">
-            <label for="fiscalRegimen">Régimen fiscal</label>
-            <select id="fiscalRegimen" onchange="document.getElementById('campoRegimenOtro').classList.toggle('oculto', this.value !== 'Otro')">
-              <option value="">Selecciona...</option>
-              <option value="RESICO">RESICO (Régimen Simplificado de Confianza)</option>
-              <option value="Régimen de Actividad Empresarial y Profesional">Actividad Empresarial y Profesional</option>
-              <option value="Régimen de Incorporación Fiscal (RIF)">Incorporación Fiscal (RIF)</option>
-              <option value="Persona Moral - Régimen General">Persona Moral — Régimen General</option>
-              
-            </select>
-          </div>
-          <div class="campo oculto" id="campoRegimenOtro"><label for="fiscalRegimenOtro">Especifica tu régimen</label><input id="fiscalRegimenOtro" type="text"></div>
-          <button class="principal" type="submit" id="btnGuardarDatosFiscales" style="width:auto;">Guardar datos fiscales</button>
-        </form>
-      </div>
-
-      <div class="bloque-analitica" style="margin-bottom:20px;">
+      <div class="fiscal-grid">
+      <div class="bloque-analitica">
         <h3 style="margin-bottom:10px;">Periodo a declarar</h3>
         <div class="periodo-selector" style="margin-bottom:14px; display:inline-flex;">
           <button class="activo" data-tipo="mensual" onclick="cambiarTipoPeriodoFiscal('mensual')">Mensual</button>
@@ -2298,6 +2444,29 @@
           <button class="principal" id="btnDescargarDeclaracionPDF" onclick="conTutorial('fiscal-descargar', this, descargarDeclaracionFiscalPDF)" style="width:100%; margin-top:16px;">Descargar PDF</button>
         </div>
       </div>
+      <div class="bloque-analitica">
+        <h3 style="margin-bottom:10px;">Datos fiscales del negocio</h3>
+        <p class="nota" style="margin-bottom:14px;">Se usan para encabezar el documento.</p>
+        <div id="mensajeDatosFiscales" class="mensaje"></div>
+        <form onsubmit="return guardarDatosFiscales(event)">
+          <div class="campo"><label for="fiscalRFC">RFC</label><input id="fiscalRFC" type="text" maxlength="13" style="text-transform:uppercase;" placeholder="Ej. XAXX010101000"></div>
+          <div class="campo"><label for="fiscalRazonSocial">Nombre / Razón social</label><input id="fiscalRazonSocial" type="text" placeholder="Como aparece en tu constancia de situación fiscal"></div>
+          <div class="campo">
+            <label for="fiscalRegimen">Régimen fiscal</label>
+            <select id="fiscalRegimen" onchange="document.getElementById('campoRegimenOtro').classList.toggle('oculto', this.value !== 'Otro')">
+              <option value="">Selecciona...</option>
+              <option value="RESICO">RESICO (Régimen Simplificado de Confianza)</option>
+              <option value="Régimen de Actividad Empresarial y Profesional">Actividad Empresarial y Profesional</option>
+              <option value="Régimen de Incorporación Fiscal (RIF)">Incorporación Fiscal (RIF)</option>
+              <option value="Persona Moral - Régimen General">Persona Moral — Régimen General</option>
+              
+            </select>
+          </div>
+          <div class="campo oculto" id="campoRegimenOtro"><label for="fiscalRegimenOtro">Especifica tu régimen</label><input id="fiscalRegimenOtro" type="text"></div>
+          <button class="principal" type="submit" id="btnGuardarDatosFiscales" style="width:auto;">Guardar datos fiscales</button>
+        </form>
+      </div>
+      </div>
 
       
     </div>
@@ -2333,7 +2502,8 @@
     <div class="contenido">
       <div class="encabezado-seccion">
         <div><h2>Panel de administración PUVE</h2><p id="resumenAdmin">Todos los negocios registrados en el sistema.</p></div>
-        <div class="periodo-selector">
+      </div>
+        <div class="periodo-selector tabs-vista tabs-admin">
           <button class="activo" data-vista="negocios" onclick="cambiarVistaAdmin('negocios')">Negocios</button>
           <button data-vista="equipo" id="tabEquipoAdmin" class="oculto" onclick="cambiarVistaAdmin('equipo')">Equipo</button>
           <button data-vista="finanzas" onclick="cambiarVistaAdmin('finanzas')">Finanzas</button>
@@ -2346,7 +2516,6 @@
           <button data-vista="soporte-humano" onclick="cambiarVistaAdmin('soporte-humano')">Soporte<span class="oculto" id="badgeInboxSoporte" style="margin-left:6px; background:var(--error); color:#fff; border-radius:99px; padding:1px 7px; font-size:11px;">0</span></button>
           <button data-vista="controles" onclick="cambiarVistaAdmin('controles')">Controles</button>
         </div>
-      </div>
 
       <div id="vistaAdminNegocios">
       <div class="kpis">
@@ -2356,15 +2525,19 @@
         <div class="kpi"><div class="etiqueta">Ingresos mensuales est.</div><div class="valor" id="adminKpiIngresos">—</div></div>
       </div>
 
-      <div class="form-agregar-admin" style="margin-bottom:16px;">
+      <div class="barra-negocios">
+        <div class="form-agregar-admin barra-negocios-filtros">
         <input id="filtroTexto" type="text" placeholder="Buscar por nombre, correo o ID..." oninput="cargarAdminNegociosConBusqueda()" style="min-width:240px;">
         <input id="filtroPais" type="text" placeholder="País" oninput="cargarAdminNegocios()">
         <input id="filtroEstado" type="text" placeholder="Estado" oninput="cargarAdminNegocios()">
         <input id="filtroMunicipio" type="text" placeholder="Municipio" oninput="cargarAdminNegocios()">
         <input id="filtroCP" type="text" placeholder="Código postal" oninput="cargarAdminNegocios()">
         <button class="texto" onclick="document.getElementById('filtroTexto').value='';document.getElementById('filtroPais').value='';document.getElementById('filtroEstado').value='';document.getElementById('filtroMunicipio').value='';document.getElementById('filtroCP').value='';cargarAdminNegocios();">Limpiar</button>
+        </div>
+        <div class="barra-negocios-acciones">
         <button class="principal" onclick="generarPDFRegional()" style="width:auto;">Descargar análisis</button>
         <button id="btnAbrirCrearNegocio" class="principal oculto" onclick="conTutorial('admin-agregar-negocio', this, abrirModalCrearNegocio)" style="width:auto;">Agregar negocio manualmente</button>
+        </div>
       </div>
 
       <div class="envoltura-tabla">
@@ -8629,7 +8802,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
   function cambiarPeriodo(dias){
     periodoActual = dias;
-    document.querySelectorAll('.periodo-selector button').forEach(b => {
+    document.querySelectorAll('.periodo-selector button[data-dias]').forEach(b => {
       b.classList.toggle('activo', Number(b.dataset.dias) === dias);
     });
     cargarAnalitica();
@@ -8988,6 +9161,15 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     });
     if(vista === 'invita') cargarPanelReferidos();
     if(vista === 'funciones'){ cargarEstadoPinAutorizacion(); cargarAnalistas(); }
+  }
+
+  function cambiarVistaInventario(vista){
+    ['ordenes','mermas','proveedores'].forEach(v => {
+      document.getElementById('vistaInventario' + v.charAt(0).toUpperCase() + v.slice(1)).style.display = (v === vista ? '' : 'none');
+    });
+    document.querySelectorAll('#tabsInventario button[data-vista]').forEach(b => {
+      b.classList.toggle('activo', b.dataset.vista === vista);
+    });
   }
 
   function cambiarVistaDispositivos(vista){
