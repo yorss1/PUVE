@@ -1061,6 +1061,17 @@
   /* — SOPORTE · el chat usa un ancho cómodo — */
   @media (min-width:900px){ .chat-panel-integrado{ max-width:820px; } }
 
+
+  /* ===== Productos en solo lectura para el cajero (la base solo deja escribir al encargado) ===== */
+  .nota-solo-lectura{ display:none; margin:0 0 16px; padding:12px 16px; border-radius:14px; background:var(--vid); border:1px solid var(--linea); font-size:13.5px; line-height:1.4; color:var(--texto-suave); }
+  body.productos-solo-lectura .nota-solo-lectura{ display:block; }
+  body.productos-solo-lectura #btnNuevo,
+  body.productos-solo-lectura #btnVoz,
+  body.productos-solo-lectura #panelForm,
+  body.productos-solo-lectura .prod-lateral,
+  body.productos-solo-lectura #tablaProductos thead th:last-child,
+  body.productos-solo-lectura #tablaProductos td.acciones{ display:none !important; }
+  body.productos-solo-lectura .prod-layout{ grid-template-columns:minmax(0,1fr) !important; }
 </style>
 </head>
 <body>
@@ -1590,6 +1601,7 @@
 
       <div class="prod-layout">
         <div class="prod-principal">
+          <div class="nota-solo-lectura" id="notaProductosSoloLectura">Vista de solo lectura: el encargado es quien agrega, edita y elimina productos. Si falta alguno, avísale.</div>
       <div class="panel-form" id="panelForm">
         <div id="mensajeProducto" class="mensaje"></div>
         <form id="formProducto" onsubmit="return funcionPuveActiva('admin.guardar_producto') ? manejarSubmitGuardarProducto(event) : false;">
@@ -6855,7 +6867,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(cual === 'pedidos') refrescarPedidosQr();
     if(cual === 'comisiones') cambiarPeriodoComisiones(periodoComisiones);
     if(cual === 'agenda') abrirAgenda();
-    if(cual === 'productos'){ aplicarVocabularioGiro(); actualizarBloqueClima(); }
+    if(cual === 'productos'){ aplicarModoProductosSegunRol(); aplicarVocabularioGiro(); actualizarBloqueClima(); }
     if(cual === 'vender') setTimeout(enfocarEscanerVenta, 200);
     if(cual === 'corte') cargarHistorialCortes();
     if(cual === 'devoluciones'){ cargarHistorialDevoluciones(); document.getElementById('formBuscarVentaDevolucion').reset(); document.getElementById('resultadoBuscarVenta').classList.add('oculto'); ocultarMensaje('mensajeDevoluciones'); }
@@ -7020,7 +7032,18 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     await cargarProductos();
   }
 
+  // ── Permisos de edición de productos: solo el encargado escribe (RLS de la migración 76) ──
+  function puedoEditarProductos(){ return miRol === 'admin'; }
+  function aplicarModoProductosSegunRol(){ document.body.classList.toggle('productos-solo-lectura', !puedoEditarProductos()); }
+  function avisoSoloEncargado(){ alert('Solo el encargado puede agregar, editar o eliminar productos.'); }
+  function textoErrorProducto(error){
+    const m = String((error && error.message) || error || '');
+    if(/row-level security|permission denied|violates row/i.test(m)) return 'Tu usuario no tiene permiso para modificar productos. Solo el encargado puede agregar, editar o eliminar.';
+    return m;
+  }
+
   function renderizarTablaProductos(){
+    aplicarModoProductosSegunRol();
     const cuerpo = document.getElementById('cuerpoTabla');
     const vacio = document.getElementById('estadoVacio');
     if(!productosCache.length){
@@ -7091,6 +7114,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   function alternarFormulario(mostrar){
     const panel = document.getElementById('panelForm');
     const abrir = mostrar !== undefined ? mostrar : !panel.classList.contains('activo');
+    if(abrir && !puedoEditarProductos()){ avisoSoloEncargado(); return; }
     panel.classList.toggle('activo', abrir);
     if(!abrir){
       document.getElementById('formProducto').reset();
@@ -7125,6 +7149,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
   async function guardarProducto(e){
     e.preventDefault();
+    if(!puedoEditarProductos()){ avisoSoloEncargado(); return false; }
     if(!enLinea){ mostrarMensaje('mensajeProducto', 'Necesitas conexión para editar productos.', 'error'); return false; }
     const btn = document.getElementById('btnGuardarProducto');
     btn.disabled = true;
@@ -7147,7 +7172,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(id){ ({ error } = await sb.from('productos').update(registro).eq('id', id)); }
     else { ({ error } = await sb.from('productos').insert(registro)); }
     btn.disabled = false;
-    if(error){ mostrarMensaje('mensajeProducto', 'No se pudo guardar: ' + error.message, 'error'); return false; }
+    if(error){ mostrarMensaje('mensajeProducto', 'No se pudo guardar: ' + textoErrorProducto(error), 'error'); return false; }
     confirmarFotoGuardada();
     alternarFormulario(false);
     await cargarProductos();
@@ -7155,10 +7180,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   async function eliminarProducto(id){
+    if(!puedoEditarProductos()){ avisoSoloEncargado(); return; }
     if(!enLinea){ alert('Necesitas conexión para eliminar productos.'); return; }
     if(!confirm('¿Eliminar este producto?')) return;
     const { error } = await sb.from('productos').delete().eq('id', id);
-    if(error){ alert('No se pudo eliminar: ' + error.message); return; }
+    if(error){ alert('No se pudo eliminar: ' + textoErrorProducto(error)); return; }
     const pf = (productosCache.find(x => x.id === id) || {}).foto_path; if(pf) quitarArchivoPuve(pf);
     await cargarProductos();
   }
@@ -11618,10 +11644,36 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   
+  let vozCancelada = false;       // el usuario cerró el asistente de voz
+  let vozSilenciosSeguidos = 0;   // respuestas vacías seguidas (tope para no preguntar eternamente)
+
+  function mensajeErrorMicrofono(e){
+    const c = [e && e.name, e && e.message, typeof e === 'string' ? e : ''].filter(Boolean).join(' ');   // los errores del dictado traen el código en message
+    if(/NotAllowed|not-allowed|service-not-allowed|Security/i.test(c)) return 'El navegador no me deja usar el micrófono. Toca el candado junto a la dirección, permite el micrófono para este sitio y vuelve a intentarlo.';
+    if(/NotFound|audio-capture/i.test(c)) return 'No encuentro ningún micrófono. Conecta uno o revisa que tu dispositivo lo tenga activado.';
+    if(/NotReadable/i.test(c)) return 'Otra aplicación está usando el micrófono. Ciérrala e inténtalo de nuevo.';
+    if(/network/i.test(c)) return 'El dictado por voz necesita conexión a internet. Revisa tu conexión e inténtalo de nuevo.';
+    if(/language-not-supported/i.test(c)) return 'Tu navegador no tiene dictado en español. Prueba con Chrome o Edge.';
+    if(/silencio/i.test(c)) return 'No te escuché. Cierro el dictado; toca Por voz cuando quieras intentarlo otra vez.';
+    return 'No pude usar el micrófono (' + c + '). Inténtalo de nuevo.';
+  }
+
+  // El permiso se pide AQUÍ, dentro del toque del usuario: después de hablar() el navegador ya no lo considera un gesto.
+  async function asegurarPermisoMicrofono(){
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+    const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+    s.getTracks().forEach(t => t.stop());
+  }
+
   function escuchar(){
-    return new Promise((resolve, reject) => {
+    return new Promise((resolveBruto, rejectBruto) => {
+      let liquidada = false;
+      const resolve = (v) => { if(liquidada) return; liquidada = true; resolveBruto(v); };
+      const reject = (e) => { if(liquidada) return; liquidada = true; rejectBruto(e); };
+      if(vozCancelada){ reject(new Error('cancelado')); return; }
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
       if(!SR){ reject(new Error('sin_soporte')); return; }
+      if(vozReconocimiento){ try{ vozReconocimiento.abort(); }catch(_){} }
       const r = new SR();
       r.lang = 'es-MX';
       r.interimResults = true;
@@ -11652,21 +11704,31 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         escuchandoActivo = false;
         hablandoUsuario = false;
         indicador.classList.remove('escuchando');
-        reject(new Error(ev.error || 'error_voz'));
+        const cod = (ev && ev.error) || 'error_voz';
+        if(vozCancelada){ reject(new Error('cancelado')); return; }
+        if(cod === 'no-speech' || cod === 'aborted'){ resolve(''); return; }   // silencio: el flujo ya sabe repetir la pregunta
+        reject(new Error(cod));
       };
       r.onend = () => {
         escuchandoActivo = false;
         hablandoUsuario = false;
         indicador.classList.remove('escuchando');
+        if(!liquidada) resolve('');   // terminó sin resultado ni error: se trata como silencio (antes la promesa quedaba colgada)
       };
       vozReconocimiento = r;
-      r.start();
+      try { r.start(); } catch(err){ indicador.classList.remove('escuchando'); reject(err); }
     });
   }
 
   async function preguntarYEscuchar(pregunta){
+    if(vozCancelada) throw new Error('cancelado');
     await hablar(pregunta);
-    return await escuchar();
+    if(vozCancelada) throw new Error('cancelado');
+    await new Promise(r => setTimeout(r, 180));   // evita que el micrófono capte el final de la voz de síntesis
+    const texto = await escuchar();
+    if(texto){ vozSilenciosSeguidos = 0; }
+    else if(++vozSilenciosSeguidos >= 6){ vozSilenciosSeguidos = 0; throw new Error('silencio'); }
+    return texto;
   }
 
   async function preguntarHastaObtener(pregunta){
@@ -11722,8 +11784,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   async function iniciarModoVoz(){
+    if(!puedoEditarProductos()){ avisoSoloEncargado(); return; }
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if(!SR){ alert('Tu navegador no soporta dictado por voz. Prueba con Chrome o Edge.'); return; }
+    try { await asegurarPermisoMicrofono(); }
+    catch(e){ alert(mensajeErrorMicrofono(e)); return; }
+    vozCancelada = false; vozSilenciosSeguidos = 0;
     document.getElementById('modalVoz').classList.remove('oculto');
     document.getElementById('resumenVoz').style.display = 'none';
     instruccionesConfirmacionDadas = false;
@@ -11731,7 +11797,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       await hablar('Vamos a agregar un producto.');
       await capturarYConfirmarProducto();
     } catch(e){
-      await hablar('Hubo un problema con el micrófono. Inténtalo de nuevo.');
+      if(e && e.message === 'cancelado') return;   // el usuario cerró el asistente
+      await hablar(mensajeErrorMicrofono(e));
     }
   }
 
@@ -11790,6 +11857,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   async function guardarProductoDesdeVoz(){
+    if(!puedoEditarProductos()){ await hablar('Solo el encargado puede guardar productos.'); return false; }
     const registro = {
       negocio_id: negocioId,
       nombre: (productoVoz.nombre || 'Producto sin nombre').trim(),
@@ -11801,7 +11869,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     };
     const { error } = await sb.from('productos').insert(registro);
     if(error){
-      await hablar('Hubo un error al guardar: ' + error.message);
+      await hablar('Hubo un error al guardar: ' + textoErrorProducto(error));
       return false;
     }
     await cargarProductos();
@@ -11856,6 +11924,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   function cerrarModoVoz(){
+    vozCancelada = true;
     if(vozSintesis) vozSintesis.cancel();
     if(vozReconocimiento){ try{ vozReconocimiento.abort(); }catch(e){} vozReconocimiento = null; }
     escuchandoActivo = false;
