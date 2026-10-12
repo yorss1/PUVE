@@ -948,6 +948,13 @@
   .carrito-lineas:has(#bloqueTicketQR:not(.oculto)) #carritoVacio{ display:none; }
   .carrito-lineas #bloqueTicketQR{ margin:4px 0 0; padding-top:10px; text-align:center; }
   .carrito-lineas #imgTicketQR{ width:150px !important; height:150px !important; }
+  /* Venta ya cobrada: solo queda la pantalla de éxito (se conserva el aviso, p. ej. "cobra $X" con vale) */
+  .carrito:has(#bloqueTicketQR:not(.oculto)) .total-carrito,
+  .carrito:has(#bloqueTicketQR:not(.oculto)) #resumenServicios,
+  .carrito:has(#bloqueTicketQR:not(.oculto)) #panelCrossSell,
+  .carrito:has(#bloqueTicketQR:not(.oculto)) .carrito-cobro > :not(#mensajeVenta){ display:none !important; }
+  .carrito:has(#bloqueTicketQR:not(.oculto)) .carrito-lineas{ flex:1 1 auto; overflow-y:auto; }
+  .carrito:has(#bloqueTicketQR:not(.oculto)) .carrito-lineas #imgTicketQR{ width:190px !important; height:190px !important; }
   .cart-opcion{ margin:0 0 2px; }
   .carrito-cobro .campo.cart-metodo{ margin:0 0 8px; }
   .carrito-cobro .cobro-rapido{ margin:0 0 8px; }
@@ -7325,6 +7332,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       return;
     }
     vacio.classList.add('oculto');
+    document.getElementById('bloqueTicketQR').classList.add('oculto');
     btnCobrar.disabled = false;
     contenedor.innerHTML = carrito.map(i => `
       <div class="linea-carrito">
