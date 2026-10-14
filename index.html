@@ -1615,10 +1615,31 @@
               </div>
             </div>
             <div class="campo"><label for="pCategoria">Categoría</label><select id="pCategoria" style="width:100%; padding:9px 11px; border:1px solid var(--borde); border-radius:7px; font-family:'Inter'; font-size:14px; background:var(--superficie);"><option value="">Sin categoría</option></select></div>
-            <div class="campo"><label for="pPrecio">Precio</label><input id="pPrecio" type="number" step="0.01" min="0" required placeholder="0.00"></div>
+            <div class="campo"><label for="pPrecio">Precio</label><input id="pPrecio" type="number" step="0.01" min="0" required placeholder="0.00" oninput="if(window.recalcPaq) recalcPaq()"></div>
             <div class="campo"><label for="pCosto">Costo</label><input id="pCosto" type="number" step="0.01" min="0" placeholder="0.00"></div>
             <div class="campo"><label for="pStock">Stock</label><input id="pStock" type="number" step="1" min="0" required placeholder="0"></div>
             <div class="campo"><label for="pCaducidad">Caducidad (opcional)</label><input id="pCaducidad" type="date"></div>
+            <div class="campo oculto campo-papeleria"><label for="pUnidad">Unidad de venta</label><input id="pUnidad" type="text" list="listaUnidadesPap" maxlength="20" value="pieza" placeholder="hoja, pieza, metro" oninput="recalcPaq()"><datalist id="listaUnidadesPap"><option value="pieza"><option value="hoja"><option value="pliego"><option value="metro"><option value="copia"><option value="par"><option value="juego"></datalist></div>
+            <div class="campo oculto campo-papeleria"><label for="pPaso">Se vende de… en…</label><input id="pPaso" type="number" min="0.01" step="0.01" value="1"><div class="nota">1 = de una en una. 0.5 = de medio en medio (ej. listón).</div></div>
+            <div class="campo oculto campo-papeleria"><label for="pPeso">Peso de 1 unidad (g, opcional)</label><input id="pPeso" type="number" min="0" step="any" placeholder="4.6"><div class="nota">Sirve para contar inventario con una báscula.</div></div>
+            <div class="campo oculto campo-papeleria c-full">
+              <label>¿Cómo registras tu inventario?</label>
+              <div class="foto-acc">
+                <label style="font-weight:500;"><input type="radio" name="pModoInv" id="pModoUni" value="uni" checked onchange="cambiarModoInv()"> En unidades</label>
+                <label style="font-weight:500;"><input type="radio" name="pModoInv" id="pModoPaq" value="paq" onchange="cambiarModoInv()"> En paquetes</label>
+                <button type="button" id="btnCuentahojas" onclick="abrirCuentahojas()" disabled>Contar por peso</button>
+              </div>
+              <div class="foto-acc bloque-paq oculto" style="margin-top:8px;">
+                <input id="pPaqN" type="number" min="0" step="any" class="input-mini" style="width:96px;" placeholder="Paquetes" oninput="recalcPaq()" aria-label="Cantidad de paquetes">
+                <span class="nota" style="margin:0;">de</span>
+                <input id="pPaqU" type="number" min="0.01" step="any" class="input-mini" style="width:110px;" placeholder="Unidades c/u" oninput="recalcPaq()" aria-label="Unidades por paquete">
+                <input id="pPaqCosto" type="number" min="0" step="0.01" class="input-mini" style="width:120px;" placeholder="Costo paquete" oninput="recalcPaq()" aria-label="Costo por paquete (opcional)">
+              </div>
+              <div class="nota bloque-paq oculto" id="pPaqAviso"></div>
+              <div class="nota">El precio de arriba es <b>por unidad</b>; el sistema calcula el de paquetes, cajas o mayoreo a partir de él.</div>
+            </div>
+            <div class="campo oculto campo-papeleria c-full"><label>También lo vendes por… (paquete, caja, resma)</label><div id="edPresentaciones"></div></div>
+            <div class="campo oculto campo-papeleria c-full"><label>Precio por volumen (mayoreo)</label><div id="edVolumen"></div><div class="nota">Ej. fotocopias: desde 50 → $0.70 c/u. Se aplica solo, sin que el cajero cambie nada.</div></div>
             <div class="campo oculto campo-servicio"><label for="pTipo">¿Qué vas a agregar?</label><select id="pTipo"><option value="servicio">Servicio (corte, tinte, masaje…)</option><option value="producto">Producto para vender (cera, champú…)</option></select></div>
             <div class="campo oculto" id="campoDuracion"><label for="pDuracion">Duración (minutos)</label><input id="pDuracion" type="number" min="5" max="600" step="5" placeholder="45"></div>
             <div class="campo oculto campo-ropa"><label for="pTalla">Talla</label><input id="pTalla" type="text" maxlength="12" placeholder="M, 28, 9.5"></div>
@@ -5878,6 +5899,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         { funcion:'Código de barras', on:true, razon:'Para el alto volumen de artículos pequeños como plumas o cuadernos.' },
         { funcion:'Categorías de productos', on:true, razon:'Clasificación de material escolar, oficina y regalos.' },
         { funcion:'Agregar producto por voz', razon:'Para artículos muy pequeños que no tienen código de barras impreso — ya la tienes en Productos.' },
+        { funcion:'Paquetes, resmas y fracciones', razon:'Registra el precio por unidad y cuántas unidades trae cada paquete: el sistema calcula el resto — ya la tienes en Artículos.' },
+        { funcion:'Precios por volumen', razon:'Fotocopias, hojas o plumas más baratas al llevar más piezas, sin que el cajero cambie el precio — ya la tienes en Artículos.' },
       ]
     },
     otro: {
@@ -6942,7 +6965,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       return;
     }
     const [{ data, error }, { data: cats, error: errCats }] = await Promise.all([
-      sb.from('productos').select('*').eq('negocio_id', negocioId).order('nombre', { ascending: true }),
+      traerTodoPaginado(() => sb.from('productos').select('*').eq('negocio_id', negocioId).order('nombre', { ascending: true }).order('id', { ascending: true })),
       sb.from('categorias').select('*').eq('negocio_id', negocioId).order('nombre', { ascending: true })
     ]);
     if(error){
@@ -6962,6 +6985,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     renderizarTablaProductos();
     renderizarListaVenta();
     cargarProductosMasVendidos();
+    cargarPreciosPap();
   }
 
   let idsMasVendidos = null;
@@ -7121,7 +7145,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       document.getElementById('productoId').value = '';
       document.getElementById('btnGuardarProducto').textContent = 'Guardar';
       ocultarMensaje('mensajeProducto');
-      limpiarFotoPendiente(); if(document.getElementById('pTipo')){ document.getElementById('pTipo').value = 'servicio'; document.getElementById('pDuracion').value = ''; ajustarFormServicio(); } ['pTalla', 'pColor'].forEach(id => { const e = document.getElementById(id); if(e) e.value = ''; });
+      limpiarFotoPendiente(); if(document.getElementById('pTipo')){ document.getElementById('pTipo').value = 'servicio'; document.getElementById('pDuracion').value = ''; ajustarFormServicio(); } ['pTalla', 'pColor'].forEach(id => { const e = document.getElementById(id); if(e) e.value = ''; }); if(document.getElementById('pUnidad')) resetFormPap();
     }
   }
 
@@ -7138,6 +7162,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     fotoForm = { original: p.foto_path || null, actual: p.foto_path || null, subida: null }; pintarFotoForm(); estadoFoto('');
     if(document.body.classList.contains('giro-servicios')){ document.getElementById('pTipo').value = p.tipo || 'producto'; document.getElementById('pDuracion').value = p.duracion_min || ''; ajustarFormServicio(); }
     if(document.body.classList.contains('giro-ropa')){ document.getElementById('pNombre').value = p.modelo || p.nombre; document.getElementById('pTalla').value = p.talla || ''; document.getElementById('pColor').value = p.color || ''; }
+    if(esPapeleria()) cargarFormPap(p);
     alternarFormulario(true);
   }
 
@@ -7168,14 +7193,21 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(document.body.classList.contains('giro-restaurante') || document.body.classList.contains('giro-cafeteria')) registro.foto_path = fotoForm.actual;
     if(document.body.classList.contains('giro-servicios')){ registro.tipo = document.getElementById('pTipo').value; if(registro.tipo === 'servicio'){ registro.duracion_min = parseInt(document.getElementById('pDuracion').value, 10) || null; registro.stock = 999999; } else registro.duracion_min = null; }
     if(document.body.classList.contains('giro-ropa')){ const talla = document.getElementById('pTalla').value.trim(), color = document.getElementById('pColor').value.trim(), base = registro.nombre; registro.modelo = base; registro.talla = talla || null; registro.color = color || null; registro.nombre = [base, talla, color].filter(Boolean).join(' '); }
-    let error;
+    if(esPapeleria()){ const errPap = valoresFormPap(registro); if(errPap){ btn.disabled = false; mostrarMensaje('mensajeProducto', errPap, 'error'); return false; } }
+    let error, idGuardado = id;
     if(id){ ({ error } = await sb.from('productos').update(registro).eq('id', id)); }
+    else if(esPapeleria()){ const r = await sb.from('productos').insert(registro).select('id').single(); error = r.error; idGuardado = r.data && r.data.id; }
     else { ({ error } = await sb.from('productos').insert(registro)); }
+    if(!error && esPapeleria() && idGuardado){
+      const r2 = await guardarPreciosPap(idGuardado);
+      if(r2.error){ btn.disabled = false; mostrarMensaje('mensajeProducto', 'El artículo se guardó, pero no sus presentaciones o precios por volumen: ' + r2.error.message, 'error'); await cargarProductos(); return false; }
+    }
     btn.disabled = false;
     if(error){ mostrarMensaje('mensajeProducto', 'No se pudo guardar: ' + textoErrorProducto(error), 'error'); return false; }
     confirmarFotoGuardada();
     alternarFormulario(false);
     await cargarProductos();
+    if(esPapeleria()) await cargarPreciosPap();
     return false;
   }
 
@@ -7215,14 +7247,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     }
 
     const filtrados = base.filter(p =>
-      (!termino || p.nombre.toLowerCase().includes(termino) || (p.sku || '').toLowerCase().includes(termino)) &&
+      (!termino || coincideBusqueda(p, termino)) &&
       (!categoriaFiltroActual || p.categoria_id === categoriaFiltroActual)
     );
     if(!filtrados.length){
       contenedor.innerHTML = '<div class="vacio">No hay productos que coincidan.</div>';
       return;
     }
-    const entradas = agruparVariantesRopa(filtrados);
+    const entradas = agruparVariantesRopa(limitarListaPap(filtrados, termino, nota));
     contenedor.innerHTML = entradas.map(p => {
       if(p.__grupo) return tileGrupoVariantes(p);
       const sinStock = Number(p.stock) <= 0;
@@ -7237,7 +7269,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           <div class="item-producto-fila">
             <div>
               <div class="nombre">${escapar(p.nombre)}${enLiquidacion ? '<span class="etiqueta-liquidacion">Liquidación</span>' : ''}</div>
-              <div class="meta">${sinStock ? 'Sin stock' : 'Stock: ' + Number(p.stock)}</div>
+              <div class="meta">${sinStock ? 'Sin stock' : 'Stock: ' + stockTxt(p)}</div>
             </div>
             <div class="precio">${precioMostrado}</div>
           </div>
@@ -7279,6 +7311,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const p0 = productosCache.find(x => x.id === id);
     if(document.body.classList.contains('giro-servicios') && esServicioProd(p0)){ pedirEmpleado(p0); return; }
     if(p0 && esCafeteria() && gruposDe(p0).length){ abrirPersonalizarPos(p0); return; }
+    if(p0 && esPapeleria() && necesitaHojaPap(p0)){ abrirVentaPap(p0); return; }
     agregarAlCarritoOriginal(id);
   }
   function agregarAlCarritoOriginal(id){
@@ -7304,7 +7337,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   function cambiarCantidad(id, delta){
     const item = carrito.find(i => i.id === id);
     if(!item) return;
-    const nueva = item.cantidad + delta;
+    const nueva = redondear3(item.cantidad + delta * (item.paso || 1));
     if(nueva <= 0){
       registrarAuditoriaCarrito(item, item.cantidad);
       carrito = carrito.filter(i => i.id !== id);
@@ -7344,6 +7377,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   function renderizarCarrito(){
+    if(esPapeleria()) repriceCarritoPap();
     actualizarCobroRapido(); actualizarBloqueVale(); actualizarCrossSell(); actualizarResumenServicios();
     const contenedor = document.getElementById('lineasCarrito');
     const vacio = document.getElementById('carritoVacio');
@@ -7364,18 +7398,18 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       <div class="linea-carrito">
         <div class="info">
           <div class="n">${escapar(i.nombre)}</div>
-          <div class="p">$${i.precio.toFixed(2)} c/u</div>
+          <div class="p">$${fmtPU(i.precio)} c/u</div>
         </div>
         <div class="cant-control">
           <button onclick="cambiarCantidad(${jsAttr(i.id)}, -1)">−</button>
-          <span>${i.cantidad}</span>
+          ${controlCantidad(i)}
           <button onclick="cambiarCantidad(${jsAttr(i.id)}, 1)">+</button>
         </div>
-        <div class="subtotal-linea">$${(i.precio * i.cantidad).toFixed(2)}</div>
+        <div class="subtotal-linea">$${subLinea(i).toFixed(2)}</div>
         <button class="quitar" onclick="quitarDelCarrito(${jsAttr(i.id)})" aria-label="Quitar">×</button>
       </div>
     `).join('');
-    const total = carrito.reduce((s, i) => s + i.precio * i.cantidad, 0);
+    const total = carrito.reduce((s, i) => s + subLinea(i), 0);
     document.getElementById('totalCarrito').textContent = '$' + total.toFixed(2);
     const totalPiezas = carrito.reduce((s, i) => s + i.cantidad, 0);
     document.getElementById('barraCarritoMovilConteo').textContent = totalPiezas + (totalPiezas === 1 ? ' producto' : ' productos');
@@ -7430,7 +7464,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       return;
     }
     bloque.classList.remove('oculto');
-    const total = carrito.reduce((s, i) => s + i.precio * i.cantidad, 0);
+    const total = carrito.reduce((s, i) => s + subLinea(i), 0);
     const input = document.getElementById('montoEfectivoMixto');
     let efectivo = parseFloat(input.value);
     if(isNaN(efectivo)) efectivo = 0;
@@ -7463,7 +7497,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   function obtenerMetodoPagoSeleccionado(){
     const metodo = document.getElementById('metodoPagoVenta').value || 'efectivo';
     if(metodo !== 'mixto') return { metodo, montoEfectivo: null };
-    const total = carrito.reduce((s, i) => s + i.precio * i.cantidad, 0);
+    const total = carrito.reduce((s, i) => s + subLinea(i), 0);
     let efectivo = parseFloat(document.getElementById('montoEfectivoMixto').value);
     if(isNaN(efectivo) || efectivo < 0) efectivo = 0;
     if(efectivo > total) efectivo = total;
@@ -7494,7 +7528,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const bloque = document.getElementById('bloqueConversionMoneda');
     if(!select) return;
     const moneda = select.value;
-    const total = carrito.reduce((s, i) => s + i.precio * i.cantidad, 0);
+    const total = carrito.reduce((s, i) => s + subLinea(i), 0);
 
     if(!moneda || !total){
       bloque.classList.add('oculto');
@@ -7555,7 +7589,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     ocultarMensaje('mensajeVenta');
     document.getElementById('bloqueTicketQR').classList.add('oculto');
     const items = carrito.map(i => ({ producto_id: i.id, cantidad: i.cantidad }));
-    const total = carrito.reduce((s,i) => s + i.precio * i.cantidad, 0);
+    const total = carrito.reduce((s,i) => s + subLinea(i), 0);
 
     const { metodo: metodoPago, montoEfectivo } = obtenerMetodoPagoSeleccionado();
     if(metodoPago === 'mixto' && (document.getElementById('montoEfectivoMixto').value.trim() === '')){
@@ -7965,7 +7999,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     servicios: { nav: 'Servicios', h: 'Servicios', nuevo: 'Nuevo servicio', nombre: 'Nombre del servicio', ph: 'Corte de cabello', stock: 'Existencias (solo para productos de venta)', buscar: 'Buscar servicio',
       nota: 'Agrupa tus servicios: cabello, barba, uñas, faciales, masajes…', catPh: 'Ej. Cabello, Barba, Uñas, Faciales...', sinSku: true, sinEscaner: true },
     ropa: { nav: 'Artículos', h: 'Artículos', nuevo: 'Nuevo artículo', nombre: 'Modelo (nombre base)', ph: 'Playera básica', buscar: 'Buscar artículo',
-      nota: 'Organiza por temporada, género o tipo de prenda: playeras, jeans, calzado, accesorios…', catPh: 'Ej. Playeras, Jeans, Calzado, Accesorios...' }
+      nota: 'Organiza por temporada, género o tipo de prenda: playeras, jeans, calzado, accesorios…', catPh: 'Ej. Playeras, Jeans, Calzado, Accesorios...' },
+    papeleria: { nav: 'Artículos', h: 'Artículos', nuevo: 'Nuevo artículo', nombre: 'Nombre del artículo', ph: 'Cartulina azul', stock: 'Existencias (en unidades)', buscar: 'Buscar (ej. "cart azul")',
+      nota: 'Organiza por uso: escolar, oficina, arte, regalos, copias y servicios…', catPh: 'Ej. Escolar, Oficina, Arte, Regalos...' }
   };
   function aplicarVocabularioGiro(){
     const giro = configNegocio.tipo_negocio || '', v = VOCAB_GIRO[giro] || null;
@@ -7979,6 +8015,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const sku = document.getElementById('pSku'); if(sku && sku.closest('.campo')) sku.closest('.campo').style.display = (v && v.sinSku) ? 'none' : '';
     document.querySelectorAll('[onclick*="abrirEscaner"]').forEach(b => { b.style.display = (v && v.sinEscaner) ? 'none' : ''; });
     document.querySelectorAll('.campo-ropa').forEach(e => e.classList.toggle('oculto', giro !== 'ropa'));
+    document.querySelectorAll('.campo-papeleria').forEach(e => e.classList.toggle('oculto', giro !== 'papeleria')); if(giro === 'papeleria'){ iniciarFormPap(); cargarPreciosPap(); }
     const cf = document.getElementById('campoFotoPlatillo'); if(cf) cf.classList.toggle('oculto', !(v && v.foto));
     const nc = document.getElementById('navComisiones'); if(nc) nc.classList.toggle('oculto', !(giro === 'servicios' && miRol === 'admin' && !esAdminActual));
     const tc = document.getElementById('tabClimaAnalitica'); if(tc) tc.classList.toggle('oculto', !(climaDisponible() && miRol === 'admin' && !esAdminActual));
@@ -8069,7 +8106,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   let recibidoRapido = null;
   function actualizarCobroRapido(){
     const caja = document.getElementById('bloqueCobroRapido'); if(!caja) return;
-    const sel = document.getElementById('metodoPagoVenta'), total = carrito.reduce((s, i) => s + i.precio * i.cantidad, 0);
+    const sel = document.getElementById('metodoPagoVenta'), total = carrito.reduce((s, i) => s + subLinea(i), 0);
     const activo = document.body.classList.contains('giro-tienda') && sel && sel.value === 'efectivo' && total > 0;
     caja.classList.toggle('oculto', !activo);
     if(!activo){ recibidoRapido = null; return; }
@@ -8199,7 +8236,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   const RUTA_VALE = /^V-[A-Z2-9]{8}$/;
   let valeAplicado = null, valesPendientes = [];
   const dineroVale = (n) => '$' + Number(n).toFixed(2);
-  function totalCarritoVale(){ return carrito.reduce((s, i) => s + i.precio * i.cantidad, 0); }
+  function totalCarritoVale(){ return carrito.reduce((s, i) => s + subLinea(i), 0); }
 
   // --- Devoluciones: ofrecer el vale por lo devuelto ---
   function agregarValePendiente(id){
@@ -13382,6 +13419,284 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
   const sesionEscaneoRemoto = new URLSearchParams(location.hash.slice(1)).get('escanear');
   const ventaTicketPublico = new URLSearchParams(location.hash.slice(1)).get('ticket');
+
+  // ===== Papelería: unidades base, presentaciones (paquetes), mayoreo, búsqueda inteligente y conteo por peso =====
+  // Modelo: el stock vive SIEMPRE en la unidad base; un paquete es solo "N unidades" (con precio opcional).
+  const GIROS_PRESENTACIONES = ['papeleria']; // para dar esto a otro giro (ferretería...), agrégalo aquí y en VOCAB_GIRO/aplicarVocabularioGiro
+  const esPapeleria = () => GIROS_PRESENTACIONES.includes((configNegocio && configNegocio.tipo_negocio) || '');
+  let presCache = new Map(), volCache = new Map(); // producto_id -> [{id,nombre,unidades,precio}] / [{desde,pu}]
+  let formPap = { pres: [], vol: [] };
+  const redondear3 = (n) => Math.round(Number(n) * 1000) / 1000;
+  function subLinea(i){ return Math.round(Number(i.precio) * Number(i.cantidad) * 100 + 1e-7) / 100; }
+  function fmtPU(n){ n = Number(n) || 0; const c = Math.round(n * 100) / 100; return Math.abs(n - c) < 1e-9 ? c.toFixed(2) : String(Math.round(n * 10000) / 10000); }
+
+  async function traerTodoPaginado(construir){
+    const out = [];
+    for(let d = 0; d < 200000; d += 1000){
+      const { data, error } = await construir().range(d, d + 999);
+      if(error) return { data: null, error };
+      out.push(...(data || []));
+      if(!data || data.length < 1000) break;
+    }
+    return { data: out, error: null };
+  }
+
+  function guardarCachePap(){
+    lsSet('puve_pap_cache', JSON.stringify({ pres: Array.from(presCache.entries()), vol: Array.from(volCache.entries()) }));
+  }
+  function cargarCachePap(){
+    try{ const o = JSON.parse(lsGet('puve_pap_cache') || 'null'); if(o){ presCache = new Map(o.pres || []); volCache = new Map(o.vol || []); } }catch(e){}
+  }
+  async function cargarPreciosPap(){
+    if(!esPapeleria() || !negocioId || !enLinea) return;
+    const [a, b] = await Promise.all([
+      traerTodoPaginado(() => sb.from('presentaciones_producto').select('id,producto_id,nombre,unidades,precio').eq('negocio_id', negocioId).order('id')),
+      traerTodoPaginado(() => sb.from('precios_volumen').select('producto_id,desde,precio_unitario').eq('negocio_id', negocioId).order('id'))
+    ]);
+    if(a.error || b.error) return; // sin la migración 87 o sin red: se queda lo que había
+    presCache = new Map(); volCache = new Map();
+    a.data.forEach(r => { const l = presCache.get(r.producto_id) || []; l.push({ id: r.id, nombre: r.nombre, unidades: Number(r.unidades), precio: r.precio == null ? null : Number(r.precio) }); presCache.set(r.producto_id, l); });
+    b.data.forEach(r => { const l = volCache.get(r.producto_id) || []; l.push({ desde: Number(r.desde), pu: Number(r.precio_unitario) }); volCache.set(r.producto_id, l); });
+    guardarCachePap();
+    renderizarListaVenta(); renderizarCarrito();
+  }
+
+  // Misma regla que public.precio_unitario_volumen (servidor): gana el escalón con mayor "desde" <= cantidad; a igualdad, el más barato.
+  function escalonesPap(id){
+    const e = (volCache.get(id) || []).map(t => ({ desde: t.desde, pu: t.pu }));
+    (presCache.get(id) || []).forEach(r => { if(r.precio != null && r.unidades > 0) e.push({ desde: r.unidades, pu: r.precio / r.unidades }); });
+    return e;
+  }
+  function precioUnitPap(p, cant){
+    let mejor = null;
+    escalonesPap(p.id).forEach(t => { if(t.desde <= cant && (!mejor || t.desde > mejor.desde || (t.desde === mejor.desde && t.pu < mejor.pu))) mejor = t; });
+    if(mejor) return mejor.pu;
+    return (p.en_liquidacion && p.precio_liquidacion != null) ? Number(p.precio_liquidacion) : Number(p.precio);
+  }
+  function repriceCarritoPap(){
+    carrito.forEach(i => { const p = productosCache.find(x => x.id === i.id); if(!p) return; i.paso = Number(p.paso_venta) || 1; i.unidad = p.unidad || 'pieza'; i.precio = precioUnitPap(p, i.cantidad); });
+  }
+  function necesitaHojaPap(p){ return (Number(p.paso_venta) || 1) !== 1 || (presCache.get(p.id) || []).length > 0; }
+  function stockTxt(p){
+    const s = Number(p.stock);
+    if(!esPapeleria()) return String(s);
+    let t = s + ' ' + (p.unidad || 'pieza');
+    const grande = (presCache.get(p.id) || []).slice().sort((x, y) => y.unidades - x.unidades)[0];
+    if(grande && s >= grande.unidades) t += ' (≈' + Math.floor(s / grande.unidades) + ' ' + grande.nombre.toLowerCase() + ')';
+    const esc = escalonesPap(p.id).sort((x, y) => x.desde - y.desde)[0];
+    if(esc) t += ' · mayoreo desde ' + esc.desde;
+    return t;
+  }
+  function controlCantidad(i){
+    if(!esPapeleria()) return '<span>' + i.cantidad + '</span>';
+    return '<input class="input-mini cant-input" type="number" min="0" step="' + (i.paso || 1) + '" value="' + i.cantidad + '" style="width:64px; padding:3px 4px; text-align:center;" aria-label="Cantidad" onchange="fijarCantidad(' + jsAttr(i.id) + ', this.value)">';
+  }
+  function fijarCantidad(id, v){
+    const item = carrito.find(i => i.id === id); if(!item) return;
+    let n = redondear3(parseFloat(v));
+    if(!(n > 0)){ quitarDelCarrito(id); return; }
+    const paso = item.paso || 1;
+    if(paso !== 1) n = Math.max(paso, Math.round(n / paso) * paso);
+    n = redondear3(n);
+    if(n > item.stock){ mostrarMensaje('mensajeVenta', 'Solo hay ' + item.stock + ' de ' + item.nombre, 'error'); n = item.stock; }
+    item.cantidad = n; renderizarCarrito(); actualizarStepperEnLista(id);
+  }
+
+  // --- Buscador por palabras: "cart azul" encuentra "Cartulina azul"; sin acentos ni mayúsculas; cualquier orden ---
+  const normBusq = (s) => String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  function coincideBusqueda(p, termino){
+    if(p.__q === undefined || p.__qn !== p.nombre) { p.__q = normBusq(p.nombre + ' ' + (p.sku || '') + ' ' + (p.modelo || '')); p.__qn = p.nombre; }
+    const toks = normBusq(termino).split(/\s+/).filter(Boolean);
+    return toks.every(t => p.__q.includes(t));
+  }
+  function limitarListaPap(lista, termino, nota){
+    if(!esPapeleria()) return lista;
+    const MAX = 80;
+    let l = lista;
+    if(termino){
+      const t0 = normBusq(termino).split(/\s+/).filter(Boolean)[0] || '';
+      const puntaje = (p) => { const n = normBusq(p.nombre); return n.startsWith(t0) ? 0 : n.split(/\s+/).some(w => w.startsWith(t0)) ? 1 : 2; };
+      l = lista.map((p, i) => ({ p, i, s: puntaje(p) })).sort((a, b) => a.s - b.s || a.i - b.i).map(x => x.p);
+    }
+    if(l.length > MAX && nota){ nota.textContent = 'Mostrando ' + MAX + ' de ' + l.length + ' artículos. Escribe más palabras (ej. "cart azul") o elige una categoría para afinar.'; nota.classList.remove('oculto'); }
+    return l.slice(0, MAX);
+  }
+
+  // --- Hoja "¿cuánto vendes?" (paquetes, resmas, medios metros...) ---
+  function abrirVentaPap(p){
+    const paso = Number(p.paso_venta) || 1, uni = p.unidad || 'pieza', pres = presCache.get(p.id) || [];
+    const { caja, fondo } = modalBase(p.nombre, 440);
+    const yaEnCarrito = (carrito.find(i => i.id === p.id) || { cantidad: 0 }).cantidad;
+    const disp = redondear3(Number(p.stock) - yaEnCarrito);
+    caja.appendChild(el('div', 'nota', 'Disponible: ' + disp + ' ' + uni));
+    const cant = el('input', 'input-mini'); cant.type = 'number'; cant.min = paso; cant.step = paso; cant.value = paso; cant.style.cssText = 'width:100%; font-size:20px; text-align:center; margin:8px 0;'; cant.setAttribute('aria-label', 'Cantidad en ' + uni);
+    caja.appendChild(el('div', 'cr-etq', 'Cantidad (' + uni + ')')); caja.appendChild(cant);
+    const fila = el('div', 'filtro-cats'); fila.style.flexWrap = 'wrap'; caja.appendChild(fila);
+    const sumar = (n) => { cant.value = redondear3((parseFloat(cant.value) || 0) + n); refrescar(); };
+    const b1 = el('button', 'chip-cat', '+' + paso + ' ' + uni); b1.type = 'button'; b1.onclick = () => sumar(paso); fila.appendChild(b1);
+    pres.slice().sort((a, b) => a.unidades - b.unidades).forEach(r => { const b = el('button', 'chip-cat', '+ ' + r.nombre + ' (' + r.unidades + ')'); b.type = 'button'; b.onclick = () => sumar(r.unidades); fila.appendChild(b); });
+    const info = el('div', 'nota'); info.style.margin = '10px 0'; caja.appendChild(info);
+    const ok = el('button', 'principal', 'Agregar'); ok.type = 'button'; ok.style.cssText = 'width:100%;';
+    const valida = () => { let n = redondear3(parseFloat(cant.value)); if(!(n > 0)) return 0; if(paso !== 1) n = redondear3(Math.max(paso, Math.round(n / paso) * paso)); return n; };
+    function refrescar(){
+      const n = valida(), total = redondear3(yaEnCarrito) + n, pu = precioUnitPap(p, total);
+      if(!n){ info.textContent = 'Escribe una cantidad.'; ok.disabled = true; return; }
+      const sobra = total > Number(p.stock) + 1e-9; ok.disabled = sobra;
+      const base = Number(p.precio), esDescuento = pu < base - 1e-9;
+      info.textContent = sobra ? 'No alcanza: solo hay ' + disp + ' ' + uni + '.' : '$' + fmtPU(pu) + ' c/u' + (esDescuento ? ' (precio de mayoreo)' : '') + ' · ' + (yaEnCarrito ? 'con lo que ya llevas (' + redondear3(total) + ') = $' + (Math.round(pu * total * 100) / 100).toFixed(2) : n + ' ' + uni + ' = $' + (Math.round(pu * n * 100) / 100).toFixed(2));
+      ok.textContent = 'Agregar ' + n + ' ' + uni;
+    }
+    cant.oninput = refrescar;
+    ok.onclick = () => {
+      const n = valida(); if(!n) return;
+      const ex = carrito.find(i => i.id === p.id);
+      if(ex) ex.cantidad = redondear3(ex.cantidad + n);
+      else carrito.push({ id: p.id, nombre: p.nombre, precio: Number(p.precio), cantidad: n, stock: Number(p.stock), paso, unidad: uni });
+      ocultarMensaje('mensajeVenta'); renderizarCarrito(); actualizarStepperEnLista(p.id); fondo.remove();
+    };
+    caja.appendChild(ok); refrescar(); setTimeout(() => cant.select(), 50);
+  }
+
+  // --- Formulario del artículo (encargado) ---
+  const modoInv = () => (document.querySelector('input[name="pModoInv"]:checked') || {}).value || 'uni';
+  function iniciarFormPap(){
+    const s = document.getElementById('pStock'); if(s && esPapeleria()) s.step = 'any';
+    pintarEditoresPap();
+  }
+  function resetFormPap(){
+    const set = (id, v) => { const e = document.getElementById(id); if(e) e.value = v; };
+    set('pUnidad', 'pieza'); set('pPaso', '1'); set('pPeso', ''); set('pPaqN', ''); set('pPaqU', ''); set('pPaqCosto', '');
+    const r = document.getElementById('pModoUni'); if(r) r.checked = true;
+    formPap = { pres: [], vol: [] }; cambiarModoInv(); pintarEditoresPap();
+    const bc = document.getElementById('btnCuentahojas'); if(bc) bc.disabled = true;
+  }
+  function cargarFormPap(p){
+    const set = (id, v) => { const e = document.getElementById(id); if(e) e.value = v; };
+    set('pUnidad', p.unidad || 'pieza'); set('pPaso', p.paso_venta || 1); set('pPeso', p.peso_unitario_g || '');
+    const r = document.getElementById('pModoUni'); if(r) r.checked = true; cambiarModoInv();
+    formPap = { pres: (presCache.get(p.id) || []).map(x => ({ nombre: x.nombre, unidades: x.unidades, precio: x.precio == null ? '' : x.precio })),
+                vol: (volCache.get(p.id) || []).map(x => ({ desde: x.desde, precio: x.pu })) };
+    pintarEditoresPap();
+    const bc = document.getElementById('btnCuentahojas'); if(bc) bc.disabled = false;
+  }
+  function cambiarModoInv(){
+    const paq = modoInv() === 'paq';
+    document.querySelectorAll('.bloque-paq').forEach(e => e.classList.toggle('oculto', !paq));
+    const s = document.getElementById('pStock'); if(s) s.readOnly = paq;
+    recalcPaq();
+  }
+  function recalcPaq(){
+    const aviso = document.getElementById('pPaqAviso'); if(!aviso) return;
+    if(modoInv() !== 'paq'){ aviso.textContent = ''; return; }
+    const n = parseFloat(document.getElementById('pPaqN').value), u = parseFloat(document.getElementById('pPaqU').value), cp = parseFloat(document.getElementById('pPaqCosto').value);
+    const uni = document.getElementById('pUnidad').value.trim() || 'unidades', partes = [];
+    if(n >= 0 && u > 0){ document.getElementById('pStock').value = redondear3(n * u); partes.push('= ' + redondear3(n * u) + ' ' + uni + ' en existencia'); }
+    if(cp >= 0 && u > 0){ document.getElementById('pCosto').value = (Math.round(cp / u * 100) / 100).toFixed(2); partes.push('costo por ' + uni + ': $' + (cp / u).toFixed(3)); }
+    const pr = parseFloat(document.getElementById('pPrecio').value);
+    if(pr >= 0 && u > 0) partes.push('el paquete sale en $' + (Math.round(pr * u * 100) / 100).toFixed(2));
+    aviso.textContent = partes.join(' · ');
+  }
+  function pintarEditoresPap(){
+    const ep = document.getElementById('edPresentaciones'), ev = document.getElementById('edVolumen'); if(!ep || !ev) return;
+    ep.textContent = ''; ev.textContent = '';
+    const precioUni = () => parseFloat(document.getElementById('pPrecio').value) || 0;
+    const num = (ph, w, val, step) => { const i = el('input', 'input-mini'); i.type = 'number'; i.min = 0; i.step = step || 'any'; i.placeholder = ph; i.value = val; i.style.width = w; i.setAttribute('aria-label', ph); return i; };
+    formPap.pres.forEach((r, k) => {
+      const f = el('div', 'empleado-fila'); f.style.flexWrap = 'wrap';
+      const n = el('input', 'input-mini'); n.type = 'text'; n.maxLength = 30; n.placeholder = 'Paquete, caja, resma'; n.value = r.nombre; n.style.width = '130px'; n.oninput = () => { r.nombre = n.value; };
+      const u = num('Unidades', '84px', r.unidades); const pr = num('Precio especial', '104px', r.precio, '0.01');
+      const hint = el('span', 'nota'); hint.style.margin = '0';
+      const act = () => { r.unidades = parseFloat(u.value) || 0; r.precio = pr.value; hint.textContent = r.unidades > 0 ? (pr.value !== '' ? '$' + (Math.round(parseFloat(pr.value) * 100) / 100).toFixed(2) + ' (ahorras $' + Math.max(0, precioUni() * r.unidades - parseFloat(pr.value)).toFixed(2) + ')' : 'automático: $' + (Math.round(precioUni() * r.unidades * 100) / 100).toFixed(2)) : ''; };
+      u.oninput = act; pr.oninput = act; act();
+      const d = el('button', 'texto', 'Quitar'); d.type = 'button'; d.onclick = () => { formPap.pres.splice(k, 1); pintarEditoresPap(); };
+      agregarHijosPuve(f, [n, el('span', 'nota', 'trae'), u, el('span', 'nota', 'u. ·'), pr, hint, d]); ep.appendChild(f);
+    });
+    const ap = el('button', 'texto', '+ Agregar presentación'); ap.type = 'button'; ap.onclick = () => { if(formPap.pres.length >= 6) return; formPap.pres.push({ nombre: '', unidades: '', precio: '' }); pintarEditoresPap(); }; ep.appendChild(ap);
+    formPap.vol.forEach((r, k) => {
+      const f = el('div', 'empleado-fila'); f.style.flexWrap = 'wrap';
+      const d1 = num('Desde', '84px', r.desde); const p1 = num('$ c/u', '90px', r.precio, 'any');
+      const hint = el('span', 'nota'); hint.style.margin = '0';
+      const act = () => { r.desde = d1.value; r.precio = p1.value; const b = precioUni(), pv = parseFloat(p1.value); hint.textContent = (b > 0 && pv >= 0) ? (pv < b ? '−' + Math.round((1 - pv / b) * 100) + '% vs. precio normal' : 'más caro que el precio normal') : ''; };
+      d1.oninput = act; p1.oninput = act; act();
+      const q = el('button', 'texto', 'Quitar'); q.type = 'button'; q.onclick = () => { formPap.vol.splice(k, 1); pintarEditoresPap(); };
+      agregarHijosPuve(f, [el('span', 'nota', 'Desde'), d1, el('span', 'nota', 'unidades →'), p1, el('span', 'nota', 'c/u'), hint, q]); ev.appendChild(f);
+    });
+    const av = el('button', 'texto', '+ Agregar precio por volumen'); av.type = 'button'; av.onclick = () => { if(formPap.vol.length >= 6) return; formPap.vol.push({ desde: '', precio: '' }); pintarEditoresPap(); }; ev.appendChild(av);
+  }
+  // Completa "registro" con los campos de papelería; devuelve un texto de error o ''.
+  function valoresFormPap(registro){
+    const unidad = document.getElementById('pUnidad').value.trim() || 'pieza';
+    const paso = parseFloat(document.getElementById('pPaso').value) || 1;
+    if(paso < 0.01) return 'El paso de venta mínimo es 0.01.';
+    const peso = parseFloat(document.getElementById('pPeso').value);
+    registro.unidad = unidad; registro.paso_venta = paso; registro.peso_unitario_g = peso > 0 ? peso : null;
+    if(modoInv() === 'paq'){
+      const n = parseFloat(document.getElementById('pPaqN').value), u = parseFloat(document.getElementById('pPaqU').value);
+      if(!(n >= 0) || !(u > 0)) return 'Indica cuántos paquetes tienes y cuántas unidades trae cada uno.';
+      registro.stock = redondear3(n * u);
+      if(!formPap.pres.some(r => parseFloat(r.unidades) === u)) formPap.pres.unshift({ nombre: 'Paquete', unidades: u, precio: '' });
+    }
+    if(registro.stock > 99999999) return 'El inventario es demasiado grande.';
+    const pres = [], nombres = new Set();
+    for(const r of formPap.pres){
+      const nombre = String(r.nombre || '').trim(), u = parseFloat(r.unidades), pr = r.precio === '' || r.precio == null ? null : parseFloat(r.precio);
+      if(!nombre) return 'Cada presentación necesita un nombre (paquete, caja, resma…).';
+      if(!(u > 0)) return 'La presentación "' + nombre + '" necesita cuántas unidades trae.';
+      if(pr != null && !(pr >= 0)) return 'El precio especial de "' + nombre + '" no es válido.';
+      if(nombres.has(nombre.toLowerCase())) return 'Hay dos presentaciones llamadas "' + nombre + '".';
+      nombres.add(nombre.toLowerCase()); pres.push({ nombre, unidades: u, precio: pr });
+    }
+    const vol = [], desdes = new Set();
+    for(const r of formPap.vol){
+      const d = parseFloat(r.desde), pr = parseFloat(r.precio);
+      if(!(d > 0) || !(pr >= 0)) return 'Completa cada precio por volumen (desde cuántas unidades y a qué precio).';
+      if(desdes.has(d)) return 'Hay dos precios por volumen que empiezan en ' + d + '.';
+      desdes.add(d); vol.push({ desde: d, precio_unitario: pr });
+    }
+    formPap.listo = { pres, vol }; return '';
+  }
+  async function guardarPreciosPap(productoId){
+    const l = formPap.listo || { pres: [], vol: [] };
+    return sb.rpc('guardar_precios_papeleria', { p_producto: productoId, p_presentaciones: l.pres, p_volumen: l.vol });
+  }
+
+  // --- Cuentahojas: de gramos a unidades ---
+  function contarPorPeso(total, tara, unitario){
+    const t = Number(total) - (Number(tara) || 0), u = Number(unitario);
+    if(!(u > 0) || !(t > 0)) return 0;
+    return Math.round(t / u);
+  }
+  function abrirCuentahojas(){
+    const id = document.getElementById('productoId').value, p = productosCache.find(x => x.id === id);
+    if(!p){ mostrarMensaje('mensajeProducto', 'Guarda el artículo primero para contarlo por peso.', 'error'); return; }
+    const { caja, fondo } = modalBase('Contar por peso: ' + p.nombre, 440), uni = p.unidad || 'pieza';
+    const campo = (rot, val, ph) => { caja.appendChild(el('div', 'cr-etq', rot)); const i = el('input', 'input-mini'); i.type = 'number'; i.min = 0; i.step = 'any'; i.placeholder = ph || ''; i.value = val; i.style.cssText = 'width:100%; margin-bottom:8px;'; caja.appendChild(i); return i; };
+    const unit = campo('Peso de 1 ' + uni + ' (gramos)', p.peso_unitario_g || '', 'ej. 4.6');
+    caja.appendChild(el('div', 'nota', 'Si no lo sabes: pesa una cantidad conocida (ej. 100) y escribe aquí los datos para calcularlo.'));
+    const cN = campo('Calibrar: cuántas ' + uni + ' pesaste', '', 'ej. 100'), cG = campo('Calibrar: peso de esas (gramos)', '', 'ej. 465');
+    const cal = el('button', 'texto', 'Calcular peso por ' + uni); cal.type = 'button'; cal.onclick = () => { const n = parseFloat(cN.value), g = parseFloat(cG.value); if(n > 0 && g > 0){ unit.value = redondear3(g / n); refrescar(); } }; caja.appendChild(cal);
+    const total = campo('Peso total del montón (gramos)', '', 'ej. 1573'), tara = campo('Peso del envase o charola (gramos, opcional)', '', '0');
+    const res = el('div', 'nota'); res.style.cssText = 'font-size:16px; margin:8px 0;'; caja.appendChild(res);
+    const ok = el('button', 'principal', 'Ajustar inventario'); ok.type = 'button'; ok.style.width = '100%'; caja.appendChild(ok);
+    let n = 0;
+    function refrescar(){
+      n = contarPorPeso(total.value, tara.value, unit.value); ok.disabled = !(n > 0);
+      const dif = n - Number(p.stock);
+      res.textContent = n > 0 ? '≈ ' + n + ' ' + uni + (Math.abs(dif) < 1 ? ' (coincide con tu sistema)' : ' · el sistema dice ' + p.stock + ' (' + (dif > 0 ? '+' : '') + redondear3(dif) + ')') : 'Escribe el peso total para contar.';
+      ok.textContent = n > 0 ? 'Ajustar inventario a ' + n : 'Ajustar inventario';
+    }
+    [unit, total, tara].forEach(i => { i.oninput = refrescar; }); refrescar();
+    ok.onclick = async () => {
+      if(!confirm('El inventario de "' + p.nombre + '" pasará de ' + p.stock + ' a ' + n + ' ' + uni + '. ¿Continuar?')) return;
+      ok.disabled = true;
+      if(parseFloat(unit.value) > 0 && parseFloat(unit.value) !== Number(p.peso_unitario_g)) await sb.from('productos').update({ peso_unitario_g: parseFloat(unit.value) }).eq('id', p.id);
+      const { error } = await sb.rpc('ajustar_inventario', { p_producto_id: p.id, p_nuevo_stock: n, p_motivo: 'Conteo por peso: ' + total.value + ' g' });
+      if(error){ ok.disabled = false; alert('No se pudo ajustar: ' + error.message); return; }
+      fondo.remove(); alternarFormulario(false); await cargarProductos();
+    };
+  }
+  cargarCachePap();
+
   aplicarPreferenciasApariencia();
   if(sesionEscaneoRemoto){
     iniciarModoEscaneoRemoto(sesionEscaneoRemoto);
