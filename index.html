@@ -34,7 +34,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="theme-color" content="#000000">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; connect-src 'self' https://ckzueunptmlqmtypowmg.supabase.co; img-src 'self' data: https://ckzueunptmlqmtypowmg.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; base-uri 'self'; form-action 'self'; object-src 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://cdn.jsdelivr.net https://unpkg.com; worker-src 'self' blob:; connect-src 'self' https://ckzueunptmlqmtypowmg.supabase.co https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; img-src 'self' data: https://ckzueunptmlqmtypowmg.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; base-uri 'self'; form-action 'self'; object-src 'none';">
 <title>PUVE</title>
 <link rel="icon" href="img/logo_mini.png" type="image/png" sizes="any">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -324,6 +324,12 @@
   .form-agregar-admin select{ padding:9px 11px; border:1px solid var(--borde); border-radius:7px; font-family:'Inter'; font-size:13.5px; background:var(--superficie); color:var(--texto); }
   .input-mini{ padding:8px 10px; border:1px solid var(--borde); border-radius:6px; background:var(--superficie); font-family:'Inter'; font-size:13px; color:var(--texto); outline:none; transition: border-color .12s ease; }
   .input-mini:focus{ border-color: var(--foco); }
+.det-pap{ border:1px solid var(--borde); border-radius:10px; padding:2px 12px 10px; background:var(--superficie); }
+.det-pap > summary{ cursor:pointer; padding:11px 0 6px; font-weight:600; font-size:14px; list-style:none; display:flex; justify-content:space-between; align-items:center; }
+.det-pap > summary::-webkit-details-marker{ display:none; }
+.det-pap > summary::after{ content:'+'; font-size:18px; color:var(--texto-suave, #888); }
+.det-pap[open] > summary::after{ content:'–'; }
+.det-pap .nota{ margin:2px 0 8px; }
   select.input-mini{ cursor:pointer; }
   .input-mini:disabled{ opacity:.5; cursor:not-allowed; }
 
@@ -1424,6 +1430,7 @@
           <button id="navVender" class="activo" onclick="conTutorial('nav-vender', this, function(){ if(funcionPuveActiva('cajero.nav_vender')) cambiarSeccion('vender'); })">Vender</button>
           <button id="navPedidos" class="oculto" onclick="cambiarSeccion('pedidos')">Pedidos<span id="badgePedidosQr" class="badge-pedidos oculto"></span></button>
           <button id="navAgenda" class="oculto" onclick="cambiarSeccion('agenda')">Agenda</button>
+          <button id="navEncargos" class="oculto" onclick="cambiarSeccion('encargos')">Encargos</button>
           <button id="navCorte" onclick="conTutorial('nav-corte', this, function(){ if(funcionPuveActiva('cajero.nav_corte')) cambiarSeccion('corte'); })">Corte de caja</button>
           <button id="navDevoluciones" class="oculto" onclick="conTutorial('nav-devoluciones', this, function(){ if(funcionPuveActiva('cajero.nav_devoluciones')) cambiarSeccion('devoluciones'); })">Devoluciones</button>
         </div>
@@ -1477,6 +1484,7 @@
         <div>
           <div class="buscador" style="display:flex; gap:8px; flex-wrap:wrap;">
             <input id="buscarProducto" type="text" placeholder="Buscar producto..." oninput="renderizarListaVenta()" style="flex:1;">
+            <button type="button" id="btnListaEscolar" class="btn-escanear oculto" onclick="abrirListaEscolar()">Lista escolar</button>
             <button type="button" id="btnEscanearVender" class="btn-escanear" onclick="conTutorial('btn-escanear', this, abrirEscaner, escanearParaVender)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Escanear</button>
           </div>
           <div id="filtroCategoriasVenta" class="filtro-cats"></div>
@@ -1591,6 +1599,7 @@
 
   <div class="seccion" id="seccionProductos">
     <div class="contenido">
+      <div id="bannerTemporada" class="oculto"></div>
       <div class="encabezado-seccion">
         <div><h2>Productos</h2><p id="resumenInventario">—</p></div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -1619,27 +1628,37 @@
             <div class="campo"><label for="pCosto">Costo</label><input id="pCosto" type="number" step="0.01" min="0" placeholder="0.00"></div>
             <div class="campo"><label for="pStock">Stock</label><input id="pStock" type="number" step="1" min="0" required placeholder="0"></div>
             <div class="campo"><label for="pCaducidad">Caducidad (opcional)</label><input id="pCaducidad" type="date"></div>
-            <div class="campo oculto campo-papeleria"><label for="pUnidad">Unidad de venta</label><input id="pUnidad" type="text" list="listaUnidadesPap" maxlength="20" value="pieza" placeholder="hoja, pieza, metro" oninput="recalcPaq()"><datalist id="listaUnidadesPap"><option value="pieza"><option value="hoja"><option value="pliego"><option value="metro"><option value="copia"><option value="par"><option value="juego"></datalist></div>
-            <div class="campo oculto campo-papeleria"><label for="pPaso">Se vende de… en…</label><input id="pPaso" type="number" min="0.01" step="0.01" value="1"><div class="nota">1 = de una en una. 0.5 = de medio en medio (ej. listón).</div></div>
-            <div class="campo oculto campo-papeleria"><label for="pPeso">Peso de 1 unidad (g, opcional)</label><input id="pPeso" type="number" min="0" step="any" placeholder="4.6"><div class="nota">Sirve para contar inventario con una báscula.</div></div>
             <div class="campo oculto campo-papeleria c-full">
-              <label>¿Cómo registras tu inventario?</label>
-              <div class="foto-acc">
-                <label style="font-weight:500;"><input type="radio" name="pModoInv" id="pModoUni" value="uni" checked onchange="cambiarModoInv()"> En unidades</label>
-                <label style="font-weight:500;"><input type="radio" name="pModoInv" id="pModoPaq" value="paq" onchange="cambiarModoInv()"> En paquetes</label>
-                <button type="button" id="btnCuentahojas" onclick="abrirCuentahojas()" disabled>Contar por peso</button>
-              </div>
-              <div class="foto-acc bloque-paq oculto" style="margin-top:8px;">
-                <input id="pPaqN" type="number" min="0" step="any" class="input-mini" style="width:96px;" placeholder="Paquetes" oninput="recalcPaq()" aria-label="Cantidad de paquetes">
-                <span class="nota" style="margin:0;">de</span>
-                <input id="pPaqU" type="number" min="0.01" step="any" class="input-mini" style="width:110px;" placeholder="Unidades c/u" oninput="recalcPaq()" aria-label="Unidades por paquete">
-                <input id="pPaqCosto" type="number" min="0" step="0.01" class="input-mini" style="width:120px;" placeholder="Costo paquete" oninput="recalcPaq()" aria-label="Costo por paquete (opcional)">
-              </div>
-              <div class="nota bloque-paq oculto" id="pPaqAviso"></div>
-              <div class="nota">El precio de arriba es <b>por unidad</b>; el sistema calcula el de paquetes, cajas o mayoreo a partir de él.</div>
+              <label>¿Cómo lo vendes?</label>
+              <div class="filtro-cats" id="chipsUnidad" style="flex-wrap:wrap;"></div>
+              <input id="pUnidad" type="hidden" value="pieza">
+              <input id="pUnidadOtra" type="text" class="input-mini oculto" maxlength="20" placeholder="Ej. litro, juego, par" style="margin-top:8px;" oninput="elegirUnidadOtra(this.value)">
             </div>
-            <div class="campo oculto campo-papeleria c-full"><label>También lo vendes por… (paquete, caja, resma)</label><div id="edPresentaciones"></div></div>
-            <div class="campo oculto campo-papeleria c-full"><label>Precio por volumen (mayoreo)</label><div id="edVolumen"></div><div class="nota">Ej. fotocopias: desde 50 → $0.70 c/u. Se aplica solo, sin que el cajero cambie nada.</div></div>
+            <div class="campo oculto campo-papeleria c-full" id="bloqueModoInv">
+              <label>¿Cómo cuentas lo que tienes?</label>
+              <div class="filtro-cats" style="flex-wrap:wrap;"><button type="button" class="chip-cat activo" id="chipModoUni" onclick="cambiarModoInv('uni')">Sueltas</button><button type="button" class="chip-cat" id="chipModoPaq" onclick="cambiarModoInv('paq')">En paquetes</button></div>
+              <input id="pModoInvVal" type="hidden" value="uni">
+              <div class="bloque-paq oculto" style="margin-top:10px;">
+                <label for="pPaqN">¿Cuántos paquetes tienes?</label><input id="pPaqN" type="number" min="0" step="any" oninput="recalcPaq()">
+                <label for="pPaqU" id="lblPaqU" style="margin-top:8px;">¿Cuántas unidades trae cada paquete?</label><input id="pPaqU" type="number" min="0.01" step="any" oninput="recalcPaq()">
+                <label for="pPaqCosto" style="margin-top:8px;">¿Cuánto te costó cada paquete? (opcional)</label><input id="pPaqCosto" type="number" min="0" step="0.01" oninput="recalcPaq()">
+              </div>
+              <div class="nota bloque-paq oculto" id="pPaqAviso" style="font-weight:600; margin-top:6px;"></div>
+            </div>
+            <details class="det-pap campo-papeleria oculto c-full" id="detPres"><summary id="sumPres">Venderlo también por paquete o caja</summary><div class="nota">Ejemplo: paquete de 100 hojas. Si no pones precio, se calcula solo.</div><div id="edPresentaciones"></div></details>
+            <details class="det-pap campo-papeleria oculto c-full" id="detVol"><summary id="sumVol">Dar descuento si llevan varias</summary><div class="nota">Ejemplo: desde 50 copias, cada una a $0.70. Se aplica solo al cobrar.</div><div id="edVolumen"></div></details>
+            <details class="det-pap campo-papeleria oculto c-full" id="detFrac"><summary>Venderlo en fracciones (medios, cuartos)</summary><label for="pPaso">Lo mínimo que se puede vender</label><input id="pPaso" type="number" min="0.01" step="0.01" value="1"><div class="nota">1 = de una en una. 0.5 = de medio en medio (ej. listón).</div></details>
+            <details class="det-pap campo-papeleria oculto c-full" id="detPeso"><summary>Contar mi inventario con una báscula</summary><label id="lblPeso" for="pPeso">Peso de 1 unidad (en gramos)</label><input id="pPeso" type="number" min="0" step="any" placeholder="Ej. 4.6"><div style="margin-top:8px;"><button type="button" id="btnCuentahojas" onclick="abrirCuentahojas()" disabled>Contar ahora</button></div><div class="nota">Pesas el montón y el sistema calcula cuántas hay. Guarda el artículo primero.</div></details>
+            <details class="det-pap campo-papeleria oculto c-full" id="detServ"><summary>Es un servicio (copias, impresiones)</summary>
+              <label style="font-weight:500;"><input type="checkbox" id="pEsServicio" onchange="cambiarEsServicio()"> Es un servicio, no tiene inventario propio</label>
+              <div id="bloqueInsumo" style="display:none; margin-top:8px;">
+                <label>¿Gasta algo de tu inventario? (ej. 1 hoja por copia)</label>
+                <input id="pInsumoBuscar" type="text" class="input-mini" placeholder="Buscar artículo…" oninput="buscarInsumo()" style="width:100%;">
+                <div id="insumoLista" class="filtro-cats" style="flex-wrap:wrap; margin:6px 0;"></div>
+                <div id="insumoElegido" style="display:flex; gap:8px; align-items:center;"></div>
+                <label for="pInsumoCant" style="margin-top:8px;">Cuánto gasta por cada 1</label><input id="pInsumoCant" type="number" min="0.001" step="any" value="1">
+              </div>
+            </details>
             <div class="campo oculto campo-servicio"><label for="pTipo">¿Qué vas a agregar?</label><select id="pTipo"><option value="servicio">Servicio (corte, tinte, masaje…)</option><option value="producto">Producto para vender (cera, champú…)</option></select></div>
             <div class="campo oculto" id="campoDuracion"><label for="pDuracion">Duración (minutos)</label><input id="pDuracion" type="number" min="5" max="600" step="5" placeholder="45"></div>
             <div class="campo oculto campo-ropa"><label for="pTalla">Talla</label><input id="pTalla" type="text" maxlength="12" placeholder="M, 28, 9.5"></div>
@@ -1803,6 +1822,17 @@
       </div>
       <div id="mensajePedidosQr" class="mensaje"></div>
       <div id="listaPedidosQr" class="pedidos-cols"></div>
+    </div>
+  </div>
+
+  <div class="seccion" id="seccionEncargos">
+    <div class="contenido">
+      <div class="encabezado-seccion">
+        <div><h2>Encargos</h2><p>Aparta artículos con anticipo y entrégalos después.</p></div>
+        <button type="button" class="principal" style="width:auto;" onclick="abrirNuevoEncargo()">Nuevo encargo</button>
+      </div>
+      <div id="mensajeEncargos" class="mensaje"></div>
+      <div id="listaEncargos"></div>
     </div>
   </div>
 
@@ -2961,6 +2991,7 @@
       <p class="nota" id="mensajeVoz" style="margin:0 0 6px; min-height:20px; font-style:italic;">Preparando...</p>
       <p class="nota" id="transcritoUsuarioVoz" style="margin:0 0 16px; min-height:22px; font-weight:600; color:var(--texto);"></p>
 
+      <div id="accionesVoz" style="display:none; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:12px;"></div>
       <div id="resumenVoz" class="nota" style="text-align:left; background:var(--fondo); border-radius:8px; padding:12px; margin-bottom:16px; display:none;"></div>
       <button class="texto" onclick="cerrarModoVoz()" style="border:1px solid var(--borde); border-radius:7px; padding:8px 16px;">Cancelar</button>
     </div>
@@ -3503,8 +3534,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     return raw ? JSON.parse(raw) : [];
   }
   function guardarColaVentas(cola){ lsSet('puve_cola_ventas', JSON.stringify(cola)); }
-  function guardarProductosCacheLocal(lista){ lsSet('puve_productos_cache', JSON.stringify(lista)); }
+  function guardarProductosCacheLocal(lista){
+    if(lista.length > 2500){ productosCacheGrande = lista; guardarCacheIDB(lista); lsRemove('puve_productos_cache'); return; }   // catálogo enorme: no cabe en localStorage
+    productosCacheGrande = null; lsSet('puve_productos_cache', JSON.stringify(lista));
+  }
   function obtenerProductosCacheLocal(){
+    if(productosCacheGrande) return productosCacheGrande;
     const raw = lsGet('puve_productos_cache');
     return raw ? JSON.parse(raw) : [];
   }
@@ -6858,6 +6893,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     switch(cual){
       case 'vender':       return esCajeroAhora;
       case 'productos':    return esCajeroAhora || esEncargadoAhora;
+      case 'encargos':     return (esCajeroAhora || esEncargadoAhora) && document.body.classList.contains('giro-papeleria');
       case 'agenda':       return (esCajeroAhora || esEncargadoAhora) && document.body.classList.contains('giro-servicios');
       case 'comisiones':   return esEncargadoAhora && document.body.classList.contains('giro-servicios');
       case 'pedidos':      return (esCajeroAhora || esEncargadoAhora) && pedidosQrActivo === true;
@@ -6881,7 +6917,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       console.warn('Navegación bloqueada: tu rol no tiene acceso a "' + cual + '".');
       return;
     }
-    ['Vender','Agenda','Pedidos','Comisiones','Productos','Corte','Devoluciones','Gastos','Inventario','Analitica','Dispositivos','Config','Fiscal','Soporte','Admin'].forEach(s => {
+    ['Vender','Agenda','Encargos','Pedidos','Comisiones','Productos','Corte','Devoluciones','Gastos','Inventario','Analitica','Dispositivos','Config','Fiscal','Soporte','Admin'].forEach(s => {
       document.getElementById('nav'+s).classList.toggle('activo', s.toLowerCase() === cual);
       document.getElementById('seccion'+s).classList.toggle('activa', s.toLowerCase() === cual);
     });
@@ -6890,7 +6926,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(cual === 'pedidos') refrescarPedidosQr();
     if(cual === 'comisiones') cambiarPeriodoComisiones(periodoComisiones);
     if(cual === 'agenda') abrirAgenda();
-    if(cual === 'productos'){ aplicarModoProductosSegunRol(); aplicarVocabularioGiro(); actualizarBloqueClima(); }
+    if(cual === 'encargos') abrirEncargos();
+    if(cual === 'productos'){ aplicarModoProductosSegunRol(); aplicarVocabularioGiro(); actualizarBloqueClima(); pintarTemporada(); }
     if(cual === 'vender') setTimeout(enfocarEscanerVenta, 200);
     if(cual === 'corte') cargarHistorialCortes();
     if(cual === 'devoluciones'){ cargarHistorialDevoluciones(); document.getElementById('formBuscarVentaDevolucion').reset(); document.getElementById('resultadoBuscarVenta').classList.add('oculto'); ocultarMensaje('mensajeDevoluciones'); }
@@ -6986,6 +7023,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     renderizarListaVenta();
     cargarProductosMasVendidos();
     cargarPreciosPap();
+    pintarTemporada();
   }
 
   let idsMasVendidos = null;
@@ -8019,6 +8057,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const cf = document.getElementById('campoFotoPlatillo'); if(cf) cf.classList.toggle('oculto', !(v && v.foto));
     const nc = document.getElementById('navComisiones'); if(nc) nc.classList.toggle('oculto', !(giro === 'servicios' && miRol === 'admin' && !esAdminActual));
     const tc = document.getElementById('tabClimaAnalitica'); if(tc) tc.classList.toggle('oculto', !(climaDisponible() && miRol === 'admin' && !esAdminActual));
+    const ne = document.getElementById('navEncargos'); if(ne) ne.classList.toggle('oculto', !(giro === 'papeleria' && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
+    const bl = document.getElementById('btnListaEscolar'); if(bl) bl.classList.toggle('oculto', giro !== 'papeleria');
     const na = document.getElementById('navAgenda'); if(na) na.classList.toggle('oculto', !(giro === 'servicios' && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
     if(giro === 'servicios') cargarEmpleados(); if(giro === 'cafeteria') cargarGrupos(); if(GIROS_CLIMA.includes(giro)) iniciarClima(); ajustarFormServicio();
   }
@@ -11779,7 +11819,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
   async function preguntarSiNo(pregunta){
     const texto = (await preguntarYEscuchar(pregunta + ' Di sí para confirmar o no para omitir.')).toLowerCase();
-    return /\bs[ií]\b/.test(texto) && !/\bno\b/.test(texto);
+    return esSiVoz(texto);
   }
 
   function extraerNumeroDeVoz(texto){
@@ -11831,7 +11871,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('resumenVoz').style.display = 'none';
     instruccionesConfirmacionDadas = false;
     try {
-      await hablar('Vamos a agregar un producto.');
+      { const g = giroVoz(); document.querySelector('#modalVoz h3').textContent = 'Agregar ' + (SUST_VOZ[g] || 'un producto').replace(/^un /, '') + ' por voz'; await hablar('Vamos a agregar ' + (SUST_VOZ[g] || 'un producto') + '.'); }
       await capturarYConfirmarProducto();
     } catch(e){
       if(e && e.message === 'cancelado') return;   // el usuario cerró el asistente
@@ -11844,71 +11884,184 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     return !t || /\bomitir\b|\bninguno\b|\bninguna\b|\bno\b|\bsin\b/.test(t);
   }
 
+  // ===== Agregar por voz, adaptado al giro (mismas preguntas que el formulario de cada giro) =====
+  const SUST_VOZ = { restaurante: 'un platillo', cafeteria: 'un producto del menú', servicios: 'un servicio', ropa: 'un artículo de ropa', papeleria: 'un artículo' };
+  const GUION_VOZ = {
+    restaurante: ['nombre', 'categoria', 'precio', 'costo', 'stock', 'foto'],
+    cafeteria: ['nombre', 'categoria', 'precio', 'costo', 'stock', 'foto'],
+    servicios: ['tipo', 'nombre', 'categoria', 'precio', 'duracion', 'stock', 'costo'],
+    ropa: ['nombre', 'talla', 'color', 'categoria', 'sku', 'precio', 'costo', 'stock'],
+    farmacia: ['nombre', 'categoria', 'sku', 'precio', 'costo', 'stock', 'caducidad'],
+    papeleria: ['nombre', 'categoria', 'esServicio', 'sku', 'unidad', 'precio', 'insumo', 'existencias', 'mayoreo'],
+    _base: ['nombre', 'categoria', 'sku', 'precio', 'costo', 'stock']
+  };
+  const giroVoz = () => (configNegocio && configNegocio.tipo_negocio) || 'otro';
+  const guionVoz = (g) => GUION_VOZ[g] || GUION_VOZ._base;
+  const esSiVoz = (texto) => { const t = String(texto || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); return /\b(si|claro|dale|ok|va)\b/.test(t) && !/\bno\b/.test(t); };  // "sí" con acento no casaba con \b
+  const siONo = async (q) => esSiVoz(await preguntarYEscuchar(q + ' Di sí o no.'));
+  const uVoz = (pv) => pv.unidad || 'pieza';
+  const dinVoz = (n) => '$' + (Math.round((Number(n) || 0) * 100) / 100).toFixed(2);
+
+  const MESES_VOZ = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  function fechaDeVoz(texto){
+    const t = String(texto || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const m = t.match(new RegExp('(?:(\\d{1,2})\\s*(?:de\\s+)?)?(' + MESES_VOZ.join('|') + ')\\s*(?:de\\s+|del\\s+)?(\\d{4}|\\d{2})\\b'));
+    if(!m) return null;
+    const mes = MESES_VOZ.indexOf(m[2]) + 1; let anio = parseInt(m[3], 10); if(anio < 100) anio += 2000;
+    const ultimo = new Date(anio, mes, 0).getDate(); const dia = m[1] ? Math.min(parseInt(m[1], 10), ultimo) : ultimo;
+    if(dia < 1) return null;
+    return anio + '-' + String(mes).padStart(2, '0') + '-' + String(dia).padStart(2, '0');
+  }
+  function eanNuevoUnico(){
+    const usados = new Set(productosCache.map(p => (p.sku || '').trim())); let c;
+    do { const r = crypto.getRandomValues(new Uint8Array(9)); const d = '200' + Array.from(r).map(x => x % 10).join(''); c = d + ean13Digito(d); } while(usados.has(c));
+    return c;
+  }
+
+  let resolverFotoVoz = null;
+  function descartarFotoVoz(){ if(productoVoz && productoVoz.foto_path){ quitarArchivoPuve(productoVoz.foto_path); productoVoz.foto_path = null; } }
+  async function pedirFotoVoz(pv){
+    descartarFotoVoz();
+    if(!enLinea){ await hablar('No hay conexión para subir la foto. La agregas después desde Productos.'); return; }
+    const cont = document.getElementById('accionesVoz'); cont.textContent = ''; cont.style.display = 'flex';
+    const hecho = new Promise(res => { resolverFotoVoz = res; });
+    const boton = (txt, camara) => { const b = el('button', 'chip-cat', txt); b.type = 'button';
+      b.onclick = async () => {
+        const f = await pedirArchivoImagen(camara); if(!f) return;
+        document.getElementById('mensajeVoz').textContent = 'Subiendo la foto…';
+        try { const blob = await procesarImagenPuve(f, { lado: 720, cuadrada: false, tipo: 'image/jpeg', calidad: 0.78 }); const path = negocioId + '/' + crypto.randomUUID() + '.jpg'; await subirImagenPuve(path, blob); pv.foto_path = path; resolverFotoVoz('ok'); }
+        catch(e){ document.getElementById('mensajeVoz').textContent = 'No pude subir la foto: ' + e.message; }
+      }; return b; };
+    const omitir = el('button', 'chip-cat', 'Omitir'); omitir.type = 'button'; omitir.onclick = () => resolverFotoVoz('omitir');
+    agregarHijosPuve(cont, [boton('Galería', false), boton('Cámara', true), omitir]);
+    hablar('¿Quieres agregar una foto? Toca Galería para elegirla, Cámara para tomarla, u Omitir.');
+    await hecho; resolverFotoVoz = null; cont.style.display = 'none'; cont.textContent = '';
+    if(vozCancelada) throw new Error('cancelado');
+    if(pv.foto_path) await hablar('Foto lista.');
+  }
+
+  const CAMPOS_VOZ = {
+    nombre: { et: 'Nombre', claves: ['nombre', 'modelo'], habla: true,
+      async ask(g, pv){ pv.nombre = await preguntarHastaObtener({ restaurante: 'Nombre del platillo.', cafeteria: 'Nombre del producto, por ejemplo latte.', servicios: 'Nombre del servicio, por ejemplo corte de cabello.', ropa: 'Nombre del modelo, por ejemplo playera básica.', papeleria: 'Nombre del artículo, por ejemplo cartulina azul.' }[g] || 'Nombre del producto.'); },
+      ver: (pv) => pv.nombre || '—' },
+    tipo: { et: 'Tipo', claves: ['tipo', 'servicio', 'producto'], invalida: ['duracion', 'stock', 'costo'],
+      async ask(g, pv){ const t = (await preguntarYEscuchar('¿Es un servicio o un producto de venta? Di servicio o producto.')).toLowerCase(); pv.tipo = /product/.test(t) ? 'producto' : 'servicio'; },
+      ver: (pv) => pv.tipo === 'producto' ? 'Producto' : 'Servicio' },
+    categoria: { et: 'Categoría', claves: ['categor', 'seccion', 'sección'],
+      async ask(g, pv){ const t = await preguntarYEscuchar(g === 'restaurante' ? '¿En qué sección del menú va? Por ejemplo entradas o bebidas. O di ninguna.' : g === 'cafeteria' ? '¿En qué categoría va? Por ejemplo café o postres. O di ninguna.' : g === 'servicios' ? '¿En qué categoría va? Por ejemplo cabello o uñas. O di ninguna.' : 'Categoría, o di ninguna.'); pv.categoria_id = buscarCategoriaPorVoz(t); },
+      ver: (pv) => (categoriasCache.find(c => c.id === pv.categoria_id) || {}).nombre || 'Ninguna', habla: true },
+    esServicio: { et: 'Servicio', claves: ['servicio'], invalida: ['sku', 'existencias', 'insumo', 'unidad'],
+      async ask(g, pv){ pv.esServicio = await siONo('¿Es un servicio, como copias o impresiones?'); if(pv.esServicio){ pv.unidad = 'copia'; pv.hecho.add('unidad'); } },
+      ver: (pv) => pv.esServicio ? 'Sí' : 'No, es un artículo' },
+    sku: { et: 'Código', claves: ['sku', 'código', 'codigo', 'barras'], cuando: (g, pv) => !pv.esServicio,
+      async ask(g, pv){ const t = (await preguntarYEscuchar(g === 'ropa' ? 'Código de barras: di generar para crear uno, di el número, o di omitir.' : 'Código de barras, o di omitir.')).toLowerCase();
+        pv.sku = (g === 'ropa' && /generar|crea|nuevo/.test(t)) ? '__generar__' : (esOmision(t) ? null : t.replace(/\s+/g, '')); },
+      ver: (pv) => pv.sku === '__generar__' ? 'Se generará uno' : (pv.sku || 'Sin código') },
+    talla: { et: 'Talla', claves: ['talla'], async ask(g, pv){ const t = await preguntarYEscuchar('Talla, por ejemplo mediana, 28 o 9 y medio. O di omitir.'); pv.talla = esOmision(t) ? null : t; }, ver: (pv) => pv.talla || '—' },
+    color: { et: 'Color', claves: ['color'], async ask(g, pv){ const t = await preguntarYEscuchar('Color, o di omitir.'); pv.color = esOmision(t) ? null : t; }, ver: (pv) => pv.color || '—' },
+    unidad: { et: 'Se vende por', claves: ['unidad', 'vende por'], cuando: (g, pv) => !pv.esServicio || !pv.hecho.has('unidad'),
+      async ask(g, pv){ const t = (await preguntarYEscuchar('¿Se vende por pieza, hoja, metro, copia o pliego? Di cuál, o di otra.')).toLowerCase();
+        const m = [['hoja', 'hoja'], ['metro', 'metro'], ['copia', 'copia'], ['impresi', 'copia'], ['pliego', 'pliego'], ['pieza', 'pieza']].find(([k]) => t.includes(k));
+        if(m) pv.unidad = m[1]; else if(/otr/.test(t)){ const o = await preguntarHastaObtener('¿Cómo se llama la unidad? Por ejemplo litro o juego.'); pv.unidad = o.toLowerCase().replace(/[^a-záéíóúñ ]/g, '').trim().slice(0, 20) || 'pieza'; } else pv.unidad = 'pieza'; },
+      ver: (pv) => uVoz(pv) },
+    precio: { et: 'Precio', claves: ['precio'], habla: true,
+      async ask(g, pv){ pv.precio = await preguntarNumero(g === 'papeleria' ? 'Precio de 1 ' + uVoz(pv) + '.' : g === 'servicios' ? 'Precio del servicio.' : g === 'restaurante' ? 'Precio del platillo.' : 'Precio de venta.'); },
+      ver: (pv) => dinVoz(pv.precio) },
+    costo: { et: 'Costo', claves: ['costo'], cuando: (g, pv) => g !== 'servicios' || pv.tipo === 'producto',
+      async ask(g, pv){ const t = await preguntarYEscuchar('Costo, o di omitir.'); pv.costo = esOmision(t) ? 0 : (extraerNumeroDeVoz(t) ?? 0); },
+      ver: (pv) => dinVoz(pv.costo) },
+    duracion: { et: 'Duración', claves: ['duraci', 'minutos', 'tiempo'], cuando: (g, pv) => pv.tipo !== 'producto',
+      async ask(g, pv){ const n = await preguntarNumero('¿Cuántos minutos dura?'); pv.duracion = Math.min(600, Math.max(5, Math.round((n || 30) / 5) * 5)); },
+      ver: (pv) => (pv.duracion || 30) + ' minutos' },
+    stock: { et: 'Existencias', claves: ['stock', 'existencia', 'inventario', 'cantidad', 'disponible'], habla: true, cuando: (g, pv) => g !== 'servicios' || pv.tipo === 'producto',
+      async ask(g, pv){ pv.stock = await preguntarNumero(g === 'restaurante' || g === 'cafeteria' ? 'Cuántos hay disponibles hoy. Di cero si está agotado.' : 'Stock disponible.'); },
+      ver: (pv) => String(Number(pv.stock || 0)) },
+    existencias: { et: 'Existencias', claves: ['stock', 'existencia', 'inventario', 'cantidad', 'paquete'], habla: true, cuando: (g, pv) => !pv.esServicio,
+      async ask(g, pv){ const u = uVoz(pv), t = (await preguntarYEscuchar('¿Tienes ' + plural(u) + ' sueltas o en paquetes? Di sueltas o paquetes.')).toLowerCase();
+        if(/paquet|caja|resma/.test(t)){ pv.modo = 'paq'; pv.paqN = await preguntarNumero('¿Cuántos paquetes tienes?'); pv.paqU = await preguntarNumero('¿' + cuantos(u) + ' ' + plural(u) + ' trae cada paquete?');
+          if(!(pv.paqU > 0)){ pv.paqU = 1; await hablar('Dejo 1 por paquete, lo corriges después.'); }
+          const ct = await preguntarYEscuchar('¿Cuánto te costó cada paquete? O di omitir.'); pv.paqCosto = esOmision(ct) ? 0 : (extraerNumeroDeVoz(ct) ?? 0); }
+        else { pv.modo = 'uni'; pv.stock = await preguntarNumero('¿' + cuantos(u) + ' ' + plural(u) + ' tienes?'); const ct = await preguntarYEscuchar('Costo de 1 ' + u + ', o di omitir.'); pv.costo = esOmision(ct) ? 0 : (extraerNumeroDeVoz(ct) ?? 0); } },
+      ver: (pv) => pv.modo === 'paq' ? pv.paqN + ' paquetes de ' + pv.paqU + ' = ' + redondear3(pv.paqN * pv.paqU) + ' ' + plural(uVoz(pv)) : Number(pv.stock || 0) + ' ' + plural(uVoz(pv)) },
+    mayoreo: { et: 'Descuento por cantidad', claves: ['mayoreo', 'descuento'],
+      async ask(g, pv){ if(await siONo('¿Das descuento por cantidad?')){ const u = uVoz(pv), d = await preguntarNumero('¿A partir de cuántas ' + plural(u) + '?'), p = await preguntarNumero('¿A qué precio cada ' + u + '?'); pv.mayoreo = d > 0 ? { desde: d, pu: p } : null; } else pv.mayoreo = null; },
+      ver: (pv) => pv.mayoreo ? 'Desde ' + pv.mayoreo.desde + ': ' + dinVoz(pv.mayoreo.pu) + ' c/u' : 'No' },
+    insumo: { et: 'Gasta del inventario', claves: ['gasta', 'insumo', 'inventario'], cuando: (g, pv) => !!pv.esServicio,
+      async ask(g, pv){ pv.insumo = null; const t = await preguntarYEscuchar('¿Qué artículo de tu inventario gasta? Por ejemplo hoja carta. O di ninguno.');
+        if(!esOmision(t)){ const cand = productosCache.filter(p => p.tipo !== 'servicio' && coincideBusqueda(p, t)).slice(0, 3);
+          for(const c of cand){ if(await siONo('¿Es ' + c.nombre + '?')){ pv.insumo = { id: c.id, nombre: c.nombre }; break; } }
+          if(!pv.insumo) await hablar('No lo encontré. Lo agregas después desde Artículos.'); } },
+      ver: (pv) => pv.insumo ? pv.insumo.nombre : 'Ninguno' },
+    foto: { et: 'Foto', claves: ['foto', 'imagen'], async ask(g, pv){ await pedirFotoVoz(pv); }, ver: (pv) => pv.foto_path ? 'Sí' : 'Sin foto' },
+    caducidad: { et: 'Caducidad', claves: ['caduc'],
+      async ask(g, pv){ const t = await preguntarYEscuchar('Caducidad, por ejemplo marzo de 2027. O di omitir.'); pv.caducidad = esOmision(t) ? null : fechaDeVoz(t);
+        if(!esOmision(t) && !pv.caducidad) await hablar('No entendí la fecha, la dejo vacía.'); },
+      ver: (pv) => pv.caducidad || 'Sin fecha' }
+  };
+  const camposVisiblesVoz = (g, pv) => guionVoz(g).filter(k => CAMPOS_VOZ[k] && (!CAMPOS_VOZ[k].cuando || CAMPOS_VOZ[k].cuando(g, pv)));
+  async function completarCamposVoz(){
+    const g = giroVoz(), pv = productoVoz;
+    for(let vuelta = 0; vuelta < 3; vuelta++){
+      let pregunto = false;
+      for(const k of guionVoz(g)){   // en orden, evaluando la visibilidad en el momento (una respuesta puede activar o quitar preguntas)
+        const c = CAMPOS_VOZ[k]; if(!c || pv.hecho.has(k)) continue;
+        if(c.cuando && !c.cuando(g, pv)) continue;
+        if(vozCancelada) throw new Error('cancelado');
+        await c.ask(g, pv); pv.hecho.add(k); pregunto = true;
+      }
+      if(!pregunto) return;
+    }
+  }
   async function capturarYConfirmarProducto(){
-    productoVoz = {};
-    productoVoz.nombre = await preguntarHastaObtener('Nombre del producto.');
-
-    const catTexto = await preguntarYEscuchar('Categoría, o di ninguna.');
-    productoVoz.categoria_id = buscarCategoriaPorVoz(catTexto);
-
-    const skuTexto = await preguntarYEscuchar('Código, o di omitir.');
-    productoVoz.sku = esOmision(skuTexto) ? null : skuTexto;
-
-    productoVoz.precio = await preguntarNumero('Precio de venta.');
-
-    const costoTexto = await preguntarYEscuchar('Costo, o di omitir.');
-    productoVoz.costo = esOmision(costoTexto) ? 0 : (extraerNumeroDeVoz(costoTexto) ?? 0);
-
-    productoVoz.stock = await preguntarNumero('Stock disponible.');
-
+    descartarFotoVoz(); productoVoz = { hecho: new Set() };
+    await completarCamposVoz();
     await cicloConfirmacion();
   }
-
   function mostrarResumenVozEnPantalla(){
-    const cat = categoriasCache.find(c => c.id === productoVoz.categoria_id);
-    const el = document.getElementById('resumenVoz');
-    el.style.display = 'block';
-    el.innerHTML = `
-      <div><strong>Nombre:</strong> ${escapar(productoVoz.nombre || '—')}</div>
-      <div><strong>Categoría:</strong> ${escapar(cat?.nombre || 'Ninguna')}</div>
-      <div><strong>SKU:</strong> ${escapar(productoVoz.sku || 'Sin código')}</div>
-      <div><strong>Precio:</strong> $${Number(productoVoz.precio || 0).toFixed(2)}</div>
-      <div><strong>Costo:</strong> $${Number(productoVoz.costo || 0).toFixed(2)}</div>
-      <div><strong>Stock:</strong> ${Number(productoVoz.stock || 0)}</div>
-    `;
+    const g = giroVoz(), pv = productoVoz, box = document.getElementById('resumenVoz'); box.style.display = 'block'; box.textContent = '';
+    camposVisiblesVoz(g, pv).forEach(k => { const c = CAMPOS_VOZ[k], d = document.createElement('div'), b = document.createElement('strong'); b.textContent = c.et + ': '; d.appendChild(b); d.appendChild(document.createTextNode(c.ver(pv))); box.appendChild(d); });
   }
-
   function construirResumenHablado(){
-    const cat = categoriasCache.find(c => c.id === productoVoz.categoria_id);
-    return `${productoVoz.nombre}. ${cat?.nombre || 'sin categoría'}. Precio ${Number(productoVoz.precio || 0).toFixed(2)}. Stock ${Number(productoVoz.stock || 0)}.`;
+    const g = giroVoz(), pv = productoVoz;
+    return camposVisiblesVoz(g, pv).map(k => CAMPOS_VOZ[k]).filter(c => c.habla).map(c => (c.et === 'Precio' ? 'Precio ' : c.et === 'Existencias' ? 'Existencias ' : '') + c.ver(pv)).join('. ') + '.';
   }
-
   async function editarCampoPorVoz(comando){
-    if(comando.includes('nombre')){ productoVoz.nombre = await preguntarHastaObtener('Dime el nuevo nombre.'); }
-    else if(comando.includes('categor')){ const t = await preguntarYEscuchar('Dime la nueva categoría, o ninguna.'); productoVoz.categoria_id = buscarCategoriaPorVoz(t); }
-    else if(comando.includes('sku') || comando.includes('código') || comando.includes('codigo')){ productoVoz.sku = await preguntarHastaObtener('Dicta el nuevo código.'); }
-    else if(comando.includes('precio')){ productoVoz.precio = await preguntarNumero('Dime el nuevo precio.'); }
-    else if(comando.includes('costo')){ productoVoz.costo = await preguntarNumero('Dime el nuevo costo.'); }
-    else if(comando.includes('stock') || comando.includes('inventario') || comando.includes('cantidad')){ productoVoz.stock = await preguntarNumero('Dime el nuevo stock.'); }
-    else { await hablar('No reconocí ese campo. Puedes decir editar nombre, editar precio, editar costo, editar stock, editar categoría o editar código.'); }
+    const g = giroVoz(), pv = productoVoz, ks = camposVisiblesVoz(g, pv), c = comando.toLowerCase();
+    const k = ks.find(x => CAMPOS_VOZ[x].claves.some(w => c.includes(w)));
+    if(!k){ await hablar('No reconocí ese dato. Puedes decir editar ' + ks.map(x => CAMPOS_VOZ[x].et.toLowerCase()).join(', editar ') + '.'); return; }
+    const campo = CAMPOS_VOZ[k]; (campo.invalida || []).forEach(x => pv.hecho.delete(x));
+    await campo.ask(g, pv); pv.hecho.add(k); await completarCamposVoz();
   }
-
+  // Arma lo que se guarda según el giro (función pura: se prueba sin pantalla)
+  function construirRegistroVoz(g, pv, ctx){
+    const registro = { negocio_id: ctx.negocioId, nombre: (pv.nombre || 'Producto sin nombre').trim(), sku: pv.sku || null, categoria_id: pv.categoria_id || null,
+      precio: Number(pv.precio) || 0, costo: Number(pv.costo) || 0, stock: Number(pv.stock) || 0 };
+    let presentaciones = [], volumen = [];
+    if(g === 'restaurante' || g === 'cafeteria') registro.foto_path = pv.foto_path || null;
+    if(g === 'servicios'){ registro.tipo = pv.tipo || 'servicio'; if(registro.tipo === 'servicio'){ registro.duracion_min = pv.duracion || 30; registro.stock = 999999; registro.costo = 0; } else registro.duracion_min = null; }
+    if(g === 'ropa'){ const base = registro.nombre; registro.modelo = base; registro.talla = pv.talla || null; registro.color = pv.color || null; registro.nombre = [base, pv.talla, pv.color].filter(Boolean).join(' '); if(pv.sku === '__generar__') registro.sku = ctx.nuevoEan(); }
+    if(g === 'farmacia') registro.fecha_caducidad = pv.caducidad || null;
+    if(g === 'papeleria'){
+      registro.unidad = uVoz(pv); registro.paso_venta = 1; registro.peso_unitario_g = null;
+      if(pv.esServicio){ registro.tipo = 'servicio'; registro.stock = 999999; registro.sku = null; registro.insumo_id = pv.insumo ? pv.insumo.id : null; registro.insumo_cantidad = 1; }
+      else { registro.tipo = 'producto'; registro.insumo_id = null; registro.insumo_cantidad = 1;
+        if(pv.modo === 'paq'){ const n = Number(pv.paqN) || 0, u = Number(pv.paqU) || 1; registro.stock = redondear3(n * u); registro.costo = Math.round((Number(pv.paqCosto) || 0) / u * 100) / 100; presentaciones.push({ nombre: 'Paquete', unidades: u, precio: null }); } }
+      if(pv.mayoreo && pv.mayoreo.desde > 0) volumen.push({ desde: pv.mayoreo.desde, precio_unitario: pv.mayoreo.pu });
+    }
+    return { registro, presentaciones, volumen };
+  }
   async function guardarProductoDesdeVoz(){
     if(!puedoEditarProductos()){ await hablar('Solo el encargado puede guardar productos.'); return false; }
-    const registro = {
-      negocio_id: negocioId,
-      nombre: (productoVoz.nombre || 'Producto sin nombre').trim(),
-      sku: productoVoz.sku || null,
-      categoria_id: productoVoz.categoria_id || null,
-      precio: Number(productoVoz.precio) || 0,
-      costo: Number(productoVoz.costo) || 0,
-      stock: Number(productoVoz.stock) || 0
-    };
-    const { error } = await sb.from('productos').insert(registro);
-    if(error){
-      await hablar('Hubo un error al guardar: ' + textoErrorProducto(error));
-      return false;
+    const g = giroVoz(), { registro, presentaciones, volumen } = construirRegistroVoz(g, productoVoz, { negocioId, nuevoEan: eanNuevoUnico });
+    let error, id = null;
+    if(g === 'papeleria'){ const r = await sb.from('productos').insert(registro).select('id').single(); error = r.error; id = r.data && r.data.id; }
+    else { ({ error } = await sb.from('productos').insert(registro)); }
+    if(error){ await hablar('Hubo un error al guardar: ' + textoErrorProducto(error)); return false; }
+    if(g === 'papeleria' && id && (presentaciones.length || volumen.length)){
+      const r2 = await sb.rpc('guardar_precios_papeleria', { p_producto: id, p_presentaciones: presentaciones, p_volumen: volumen });
+      if(r2.error) await hablar('Se guardó, pero no el paquete o el descuento: ' + r2.error.message);
     }
+    productoVoz.foto_path = null; // ya quedó guardada con el producto
     await cargarProductos();
     return true;
   }
@@ -11935,6 +12088,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       return;
     }
     if(comando.includes('omitir')){
+      descartarFotoVoz();
       await hablar('Producto descartado. Sigamos con el siguiente.');
       await capturarYConfirmarProducto();
       return;
@@ -11962,6 +12116,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
   function cerrarModoVoz(){
     vozCancelada = true;
+    if(resolverFotoVoz) resolverFotoVoz('omitir');
+    descartarFotoVoz();
     if(vozSintesis) vozSintesis.cancel();
     if(vozReconocimiento){ try{ vozReconocimiento.abort(); }catch(e){} vozReconocimiento = null; }
     escuchandoActivo = false;
@@ -13425,7 +13581,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   const GIROS_PRESENTACIONES = ['papeleria']; // para dar esto a otro giro (ferretería...), agrégalo aquí y en VOCAB_GIRO/aplicarVocabularioGiro
   const esPapeleria = () => GIROS_PRESENTACIONES.includes((configNegocio && configNegocio.tipo_negocio) || '');
   let presCache = new Map(), volCache = new Map(); // producto_id -> [{id,nombre,unidades,precio}] / [{desde,pu}]
-  let formPap = { pres: [], vol: [] };
+  let formPap = { pres: [], vol: [], insumo: null };
   const redondear3 = (n) => Math.round(Number(n) * 1000) / 1000;
   function subLinea(i){ return Math.round(Number(i.precio) * Number(i.cantidad) * 100 + 1e-7) / 100; }
   function fmtPU(n){ n = Number(n) || 0; const c = Math.round(n * 100) / 100; return Math.abs(n - c) < 1e-9 ? c.toFixed(2) : String(Math.round(n * 10000) / 10000); }
@@ -13480,6 +13636,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   function stockTxt(p){
     const s = Number(p.stock);
     if(!esPapeleria()) return String(s);
+    if(p.tipo === 'servicio') return 'servicio';
     let t = s + ' ' + (p.unidad || 'pieza');
     const grande = (presCache.get(p.id) || []).slice().sort((x, y) => y.unidades - x.unidades)[0];
     if(grande && s >= grande.unidades) t += ' (≈' + Math.floor(s / grande.unidades) + ' ' + grande.nombre.toLowerCase() + ')';
@@ -13557,100 +13714,166 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     caja.appendChild(ok); refrescar(); setTimeout(() => cant.select(), 50);
   }
 
-  // --- Formulario del artículo (encargado) ---
-  const modoInv = () => (document.querySelector('input[name="pModoInv"]:checked') || {}).value || 'uni';
+  // --- Formulario del artículo (encargado): pocas preguntas a la vista, lo avanzado en secciones plegables ---
+  const UNIDADES_PAP = [['pieza', 'Pieza'], ['hoja', 'Hoja'], ['metro', 'Metro'], ['copia', 'Copia'], ['pliego', 'Pliego'], ['otra', 'Otra…']];
+  const plural = (w) => { w = String(w || '').trim().toLowerCase(); if(!w) return 'unidades'; return /[aeiou]$/.test(w) ? w + 's' : w + 'es'; };
+  const cuantos = (w) => /a$/i.test(String(w || '').trim()) ? 'Cuántas' : 'Cuántos';
+  const idv = (id) => document.getElementById(id);
+  const unidadForm = () => ((idv('pUnidad') || {}).value || '').trim().toLowerCase() || 'pieza';
+  const modoInv = () => (idv('pModoInvVal') || {}).value || 'uni';
+  const esServicioForm = () => !!(idv('pEsServicio') || {}).checked;
+
   function iniciarFormPap(){
-    const s = document.getElementById('pStock'); if(s && esPapeleria()) s.step = 'any';
-    pintarEditoresPap();
+    const s = idv('pStock'); if(s && esPapeleria()){ s.step = 'any'; s.required = false; }
+    pintarChipsUnidad(); etiquetasPap(); pintarEditoresPap(); pintarInsumo();
+    const cad = idv('pCaducidad'); if(cad && cad.closest('.campo')) cad.closest('.campo').style.display = esPapeleria() ? 'none' : '';
   }
-  function resetFormPap(){
-    const set = (id, v) => { const e = document.getElementById(id); if(e) e.value = v; };
-    set('pUnidad', 'pieza'); set('pPaso', '1'); set('pPeso', ''); set('pPaqN', ''); set('pPaqU', ''); set('pPaqCosto', '');
-    const r = document.getElementById('pModoUni'); if(r) r.checked = true;
-    formPap = { pres: [], vol: [] }; cambiarModoInv(); pintarEditoresPap();
-    const bc = document.getElementById('btnCuentahojas'); if(bc) bc.disabled = true;
+  function pintarChipsUnidad(){
+    const c = idv('chipsUnidad'); if(!c) return; c.textContent = '';
+    const u = unidadForm(), basicas = UNIDADES_PAP.slice(0, -1).map(x => x[0]), esOtra = !basicas.includes(u);
+    UNIDADES_PAP.forEach(([v, et]) => { const b = el('button', 'chip-cat' + (((v === 'otra') === esOtra && (esOtra || v === u)) ? ' activo' : ''), et); b.type = 'button'; b.onclick = () => elegirUnidad(v); c.appendChild(b); });
+    const o = idv('pUnidadOtra'); if(o){ o.classList.toggle('oculto', !esOtra); if(esOtra) o.value = (u === 'otra' || u === 'pieza') ? '' : u; }
   }
-  function cargarFormPap(p){
-    const set = (id, v) => { const e = document.getElementById(id); if(e) e.value = v; };
-    set('pUnidad', p.unidad || 'pieza'); set('pPaso', p.paso_venta || 1); set('pPeso', p.peso_unitario_g || '');
-    const r = document.getElementById('pModoUni'); if(r) r.checked = true; cambiarModoInv();
-    formPap = { pres: (presCache.get(p.id) || []).map(x => ({ nombre: x.nombre, unidades: x.unidades, precio: x.precio == null ? '' : x.precio })),
-                vol: (volCache.get(p.id) || []).map(x => ({ desde: x.desde, precio: x.pu })) };
-    pintarEditoresPap();
-    const bc = document.getElementById('btnCuentahojas'); if(bc) bc.disabled = false;
+  function elegirUnidadOtra(v){ idv('pUnidad').value = String(v || '').trim().toLowerCase() || 'otra'; etiquetasPap(); recalcPaq(); pintarEditoresPap(); }
+  function elegirUnidad(v){
+    const h = idv('pUnidad'), o = idv('pUnidadOtra'), paso = idv('pPaso');
+    if(v === 'otra'){ h.value = (o.value || '').trim().toLowerCase() || 'otra'; o.classList.remove('oculto'); o.value = h.value === 'otra' ? '' : h.value; o.focus(); }
+    else { h.value = v; o.classList.add('oculto'); }
+    if(paso){ if(v === 'metro' && paso.value === '1') paso.value = '0.5'; else if(v !== 'metro' && paso.value === '0.5') paso.value = '1'; }
+    pintarChipsUnidad(); etiquetasPap(); recalcPaq();
   }
-  function cambiarModoInv(){
-    const paq = modoInv() === 'paq';
+  function etiquetasPap(){
+    if(!esPapeleria()) return;
+    const u = unidadForm(), pl = plural(u), t = (id, txt) => { const e = idv(id); if(e) e.textContent = txt; };
+    t('lblPrecioPap', 'Precio de 1 ' + u); t('lblCostoPap', 'Costo de 1 ' + u + ' (opcional)');
+    document.querySelector('label[for="pPrecio"]').textContent = 'Precio de 1 ' + u; document.querySelector('label[for="pCosto"]').textContent = 'Costo de 1 ' + u + ' (opcional)';
+    document.querySelector('label[for="pStock"]').textContent = cuantos(u) + ' ' + pl + ' tienes';
+    t('lblPaqU', cuantos(u) + ' ' + pl + ' trae cada paquete?'); t('lblPeso', 'Peso de 1 ' + u + ' (en gramos)');
+    t('sumPres', 'Venderlo también por paquete o caja'); t('sumVol', 'Dar descuento si llevan varias');
+  }
+  function cambiarModoInv(m){
+    const paq = (m || modoInv()) === 'paq'; idv('pModoInvVal').value = paq ? 'paq' : 'uni';
+    idv('chipModoUni').classList.toggle('activo', !paq); idv('chipModoPaq').classList.toggle('activo', paq);
     document.querySelectorAll('.bloque-paq').forEach(e => e.classList.toggle('oculto', !paq));
-    const s = document.getElementById('pStock'); if(s) s.readOnly = paq;
+    ['pStock', 'pCosto'].forEach(id => { const c = idv(id).closest('.campo'); if(c) c.style.display = (paq || esServicioForm()) ? 'none' : ''; });
     recalcPaq();
   }
+  function cambiarEsServicio(){
+    const s = esServicioForm();
+    idv('bloqueModoInv').style.display = s ? 'none' : ''; idv('bloqueInsumo').style.display = s ? '' : 'none';
+    ['pStock', 'pCosto'].forEach(id => { const c = idv(id).closest('.campo'); if(c) c.style.display = (s || modoInv() === 'paq') ? 'none' : ''; });
+    if(s && unidadForm() === 'pieza') elegirUnidad('copia');
+  }
   function recalcPaq(){
-    const aviso = document.getElementById('pPaqAviso'); if(!aviso) return;
+    const aviso = idv('pPaqAviso'); if(!aviso) return;
     if(modoInv() !== 'paq'){ aviso.textContent = ''; return; }
-    const n = parseFloat(document.getElementById('pPaqN').value), u = parseFloat(document.getElementById('pPaqU').value), cp = parseFloat(document.getElementById('pPaqCosto').value);
-    const uni = document.getElementById('pUnidad').value.trim() || 'unidades', partes = [];
-    if(n >= 0 && u > 0){ document.getElementById('pStock').value = redondear3(n * u); partes.push('= ' + redondear3(n * u) + ' ' + uni + ' en existencia'); }
-    if(cp >= 0 && u > 0){ document.getElementById('pCosto').value = (Math.round(cp / u * 100) / 100).toFixed(2); partes.push('costo por ' + uni + ': $' + (cp / u).toFixed(3)); }
-    const pr = parseFloat(document.getElementById('pPrecio').value);
-    if(pr >= 0 && u > 0) partes.push('el paquete sale en $' + (Math.round(pr * u * 100) / 100).toFixed(2));
+    const n = parseFloat(idv('pPaqN').value), u = parseFloat(idv('pPaqU').value), cp = parseFloat(idv('pPaqCosto').value), uni = unidadForm(), partes = [];
+    if(n >= 0 && u > 0){ idv('pStock').value = redondear3(n * u); partes.push('Tienes ' + redondear3(n * u) + ' ' + plural(uni)); }
+    if(cp >= 0 && u > 0){ idv('pCosto').value = (Math.round(cp / u * 100) / 100).toFixed(2); partes.push('cada ' + uni + ' te cuesta $' + (Math.round(cp / u * 1000) / 1000)); }
+    const pr = parseFloat(idv('pPrecio').value);
+    if(pr >= 0 && u > 0) partes.push('el paquete se vende en $' + (Math.round(pr * u * 100) / 100).toFixed(2));
     aviso.textContent = partes.join(' · ');
   }
   function pintarEditoresPap(){
-    const ep = document.getElementById('edPresentaciones'), ev = document.getElementById('edVolumen'); if(!ep || !ev) return;
+    const ep = idv('edPresentaciones'), ev = idv('edVolumen'); if(!ep || !ev) return;
     ep.textContent = ''; ev.textContent = '';
-    const precioUni = () => parseFloat(document.getElementById('pPrecio').value) || 0;
+    const u = unidadForm(), pl = plural(u), precioUni = () => parseFloat(idv('pPrecio').value) || 0;
     const num = (ph, w, val, step) => { const i = el('input', 'input-mini'); i.type = 'number'; i.min = 0; i.step = step || 'any'; i.placeholder = ph; i.value = val; i.style.width = w; i.setAttribute('aria-label', ph); return i; };
+    const fila = () => { const f = el('div', 'empleado-fila'); f.style.cssText = 'flex-wrap:wrap; gap:6px; align-items:center;'; return f; };
     formPap.pres.forEach((r, k) => {
-      const f = el('div', 'empleado-fila'); f.style.flexWrap = 'wrap';
-      const n = el('input', 'input-mini'); n.type = 'text'; n.maxLength = 30; n.placeholder = 'Paquete, caja, resma'; n.value = r.nombre; n.style.width = '130px'; n.oninput = () => { r.nombre = n.value; };
-      const u = num('Unidades', '84px', r.unidades); const pr = num('Precio especial', '104px', r.precio, '0.01');
-      const hint = el('span', 'nota'); hint.style.margin = '0';
-      const act = () => { r.unidades = parseFloat(u.value) || 0; r.precio = pr.value; hint.textContent = r.unidades > 0 ? (pr.value !== '' ? '$' + (Math.round(parseFloat(pr.value) * 100) / 100).toFixed(2) + ' (ahorras $' + Math.max(0, precioUni() * r.unidades - parseFloat(pr.value)).toFixed(2) + ')' : 'automático: $' + (Math.round(precioUni() * r.unidades * 100) / 100).toFixed(2)) : ''; };
-      u.oninput = act; pr.oninput = act; act();
+      const f = fila(), n = el('input', 'input-mini'); n.type = 'text'; n.maxLength = 30; n.placeholder = 'Paquete'; n.value = r.nombre; n.style.width = '110px'; n.oninput = () => { r.nombre = n.value; };
+      const un = num('Cuántas', '76px', r.unidades), pr = num('$ (opcional)', '96px', r.precio, '0.01'), hint = el('div', 'nota'); hint.style.cssText = 'margin:0; flex-basis:100%;';
+      const act = () => { r.unidades = parseFloat(un.value) || 0; r.precio = pr.value; const auto = Math.round(precioUni() * r.unidades * 100) / 100;
+        hint.textContent = r.unidades > 0 ? (pr.value !== '' ? 'Se cobra $' + parseFloat(pr.value).toFixed(2) + ' (ahorra $' + Math.max(0, auto - parseFloat(pr.value)).toFixed(2) + ')' : 'Se cobra $' + auto.toFixed(2) + ' (se calcula solo)') : ''; };
+      un.oninput = act; pr.oninput = act; act();
       const d = el('button', 'texto', 'Quitar'); d.type = 'button'; d.onclick = () => { formPap.pres.splice(k, 1); pintarEditoresPap(); };
-      agregarHijosPuve(f, [n, el('span', 'nota', 'trae'), u, el('span', 'nota', 'u. ·'), pr, hint, d]); ep.appendChild(f);
+      agregarHijosPuve(f, [n, el('span', 'nota', 'trae'), un, el('span', 'nota', pl + ' · precio'), pr, d, hint]); ep.appendChild(f);
     });
-    const ap = el('button', 'texto', '+ Agregar presentación'); ap.type = 'button'; ap.onclick = () => { if(formPap.pres.length >= 6) return; formPap.pres.push({ nombre: '', unidades: '', precio: '' }); pintarEditoresPap(); }; ep.appendChild(ap);
+    const ap = el('button', 'texto', '+ Agregar paquete o caja'); ap.type = 'button'; ap.onclick = () => { if(formPap.pres.length >= 6) return; formPap.pres.push({ nombre: 'Paquete', unidades: '', precio: '' }); pintarEditoresPap(); }; ep.appendChild(ap);
     formPap.vol.forEach((r, k) => {
-      const f = el('div', 'empleado-fila'); f.style.flexWrap = 'wrap';
-      const d1 = num('Desde', '84px', r.desde); const p1 = num('$ c/u', '90px', r.precio, 'any');
-      const hint = el('span', 'nota'); hint.style.margin = '0';
-      const act = () => { r.desde = d1.value; r.precio = p1.value; const b = precioUni(), pv = parseFloat(p1.value); hint.textContent = (b > 0 && pv >= 0) ? (pv < b ? '−' + Math.round((1 - pv / b) * 100) + '% vs. precio normal' : 'más caro que el precio normal') : ''; };
+      const f = fila(), d1 = num('Cuántas', '76px', r.desde), p1 = num('$', '84px', r.precio, 'any'), hint = el('div', 'nota'); hint.style.cssText = 'margin:0; flex-basis:100%;';
+      const act = () => { r.desde = d1.value; r.precio = p1.value; const b = precioUni(), pv = parseFloat(p1.value); hint.textContent = (b > 0 && pv >= 0 && d1.value) ? (pv < b ? 'Ahorra ' + Math.round((1 - pv / b) * 100) + '% por cada ' + u : 'Ojo: sale más caro que el precio normal') : ''; };
       d1.oninput = act; p1.oninput = act; act();
       const q = el('button', 'texto', 'Quitar'); q.type = 'button'; q.onclick = () => { formPap.vol.splice(k, 1); pintarEditoresPap(); };
-      agregarHijosPuve(f, [el('span', 'nota', 'Desde'), d1, el('span', 'nota', 'unidades →'), p1, el('span', 'nota', 'c/u'), hint, q]); ev.appendChild(f);
+      agregarHijosPuve(f, [el('span', 'nota', 'Si llevan'), d1, el('span', 'nota', pl + ' o más, cada una a $'), p1, q, hint]); ev.appendChild(f);
     });
-    const av = el('button', 'texto', '+ Agregar precio por volumen'); av.type = 'button'; av.onclick = () => { if(formPap.vol.length >= 6) return; formPap.vol.push({ desde: '', precio: '' }); pintarEditoresPap(); }; ev.appendChild(av);
+    const av = el('button', 'texto', '+ Agregar descuento'); av.type = 'button'; av.onclick = () => { if(formPap.vol.length >= 6) return; formPap.vol.push({ desde: '', precio: '' }); pintarEditoresPap(); }; ev.appendChild(av);
+  }
+  // Servicio que gasta un artículo del inventario (ej. cada copia gasta 1 hoja)
+  function pintarInsumo(){
+    const sel = idv('insumoElegido'), lista = idv('insumoLista'); if(!sel || !lista) return;
+    sel.textContent = ''; lista.textContent = '';
+    if(formPap.insumo){ sel.appendChild(el('span', 'badge ok', 'Gasta: ' + formPap.insumo.nombre)); const x = el('button', 'texto', 'Cambiar'); x.type = 'button'; x.onclick = () => { formPap.insumo = null; pintarInsumo(); }; sel.appendChild(x); }
+  }
+  function buscarInsumo(){
+    const q = idv('pInsumoBuscar').value.trim(), lista = idv('insumoLista'); lista.textContent = ''; if(!q) return;
+    const idActual = idv('productoId').value;
+    productosCache.filter(p => p.tipo !== 'servicio' && p.id !== idActual && coincideBusqueda(p, q)).slice(0, 6).forEach(p => {
+      const b = el('button', 'chip-cat', p.nombre); b.type = 'button'; b.onclick = () => { formPap.insumo = { id: p.id, nombre: p.nombre }; idv('pInsumoBuscar').value = ''; pintarInsumo(); }; lista.appendChild(b);
+    });
+    if(!lista.children.length) lista.appendChild(el('span', 'nota', 'No encontré ese artículo.'));
+  }
+  function resetFormPap(){
+    const set = (id, v) => { const e = idv(id); if(e) e.value = v; };
+    set('pUnidad', 'pieza'); set('pPaso', '1'); set('pPeso', ''); set('pPaqN', ''); set('pPaqU', ''); set('pPaqCosto', ''); set('pInsumoBuscar', ''); set('pInsumoCant', '1');
+    const sv = idv('pEsServicio'); if(sv) sv.checked = false;
+    formPap = { pres: [], vol: [], insumo: null };
+    document.querySelectorAll('.det-pap').forEach(d => { d.open = false; });
+    pintarChipsUnidad(); etiquetasPap(); cambiarModoInv('uni'); cambiarEsServicio(); pintarEditoresPap(); pintarInsumo();
+    const bc = idv('btnCuentahojas'); if(bc) bc.disabled = true;
+  }
+  function cargarFormPap(p){
+    const set = (id, v) => { const e = idv(id); if(e) e.value = v; };
+    set('pUnidad', p.unidad || 'pieza'); set('pPaso', p.paso_venta || 1); set('pPeso', p.peso_unitario_g || ''); set('pInsumoCant', p.insumo_cantidad || 1);
+    const ins = p.insumo_id ? productosCache.find(x => x.id === p.insumo_id) : null;
+    formPap = { pres: (presCache.get(p.id) || []).map(x => ({ nombre: x.nombre, unidades: x.unidades, precio: x.precio == null ? '' : x.precio })),
+                vol: (volCache.get(p.id) || []).map(x => ({ desde: x.desde, precio: x.pu })), insumo: ins ? { id: ins.id, nombre: ins.nombre } : null };
+    const sv = idv('pEsServicio'); if(sv) sv.checked = p.tipo === 'servicio';
+    pintarChipsUnidad(); etiquetasPap(); cambiarModoInv('uni'); cambiarEsServicio(); pintarEditoresPap(); pintarInsumo();
+    idv('detPres').open = formPap.pres.length > 0; idv('detVol').open = formPap.vol.length > 0; idv('detFrac').open = Number(p.paso_venta) !== 1; idv('detPeso').open = !!p.peso_unitario_g;
+    const bc = idv('btnCuentahojas'); if(bc) bc.disabled = false;
   }
   // Completa "registro" con los campos de papelería; devuelve un texto de error o ''.
   function valoresFormPap(registro){
-    const unidad = document.getElementById('pUnidad').value.trim() || 'pieza';
-    const paso = parseFloat(document.getElementById('pPaso').value) || 1;
-    if(paso < 0.01) return 'El paso de venta mínimo es 0.01.';
-    const peso = parseFloat(document.getElementById('pPeso').value);
+    const unidad = unidadForm();
+    if(unidad === 'otra') return 'Escribe cómo se llama la unidad (por ejemplo litro o juego).';
+    const paso = parseFloat(idv('pPaso').value) || 1;
+    if(paso < 0.01) return 'El mínimo que se puede vender es 0.01.';
+    const peso = parseFloat(idv('pPeso').value);
     registro.unidad = unidad; registro.paso_venta = paso; registro.peso_unitario_g = peso > 0 ? peso : null;
-    if(modoInv() === 'paq'){
-      const n = parseFloat(document.getElementById('pPaqN').value), u = parseFloat(document.getElementById('pPaqU').value);
-      if(!(n >= 0) || !(u > 0)) return 'Indica cuántos paquetes tienes y cuántas unidades trae cada uno.';
-      registro.stock = redondear3(n * u);
-      if(!formPap.pres.some(r => parseFloat(r.unidades) === u)) formPap.pres.unshift({ nombre: 'Paquete', unidades: u, precio: '' });
+    if(esServicioForm()){
+      const cant = parseFloat(idv('pInsumoCant').value) || 1;
+      if(cant <= 0 || cant > 1000) return 'Cuánto gasta de tu inventario debe ser mayor a 0.';
+      registro.tipo = 'servicio'; registro.stock = 999999; registro.costo = parseFloat(idv('pCosto').value) || 0;
+      registro.insumo_id = formPap.insumo ? formPap.insumo.id : null; registro.insumo_cantidad = cant;
+    } else {
+      registro.tipo = 'producto'; registro.insumo_id = null; registro.insumo_cantidad = 1;
+      if(modoInv() === 'paq'){
+        const n = parseFloat(idv('pPaqN').value), u = parseFloat(idv('pPaqU').value);
+        if(!(n >= 0) || !(u > 0)) return 'Escribe cuántos paquetes tienes y cuántas ' + plural(unidad) + ' trae cada uno.';
+        registro.stock = redondear3(n * u);
+        if(!formPap.pres.some(r => parseFloat(r.unidades) === u)) formPap.pres.unshift({ nombre: 'Paquete', unidades: u, precio: '' });
+      } else {
+        const s = parseFloat(idv('pStock').value);
+        if(!(s >= 0)) return 'Escribe cuántas ' + plural(unidad) + ' tienes (si no tienes, pon 0).';
+        registro.stock = s;
+      }
     }
     if(registro.stock > 99999999) return 'El inventario es demasiado grande.';
     const pres = [], nombres = new Set();
     for(const r of formPap.pres){
       const nombre = String(r.nombre || '').trim(), u = parseFloat(r.unidades), pr = r.precio === '' || r.precio == null ? null : parseFloat(r.precio);
-      if(!nombre) return 'Cada presentación necesita un nombre (paquete, caja, resma…).';
-      if(!(u > 0)) return 'La presentación "' + nombre + '" necesita cuántas unidades trae.';
-      if(pr != null && !(pr >= 0)) return 'El precio especial de "' + nombre + '" no es válido.';
-      if(nombres.has(nombre.toLowerCase())) return 'Hay dos presentaciones llamadas "' + nombre + '".';
+      if(!nombre) return 'Ponle nombre a cada paquete o caja.';
+      if(!(u > 0)) return 'Escribe cuántas ' + plural(unidad) + ' trae "' + nombre + '".';
+      if(pr != null && !(pr >= 0)) return 'El precio de "' + nombre + '" no es válido.';
+      if(nombres.has(nombre.toLowerCase())) return 'Tienes dos presentaciones con el nombre "' + nombre + '".';
       nombres.add(nombre.toLowerCase()); pres.push({ nombre, unidades: u, precio: pr });
     }
     const vol = [], desdes = new Set();
     for(const r of formPap.vol){
       const d = parseFloat(r.desde), pr = parseFloat(r.precio);
-      if(!(d > 0) || !(pr >= 0)) return 'Completa cada precio por volumen (desde cuántas unidades y a qué precio).';
-      if(desdes.has(d)) return 'Hay dos precios por volumen que empiezan en ' + d + '.';
+      if(!(d > 0) || !(pr >= 0)) return 'Completa cada descuento: desde cuántas y a qué precio.';
+      if(desdes.has(d)) return 'Tienes dos descuentos que empiezan en ' + d + '.';
       desdes.add(d); vol.push({ desde: d, precio_unitario: pr });
     }
     formPap.listo = { pres, vol }; return '';
@@ -13695,6 +13918,286 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       fondo.remove(); alternarFormulario(false); await cargarProductos();
     };
   }
+
+  // ===== Lista escolar: texto (o foto) -> carrito =====
+  const STOP_LISTA = new Set(['de', 'del', 'la', 'el', 'los', 'las', 'para', 'con', 'y', 'un', 'una', 'unos', 'unas', 'numero', 'num', 'no', 'tipo', 'marca', 'color', 'en', 'al']);
+  const NUM_PALABRAS = { un: 1, uno: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10, once: 11, doce: 12, docena: 12 };
+  function rad(w){ // raíz simple para que "lápices" ~ "lápiz" y "libretas" ~ "libreta"
+    w = normBusq(w).replace(/[^a-z0-9]/g, '');
+    if(/ces$/.test(w) && w.length > 4) return w.slice(0, -3) + 'z';
+    if(/[^aeiou]es$/.test(w) && w.length > 4) return w.slice(0, -2);
+    if(/s$/.test(w) && w.length > 3) return w.slice(0, -1);
+    return w;
+  }
+  function parsearListaEscolar(texto){
+    const out = [];
+    String(texto || '').split(/[\n;]+/).forEach(linea => {
+      let t = linea.replace(/^[\s\-–•*·.)\]]+/, '').trim(); if(t.length < 3) return;
+      let cant = 1, m;
+      if((m = t.match(/^(?:una|1)\s+docena\s+(?:de\s+)?(.+)$/i))){ cant = 12; t = m[1]; }
+      else if((m = t.match(/^(\d+(?:[.,]\d+)?)\s*(?:x|pzas?|pzs?|piezas?|pieza|uds?|unidades|unidad)?\.?\s+(.+)$/i))){ cant = parseFloat(m[1].replace(',', '.')); t = m[2]; }
+      else if((m = t.match(/^media\s+docena\s+(?:de\s+)?(.+)$/i))){ cant = 6; t = m[1]; }
+      else if((m = t.match(/^(un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|docena)\s+(?:docena\s+de\s+|de\s+)?(.+)$/i))){ cant = NUM_PALABRAS[m[1].toLowerCase()]; t = m[2]; }
+      else if((m = t.match(/^(.+?)\s*(?:x|\()\s*(\d+)\)?$/i))){ cant = parseInt(m[2], 10); t = m[1]; }
+      t = t.replace(/\b(?:pzas?|pzs?|piezas?|uds?)\b\.?/gi, ' ').replace(/\s+/g, ' ').trim();
+      if(!(cant > 0) || cant > 999 || t.length < 2 || /^\d+$/.test(t)) return;
+      out.push({ cantidad: cant, texto: t });
+    });
+    return out;
+  }
+  function tokensProd(p){
+    if(!p.__tk || p.__tkn !== p.nombre){ p.__tk = new Set(normBusq(p.nombre).split(/\s+/).filter(Boolean).map(rad).filter(w => w && !STOP_LISTA.has(w))); p.__tkn = p.nombre; }
+    return p.__tk;
+  }
+  function mejoresCoincidencias(texto, productos, n){
+    const q = normBusq(texto).split(/\s+/).filter(Boolean).map(rad).filter(w => w && !STOP_LISTA.has(w));
+    if(!q.length) return [];
+    const res = [];
+    for(const p of productos){
+      if(p.tipo === 'servicio') continue;
+      const tk = tokensProd(p); let s = 0, hit = 0;
+      for(const w of q){
+        if(tk.has(w)){ s += 3; hit++; }
+        else { let pref = false; if(w.length >= 3) for(const x of tk){ if(x.length >= 3 && (x.startsWith(w) || w.startsWith(x))){ pref = true; break; } } if(pref){ s += 1.5; hit += 0.5; } }
+      }
+      if(hit / q.length < 0.5) continue;
+      s = s / (q.length * 3) - 0.02 * Math.max(0, tk.size - q.length);
+      res.push({ p, s });
+    }
+    return res.sort((a, b) => b.s - a.s).slice(0, n || 5);
+  }
+  function abrirListaEscolar(){
+    const { caja, fondo } = modalBase('Lista escolar', 560);
+    caja.appendChild(el('div', 'nota', 'Escribe o pega la lista (una cosa por renglón), o toma una foto.'));
+    const ta = el('textarea'); ta.rows = 5; ta.style.cssText = 'width:100%; margin:8px 0;'; ta.placeholder = '3 libretas profesionales cuadro grande\n1 pegamento en barra\n2 lápices del número 2'; caja.appendChild(ta);
+    const barra = el('div', 'filtro-cats'); barra.style.flexWrap = 'wrap'; caja.appendChild(barra);
+    const estado = el('div', 'nota'); estado.style.minHeight = '18px'; caja.appendChild(estado);
+    const foto = el('button', 'chip-cat', 'Leer de una foto'); foto.type = 'button';
+    foto.onclick = async () => {
+      const f = await pedirArchivoImagen(true); if(!f) return;
+      estado.textContent = 'Leyendo la foto… la primera vez tarda un poco más.';
+      try { ta.value = await leerTextoDeFoto(f); estado.textContent = 'Revisa el texto y corrígelo si hace falta.'; }
+      catch(e){ estado.textContent = 'No pude leer la foto. Escribe la lista (el teclado del celular tiene micrófono para dictarla).'; }
+    };
+    const buscar = el('button', 'chip-cat activo', 'Buscar artículos'); buscar.type = 'button';
+    agregarHijosPuve(barra, [foto, buscar]);
+    const zona = el('div'); zona.style.marginTop = '10px'; caja.appendChild(zona);
+    const pie = el('div', 'filtro-cats'); pie.style.cssText = 'flex-wrap:wrap; margin-top:12px;'; caja.appendChild(pie);
+    buscar.onclick = () => {
+      const lineas = parsearListaEscolar(ta.value); zona.textContent = ''; pie.textContent = '';
+      if(!lineas.length){ estado.textContent = 'No encontré renglones. Escribe uno por línea, por ejemplo: 2 lápices.'; return; }
+      estado.textContent = '';
+      const filas = lineas.map(l => ({ l, c: mejoresCoincidencias(l.texto, productosCache, 5), cant: l.cantidad, sel: null }));
+      filas.forEach(f => { f.sel = f.c.length && f.c[0].s >= 0.5 ? f.c[0].p.id : ''; });
+      filas.forEach(f => {
+        const r = el('div', 'empleado-fila'); r.style.cssText = 'flex-wrap:wrap; gap:6px; align-items:center; margin-bottom:8px;';
+        const q = el('input', 'input-mini'); q.type = 'number'; q.min = 0; q.step = 'any'; q.value = f.cant; q.style.width = '64px'; q.oninput = () => { f.cant = parseFloat(q.value) || 0; };
+        const sel = el('select'); sel.style.cssText = 'flex:1; min-width:180px;';
+        const op0 = el('option', '', f.c.length ? 'No agregar' : 'No lo encontré: ' + f.l.texto); op0.value = ''; sel.appendChild(op0);
+        f.c.forEach(x => { const o = el('option', '', x.p.nombre + ' · $' + fmtPU(precioUnitPap(x.p, f.cant)) + (Number(x.p.stock) <= 0 ? ' (sin stock)' : '')); o.value = x.p.id; sel.appendChild(o); });
+        sel.value = f.sel; sel.onchange = () => { f.sel = sel.value; };
+        agregarHijosPuve(r, [q, sel, el('span', 'nota', '“' + f.l.texto + '”')]); zona.appendChild(r);
+      });
+      const items = () => filas.filter(f => f.sel && f.cant > 0).map(f => ({ id: f.sel, cantidad: f.cant }));
+      const add = el('button', 'principal', 'Agregar al carrito'); add.type = 'button'; add.style.width = 'auto';
+      add.onclick = () => {
+        let faltan = [];
+        items().forEach(it => { const p = productosCache.find(x => x.id === it.id); if(!p) return;
+          const ex = carrito.find(i => i.id === p.id), ya = ex ? ex.cantidad : 0, ok = Math.min(it.cantidad, Math.max(0, redondear3(Number(p.stock) - ya)));
+          if(ok < it.cantidad) faltan.push(p.nombre);
+          if(ok > 0){ if(ex) ex.cantidad = redondear3(ex.cantidad + ok); else carrito.push({ id: p.id, nombre: p.nombre, precio: Number(p.precio), cantidad: ok, stock: Number(p.stock), paso: Number(p.paso_venta) || 1, unidad: p.unidad || 'pieza' }); } });
+        renderizarCarrito(); renderizarListaVenta(); fondo.remove();
+        mostrarMensaje('mensajeVenta', faltan.length ? 'Agregado. No alcanzó el stock de: ' + faltan.join(', ') + '.' : 'Lista agregada al carrito. Ve juntando los artículos.', faltan.length ? 'error' : 'exito');
+      };
+      const enc = el('button', 'chip-cat', 'Convertir en encargo'); enc.type = 'button'; enc.onclick = () => { const it = items(); if(!it.length) return; fondo.remove(); abrirNuevoEncargo(it); };
+      agregarHijosPuve(pie, [add, enc]);
+    };
+  }
+  // OCR opcional (Tesseract.js, corre en el dispositivo). Se descarga solo cuando se usa.
+  let tesseractListo = null;
+  function cargarTesseract(){
+    if(window.Tesseract) return Promise.resolve();
+    if(!tesseractListo) tesseractListo = new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js'; s.onload = res; s.onerror = () => { tesseractListo = null; rej(new Error('No se pudo descargar el lector de texto')); }; document.head.appendChild(s); });
+    return tesseractListo;
+  }
+  async function leerTextoDeFoto(archivo){
+    if(!enLinea) throw new Error('Sin conexión');
+    await cargarTesseract();
+    const r = await window.Tesseract.recognize(archivo, 'spa');
+    const t = (r && r.data && r.data.text || '').trim(); if(!t) throw new Error('Sin texto');
+    return t;
+  }
+
+  // ===== Alertas de temporada (para el encargado, en Productos) =====
+  const nesimoDia = (anio, mes, diaSemana, n) => { const d = new Date(anio, mes, 1); const delta = (diaSemana - d.getDay() + 7) % 7; return new Date(anio, mes, 1 + delta + (n - 1) * 7); };
+  const ultimoDia = (anio, mes, diaSemana) => { const d = new Date(anio, mes + 1, 0); return new Date(anio, mes, d.getDate() - ((d.getDay() - diaSemana + 7) % 7)); };
+  // Fechas aproximadas: revísalas una vez al año contra el calendario escolar oficial (SEP) de tu estado.
+  const EVENTOS_TEMPORADA = [
+    { id: 'regreso', nombre: 'el regreso a clases', fecha: (a) => ultimoDia(a, 7, 1), aviso: 35, claves: ['libreta', 'cuaderno', 'lapiz', 'mochila', 'pegamento', 'colores', 'goma', 'tijeras', 'forro'] },
+    { id: 'independencia', nombre: 'las fiestas patrias', fecha: (a) => new Date(a, 8, 16), aviso: 21, claves: ['bandera', 'liston', 'papel picado', 'cartulina'] },
+    { id: 'muertos', nombre: 'el Día de Muertos', fecha: (a) => new Date(a, 10, 1), aviso: 21, claves: ['papel picado', 'cartulina', 'calavera', 'vela'] },
+    { id: 'revolucion', nombre: 'el aniversario de la Revolución', fecha: (a) => new Date(a, 10, 20), aviso: 21, claves: ['monografia', 'cartulina', 'bandera'] },
+    { id: 'navidad', nombre: 'la Navidad', fecha: (a) => new Date(a, 11, 25), aviso: 28, claves: ['papel de regalo', 'mono', 'tarjeta', 'liston', 'bolsa de regalo'] },
+    { id: 'reyes', nombre: 'el Día de Reyes', fecha: (a) => new Date(a, 0, 6), aviso: 14, claves: ['papel de regalo', 'mono', 'liston', 'bolsa de regalo'] },
+    { id: 'amistad', nombre: 'San Valentín', fecha: (a) => new Date(a, 1, 14), aviso: 21, claves: ['tarjeta', 'globo', 'papel de regalo', 'liston', 'peluche'] },
+    { id: 'bandera', nombre: 'el Día de la Bandera', fecha: (a) => new Date(a, 1, 24), aviso: 14, claves: ['bandera', 'liston', 'monografia', 'cartulina'] },
+    { id: 'nino', nombre: 'el Día del Niño', fecha: (a) => new Date(a, 3, 30), aviso: 21, claves: ['juguete', 'colores', 'globo', 'dulce', 'bolsa de regalo'] },
+    { id: 'madres', nombre: 'el Día de las Madres', fecha: (a) => new Date(a, 4, 10), aviso: 21, claves: ['tarjeta', 'papel de regalo', 'liston', 'bolsa de regalo'] },
+    { id: 'maestro', nombre: 'el Día del Maestro', fecha: (a) => new Date(a, 4, 15), aviso: 14, claves: ['tarjeta', 'papel de regalo', 'liston', 'pluma'] },
+    { id: 'padre', nombre: 'el Día del Padre', fecha: (a) => nesimoDia(a, 5, 0, 3), aviso: 21, claves: ['tarjeta', 'papel de regalo', 'pluma', 'bolsa de regalo'] }
+  ];
+  function eventosProximos(hoy){
+    const h0 = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()), out = [];
+    EVENTOS_TEMPORADA.forEach(ev => {
+      let f = ev.fecha(h0.getFullYear()); if(f < h0) f = ev.fecha(h0.getFullYear() + 1);
+      const dias = Math.round((f - h0) / 86400000);
+      if(dias <= ev.aviso) out.push({ ev, dias, anio: f.getFullYear() });
+    });
+    return out.sort((a, b) => a.dias - b.dias);
+  }
+  function analizarTemporada(ev, productos, umbral){
+    const vistos = new Map();
+    ev.claves.forEach(k => productos.forEach(p => { if(p.tipo !== 'servicio' && coincideBusqueda(p, k)) vistos.set(p.id, p); }));
+    const lista = Array.from(vistos.values()), bajos = lista.filter(p => Number(p.stock) <= (umbral == null ? 5 : umbral)).sort((a, b) => a.stock - b.stock);
+    return { total: lista.length, bajos };
+  }
+  function pintarTemporada(){
+    const cont = idv('bannerTemporada'); if(!cont) return; cont.textContent = '';
+    if(!esPapeleria() || miRol !== 'admin' || !productosCache.length){ cont.classList.add('oculto'); return; }
+    const hoy = new Date(); let n = 0;
+    eventosProximos(hoy).forEach(({ ev, dias, anio }) => {
+      if(n >= 2 || lsGet('puve_temp_' + ev.id + '_' + anio)) return;
+      const a = analizarTemporada(ev, productosCache, 5);
+      const caja = el('div', 'aviso-pos'); caja.style.cssText = 'margin-bottom:10px; padding:12px; border:1px solid var(--borde); border-radius:10px; background:var(--superficie);';
+      const cuando = dias === 0 ? 'es hoy' : dias === 1 ? 'es mañana' : 'es en ' + dias + ' días';
+      const detalle = a.total === 0 ? 'No tienes artículos registrados para esa fecha (' + ev.claves.slice(0, 3).join(', ') + '). Quizá te convenga surtirlos.'
+        : a.bajos.length ? 'Poco inventario en: ' + a.bajos.slice(0, 4).map(p => p.nombre + ' (' + Number(p.stock) + ')').join(', ') + (a.bajos.length > 4 ? ' y ' + (a.bajos.length - 4) + ' más.' : '.')
+        : 'Tu inventario para esa fecha se ve bien.';
+      caja.appendChild(el('div', '', 'Se acerca ' + ev.nombre + ' (' + cuando + ').')); caja.firstChild.style.fontWeight = '600';
+      caja.appendChild(el('div', 'nota', detalle));
+      const acc = el('div', 'filtro-cats'); acc.style.marginTop = '6px';
+      const ir = el('button', 'chip-cat', 'Ir a Inventario'); ir.type = 'button'; ir.onclick = () => cambiarSeccion('inventario');
+      const ocu = el('button', 'chip-cat', 'Ocultar'); ocu.type = 'button'; ocu.onclick = () => { lsSet('puve_temp_' + ev.id + '_' + anio, '1'); pintarTemporada(); };
+      agregarHijosPuve(acc, a.bajos.length || !a.total ? [ir, ocu] : [ocu]); caja.appendChild(acc); cont.appendChild(caja); n++;
+    });
+    cont.classList.toggle('oculto', n === 0);
+  }
+
+  // ===== Encargos (apartados con anticipo) =====
+  const dinero = (n) => '$' + (Math.round(Number(n) * 100) / 100).toFixed(2);
+  const sumaAbonos = (e) => (e.encargo_abonos || []).reduce((s, a) => s + Number(a.monto), 0);
+  function etiquetaEntrega(f){
+    if(!f) return { txt: 'Sin fecha', cls: '' };
+    const h = new Date(); const h0 = new Date(h.getFullYear(), h.getMonth(), h.getDate()), d = Math.round((new Date(f + 'T00:00:00') - h0) / 86400000);
+    const fm = new Date(f + 'T00:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+    return d < 0 ? { txt: 'Venció el ' + fm, cls: 'err' } : d === 0 ? { txt: 'Se entrega hoy', cls: 'err' } : d <= 2 ? { txt: 'Entrega ' + fm + ' (en ' + d + ' d)', cls: 'err' } : { txt: 'Entrega ' + fm, cls: '' };
+  }
+  async function abrirEncargos(){ await cargarEncargos(); }
+  async function cargarEncargos(){
+    const cont = idv('listaEncargos'); if(!cont) return; cont.textContent = 'Cargando…';
+    const { data, error } = await sb.from('encargos').select('*, encargo_items(*), encargo_abonos(*)').eq('negocio_id', negocioId).eq('estado', 'abierto').order('fecha_entrega', { ascending: true, nullsFirst: false }).order('creado_en').limit(200);
+    cont.textContent = '';
+    if(error){ cont.appendChild(el('div', 'nota', 'No se pudieron cargar los encargos: ' + error.message)); return; }
+    if(!data.length){ cont.appendChild(el('div', 'vacio', 'No hay encargos abiertos. Toca “Nuevo encargo” para apartar una lista de útiles.')); return; }
+    data.forEach(e => {
+      const total = Number(e.total_estimado), pagado = sumaAbonos(e), caja = el('div', 'tarjeta-enc'); caja.style.cssText = 'border:1px solid var(--borde); border-radius:10px; padding:12px; margin-bottom:10px; background:var(--superficie);';
+      const ent = etiquetaEntrega(e.fecha_entrega);
+      const cab = el('div', ''); cab.style.cssText = 'display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap;';
+      agregarHijosPuve(cab, [el('strong', '', 'E-' + String(e.num).padStart(4, '0') + ' · ' + e.cliente_nombre), el('span', ent.cls === 'err' ? 'badge err' : 'nota', ent.txt)]);
+      caja.appendChild(cab);
+      if(e.cliente_telefono) caja.appendChild(el('div', 'nota', e.cliente_telefono));
+      const ul = el('div', 'nota'); ul.style.margin = '6px 0'; ul.textContent = (e.encargo_items || []).map(i => redondear3(i.cantidad) + ' × ' + i.producto_nombre).join(' · '); caja.appendChild(ul);
+      if(e.notas) caja.appendChild(el('div', 'nota', 'Nota: ' + e.notas));
+      caja.appendChild(el('div', '', 'Total ' + dinero(total) + ' · Abonado ' + dinero(pagado) + ' · Falta ' + dinero(Math.max(0, total - pagado))));
+      const acc = el('div', 'filtro-cats'); acc.style.cssText = 'margin-top:8px; flex-wrap:wrap;';
+      const b = (t, f, cls) => { const x = el('button', cls || 'chip-cat', t); x.type = 'button'; x.onclick = () => f(e); return x; };
+      agregarHijosPuve(acc, [b('Entregar y cobrar', entregarEncargoUI, 'chip-cat activo'), b('Abonar', abonarEncargoUI), b('Cancelar', cancelarEncargoUI)]);
+      caja.appendChild(acc); cont.appendChild(caja);
+    });
+  }
+  const msgEnc = (t, tipo) => mostrarMensaje('mensajeEncargos', t, tipo);
+  function avisoEfectivo(r){ return r && r.efectivo_a_apartar > 0 ? ' Aparta ' + dinero(r.efectivo_a_apartar) + ' en un sobre y súmalos a “Retiros” en tu corte (no hay turno abierto que lo registre solo).' : (r && r.apartado_automatico ? ' El efectivo quedó registrado como apartado en tu turno.' : ''); }
+  function selectMetodo(){ const s = el('select'); [['efectivo', 'Efectivo'], ['tarjeta', 'Tarjeta'], ['transferencia', 'Transferencia']].forEach(([v, t]) => { const o = el('option', '', t); o.value = v; s.appendChild(o); }); s.style.width = '100%'; return s; }
+  function abonarEncargoUI(e){
+    const { caja, fondo } = modalBase('Abonar a E-' + String(e.num).padStart(4, '0'), 380), falta = Math.max(0, Number(e.total_estimado) - sumaAbonos(e));
+    caja.appendChild(el('div', 'nota', 'Falta por pagar ' + dinero(falta)));
+    const m = el('input', 'input-mini'); m.type = 'number'; m.min = 0; m.step = '0.01'; m.max = falta; m.placeholder = 'Monto'; m.style.cssText = 'width:100%; margin:8px 0;'; caja.appendChild(m);
+    const met = selectMetodo(); caja.appendChild(met);
+    const ok = el('button', 'principal', 'Registrar abono'); ok.type = 'button'; ok.style.cssText = 'width:100%; margin-top:10px;'; caja.appendChild(ok);
+    ok.onclick = async () => { const monto = parseFloat(m.value); if(!(monto > 0)) return; ok.disabled = true;
+      const { data, error } = await sb.rpc('abonar_encargo', { p_id: e.id, p_monto: monto, p_metodo: met.value });
+      if(error){ ok.disabled = false; msgEnc(error.message, 'error'); fondo.remove(); return; }
+      fondo.remove(); msgEnc('Abono registrado. Falta ' + dinero(data.saldo) + '.' + avisoEfectivo(data), 'exito'); cargarEncargos(); };
+  }
+  function entregarEncargoUI(e){
+    const { caja, fondo } = modalBase('Entregar E-' + String(e.num).padStart(4, '0'), 400), total = Number(e.total_estimado), pagado = sumaAbonos(e), falta = Math.max(0, total - pagado);
+    caja.appendChild(el('div', '', 'Total ' + dinero(total) + ' · ya abonó ' + dinero(pagado)));
+    caja.appendChild(el('div', 'nota', 'Cobra ahora: ' + dinero(falta) + '. Si algún precio cambió desde que se apartó, el sistema ajusta el saldo.'));
+    const met = selectMetodo(); met.style.margin = '10px 0'; caja.appendChild(met); if(falta <= 0) met.style.display = 'none';
+    const ok = el('button', 'principal', 'Entregar y cobrar'); ok.type = 'button'; ok.style.width = '100%'; caja.appendChild(ok);
+    ok.onclick = async () => { ok.disabled = true;
+      const { data, error } = await sb.rpc('entregar_encargo', { p_id: e.id, p_metodo: met.value });
+      if(error){ ok.disabled = false; fondo.remove(); msgEnc(error.message, 'error'); return; }
+      fondo.remove(); msgEnc('Entregado. Cobra ' + dinero(data.saldo_cobrado) + '.' + (data.devolver > 0 ? ' Devuelve ' + dinero(data.devolver) + ' al cliente (bajó el precio).' : ''), 'exito'); cargarEncargos(); cargarProductos(); };
+  }
+  async function cancelarEncargoUI(e){
+    const pagado = sumaAbonos(e);
+    if(!confirm('¿Cancelar el encargo de ' + e.cliente_nombre + '? Los artículos regresan al inventario.' + (pagado > 0 ? ' Tendrás que devolver ' + dinero(pagado) + '.' : ''))) return;
+    const { data, error } = await sb.rpc('cancelar_encargo', { p_id: e.id });
+    if(error){ msgEnc(error.message, 'error'); return; }
+    msgEnc('Encargo cancelado.' + (data.devolver > 0 ? ' Devuelve ' + dinero(data.devolver) + ' al cliente.' : ''), 'exito'); cargarEncargos(); cargarProductos();
+  }
+  function abrirNuevoEncargo(previos){
+    if(!enLinea){ msgEnc('Necesitas conexión para crear un encargo.', 'error'); return; }
+    const { caja, fondo } = modalBase('Nuevo encargo', 520), lineas = [];
+    const campo = (et, tipo, ph) => { caja.appendChild(el('div', 'cr-etq', et)); const i = el('input', 'input-mini'); i.type = tipo || 'text'; i.placeholder = ph || ''; i.style.cssText = 'width:100%; margin-bottom:8px;'; caja.appendChild(i); return i; };
+    const nom = campo('Cliente', 'text', 'Nombre'), tel = campo('Teléfono (opcional)', 'tel', ''), fec = campo('Fecha de entrega (opcional)', 'date'), nota = campo('Nota (opcional)', 'text', 'Ej. forrar con plástico');
+    caja.appendChild(el('div', 'cr-etq', 'Artículos'));
+    const q = el('input', 'input-mini'); q.type = 'text'; q.placeholder = 'Buscar artículo (ej. “cart azul”)'; q.style.cssText = 'width:100%;'; caja.appendChild(q);
+    const res = el('div', 'filtro-cats'); res.style.cssText = 'flex-wrap:wrap; margin:6px 0;'; caja.appendChild(res);
+    const tabla = el('div'); caja.appendChild(tabla); const tot = el('div', ''); tot.style.cssText = 'font-weight:600; margin:8px 0;'; caja.appendChild(tot);
+    const total = () => lineas.reduce((s, l) => s + Math.round(precioUnitPap(l.p, l.cant) * l.cant * 100) / 100, 0);
+    function pintar(){
+      tabla.textContent = '';
+      lineas.forEach((l, k) => {
+        const r = el('div', 'empleado-fila'); r.style.cssText = 'gap:6px; align-items:center; margin-bottom:4px;';
+        const c = el('input', 'input-mini'); c.type = 'number'; c.min = 0; c.step = l.p.paso_venta || 1; c.value = l.cant; c.style.width = '70px';
+        c.oninput = () => { l.cant = parseFloat(c.value) || 0; tot.textContent = 'Total estimado: ' + dinero(total()); };
+        const x = el('button', 'texto', 'Quitar'); x.type = 'button'; x.onclick = () => { lineas.splice(k, 1); pintar(); };
+        agregarHijosPuve(r, [c, el('span', '', l.p.nombre + ' · stock ' + Number(l.p.stock)), x]); tabla.appendChild(r);
+      });
+      tot.textContent = 'Total estimado: ' + dinero(total());
+    }
+    q.oninput = () => { res.textContent = ''; const t = q.value.trim(); if(!t) return;
+      productosCache.filter(p => p.tipo !== 'servicio' && Number(p.stock) > 0 && coincideBusqueda(p, t)).slice(0, 6).forEach(p => { const b = el('button', 'chip-cat', p.nombre); b.type = 'button'; b.onclick = () => { const ex = lineas.find(l => l.p.id === p.id); if(ex) ex.cant = redondear3(ex.cant + (Number(p.paso_venta) || 1)); else lineas.push({ p, cant: Number(p.paso_venta) || 1 }); q.value = ''; res.textContent = ''; pintar(); }; res.appendChild(b); }); };
+    (previos || []).forEach(it => { const p = productosCache.find(x => x.id === it.id); if(p) lineas.push({ p, cant: it.cantidad }); }); pintar();
+    caja.appendChild(el('div', 'cr-etq', 'Anticipo'));
+    const ant = el('input', 'input-mini'); ant.type = 'number'; ant.min = 0; ant.step = '0.01'; ant.placeholder = '0.00'; ant.style.cssText = 'width:100%; margin-bottom:6px;'; caja.appendChild(ant);
+    const met = selectMetodo(); caja.appendChild(met);
+    const ok = el('button', 'principal', 'Guardar encargo'); ok.type = 'button'; ok.style.cssText = 'width:100%; margin-top:12px;'; caja.appendChild(ok);
+    ok.onclick = async () => {
+      if(!nom.value.trim()){ msgEnc('Escribe el nombre del cliente.', 'error'); return; }
+      const items = lineas.filter(l => l.cant > 0).map(l => ({ producto_id: l.p.id, cantidad: l.cant }));
+      if(!items.length){ msgEnc('Agrega al menos un artículo.', 'error'); return; }
+      const sobra = lineas.find(l => l.cant > Number(l.p.stock)); if(sobra){ msgEnc('Solo hay ' + Number(sobra.p.stock) + ' de ' + sobra.p.nombre + '.', 'error'); return; }
+      ok.disabled = true;
+      const { data, error } = await sb.rpc('crear_encargo', { p_cliente: nom.value.trim(), p_telefono: tel.value.trim() || null, p_fecha: fec.value || null, p_notas: nota.value.trim() || null, p_items: items, p_anticipo: parseFloat(ant.value) || 0, p_metodo: met.value });
+      if(error){ ok.disabled = false; msgEnc(error.message, 'error'); return; }
+      fondo.remove(); msgEnc('Encargo ' + data.folio + ' guardado por ' + dinero(data.total) + '. Aparta los artículos.' + avisoEfectivo(data), 'exito');
+      cargarProductos(); if(seccionActivaEs('encargos')) cargarEncargos(); else cambiarSeccion('encargos');
+    };
+  }
+  const seccionActivaEs = (s) => { const e = idv('seccion' + s.charAt(0).toUpperCase() + s.slice(1)); return !!(e && e.classList.contains('activa')); };
+
+  // ===== Catálogo grande: copia local en IndexedDB (localStorage se llena con ~2,500 artículos) =====
+  let productosCacheGrande = null;
+  const idbPuve = () => new Promise((res, rej) => { const r = indexedDB.open('puve', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  async function guardarCacheIDB(v){ try { const db = await idbPuve(); db.transaction('kv', 'readwrite').objectStore('kv').put(v, 'productos'); } catch(e){} }
+  async function precargarCacheIDB(){
+    try { const db = await idbPuve(); const v = await new Promise(res => { const q = db.transaction('kv').objectStore('kv').get('productos'); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); });
+      if(v && v.length && !lsGet('puve_productos_cache')) productosCacheGrande = v; } catch(e){}
+  }
+  precargarCacheIDB();
   cargarCachePap();
 
   aplicarPreferenciasApariencia();
