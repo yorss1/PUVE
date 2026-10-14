@@ -1431,6 +1431,7 @@
           <button id="navPedidos" class="oculto" onclick="cambiarSeccion('pedidos')">Pedidos<span id="badgePedidosQr" class="badge-pedidos oculto"></span></button>
           <button id="navAgenda" class="oculto" onclick="cambiarSeccion('agenda')">Agenda</button>
           <button id="navEncargos" class="oculto" onclick="cambiarSeccion('encargos')">Encargos</button>
+          <button id="navEnlinea" class="oculto" onclick="cambiarSeccion('enlinea')">Pedidos en línea<span id="badgeEnlinea" class="badge-nav oculto">0</span></button>
           <button id="navCorte" onclick="conTutorial('nav-corte', this, function(){ if(funcionPuveActiva('cajero.nav_corte')) cambiarSeccion('corte'); })">Corte de caja</button>
           <button id="navDevoluciones" class="oculto" onclick="conTutorial('nav-devoluciones', this, function(){ if(funcionPuveActiva('cajero.nav_devoluciones')) cambiarSeccion('devoluciones'); })">Devoluciones</button>
         </div>
@@ -1657,6 +1658,8 @@
                 <div id="insumoLista" class="filtro-cats" style="flex-wrap:wrap; margin:6px 0;"></div>
                 <div id="insumoElegido" style="display:flex; gap:8px; align-items:center;"></div>
                 <label for="pInsumoCant" style="margin-top:8px;">Cuánto gasta por cada 1</label><input id="pInsumoCant" type="number" min="0.001" step="any" value="1">
+                <label for="pImpresionTipo" style="margin-top:8px;">¿Lo usas para cotizar pedidos de impresión en línea?</label>
+                <select id="pImpresionTipo"><option value="">No</option><option value="bn">Sí, impresión en blanco y negro</option><option value="color">Sí, impresión a color</option></select>
               </div>
             </details>
             <div class="campo oculto campo-servicio"><label for="pTipo">¿Qué vas a agregar?</label><select id="pTipo"><option value="servicio">Servicio (corte, tinte, masaje…)</option><option value="producto">Producto para vender (cera, champú…)</option></select></div>
@@ -1822,6 +1825,23 @@
       </div>
       <div id="mensajePedidosQr" class="mensaje"></div>
       <div id="listaPedidosQr" class="pedidos-cols"></div>
+    </div>
+  </div>
+
+  <div class="seccion" id="seccionEnlinea">
+    <div class="contenido">
+      <div class="encabezado-seccion">
+        <div><h2>Pedidos en línea</h2><p>Archivos para imprimir y pedidos que tus clientes programan desde su celular.</p></div>
+        <label class="pedidos-sonido"><input type="checkbox" id="progSonido" checked> Sonido de aviso</label>
+      </div>
+      <div id="mensajeEnlinea" class="mensaje"></div>
+      <div id="cfgEnlinea" class="bloque-analitica oculto">
+        <h3>Tu QR de pedidos en línea</h3>
+        <label style="font-weight:500;"><input type="checkbox" id="progActivoChk" onchange="alternarEnlinea(this.checked)"> Recibir pedidos en línea</label>
+        <p class="nota">Pega el QR en el mostrador. Tus clientes suben PDF, JPG o PNG (se revisan automáticamente) y eligen para cuándo lo quieren. Los archivos se borran al entregar o cancelar, y a más tardar a los 10 días. Para cotizar la impresión, marca tus servicios de copias como B/N o Color en Artículos → “Es un servicio”.</p>
+        <div id="qrEnlinea"></div>
+      </div>
+      <div id="listaEnlinea"></div>
     </div>
   </div>
 
@@ -2334,14 +2354,14 @@
           </table></div>
         </div>
         <div class="bloque-analitica" id="bloqueFavicon">
-          <h3>Ícono del negocio</h3>
-          <p class="nota">Es la imagen que aparece en la pestaña del navegador y al guardar tu página en la pantalla de inicio. Puedes dejar el ícono de PUVE o usar el tuyo (se recorta cuadrado y se reduce a un archivo diminuto).</p>
+          <h3>Logo de tu página de pedidos</h3>
+          <p class="nota">Aparece solo en la página que ven tus clientes al escanear tu QR: arriba de tu nombre, en la pestaña de su navegador y al guardarla en su pantalla de inicio. Tu punto de venta sigue mostrando el logo de PUVE. Se recorta cuadrado y se optimiza solo.</p>
           <div id="mensajeFavicon" class="mensaje"></div>
           <div class="foto-fila">
             <img id="faviconPrev" class="favicon-prev" alt="Ícono actual" src="img/logo_mini.png">
             <div class="foto-acc">
-              <button type="button" onclick="subirFaviconNegocio()">Subir mi imagen</button>
-              <button type="button" class="texto" onclick="restablecerFaviconNegocio()">Usar el ícono de PUVE</button>
+              <button type="button" onclick="subirFaviconNegocio()">Subir mi logo</button>
+              <button type="button" class="texto" onclick="restablecerFaviconNegocio()">Quitar mi logo</button>
             </div>
           </div>
         </div>
@@ -4647,6 +4667,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const { error } = await sb.rpc('abrir_turno_caja', { p_fondo_inicial: fondo });
     if(error){ mostrarMensaje('mensajeAbrirTurno', 'No se pudo abrir el turno: ' + error.message, 'error'); return false; }
     await verificarTurnoCajero();
+    if(typeof avisarPedidosProg === 'function') avisarPedidosProg(true);   // papelería: al abrir caja, aviso sonoro de pedidos en línea
     return false;
   }
 
@@ -6893,6 +6914,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     switch(cual){
       case 'vender':       return esCajeroAhora;
       case 'productos':    return esCajeroAhora || esEncargadoAhora;
+      case 'enlinea':      return (esCajeroAhora || esEncargadoAhora) && document.body.classList.contains('giro-papeleria');
       case 'encargos':     return (esCajeroAhora || esEncargadoAhora) && document.body.classList.contains('giro-papeleria');
       case 'agenda':       return (esCajeroAhora || esEncargadoAhora) && document.body.classList.contains('giro-servicios');
       case 'comisiones':   return esEncargadoAhora && document.body.classList.contains('giro-servicios');
@@ -6917,7 +6939,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       console.warn('Navegación bloqueada: tu rol no tiene acceso a "' + cual + '".');
       return;
     }
-    ['Vender','Agenda','Encargos','Pedidos','Comisiones','Productos','Corte','Devoluciones','Gastos','Inventario','Analitica','Dispositivos','Config','Fiscal','Soporte','Admin'].forEach(s => {
+    ['Vender','Agenda','Encargos','Enlinea','Pedidos','Comisiones','Productos','Corte','Devoluciones','Gastos','Inventario','Analitica','Dispositivos','Config','Fiscal','Soporte','Admin'].forEach(s => {
       document.getElementById('nav'+s).classList.toggle('activo', s.toLowerCase() === cual);
       document.getElementById('seccion'+s).classList.toggle('activa', s.toLowerCase() === cual);
     });
@@ -6927,6 +6949,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(cual === 'comisiones') cambiarPeriodoComisiones(periodoComisiones);
     if(cual === 'agenda') abrirAgenda();
     if(cual === 'encargos') abrirEncargos();
+    if(cual === 'enlinea') abrirEnlinea();
     if(cual === 'productos'){ aplicarModoProductosSegunRol(); aplicarVocabularioGiro(); actualizarBloqueClima(); pintarTemporada(); }
     if(cual === 'vender') setTimeout(enfocarEscanerVenta, 200);
     if(cual === 'corte') cargarHistorialCortes();
@@ -7100,6 +7123,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   function avisoSoloEncargado(){ alert('Solo el encargado puede agregar, editar o eliminar productos.'); }
   function textoErrorProducto(error){
     const m = String((error && error.message) || error || '');
+    if(/productos_impresion_uni/i.test(m)) return 'Ya tienes otro servicio marcado como impresión de ese tipo. Solo puede haber uno en blanco y negro y uno a color.';
     if(/row-level security|permission denied|violates row/i.test(m)) return 'Tu usuario no tiene permiso para modificar productos. Solo el encargado puede agregar, editar o eliminar.';
     return m;
   }
@@ -8057,6 +8081,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const cf = document.getElementById('campoFotoPlatillo'); if(cf) cf.classList.toggle('oculto', !(v && v.foto));
     const nc = document.getElementById('navComisiones'); if(nc) nc.classList.toggle('oculto', !(giro === 'servicios' && miRol === 'admin' && !esAdminActual));
     const tc = document.getElementById('tabClimaAnalitica'); if(tc) tc.classList.toggle('oculto', !(climaDisponible() && miRol === 'admin' && !esAdminActual));
+    if(giro === 'papeleria') cargarEstadoProg();
+    const nl = document.getElementById('navEnlinea'); if(nl) nl.classList.toggle('oculto', !(giro === 'papeleria' && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
     const ne = document.getElementById('navEncargos'); if(ne) ne.classList.toggle('oculto', !(giro === 'papeleria' && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
     const bl = document.getElementById('btnListaEscolar'); if(bl) bl.classList.toggle('oculto', giro !== 'papeleria');
     const na = document.getElementById('navAgenda'); if(na) na.classList.toggle('oculto', !(giro === 'servicios' && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
@@ -8114,11 +8140,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   // ----- Ícono (favicon) del negocio -----
   let faviconNegocioCargado = false;
   function aplicarFaviconNegocio(path){
+    // El logo del negocio se usa SOLO en la página pública de pedidos (pedir.html). La pestaña del punto de venta conserva el ícono de PUVE.
     const l = document.querySelector('link[rel="icon"]'); if(!l) return;
     if(l.dataset.orig === undefined) l.dataset.orig = l.getAttribute('href');
-    const ok = path && RUTA_FAV.test(path);
-    l.href = ok ? urlImgPuve(path) + '?v=' + Date.now() : l.dataset.orig;
-    const pv = document.getElementById('faviconPrev'); if(pv) pv.src = ok ? urlImgPuve(path) + '?v=' + Date.now() : l.dataset.orig;
+    const ok = path && RUTA_FAV.test(path), pv = document.getElementById('faviconPrev');
+    if(pv) pv.src = ok ? urlImgPuve(path) + '?v=' + Date.now() : l.dataset.orig;
   }
   async function cargarFaviconNegocio(){
     if(faviconNegocioCargado || !negocioId) return; faviconNegocioCargado = true;
@@ -8128,17 +8154,17 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   async function subirFaviconNegocio(){
     const f = await pedirArchivoImagen(false); if(!f) return; ocultarMensaje('mensajeFavicon');
     try {
-      const blob = await procesarImagenPuve(f, { lado: 64, cuadrada: true, tipo: 'image/png' });
+      let blob = null; for(const lado of [192, 128, 96, 64]){ blob = await procesarImagenPuve(f, { lado, cuadrada: true, tipo: 'image/png' }); if(blob.size <= 190 * 1024) break; }
       const path = negocioId + '/favicon.png'; await subirImagenPuve(path, blob);
       const { error } = await sb.rpc('guardar_favicon_negocio', { p_path: path }); if(error) throw new Error(error.message);
-      aplicarFaviconNegocio(path); mostrarMensaje('mensajeFavicon', 'Listo: tu ícono quedó actualizado (' + (blob.size / 1024).toFixed(1) + ' KB).', 'exito');
+      aplicarFaviconNegocio(path); mostrarMensaje('mensajeFavicon', 'Listo: tu logo quedó actualizado (' + (blob.size / 1024).toFixed(1) + ' KB).', 'exito');
     } catch(e){ mostrarMensaje('mensajeFavicon', e.message || 'No se pudo actualizar el ícono', 'error'); }
   }
   async function restablecerFaviconNegocio(){
     ocultarMensaje('mensajeFavicon');
     const { error } = await sb.rpc('guardar_favicon_negocio', { p_path: null });
     if(error){ mostrarMensaje('mensajeFavicon', error.message || 'No se pudo restablecer', 'error'); return; }
-    quitarArchivoPuve(negocioId + '/favicon.png'); aplicarFaviconNegocio(null); mostrarMensaje('mensajeFavicon', 'Se restableció el ícono predeterminado de PUVE.', 'exito');
+    quitarArchivoPuve(negocioId + '/favicon.png'); aplicarFaviconNegocio(null); mostrarMensaje('mensajeFavicon', 'Se quitó tu logo de la página de pedidos.', 'exito');
   }
   document.getElementById('cfgTipoNegocio').addEventListener('change', () => setTimeout(aplicarVocabularioGiro, 700));
 
@@ -13102,7 +13128,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
   function limpiarAvisosPuve(){
     generacionAvisos++;
-    try { cerrarCanalPedidosQr(); cerrarCanalCitas(); detenerClima(); faviconNegocioCargado = false; aplicarFaviconNegocio(null); } catch(e){}
+    try { cerrarCanalProg(); cerrarCanalPedidosQr(); cerrarCanalCitas(); detenerClima(); faviconNegocioCargado = false; aplicarFaviconNegocio(null); } catch(e){}
     if(canalAvisos){ try { sb.removeChannel(canalAvisos); } catch(e){} canalAvisos = null; }
     avisosVisibles = [];
     ultimoFetchAvisos = 0;
@@ -13815,7 +13841,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
   function resetFormPap(){
     const set = (id, v) => { const e = idv(id); if(e) e.value = v; };
-    set('pUnidad', 'pieza'); set('pPaso', '1'); set('pPeso', ''); set('pPaqN', ''); set('pPaqU', ''); set('pPaqCosto', ''); set('pInsumoBuscar', ''); set('pInsumoCant', '1');
+    set('pUnidad', 'pieza'); set('pPaso', '1'); set('pPeso', ''); set('pPaqN', ''); set('pPaqU', ''); set('pPaqCosto', ''); set('pInsumoBuscar', ''); set('pInsumoCant', '1'); set('pImpresionTipo', '');
     const sv = idv('pEsServicio'); if(sv) sv.checked = false;
     formPap = { pres: [], vol: [], insumo: null };
     document.querySelectorAll('.det-pap').forEach(d => { d.open = false; });
@@ -13824,7 +13850,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
   function cargarFormPap(p){
     const set = (id, v) => { const e = idv(id); if(e) e.value = v; };
-    set('pUnidad', p.unidad || 'pieza'); set('pPaso', p.paso_venta || 1); set('pPeso', p.peso_unitario_g || ''); set('pInsumoCant', p.insumo_cantidad || 1);
+    set('pUnidad', p.unidad || 'pieza'); set('pPaso', p.paso_venta || 1); set('pPeso', p.peso_unitario_g || ''); set('pInsumoCant', p.insumo_cantidad || 1); set('pImpresionTipo', p.impresion_tipo || '');
     const ins = p.insumo_id ? productosCache.find(x => x.id === p.insumo_id) : null;
     formPap = { pres: (presCache.get(p.id) || []).map(x => ({ nombre: x.nombre, unidades: x.unidades, precio: x.precio == null ? '' : x.precio })),
                 vol: (volCache.get(p.id) || []).map(x => ({ desde: x.desde, precio: x.pu })), insumo: ins ? { id: ins.id, nombre: ins.nombre } : null };
@@ -13845,9 +13871,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       const cant = parseFloat(idv('pInsumoCant').value) || 1;
       if(cant <= 0 || cant > 1000) return 'Cuánto gasta de tu inventario debe ser mayor a 0.';
       registro.tipo = 'servicio'; registro.stock = 999999; registro.costo = parseFloat(idv('pCosto').value) || 0;
-      registro.insumo_id = formPap.insumo ? formPap.insumo.id : null; registro.insumo_cantidad = cant;
+      registro.insumo_id = formPap.insumo ? formPap.insumo.id : null; registro.insumo_cantidad = cant; registro.impresion_tipo = idv('pImpresionTipo').value || null;
     } else {
-      registro.tipo = 'producto'; registro.insumo_id = null; registro.insumo_cantidad = 1;
+      registro.tipo = 'producto'; registro.insumo_id = null; registro.insumo_cantidad = 1; registro.impresion_tipo = null;
       if(modoInv() === 'paq'){
         const n = parseFloat(idv('pPaqN').value), u = parseFloat(idv('pPaqU').value);
         if(!(n >= 0) || !(u > 0)) return 'Escribe cuántos paquetes tienes y cuántas ' + plural(unidad) + ' trae cada uno.';
@@ -14199,6 +14225,163 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
   precargarCacheIDB();
   cargarCachePap();
+
+
+  // ===== Pedidos en línea (papelería): archivos para imprimir y pedidos programados =====
+  let progActivo = null, progCache = [], progCanal = null, progTimer = null, progVistos = new Set(), progYaCargo = false, progAvisado = false, progAudio = null, progFirma = null;
+  const progFecha = (iso) => new Date(iso).toLocaleString('es-MX', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+  ['click', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, function f(){ try { const C = window.AudioContext || window.webkitAudioContext; if(C && !progAudio){ progAudio = new C(); } if(progAudio && progAudio.state === 'suspended') progAudio.resume(); } catch(e){} }, { passive: true }));
+  function sonidoProg(){
+    const chk = document.getElementById('progSonido'); if(chk && !chk.checked) return;
+    try {
+      const C = window.AudioContext || window.webkitAudioContext; const c = progAudio || new C(); if(c.state === 'suspended') c.resume();
+      const g = c.createGain(); g.connect(c.destination); [784, 988, 1319].forEach((f, i) => { const o = c.createOscillator(); o.frequency.value = f; o.connect(g); o.start(c.currentTime + i * 0.2); o.stop(c.currentTime + i * 0.2 + 0.16); });
+      g.gain.setValueAtTime(0.3, c.currentTime); g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.8);
+    } catch(e){}
+  }
+  async function cargarEstadoProg(){
+    if(!negocioId || !esPapeleria()) return;
+    const { data, error } = await sb.from('negocios').select('pedidos_prog_activo').eq('id', negocioId).maybeSingle(); if(error) return;
+    progActivo = !!(data && data.pedidos_prog_activo);
+    if(progActivo) abrirCanalProg();
+    const ne = document.getElementById('navEnlinea'); if(ne) ne.classList.toggle('oculto', !(miRol === 'admin' || miRol === 'vendedor') || esAdminActual);
+  }
+  function abrirCanalProg(){
+    if(progCanal || !negocioId) return;
+    progCanal = sb.channel('pedidos-prog-' + negocioId).on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos_prog', filter: 'negocio_id=eq.' + negocioId }, () => refrescarProg()).subscribe();
+    progTimer = setInterval(() => { if(document.getElementById('seccionEnlinea').classList.contains('activa') || !progYaCargo) refrescarProg(); }, 30000);
+    refrescarProg();
+  }
+  function cerrarCanalProg(){
+    if(progCanal){ try { sb.removeChannel(progCanal); } catch(e){} progCanal = null; }
+    clearInterval(progTimer); progTimer = null; progActivo = null; progCache = []; progVistos = new Set(); progYaCargo = false; progAvisado = false;
+  }
+  async function refrescarProg(){
+    if(!negocioId || !esPapeleria()) return;
+    const { data, error } = await sb.from('pedidos_prog').select('*, pedido_prog_items(*), pedido_prog_trabajos(*)').eq('negocio_id', negocioId)
+      .in('estado', ['nuevo', 'en_proceso', 'listo']).order('para_cuando', { ascending: true, nullsFirst: true }).order('creado_en').limit(200);
+    if(error) return;
+    progCache = data || [];
+    const nuevos = progCache.filter(p => p.estado === 'nuevo' && !progVistos.has(p.id)); progCache.forEach(p => progVistos.add(p.id));
+    if(nuevos.length && progYaCargo){ sonidoProg(); avisoFlotanteProg('Nuevo pedido en línea de ' + nuevos[0].nombre + (nuevos.length > 1 ? ' y ' + (nuevos.length - 1) + ' más' : '')); }
+    const pend = progCache.filter(p => p.estado === 'nuevo').length, b = document.getElementById('badgeEnlinea'); if(b){ b.textContent = pend; b.classList.toggle('oculto', !pend); }
+    if(!progYaCargo){ progYaCargo = true; if(!(miRol === 'vendedor' && !__turnoCajaAbierto)) avisarPedidosProg(false); }
+    renderizarProg();
+  }
+  function avisoFlotanteProg(txt){
+    const d = el('div', 'toast-prog'); d.style.cssText = 'position:fixed; top:14px; right:14px; z-index:9999; max-width:320px; padding:12px 14px; border-radius:12px; background:var(--texto,#171614); color:var(--fondo,#fff); box-shadow:0 6px 24px rgba(0,0,0,.25); font-size:14px;';
+    d.appendChild(el('div', '', txt)); const b = el('button', 'chip-cat', 'Ver'); b.type = 'button'; b.style.marginTop = '8px'; b.onclick = () => { d.remove(); cambiarSeccion('enlinea'); }; d.appendChild(b);
+    document.body.appendChild(d); setTimeout(() => d.remove(), 9000);
+  }
+  // Al abrir la caja (o al entrar si ya estaba abierta): sonido + resumen de lo pendiente
+  function avisarPedidosProg(forzar){
+    if(!esPapeleria() || !progActivo && !progCache.length) return;
+    if(progAvisado && !forzar) return;
+    const abiertos = progCache.filter(p => p.estado === 'nuevo' || p.estado === 'en_proceso'); if(!abiertos.length) return;
+    progAvisado = true; sonidoProg();
+    const { caja, fondo } = modalBase('Pedidos en línea por atender', 440);
+    const arch = abiertos.reduce((s, p) => s + (p.pedido_prog_trabajos || []).length, 0), arts = abiertos.filter(p => (p.pedido_prog_items || []).length).length;
+    caja.appendChild(el('div', '', abiertos.length + ' pedido(s) · ' + arch + ' archivo(s) para imprimir · ' + arts + ' con artículos'));
+    abiertos.slice(0, 5).forEach(p => { const f = el('div', 'nota'); f.style.margin = '6px 0'; f.textContent = '• ' + p.nombre + ' — ' + (p.asap || !p.para_cuando ? 'lo antes posible' : progFecha(p.para_cuando)); caja.appendChild(f); });
+    const ver = el('button', 'principal', 'Ver pedidos'); ver.type = 'button'; ver.style.cssText = 'width:100%; margin-top:12px;'; ver.onclick = () => { fondo.remove(); cambiarSeccion('enlinea'); }; caja.appendChild(ver);
+  }
+  function urgenciaProg(p){
+    if(p.asap || !p.para_cuando) return { txt: 'Lo antes posible', err: true };
+    const min = Math.round((new Date(p.para_cuando).getTime() - Date.now()) / 60000), f = progFecha(p.para_cuando);
+    return min < 0 ? { txt: f + ' · atrasado ' + Math.abs(min) + ' min', err: true } : min < 60 ? { txt: f + ' · en ' + min + ' min', err: true } : { txt: f, err: false };
+  }
+  function renderizarProg(){
+    const cont = document.getElementById('listaEnlinea'); if(!cont) return; cont.textContent = '';
+    if(!progCache.length){ cont.appendChild(el('div', 'vacio', progActivo ? 'No hay pedidos pendientes. Cuando un cliente escanee tu QR, suba sus archivos y programe su pedido, aparecerá aquí con aviso sonoro.' : 'Los pedidos en línea están desactivados.')); return; }
+    [['nuevo', 'Nuevos'], ['en_proceso', 'En proceso'], ['listo', 'Listos para recoger']].forEach(([est, tit]) => {
+      const lista = progCache.filter(p => p.estado === est); if(!lista.length) return;
+      cont.appendChild(el('h3', '', tit + ' (' + lista.length + ')')); lista.forEach(p => cont.appendChild(tarjetaProg(p)));
+    });
+  }
+  async function abrirArchivoProg(t, descargar){
+    const w = descargar ? null : window.open('about:blank', '_blank'); if(w) w.opener = null;
+    const { data, error } = await sb.storage.from('impresiones').createSignedUrl(t.ruta, 300, descargar ? { download: t.nombre_archivo } : undefined);
+    if(error || !data){ if(w) w.close(); mostrarMensaje('mensajeEnlinea', 'No se pudo abrir el archivo: ' + ((error && error.message) || 'intenta de nuevo'), 'error'); return; }
+    if(descargar){ const a = document.createElement('a'); a.href = data.signedUrl; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); } else w.location.href = data.signedUrl;
+  }
+  function tarjetaProg(p){
+    const card = el('div', 'pedido-card'), cab = el('div', 'pedido-cab'), u = urgenciaProg(p);
+    cab.appendChild(el('b', '', 'P-' + String(p.num).padStart(4, '0') + ' · ' + p.nombre)); const lim = el('span', u.err ? 'badge err' : 'nota', u.txt); cab.appendChild(lim); card.appendChild(cab);
+    card.appendChild(el('div', 'nota', 'Solicitado ' + progFecha(p.creado_en) + (p.telefono ? ' · Tel. ' + p.telefono : '')));
+    (p.pedido_prog_trabajos || []).slice().sort((a, b) => a.orden - b.orden).forEach(t => {
+      const f = el('div', 'pedido-linea'); f.style.cssText = 'margin:8px 0; padding:8px; border:1px solid var(--borde); border-radius:8px;';
+      f.appendChild(el('div', '', t.nombre_archivo));
+      f.appendChild(el('div', 'nota', [t.copias + (t.copias === 1 ? ' copia' : ' copias'), t.color === 'color' ? 'Color' : 'B/N', t.tamano === 'oficio' ? 'Oficio' : 'Carta', t.caras === 2 ? 'Doble cara' : 'Una cara',
+        t.paginas ? t.paginas + ' pág.' + (t.paginas_rango ? ' (rango ' + t.paginas_rango + ')' : '') : 'páginas por contar', t.engargolado ? 'Engargolado' : null, t.subtotal_estimado != null ? '≈ $' + Number(t.subtotal_estimado).toFixed(2) : null].filter(Boolean).join(' · ')));
+      if(t.notas) f.appendChild(el('div', 'pedido-nota', '“' + t.notas + '”'));
+      if(t.ruta){ const a = el('div', 'pedido-acc'), b1 = el('button', '', 'Abrir'), b2 = el('button', '', 'Descargar'); b1.type = b2.type = 'button'; b1.onclick = () => abrirArchivoProg(t, false); b2.onclick = () => abrirArchivoProg(t, true); agregarHijosPuve(a, [b1, b2]); f.appendChild(a); }
+      card.appendChild(f);
+    });
+    (p.pedido_prog_items || []).forEach(i => card.appendChild(el('div', 'pedido-linea', Number(i.cantidad) + ' × ' + i.producto_nombre + ' · $' + Number(i.subtotal).toFixed(2))));
+    if(p.nota) card.appendChild(el('div', 'pedido-nota', '“' + p.nota + '”'));
+    card.appendChild(el('div', 'pedido-linea', 'Total estimado: $' + Number(p.total_estimado).toFixed(2) + (p.precio_pendiente ? ' (sin impresión: configura tus servicios de B/N y color)' : '')));
+    const acc = el('div', 'pedido-acc'), btn = (txt, cls, fn) => { const b = el('button', cls, txt); b.type = 'button'; b.onclick = fn; acc.appendChild(b); };
+    if(p.estado === 'nuevo') btn('Aceptar', 'principal', () => cambiarEstadoProg(p, 'en_proceso'));
+    if(p.estado !== 'listo') btn('Marcar listo', '', () => cambiarEstadoProg(p, 'listo'));
+    btn('Pasar a caja', '', () => pasarACajaProg(p));
+    if(p.estado === 'listo') btn('Entregado', 'principal', () => { if(confirm('¿Marcar como entregado? Los archivos del cliente se borrarán.')) cambiarEstadoProg(p, 'entregado'); });
+    btn('Cancelar', 'texto', () => { if(confirm('¿Cancelar este pedido? Los archivos se borrarán.')) cambiarEstadoProg(p, 'cancelado'); });
+    card.appendChild(acc); return card;
+  }
+  async function cambiarEstadoProg(p, estado){
+    const { data, error } = await sb.rpc('pap_cambiar_estado', { p_id: p.id, p_estado: estado });
+    if(error){ mostrarMensaje('mensajeEnlinea', error.message, 'error'); return; }
+    const rutas = (data && data.rutas) || []; if(rutas.length) sb.storage.from('impresiones').remove(rutas);   // los archivos se borran al cerrar el pedido
+    refrescarProg();
+  }
+  function pasarACajaProg(p){
+    const faltan = [], sinProd = []; let ag = 0;
+    (p.pedido_prog_items || []).forEach(i => { const pr = productosCache.find(x => x.id === i.producto_id); if(!pr){ faltan.push(i.producto_nombre); return; }
+      const ex = carrito.find(c => c.id === pr.id), n = Math.min(Number(i.cantidad), Math.max(0, redondear3(Number(pr.stock) - (ex ? ex.cantidad : 0))));
+      if(n < Number(i.cantidad)) faltan.push(i.producto_nombre); if(n > 0){ ag++; if(ex) ex.cantidad = redondear3(ex.cantidad + n); else carrito.push({ id: pr.id, nombre: pr.nombre, precio: Number(pr.precio), cantidad: n, stock: Number(pr.stock), paso: Number(pr.paso_venta) || 1, unidad: pr.unidad || 'pieza' }); } });
+    const porTipo = { bn: 0, color: 0 };
+    (p.pedido_prog_trabajos || []).forEach(t => { if(t.paginas_cobrar) porTipo[t.color] += t.paginas_cobrar * t.copias; else sinProd.push(t.nombre_archivo); });
+    ['bn', 'color'].forEach(tipo => { if(!porTipo[tipo]) return; const pr = productosCache.find(x => x.impresion_tipo === tipo); if(!pr){ sinProd.push('impresión ' + (tipo === 'bn' ? 'B/N' : 'color') + ' (no has marcado ese servicio)'); return; }
+      const ex = carrito.find(c => c.id === pr.id); if(ex) ex.cantidad += porTipo[tipo]; else carrito.push({ id: pr.id, nombre: pr.nombre, precio: Number(pr.precio), cantidad: porTipo[tipo], stock: Number(pr.stock), paso: 1, unidad: pr.unidad || 'copia' }); ag++; });
+    renderizarCarrito();
+    const avisos = (faltan.length ? ' Sin stock suficiente: ' + faltan.join(', ') + '.' : '') + (sinProd.length ? ' Revisa a mano: ' + sinProd.join(', ') + '.' : '');
+    if(seccionPermitidaParaMi('vender')){ cambiarSeccion('vender'); mostrarMensaje('mensajeVenta', 'Pedido de ' + p.nombre + ' agregado al carrito.' + avisos, avisos ? 'error' : 'exito'); }
+    else mostrarMensaje('mensajeEnlinea', 'Para cobrar entra con una cuenta de cajero.' + avisos, 'error');
+  }
+  async function abrirEnlinea(){
+    await cargarEstadoProg(); const cfg = document.getElementById('cfgEnlinea'); if(cfg) cfg.classList.toggle('oculto', miRol !== 'admin');
+    const chk = document.getElementById('progActivoChk'); if(chk) chk.checked = !!progActivo;
+    if(miRol === 'admin') await pintarQrProg();
+    refrescarProg();
+  }
+  async function alternarEnlinea(activo){
+    const { data, error } = await sb.rpc('pap_config', { p_activo: activo, p_rotar: false });
+    if(error){ mostrarMensaje('mensajeEnlinea', error.message, 'error'); document.getElementById('progActivoChk').checked = !activo; return; }
+    progFirma = data; progActivo = activo; if(activo) abrirCanalProg(); else cerrarCanalProg(); progActivo = activo; await pintarQrProg(); renderizarProg();
+    mostrarMensaje('mensajeEnlinea', activo ? 'Pedidos en línea activados. Imprime tu QR y pégalo en el mostrador.' : 'Pedidos en línea desactivados: el QR dejó de recibir pedidos.', 'exito');
+  }
+  function urlMostradorQr(f){ const u = new URL('pedir.html', location.href); u.hash = 'n=' + negocioId + '&m=MOSTRADOR&f=' + f; return u.href; }
+  async function pintarQrProg(){
+    const cont = document.getElementById('qrEnlinea'); if(!cont) return; cont.textContent = '';
+    if(!progActivo){ return; }
+    if(!progFirma){ const { data } = await sb.rpc('pap_firma_mostrador'); progFirma = data; } if(!progFirma) return;
+    const url = urlMostradorQr(progFirma), cuadro = el('div', 'qr-svg'); cuadro.style.maxWidth = '180px'; cuadro.innerHTML = qrSvgPuve(url); cont.appendChild(cuadro);
+    const a = el('div', 'nota', url); a.style.wordBreak = 'break-all'; a.style.margin = '6px 0'; cont.appendChild(a);
+    const acc = el('div', 'foto-acc'), b1 = el('button', '', 'Descargar tarjeta PDF'), b2 = el('button', '', 'Copiar enlace'), b3 = el('button', 'texto', 'Regenerar QR');
+    b1.type = b2.type = b3.type = 'button'; b1.onclick = () => descargarPdfMostrador(url); b2.onclick = () => { navigator.clipboard && navigator.clipboard.writeText(url); mostrarMensaje('mensajeEnlinea', 'Enlace copiado.', 'exito'); };
+    b3.onclick = async () => { if(!confirm('El QR anterior dejará de funcionar y tendrás que imprimir uno nuevo. ¿Continuar?')) return; const { data, error } = await sb.rpc('pap_config', { p_activo: true, p_rotar: true }); if(error){ mostrarMensaje('mensajeEnlinea', error.message, 'error'); return; } progFirma = data; pintarQrProg(); };
+    agregarHijosPuve(acc, [b1, b2, b3]); cont.appendChild(acc);
+  }
+  function descargarPdfMostrador(url){
+    const J = window.jspdf && window.jspdf.jsPDF; if(!J){ mostrarMensaje('mensajeEnlinea', 'No se pudo cargar el generador de PDF. Revisa tu conexión.', 'error'); return; }
+    const m = qrMatrizPuve(url), doc = new J({ unit: 'mm', format: [95, 130] }), cx = 47.5, e = document.getElementById('nombreNegocioBarra'), nombre = ((e && e.textContent.trim()) || 'Papelería').toUpperCase();
+    doc.setFillColor(255, 255, 255); doc.rect(0, 0, 95, 130, 'F'); doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.35); doc.rect(3, 3, 89, 124);
+    doc.setFont('times', 'normal'); let tam = 12; doc.setFontSize(tam); while(tam > 6 && doc.getTextWidth(nombre) > 80){ tam -= 0.5; doc.setFontSize(tam); } doc.text(nombre, cx, 17, { align: 'center' });
+    doc.setFontSize(20); doc.text('IMPRIME Y PIDE', cx, 36, { align: 'center' });
+    const lado = 56, mod = lado / m.length, qx = cx - lado / 2, qy = 46; doc.setFillColor(0, 0, 0); m.forEach((fila, r) => fila.forEach((on, c) => { if(on) doc.rect(qx + c * mod, qy + r * mod, mod + 0.03, mod + 0.03, 'F'); }));
+    doc.setFont('times', 'italic'); doc.setFontSize(10.5); doc.text('Escanea, sube tus archivos', cx, 112, { align: 'center' }); doc.text('y recoge sin hacer fila', cx, 117.5, { align: 'center' });
+    doc.save('QR-pedidos-en-linea.pdf');
+  }
 
   aplicarPreferenciasApariencia();
   if(sesionEscaneoRemoto){

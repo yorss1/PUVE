@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="referrer" content="no-referrer">
-<meta name="description" content="Haz tu pedido desde tu celular.">
+<meta name="description" content="Haz tu pedido desde tu celular." id="metaDesc">
 <meta name="author" content="PUVE">
 <meta name="robots" content="noindex, nofollow">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="PUVE">
-<meta property="og:title" content="Menú" id="ogTitle">
-<meta property="og:description" content="Haz tu pedido desde tu celular.">
+<meta property="og:site_name" content="PUVE" id="ogSite">
+<meta property="og:title" content="Pedidos" id="ogTitle">
+<meta property="og:description" content="Haz tu pedido desde tu celular." id="ogDesc">
 <meta property="og:locale" content="es_MX">
 <meta property="og:image" content="img/og-image-cuadrada.png">
 <meta property="og:image:secure_url" content="img/og-image-cuadrada.png">
@@ -19,18 +19,18 @@
 <meta property="og:image:height" content="600">
 <meta property="og:image:alt" content="PUVE — Punto de Venta Digital">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Menú" id="twTitle">
-<meta name="twitter:description" content="Haz tu pedido desde tu celular.">
+<meta name="twitter:title" content="Pedidos" id="twTitle">
+<meta name="twitter:description" content="Haz tu pedido desde tu celular." id="twDesc">
 <meta name="twitter:image" content="img/og-image-cuadrada.png">
 <meta name="twitter:image:alt" content="PUVE — Punto de Venta Digital">
 <link rel="apple-touch-icon" href="img/logo_mini.png" id="appleIcon">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Menú" id="appTitle">
+<meta name="apple-mobile-web-app-title" content="Pedidos" id="appTitle">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="theme-color" content="#000000">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://challenges.cloudflare.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://ckzueunptmlqmtypowmg.supabase.co; frame-src https://challenges.cloudflare.com; img-src 'self' data: https://ckzueunptmlqmtypowmg.supabase.co; base-uri 'none'; form-action 'none'">
-<title>Menú</title>
+<title>Pedidos</title>
 <link rel="icon" href="img/logo_mini.png" type="image/png" sizes="any" id="favicon">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
 <style>
@@ -64,10 +64,12 @@
   .grp{ margin:14px 0 4px; } .gt{ font-size:12.5px; font-weight:600; color:var(--s); margin-bottom:8px; } .opts{ display:flex; flex-wrap:wrap; gap:8px; }
   .cnt{ min-width:22px; height:22px; padding:0 6px; border-radius:99px; background:var(--a); color:var(--as); font-size:12px; font-weight:700; display:inline-grid; place-items:center; }
   .opc{ display:block; color:var(--s); font-size:12.5px; margin-top:2px; } .pr2{ font-weight:600; white-space:nowrap; margin-left:10px; } .campo-txt{ width:100%; margin-top:12px; border:1px solid var(--b); border-radius:16px; padding:12px 14px; background:var(--v2); color:var(--t); font:inherit; }
+  .logo{ width:56px; height:56px; border-radius:16px; object-fit:cover; border:1px solid var(--b); background:var(--v2); display:block; margin-bottom:12px; }
+  .fil{ background:var(--v); border:1px solid var(--b); border-radius:20px; padding:14px; margin-top:12px; } .fil .grp{ margin:8px 0 2px; } .fil .campo-txt{ margin-top:8px; }
 </style>
 </head>
 <body>
-<main id="app"><div class="centro" id="cargando">Cargando menú…</div></main>
+<main id="app"><div class="centro" id="cargando">Cargando…</div></main>
 <script>
 (function(){
   'use strict';
@@ -92,16 +94,26 @@
 
   var menu = null, cat = '', lineas = [], seguimiento = null, timer = null, opIndex = {}, notaTxt = '', aliasTxt = '';
   function iniciar(){
+    if(MESA === 'MOSTRADOR') return iniciarPap();   // QR del mostrador de una papelería
     var guardado = LS.get(KEYPED); if(guardado){ seguimiento = guardado; return verSeguimiento(); }
     api({ accion:'menu', negocio:NEG }).then(function(r){
       if(!r.ok || !r.d || !r.d.productos) return aviso(r.status === 429 ? 'Hay muchas consultas ahora. Intenta en un momento.' : 'El menú no está disponible por ahora. Pide ayuda al personal.');
       menu = r.d; menu.grupos = menu.grupos || []; menu.grupos.forEach(function(g){ g.opciones.forEach(function(o){ opIndex[o.id] = { g:g, o:o }; }); });
-      document.title = 'Menú · ' + menu.negocio; marcaNegocio(); pintarMenu();
+      marcaNegocio(); pintarMenu();
     });
   }
+  // Título, descripción y metas cambian según el giro del negocio (lo que ve el cliente en la pestaña, al guardar en inicio o al compartir)
+  var PERFIL = {
+    restaurante:{ titulo:'Menú', desc:'Mira el menú de {n} y haz tu pedido desde tu celular.' },
+    cafeteria:{ titulo:'Menú', desc:'Pide tu café, bebidas y alimentos en {n} desde tu celular.' },
+    papeleria:{ titulo:'Imprime y pide', desc:'{n}: sube tus archivos para imprimir y programa tu pedido para recogerlo sin hacer fila.' },
+    _otro:{ titulo:'Pedidos', desc:'Haz tu pedido en {n} desde tu celular.' }
+  };
   function marcaNegocio(){
     var set = function(id, attr, val){ var e = document.getElementById(id); if(e) e.setAttribute(attr, val); };
-    set('ogTitle', 'content', 'Menú · ' + menu.negocio); set('twTitle', 'content', 'Menú · ' + menu.negocio); set('appTitle', 'content', menu.negocio);
+    var pf = PERFIL[menu.giro] || PERFIL._otro, titulo = pf.titulo + ' · ' + menu.negocio, desc = pf.desc.replace('{n}', menu.negocio);
+    document.title = titulo; set('ogTitle', 'content', titulo); set('twTitle', 'content', titulo); set('appTitle', 'content', menu.negocio);
+    set('metaDesc', 'content', desc); set('ogDesc', 'content', desc); set('twDesc', 'content', desc); set('ogSite', 'content', menu.negocio);
     if(/^[0-9a-f-]{36}\/favicon\.png$/.test(menu.favicon || '')){ var u = SUPA + '/storage/v1/object/public/fotos-negocios/' + menu.favicon; set('favicon', 'href', u); set('appleIcon', 'href', u); }
   }
   function prodPorId(id){ return menu.productos.filter(function(p){ return p.id === id; })[0]; }
@@ -119,7 +131,7 @@
 
   function pintarMenu(){
     app.textContent = '';
-    var hd = $('header'); hd.appendChild($('small', '', BARRA ? 'Pide aquí y te avisamos' : 'Pide desde tu mesa')); hd.appendChild($('h1', '', menu.negocio)); hd.appendChild($('span', 'mesa', ETQ)); app.appendChild(hd);
+    var hd = $('header'); var lg0 = logoImg(); if(lg0) hd.appendChild(lg0); hd.appendChild($('small', '', BARRA ? 'Pide aquí y te avisamos' : 'Pide desde tu mesa')); hd.appendChild($('h1', '', menu.negocio)); hd.appendChild($('span', 'mesa', ETQ)); app.appendChild(hd);
     var cats = $('div', 'cats'); cats.id = 'cats'; app.appendChild(cats); var grid = $('div', 'grid'); grid.id = 'grid'; app.appendChild(grid);
     var f = $('footer'); f.appendChild(document.createTextNode('Los precios y la disponibilidad los define el negocio. ')); var a = $('a', '', 'Aviso de privacidad'); a.href = AVISO; a.target = '_blank'; a.rel = 'noopener noreferrer'; f.appendChild(a); app.appendChild(f);
     var barra = $('div', 'barra oculto'); barra.id = 'barra'; var iz = $('div'); iz.appendChild($('small', '', 'Tu pedido')); var tt = $('div', 'tot'); tt.id = 'tt'; iz.appendChild(tt);
@@ -234,6 +246,176 @@
     app.appendChild($('div', 'nota', 'El pago se hace directamente con el negocio.'));
     if(d.estado === 'entregado' || d.estado === 'cancelado'){ var b = $('button', 'btn', 'Hacer otro pedido'); b.type = 'button'; b.style.marginTop = '18px'; b.onclick = function(){ LS.del(KEYPED); seguimiento = null; menu = null; location.reload(); }; app.appendChild(b); }
   }
+  // ===== Papelería: imprimir archivos y pedir artículos para recoger (QR del mostrador) =====
+  var KEYPP = 'puve_pp_' + NEG, MAXB = 8 * 1024 * 1024;
+  var PAP = { menu:null, tab:'imp', archivos:[], items:{}, resultados:[], buscando:false };
+  function apiPap(body){
+    return fetch(SUPA + '/functions/v1/pedido-programado', { method:'POST', headers:{ 'Content-Type':'application/json', 'apikey':KEY, 'Authorization':'Bearer ' + KEY }, body:JSON.stringify(body) })
+      .then(function(r){ return r.json().catch(function(){ return null; }).then(function(d){ return { ok:r.ok, status:r.status, d:d }; }); })
+      .catch(function(){ return { ok:false, status:0, d:{ error:'Sin conexión. Revisa tu internet e intenta de nuevo.' } }; });
+  }
+  function subirPap(codigo, trabajo, blob){
+    return fetch(SUPA + '/functions/v1/pedido-programado?accion=subir&codigo=' + codigo + '&trabajo=' + trabajo, { method:'POST', headers:{ 'Content-Type':'application/octet-stream', 'apikey':KEY, 'Authorization':'Bearer ' + KEY }, body:blob })
+      .then(function(r){ return r.json().catch(function(){ return null; }).then(function(d){ return { ok:r.ok, status:r.status, d:d }; }); })
+      .catch(function(){ return { ok:false, status:0, d:{ error:'Se cortó la conexión al subir el archivo.' } }; });
+  }
+  function kb(n){ return n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; }
+  function fechaBonita(iso){ return new Date(iso).toLocaleString('es-MX', { weekday:'short', day:'numeric', month:'short', hour:'numeric', minute:'2-digit' }); }
+  function precioImp(t){ var c = (PAP.menu.impresion || []).filter(function(x){ return x.tipo === t; })[0]; return c || null; }
+  function cuentaItemsPap(){ var n = 0; Object.keys(PAP.items).forEach(function(k){ n++; }); return n; }
+  function iniciarPap(){
+    var g = LS.get(KEYPP); if(g && /^[0-9a-f]{36}$/.test(g)){ seguimiento = g; return verSegPap(); }
+    apiPap({ accion:'menu', negocio:NEG, busqueda:'' }).then(function(r){
+      if(!r.ok || !r.d || r.d.giro !== 'papeleria') return aviso(r.status === 429 ? 'Hay muchas consultas ahora. Intenta en un momento.' : 'Los pedidos en línea no están disponibles por ahora. Pide ayuda al personal.');
+      PAP.menu = r.d; menu = r.d; marcaNegocio(); pintarPap();
+    });
+  }
+  function logoImg(){
+    if(!menu || !/^[0-9a-f-]{36}\/favicon\.png$/.test(menu.favicon || '')) return null;
+    var im = document.createElement('img'); im.className = 'logo'; im.alt = 'Logo de ' + menu.negocio; im.decoding = 'async'; im.referrerPolicy = 'no-referrer';
+    im.src = SUPA + '/storage/v1/object/public/fotos-negocios/' + menu.favicon; return im;
+  }
+  function pintarPap(){
+    app.textContent = ''; var hd = $('header'), lg = logoImg(); if(lg) hd.appendChild(lg);
+    hd.appendChild($('small', '', 'Imprime y pide sin hacer fila')); hd.appendChild($('h1', '', PAP.menu.negocio)); app.appendChild(hd);
+    var tabs = $('div', 'cats'); [['imp', 'Imprimir' + (PAP.archivos.length ? ' (' + PAP.archivos.length + ')' : '')], ['art', 'Artículos' + (cuentaItemsPap() ? ' (' + cuentaItemsPap() + ')' : '')]].forEach(function(t){
+      var b = $('button', 'chip' + (PAP.tab === t[0] ? ' on' : ''), t[1]); b.type = 'button'; b.onclick = function(){ PAP.tab = t[0]; pintarPap(); }; tabs.appendChild(b); }); app.appendChild(tabs);
+    var cuerpo = $('div'); app.appendChild(cuerpo); if(PAP.tab === 'imp') pintarImp(cuerpo); else pintarArt(cuerpo);
+    var f = $('footer'); f.appendChild(document.createTextNode('Los precios los define el negocio y el pago se hace en la papelería. ')); var a = $('a', '', 'Aviso de privacidad'); a.href = AVISO; a.target = '_blank'; a.rel = 'noopener noreferrer'; f.appendChild(a); app.appendChild(f);
+    var barra = document.getElementById('barra'); if(barra) barra.remove();
+    if(PAP.archivos.length || cuentaItemsPap()){
+      barra = $('div', 'barra'); barra.id = 'barra'; var iz = $('div'); iz.appendChild($('small', '', PAP.archivos.length + ' archivo(s) · ' + cuentaItemsPap() + ' artículo(s)')); iz.appendChild($('div', 'tot', totalArt() > 0 ? money(totalArt()) : 'Tu pedido'));
+      var bv = $('button', 'btn', 'Continuar'); bv.type = 'button'; bv.onclick = abrirEnvioPap; $$(barra, [iz, bv]); document.body.appendChild(barra);
+    }
+  }
+  function totalArt(){ var t = 0; Object.keys(PAP.items).forEach(function(k){ var l = PAP.items[k], p = l.p, pu = Number(p.precio); if(p.mayoreo_desde && l.cant >= Number(p.mayoreo_desde)) pu = Number(p.mayoreo_precio); t += Math.round(pu * l.cant * 100) / 100; }); return t; }
+  function pintarImp(cont){
+    cont.appendChild($('div', 'nota', 'Sube tus archivos en PDF, JPG o PNG (hasta 8 MB cada uno, máximo 5). Si es Word o PowerPoint, expórtalo primero a PDF.'));
+    var bn = precioImp('bn'), co = precioImp('color');
+    if(bn || co) cont.appendChild($('div', 'nota', 'Precio por página: ' + (bn ? 'B/N ' + money(bn.precio) : '') + (bn && co ? ' · ' : '') + (co ? 'Color ' + money(co.precio) : '') + '. El total final se calcula con el número real de páginas.'));
+    var inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png'; inp.style.display = 'none';
+    inp.onchange = function(){ var f = inp.files && inp.files[0]; inp.value = ''; if(f) agregarArchivo(f); };
+    var add = $('button', 'btn', 'Agregar archivo'); add.type = 'button'; add.style.cssText = 'width:100%; margin:14px 0;'; add.onclick = function(){ if(PAP.archivos.length >= 5) return alert('Máximo 5 archivos por pedido.'); inp.click(); };
+    cont.appendChild(add); cont.appendChild(inp);
+    var msg = $('div', 'msg oculto'); msg.id = 'msgImp'; cont.appendChild(msg);
+    PAP.archivos.forEach(function(a, k){
+      var c = $('div', 'fil'), cab = $('div', 'row'); var nm = $('b', '', a.nombre); nm.style.wordBreak = 'break-all'; var q = $('button', 'chip', 'Quitar'); q.type = 'button'; q.onclick = function(){ PAP.archivos.splice(k, 1); pintarPap(); }; $$(cab, [nm, q]); c.appendChild(cab);
+      c.appendChild($('div', 'nota', (a.esPdf ? 'PDF' : 'Imagen') + ' · ' + kb(a.blob.size)));
+      var opt = $('div', 'opts'); opt.style.marginTop = '10px';
+      var seg = function(titulo, campo, vals){ var w = $('div', 'grp'); w.appendChild($('div', 'gt', titulo)); var fl = $('div', 'opts'); vals.forEach(function(v){ var b = $('button', 'chip' + (a[campo] === v[0] ? ' on' : ''), v[1]); b.type = 'button'; b.onclick = function(){ a[campo] = v[0]; pintarPap(); }; fl.appendChild(b); }); w.appendChild(fl); c.appendChild(w); };
+      var wc = $('div', 'row'); wc.style.margin = '10px 0 4px'; wc.appendChild($('span', 'nota', 'Copias')); var st = $('div', 'st'), m = $('button', '', '−'), s = $('button', '', '+'); m.type = s.type = 'button'; var n = $('span', '', String(a.copias));
+      m.onclick = function(){ if(a.copias > 1){ a.copias--; n.textContent = a.copias; } }; s.onclick = function(){ if(a.copias < 200){ a.copias++; n.textContent = a.copias; } }; $$(st, [m, n, s]); wc.appendChild(st); c.appendChild(wc);
+      seg('Color', 'color', [['bn', 'Blanco y negro'], ['color', 'Color']]); seg('Tamaño', 'tamano', [['carta', 'Carta'], ['oficio', 'Oficio']]); seg('Caras', 'caras', [[1, 'Una cara'], [2, 'Doble cara']]);
+      if(a.esPdf){ var pg = $('input', 'campo-txt'); pg.type = 'text'; pg.maxLength = 40; pg.placeholder = 'Páginas (vacío = todas). Ej. 1-3, 5'; pg.value = a.paginas; pg.oninput = function(){ a.paginas = pg.value; }; c.appendChild(pg); }
+      var lb = $('label', 'legal'), ck = $('input'); ck.type = 'checkbox'; ck.checked = a.engargolado; ck.onchange = function(){ a.engargolado = ck.checked; }; $$(lb, [ck, $('span', '', 'Engargolado')]); c.appendChild(lb);
+      var nt = $('input', 'campo-txt'); nt.type = 'text'; nt.maxLength = 120; nt.placeholder = 'Indicaciones (opcional)'; nt.value = a.notas; nt.oninput = function(){ a.notas = nt.value; }; c.appendChild(nt);
+      cont.appendChild(c);
+    });
+  }
+  function agregarArchivo(f){
+    var msg = document.getElementById('msgImp'); var err = function(t){ if(msg){ msg.textContent = t; msg.classList.remove('oculto'); } };
+    var nombre = (f.name || 'archivo').slice(0, 80), esPdf = f.type === 'application/pdf' || /\.pdf$/i.test(nombre), esImg = /^image\/(jpeg|png)$/.test(f.type) || /\.(jpe?g|png)$/i.test(nombre);
+    if(!esPdf && !esImg) return err('Solo se aceptan PDF, JPG o PNG. Si es Word o PowerPoint, expórtalo a PDF.');
+    if(f.size > MAXB * 4 && !esPdf) { /* las fotos grandes se reducen abajo */ }
+    if(esPdf){ if(f.size > MAXB) return err('El PDF pesa más de 8 MB. Reduce su tamaño e inténtalo de nuevo.'); return PAP.archivos.push({ nombre:nombre, blob:f, esPdf:true, copias:1, color:'bn', tamano:'carta', caras:1, paginas:'', engargolado:false, notas:'' }), pintarPap(); }
+    // Las fotos se re-dibujan como JPEG: reduce el peso y elimina metadatos/contenido oculto (la validación real se hace igual en el servidor)
+    if(!window.createImageBitmap) return err('Tu navegador no puede preparar la imagen. Usa un PDF.');
+    createImageBitmap(f).then(function(bm){
+      var esc = Math.min(1, 3000 / Math.max(bm.width, bm.height)), cv = document.createElement('canvas'); cv.width = Math.max(1, Math.round(bm.width * esc)); cv.height = Math.max(1, Math.round(bm.height * esc));
+      var cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(bm, 0, 0, cv.width, cv.height); if(bm.close) bm.close();
+      cv.toBlob(function(b){ if(!b) return err('No se pudo preparar la imagen.'); if(b.size > MAXB) return err('La imagen sigue siendo muy pesada. Usa una de menor resolución.');
+        PAP.archivos.push({ nombre:nombre.replace(/\.[A-Za-z0-9]+$/, '') + '.jpg', blob:b, esPdf:false, copias:1, color:'color', tamano:'carta', caras:1, paginas:'', engargolado:false, notas:'' }); pintarPap(); }, 'image/jpeg', 0.9);
+    }).catch(function(){ err('No pude leer esa imagen. Prueba con otra o usa un PDF.'); });
+  }
+  var tBusq = null;
+  function pintarArt(cont){
+    var q = $('input', 'campo-txt'); q.type = 'search'; q.placeholder = 'Buscar un artículo (ej. cartulina azul)'; q.value = PAP.q || ''; q.style.marginTop = '4px'; cont.appendChild(q);
+    var lista = $('div'); lista.id = 'listaArt'; cont.appendChild(lista); pintarListaArt();
+    q.oninput = function(){ PAP.q = q.value; clearTimeout(tBusq); tBusq = setTimeout(function(){ buscarArt(PAP.q); }, 350); };
+    var sel = Object.keys(PAP.items); if(sel.length){ cont.appendChild($('div', 'gt', 'En tu pedido')); sel.forEach(function(k){ cont.appendChild(filaArt(PAP.items[k].p)); }); }
+  }
+  function buscarArt(t){
+    if(!t || t.trim().length < 2){ PAP.resultados = []; return pintarListaArt(); }
+    apiPap({ accion:'menu', negocio:NEG, busqueda:t.trim() }).then(function(r){ PAP.resultados = (r.ok && r.d && r.d.productos) || []; pintarListaArt(); });
+  }
+  function pintarListaArt(){
+    var l = document.getElementById('listaArt'); if(!l) return; l.textContent = '';
+    if(!PAP.q || PAP.q.trim().length < 2){ l.appendChild($('div', 'nota', 'Escribe al menos 2 letras para buscar entre los artículos disponibles.')); return; }
+    if(!PAP.resultados.length) l.appendChild($('div', 'nota', 'No encontré artículos con ese nombre.'));
+    PAP.resultados.forEach(function(p){ l.appendChild(filaArt(p)); });
+  }
+  function filaArt(p){
+    var f = $('div', 'ln'), iz = $('div'); iz.appendChild($('div', '', p.nombre)); iz.appendChild($('small', 'opc', money(p.precio) + ' por ' + p.unidad + (p.mayoreo_desde ? ' · desde ' + p.mayoreo_desde + ' a ' + money(p.mayoreo_precio) : '')));
+    var st = $('div', 'st'), paso = Number(p.paso) || 1, cur = PAP.items[p.id] ? PAP.items[p.id].cant : 0, m = $('button', '', '−'), s = $('button', '', '+'); m.type = s.type = 'button';
+    var set = function(n){ n = Math.round(n * 100) / 100; if(n <= 0) delete PAP.items[p.id]; else PAP.items[p.id] = { p:p, cant:Math.min(999, n) }; pintarPap(); };
+    m.onclick = function(){ set(cur - paso); }; s.onclick = function(){ set(cur + paso); };
+    $$(st, [m, $('span', '', String(cur)), s]); $$(f, [iz, st]); return f;
+  }
+  function pad(n){ return (n < 10 ? '0' : '') + n; }
+  function localInput(d){ return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+  function abrirEnvioPap(){
+    var hj = nuevaHoja('¿Para cuándo lo necesitas?'), modoAsap = true;
+    var fila = $('div', 'opts'), bA = $('button', 'chip on', 'Lo antes posible'), bF = $('button', 'chip', 'Elegir fecha y hora'); bA.type = bF.type = 'button'; $$(fila, [bA, bF]); hj.appendChild(fila);
+    var ini = new Date(Date.now() + 60 * 60000); ini.setMinutes(Math.ceil(ini.getMinutes() / 15) * 15, 0, 0);
+    var dt = $('input', 'campo-txt'); dt.type = 'datetime-local'; dt.min = localInput(new Date(Date.now() + 15 * 60000)); dt.max = localInput(new Date(Date.now() + 14 * 86400000)); dt.value = localInput(ini); dt.classList.add('oculto'); hj.appendChild(dt);
+    bA.onclick = function(){ modoAsap = true; bA.className = 'chip on'; bF.className = 'chip'; dt.classList.add('oculto'); }; bF.onclick = function(){ modoAsap = false; bF.className = 'chip on'; bA.className = 'chip'; dt.classList.remove('oculto'); };
+    var nom = $('input', 'campo-txt'); nom.type = 'text'; nom.maxLength = 40; nom.placeholder = 'Tu nombre (para llamarte)'; nom.value = PAP.nombre || ''; nom.autocomplete = 'given-name'; hj.appendChild(nom);
+    var tel = $('input', 'campo-txt'); tel.type = 'tel'; tel.maxLength = 20; tel.placeholder = 'Teléfono (opcional)'; tel.value = PAP.tel || ''; tel.autocomplete = 'tel'; hj.appendChild(tel);
+    var nota = $('textarea'); nota.rows = 2; nota.maxLength = 200; nota.placeholder = 'Nota para la papelería (opcional)'; hj.appendChild(nota);
+    hj.appendChild($('div', 'nota', 'No escribas datos personales sensibles en la nota. El pago se hace directamente en la papelería.'));
+    var trampa = $('input'); trampa.type = 'text'; trampa.tabIndex = -1; trampa.autocomplete = 'off'; trampa.setAttribute('aria-hidden', 'true'); trampa.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;opacity:0'; hj.appendChild(trampa);
+    var lg = $('label', 'legal'), ck = $('input'), tx = $('span'); ck.type = 'checkbox'; tx.appendChild(document.createTextNode('He leído el ')); var a = $('a', '', 'Aviso de privacidad'); a.href = AVISO; a.target = '_blank'; a.rel = 'noopener noreferrer'; tx.appendChild(a);
+    tx.appendChild(document.createTextNode('. Entiendo que mis archivos solo los usa la papelería para imprimir y se eliminan al entregar mi pedido.')); $$(lg, [ck, tx]); hj.appendChild(lg);
+    var ts = null; if(TS_SITEKEY){ ts = $('div'); hj.appendChild(ts); cargarTurnstile(ts); }
+    var msg = $('div', 'msg oculto'); hj.appendChild(msg);
+    var f2 = $('div', 'row'); f2.style.marginTop = '14px'; var seg = $('button', 'btn sec', 'Volver'); seg.type = 'button'; seg.onclick = cerrarHoja; var env = $('button', 'btn', 'Enviar pedido'); env.type = 'button'; $$(f2, [seg, env]); hj.appendChild(f2);
+    var fallo = function(t){ msg.textContent = t; msg.classList.remove('oculto'); env.disabled = false; env.textContent = 'Enviar pedido'; };
+    env.onclick = function(){
+      msg.classList.add('oculto'); PAP.nombre = nom.value; PAP.tel = tel.value; var err = '';
+      if(nom.value.trim().length < 2) err = 'Escribe tu nombre para poder llamarte.'; else if(!modoAsap && !dt.value) err = 'Elige la fecha y hora.'; else if(!ck.checked) err = 'Marca que leíste el Aviso de privacidad.'; else if(TS_SITEKEY && !tsToken) err = 'Completa la verificación de seguridad.';
+      if(err) return fallo(err);
+      env.disabled = true; env.textContent = 'Enviando…';
+      var items = Object.keys(PAP.items).map(function(k){ return { producto_id:k, cantidad:PAP.items[k].cant }; });
+      var trabajos = PAP.archivos.map(function(a){ return { nombre:a.nombre, copias:a.copias, color:a.color, tamano:a.tamano, caras:a.caras, paginas:a.esPdf ? a.paginas : '', engargolado:a.engargolado, notas:a.notas }; });
+      apiPap({ accion:'crear', negocio:NEG, firma:FIRMA, nombre:nom.value.trim(), telefono:tel.value.trim(), asap:modoAsap, para:modoAsap ? null : new Date(dt.value).toISOString(), nota:nota.value, items:items, trabajos:trabajos, web:trampa.value, turnstile:tsToken }).then(function(r){
+        if(!(r.ok && r.d && r.d.codigo)){ tsToken = ''; if(window.turnstile && tsWidget != null) try{ window.turnstile.reset(tsWidget); }catch(e){} return fallo((r.d && r.d.error) || 'No se pudo enviar el pedido. Intenta de nuevo.'); }
+        var codigo = r.d.codigo, ids = r.d.trabajos || [], i = 0;
+        var siguiente = function(){
+          if(i >= PAP.archivos.length) return apiPap({ accion:'finalizar', codigo:codigo }).then(function(f){
+            if(!(f.ok && f.d && f.d.codigo)) return apiPap({ accion:'abortar', codigo:codigo }).then(function(){ fallo((f.d && f.d.error) || 'No se pudo completar el pedido.'); });
+            LS.set(KEYPP, codigo); seguimiento = codigo; PAP.archivos = []; PAP.items = {}; cerrarHoja(); var b = document.getElementById('barra'); if(b) b.remove(); verSegPap(); });
+          env.textContent = 'Subiendo archivo ' + (i + 1) + ' de ' + PAP.archivos.length + '…';
+          return subirPap(codigo, ids[i], PAP.archivos[i].blob).then(function(u){
+            if(u.ok){ i++; return siguiente(); }
+            var nm = PAP.archivos[i].nombre; return apiPap({ accion:'abortar', codigo:codigo }).then(function(){ fallo('No pudimos aceptar “' + nm + '”: ' + ((u.d && u.d.error) || 'error al subirlo') + ' Quítalo o cámbialo e intenta de nuevo.'); });
+          });
+        };
+        siguiente();
+      });
+    };
+  }
+  var TXTP = { nuevo:['Pedido recibido', 'La papelería lo revisará en cuanto abra caja o lo tenga a la mano.', 1], en_proceso:['Estamos con tu pedido', 'Ya lo están preparando.', 2], listo:['¡Tu pedido está listo!', 'Pasa por él a la papelería.', 3], entregado:['Entregado', '¡Gracias por tu compra!', 4], cancelado:['Pedido cancelado', 'La papelería no pudo atenderlo. Pregunta en el mostrador.', 0] };
+  function verSegPap(){
+    clearTimeout(timer);
+    apiPap({ accion:'estado', codigo:seguimiento }).then(function(r){
+      if(r.status === 404){ LS.del(KEYPP); seguimiento = null; return iniciarPap(); }
+      if(r.status === 429){ timer = setTimeout(verSegPap, 30000); return; }
+      if(!r.ok || !r.d){ timer = setTimeout(verSegPap, 15000); return; }
+      pintarSegPap(r.d); if(r.d.estado !== 'entregado' && r.d.estado !== 'cancelado') timer = setTimeout(function(){ if(!document.hidden) verSegPap(); else esperarVisible(); }, 15000);
+    });
+  }
+  function pintarSegPap(d){
+    app.textContent = ''; var hd = $('header'), lg = logoImg(); if(lg) hd.appendChild(lg); hd.appendChild($('small', '', 'Pedido P-' + String(d.num).padStart(4, '0')));
+    var t = TXTP[d.estado] || TXTP.nuevo; hd.appendChild($('div', 'big', t[0])); app.appendChild(hd);
+    var ps = $('div', 'pasos'); for(var i = 1; i <= 4; i++) ps.appendChild($('i', i <= t[2] ? 'on' : '')); app.appendChild(ps);
+    app.appendChild($('div', 'eta', t[1] + (d.estado !== 'entregado' && d.estado !== 'cancelado' ? ' · ' + (d.asap ? 'Lo antes posible' : 'Para ' + fechaBonita(d.para_cuando)) : '')));
+    (d.trabajos || []).forEach(function(w){ var l = $('div', 'ln'); l.appendChild($('div', '', w.nombre + ' · ' + w.copias + (w.copias === 1 ? ' copia' : ' copias') + ' · ' + (w.color === 'color' ? 'Color' : 'B/N') + (w.paginas ? ' · ' + w.paginas + ' pág.' : ''))); app.appendChild(l); });
+    (d.items || []).forEach(function(it){ var l = $('div', 'ln'); l.appendChild($('div', '', it.cantidad + ' × ' + it.nombre)); l.appendChild($('span', '', money(it.subtotal))); app.appendChild(l); });
+    var tl = $('div', 'ln'); tl.appendChild($('b', '', d.precio_pendiente ? 'Total estimado (sin impresión)' : 'Total estimado')); tl.appendChild($('b', '', money(d.total))); app.appendChild(tl);
+    app.appendChild($('div', 'nota', 'El total final lo confirma la papelería con el número real de páginas. El pago se hace en la papelería.'));
+    if(d.estado === 'entregado' || d.estado === 'cancelado'){ var b = $('button', 'btn', 'Hacer otro pedido'); b.type = 'button'; b.style.marginTop = '18px'; b.onclick = function(){ LS.del(KEYPP); seguimiento = null; location.reload(); }; app.appendChild(b); }
+  }
+
   iniciar();
 })();
 </script>
