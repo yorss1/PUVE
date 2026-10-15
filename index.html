@@ -330,6 +330,21 @@
 .det-pap > summary::after{ content:'+'; font-size:18px; color:var(--texto-suave, #888); }
 .det-pap[open] > summary::after{ content:'–'; }
 .det-pap .nota{ margin:2px 0 8px; }
+.pcard{ background:var(--superficie); border:1px solid var(--borde); border-left:4px solid var(--borde); border-radius:14px; padding:14px 16px; margin-bottom:12px; }
+.pcard.urg{ border-left-color:var(--error); }
+.pc-top{ display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+.pc-cuando{ font-size:22px; font-weight:700; letter-spacing:-.01em; }
+.pc-chip{ font-size:12.5px; font-weight:600; padding:3px 10px; border-radius:99px; background:var(--neutral-bg); color:var(--texto-suave); } .pc-chip.urg{ background:var(--error-bg); color:var(--error); }
+.pc-quien{ display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; margin-top:2px; font-size:15px; } .pc-quien a{ color:var(--texto-suave); font-size:13px; text-decoration:none; }
+.pc-fila{ margin-top:10px; padding-top:10px; border-top:1px solid var(--borde); font-size:15px; word-break:break-word; } .pc-det{ color:var(--texto-suave); font-size:13px; margin-top:2px; }
+.pc-btns{ display:flex; gap:8px; margin-top:8px; } .pc-btns button{ padding:7px 14px; border-radius:8px; border:1px solid var(--texto); background:none; color:var(--texto); font:600 13px 'Inter',sans-serif; cursor:pointer; }
+.pc-nota{ margin-top:8px; font-style:italic; color:var(--texto-suave); font-size:13.5px; } .pc-dup{ margin-top:6px; font-size:12.5px; color:var(--error); font-weight:600; }
+.pc-total{ margin-top:12px; font-size:16px; font-weight:700; }
+.pc-acc{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:12px; } .pc-acc .principal{ flex:1; min-width:140px; }
+.pc-acc .sec{ padding:10px 16px; border-radius:7px; border:1px solid var(--texto); background:none; color:var(--texto); font:600 14px 'Inter',sans-serif; cursor:pointer; }
+.pc-acc .cancelar{ background:none; border:none; color:var(--texto-suave); font-size:13px; text-decoration:underline; cursor:pointer; margin-left:auto; padding:6px; }
+.pc-meta{ margin-top:10px; font-size:11.5px; color:var(--texto-suave); }
+.cfg-qr-botones{ display:none; gap:8px; margin-top:10px; } .cfg-qr-botones button{ flex:1; }
   select.input-mini{ cursor:pointer; }
   .input-mini:disabled{ opacity:.5; cursor:not-allowed; }
 
@@ -561,9 +576,10 @@
       transform:translateX(-100%);
       transition:transform .22s ease;
       overflow-y:auto;
-      box-shadow:2px 0 24px rgba(0,0,0,0.18);
+      box-shadow:none; visibility:hidden;
+      transition:transform .22s ease, visibility 0s linear .22s;
     }
-    .nav.abierto{ transform:translateX(0); }
+    .nav.abierto{ transform:translateX(0); visibility:visible; transition:transform .22s ease, visibility 0s; box-shadow:2px 0 24px rgba(0,0,0,0.18); }
     .nav button{
       text-align:left; width:100%; padding:15px 22px; border-radius:0;
       font-size:15px; font-weight:500; color:var(--texto);
@@ -803,7 +819,7 @@
   @media (max-width:820px){
     .barra{ position:relative; z-index:auto; float:none; width:auto; height:auto; margin:10px 10px 0; border-radius:22px; padding:8px 12px; background:var(--vid2); }
     .btn-menu-movil{ border-radius:50%; width:42px; height:42px; background:var(--vid2); border:1px solid var(--borde); }
-    .nav{ z-index:1001; background:var(--fondo); border-radius:0 28px 28px 0; box-shadow:10px 0 40px rgba(0,0,0,.3); } .fondo-menu-movil{ z-index:1000; }
+    .nav{ z-index:1001; background:var(--fondo); border-radius:0 28px 28px 0; box-shadow:none; } .nav.abierto{ box-shadow:10px 0 40px rgba(0,0,0,.3); } .fondo-menu-movil{ z-index:1000; }
     .nav button{ border-radius:0; background:none; border:none; border-bottom:1px solid var(--borde); color:var(--texto); } .nav button.activo{ background:var(--sub); color:var(--texto); box-shadow:none; }
     .nav-movil-extra button{ background:none; border:none; border-top:1px solid var(--borde); border-radius:0; }
     .barra-carrito-movil{ left:12px; right:12px; bottom:calc(12px + env(safe-area-inset-bottom)); border-radius:30px; padding:10px 10px 10px 24px; }
@@ -1636,8 +1652,8 @@
               <input id="pUnidadOtra" type="text" class="input-mini oculto" maxlength="20" placeholder="Ej. litro, juego, par" style="margin-top:8px;" oninput="elegirUnidadOtra(this.value)">
             </div>
             <div class="campo oculto campo-papeleria c-full" id="bloqueModoInv">
-              <label>¿Cómo cuentas lo que tienes?</label>
-              <div class="filtro-cats" style="flex-wrap:wrap;"><button type="button" class="chip-cat activo" id="chipModoUni" onclick="cambiarModoInv('uni')">Sueltas</button><button type="button" class="chip-cat" id="chipModoPaq" onclick="cambiarModoInv('paq')">En paquetes</button></div>
+              <label>¿Lo tienes suelto o en paquetes?</label>
+              <div class="filtro-cats" style="flex-wrap:wrap;"><button type="button" class="chip-cat activo" id="chipModoUni" onclick="cambiarModoInv('uni')">Suelto</button><button type="button" class="chip-cat" id="chipModoPaq" onclick="cambiarModoInv('paq')">En paquetes</button></div>
               <input id="pModoInvVal" type="hidden" value="uni">
               <div class="bloque-paq oculto" style="margin-top:10px;">
                 <label for="pPaqN">¿Cuántos paquetes tienes?</label><input id="pPaqN" type="number" min="0" step="any" oninput="recalcPaq()">
@@ -1646,20 +1662,20 @@
               </div>
               <div class="nota bloque-paq oculto" id="pPaqAviso" style="font-weight:600; margin-top:6px;"></div>
             </div>
-            <details class="det-pap campo-papeleria oculto c-full" id="detPres"><summary id="sumPres">Venderlo también por paquete o caja</summary><div class="nota">Ejemplo: paquete de 100 hojas. Si no pones precio, se calcula solo.</div><div id="edPresentaciones"></div></details>
-            <details class="det-pap campo-papeleria oculto c-full" id="detVol"><summary id="sumVol">Dar descuento si llevan varias</summary><div class="nota">Ejemplo: desde 50 copias, cada una a $0.70. Se aplica solo al cobrar.</div><div id="edVolumen"></div></details>
-            <details class="det-pap campo-papeleria oculto c-full" id="detFrac"><summary>Venderlo en fracciones (medios, cuartos)</summary><label for="pPaso">Lo mínimo que se puede vender</label><input id="pPaso" type="number" min="0.01" step="0.01" value="1"><div class="nota">1 = de una en una. 0.5 = de medio en medio (ej. listón).</div></details>
-            <details class="det-pap campo-papeleria oculto c-full" id="detPeso"><summary>Contar mi inventario con una báscula</summary><label id="lblPeso" for="pPeso">Peso de 1 unidad (en gramos)</label><input id="pPeso" type="number" min="0" step="any" placeholder="Ej. 4.6"><div style="margin-top:8px;"><button type="button" id="btnCuentahojas" onclick="abrirCuentahojas()" disabled>Contar ahora</button></div><div class="nota">Pesas el montón y el sistema calcula cuántas hay. Guarda el artículo primero.</div></details>
-            <details class="det-pap campo-papeleria oculto c-full" id="detServ"><summary>Es un servicio (copias, impresiones)</summary>
-              <label style="font-weight:500;"><input type="checkbox" id="pEsServicio" onchange="cambiarEsServicio()"> Es un servicio, no tiene inventario propio</label>
+            <details class="det-pap campo-papeleria oculto c-full" id="detPres"><summary id="sumPres">¿También lo vendes por paquete o caja?</summary><div class="nota">Ejemplo: un paquete de 100 hojas. Si no pones precio, el sistema lo calcula solo.</div><div id="edPresentaciones"></div></details>
+            <details class="det-pap campo-papeleria oculto c-full" id="detVol"><summary id="sumVol">¿Das descuento si llevan muchas?</summary><div class="nota">Ejemplo: de 50 copias en adelante, cada una a $0.70. Se aplica solo al cobrar.</div><div id="edVolumen"></div></details>
+            <details class="det-pap campo-papeleria oculto c-full" id="detFrac"><summary>¿Lo vendes por mitades? (ej. medio metro)</summary><label for="pPaso">¿De cuánto en cuánto lo vendes?</label><input id="pPaso" type="number" min="0.01" step="0.01" value="1"><div class="nota">Normal: 1 (de uno en uno). Para vender medios, pon 0.5.</div></details>
+            <details class="det-pap campo-papeleria oculto c-full" id="detPeso"><summary>¿Quieres contarlos pesándolos?</summary><label id="lblPeso" for="pPeso">¿Cuánto pesa 1? (en gramos)</label><input id="pPeso" type="number" min="0" step="any" placeholder="Ej. 4.6"><div style="margin-top:8px;"><button type="button" id="btnCuentahojas" onclick="abrirCuentahojas()" disabled>Pesar y contar</button></div><div class="nota">Pesas la pila y el sistema te dice cuántas hay. Primero guarda el artículo.</div></details>
+            <details class="det-pap campo-papeleria oculto c-full" id="detServ"><summary>¿Es un servicio? (copias, impresiones…)</summary>
+              <label style="font-weight:500;"><input type="checkbox" id="pEsServicio" onchange="cambiarEsServicio()"> Sí, es un servicio (no se acaba)</label>
               <div id="bloqueInsumo" style="display:none; margin-top:8px;">
-                <label>¿Gasta algo de tu inventario? (ej. 1 hoja por copia)</label>
+                <label>¿Gasta alguno de tus artículos? (ej. cada copia gasta 1 hoja)</label>
                 <input id="pInsumoBuscar" type="text" class="input-mini" placeholder="Buscar artículo…" oninput="buscarInsumo()" style="width:100%;">
                 <div id="insumoLista" class="filtro-cats" style="flex-wrap:wrap; margin:6px 0;"></div>
                 <div id="insumoElegido" style="display:flex; gap:8px; align-items:center;"></div>
-                <label for="pInsumoCant" style="margin-top:8px;">Cuánto gasta por cada 1</label><input id="pInsumoCant" type="number" min="0.001" step="any" value="1">
-                <label for="pImpresionTipo" style="margin-top:8px;">¿Lo usas para cotizar pedidos de impresión en línea?</label>
-                <select id="pImpresionTipo"><option value="">No</option><option value="bn">Sí, impresión en blanco y negro</option><option value="color">Sí, impresión a color</option></select>
+                <label for="pInsumoCant" style="margin-top:8px;">¿Cuánto gasta cada vez?</label><input id="pInsumoCant" type="number" min="0.001" step="any" value="1">
+                <label for="pImpresionTipo" style="margin-top:8px;">¿Es el precio de impresión de los pedidos en línea?</label>
+                <select id="pImpresionTipo"><option value="">No</option><option value="bn">Sí, en blanco y negro</option><option value="color">Sí, a color</option></select>
               </div>
             </details>
             <div class="campo oculto campo-servicio"><label for="pTipo">¿Qué vas a agregar?</label><select id="pTipo"><option value="servicio">Servicio (corte, tinte, masaje…)</option><option value="producto">Producto para vender (cera, champú…)</option></select></div>
@@ -1831,15 +1847,17 @@
   <div class="seccion" id="seccionEnlinea">
     <div class="contenido">
       <div class="encabezado-seccion">
-        <div><h2>Pedidos en línea</h2><p>Archivos para imprimir y pedidos que tus clientes programan desde su celular.</p></div>
+        <div><h2>Pedidos en línea</h2><p>Lo que tus clientes piden desde su celular.</p></div>
         <label class="pedidos-sonido"><input type="checkbox" id="progSonido" checked> Sonido de aviso</label>
       </div>
       <div id="mensajeEnlinea" class="mensaje"></div>
-      <div id="cfgEnlinea" class="bloque-analitica oculto">
-        <h3>Tu QR de pedidos en línea</h3>
-        <label style="font-weight:500;"><input type="checkbox" id="progActivoChk" onchange="alternarEnlinea(this.checked)"> Recibir pedidos en línea</label>
-        <p class="nota">Pega el QR en el mostrador. Tus clientes suben PDF, JPG o PNG (se revisan automáticamente) y eligen para cuándo lo quieren. Los archivos se borran al entregar o cancelar, y a más tardar a los 10 días. Para cotizar la impresión, marca tus servicios de copias como B/N o Color en Artículos → “Es un servicio”.</p>
-        <div id="qrEnlinea"></div>
+      <div id="cfgEnlinea" class="oculto" style="margin-bottom:16px;">
+        <label class="pedidos-sonido" style="font-size:15px; color:var(--texto);"><input type="checkbox" id="progActivoChk" onchange="alternarEnlinea(this.checked)"> Activar QR para recibir pedidos</label>
+        <div id="accionesQrProg" class="cfg-qr-botones">
+          <button type="button" class="principal" onclick="descargarQrProg()">Descargar QR</button>
+          <button type="button" class="principal" onclick="copiarEnlaceProg()">Copiar enlace</button>
+        </div>
+        <div id="cambiarQrProg" class="nota" style="display:none; margin-top:8px;"><a href="#" onclick="cambiarQrProg(); return false;">¿Se filtró tu QR? Genera uno nuevo</a></div>
       </div>
       <div id="listaEnlinea"></div>
     </div>
@@ -11968,59 +11986,59 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
   const CAMPOS_VOZ = {
     nombre: { et: 'Nombre', claves: ['nombre', 'modelo'], habla: true,
-      async ask(g, pv){ pv.nombre = await preguntarHastaObtener({ restaurante: 'Nombre del platillo.', cafeteria: 'Nombre del producto, por ejemplo latte.', servicios: 'Nombre del servicio, por ejemplo corte de cabello.', ropa: 'Nombre del modelo, por ejemplo playera básica.', papeleria: 'Nombre del artículo, por ejemplo cartulina azul.' }[g] || 'Nombre del producto.'); },
+      async ask(g, pv){ pv.nombre = await preguntarHastaObtener({ restaurante: '¿Cómo se llama el platillo?', cafeteria: '¿Cómo se llama el producto? Por ejemplo, latte.', servicios: '¿Cómo se llama el servicio? Por ejemplo, corte de cabello.', ropa: '¿Cómo se llama el modelo? Por ejemplo, playera básica.', papeleria: '¿Cómo se llama el artículo? Por ejemplo, cartulina azul.' }[g] || '¿Cómo se llama el producto?'); },
       ver: (pv) => pv.nombre || '—' },
     tipo: { et: 'Tipo', claves: ['tipo', 'servicio', 'producto'], invalida: ['duracion', 'stock', 'costo'],
-      async ask(g, pv){ const t = (await preguntarYEscuchar('¿Es un servicio o un producto de venta? Di servicio o producto.')).toLowerCase(); pv.tipo = /product/.test(t) ? 'producto' : 'servicio'; },
+      async ask(g, pv){ const t = (await preguntarYEscuchar('¿Es un servicio o algo que vendes? Di servicio o producto.')).toLowerCase(); pv.tipo = /product/.test(t) ? 'producto' : 'servicio'; },
       ver: (pv) => pv.tipo === 'producto' ? 'Producto' : 'Servicio' },
     categoria: { et: 'Categoría', claves: ['categor', 'seccion', 'sección'],
-      async ask(g, pv){ const t = await preguntarYEscuchar(g === 'restaurante' ? '¿En qué sección del menú va? Por ejemplo entradas o bebidas. O di ninguna.' : g === 'cafeteria' ? '¿En qué categoría va? Por ejemplo café o postres. O di ninguna.' : g === 'servicios' ? '¿En qué categoría va? Por ejemplo cabello o uñas. O di ninguna.' : 'Categoría, o di ninguna.'); pv.categoria_id = buscarCategoriaPorVoz(t); },
+      async ask(g, pv){ const t = await preguntarYEscuchar(g === 'restaurante' ? '¿En qué sección del menú va? Por ejemplo entradas o bebidas. O di ninguna.' : g === 'cafeteria' ? '¿En qué categoría va? Por ejemplo café o postres. O di ninguna.' : g === 'servicios' ? '¿En qué categoría va? Por ejemplo cabello o uñas. O di ninguna.' : '¿En qué categoría lo pones? O di ninguna.'); pv.categoria_id = buscarCategoriaPorVoz(t); },
       ver: (pv) => (categoriasCache.find(c => c.id === pv.categoria_id) || {}).nombre || 'Ninguna', habla: true },
     esServicio: { et: 'Servicio', claves: ['servicio'], invalida: ['sku', 'existencias', 'insumo', 'unidad'],
       async ask(g, pv){ pv.esServicio = await siONo('¿Es un servicio, como copias o impresiones?'); if(pv.esServicio){ pv.unidad = 'copia'; pv.hecho.add('unidad'); } },
       ver: (pv) => pv.esServicio ? 'Sí' : 'No, es un artículo' },
     sku: { et: 'Código', claves: ['sku', 'código', 'codigo', 'barras'], cuando: (g, pv) => !pv.esServicio,
-      async ask(g, pv){ const t = (await preguntarYEscuchar(g === 'ropa' ? 'Código de barras: di generar para crear uno, di el número, o di omitir.' : 'Código de barras, o di omitir.')).toLowerCase();
+      async ask(g, pv){ const t = (await preguntarYEscuchar(g === 'ropa' ? '¿Tiene código de barras? Di el número, di generar para crear uno, o di omitir.' : '¿Tiene código de barras? Di el número, o di omitir.')).toLowerCase();
         pv.sku = (g === 'ropa' && /generar|crea|nuevo/.test(t)) ? '__generar__' : (esOmision(t) ? null : t.replace(/\s+/g, '')); },
       ver: (pv) => pv.sku === '__generar__' ? 'Se generará uno' : (pv.sku || 'Sin código') },
-    talla: { et: 'Talla', claves: ['talla'], async ask(g, pv){ const t = await preguntarYEscuchar('Talla, por ejemplo mediana, 28 o 9 y medio. O di omitir.'); pv.talla = esOmision(t) ? null : t; }, ver: (pv) => pv.talla || '—' },
-    color: { et: 'Color', claves: ['color'], async ask(g, pv){ const t = await preguntarYEscuchar('Color, o di omitir.'); pv.color = esOmision(t) ? null : t; }, ver: (pv) => pv.color || '—' },
+    talla: { et: 'Talla', claves: ['talla'], async ask(g, pv){ const t = await preguntarYEscuchar('¿Qué talla es? Por ejemplo mediana o 28. O di omitir.'); pv.talla = esOmision(t) ? null : t; }, ver: (pv) => pv.talla || '—' },
+    color: { et: 'Color', claves: ['color'], async ask(g, pv){ const t = await preguntarYEscuchar('¿De qué color es? O di omitir.'); pv.color = esOmision(t) ? null : t; }, ver: (pv) => pv.color || '—' },
     unidad: { et: 'Se vende por', claves: ['unidad', 'vende por'], cuando: (g, pv) => !pv.esServicio || !pv.hecho.has('unidad'),
       async ask(g, pv){ const t = (await preguntarYEscuchar('¿Se vende por pieza, hoja, metro, copia o pliego? Di cuál, o di otra.')).toLowerCase();
         const m = [['hoja', 'hoja'], ['metro', 'metro'], ['copia', 'copia'], ['impresi', 'copia'], ['pliego', 'pliego'], ['pieza', 'pieza']].find(([k]) => t.includes(k));
-        if(m) pv.unidad = m[1]; else if(/otr/.test(t)){ const o = await preguntarHastaObtener('¿Cómo se llama la unidad? Por ejemplo litro o juego.'); pv.unidad = o.toLowerCase().replace(/[^a-záéíóúñ ]/g, '').trim().slice(0, 20) || 'pieza'; } else pv.unidad = 'pieza'; },
+        if(m) pv.unidad = m[1]; else if(/otr/.test(t)){ const o = await preguntarHastaObtener('¿Cómo se llama? Por ejemplo litro o juego.'); pv.unidad = o.toLowerCase().replace(/[^a-záéíóúñ ]/g, '').trim().slice(0, 20) || 'pieza'; } else pv.unidad = 'pieza'; },
       ver: (pv) => uVoz(pv) },
     precio: { et: 'Precio', claves: ['precio'], habla: true,
-      async ask(g, pv){ pv.precio = await preguntarNumero(g === 'papeleria' ? 'Precio de 1 ' + uVoz(pv) + '.' : g === 'servicios' ? 'Precio del servicio.' : g === 'restaurante' ? 'Precio del platillo.' : 'Precio de venta.'); },
+      async ask(g, pv){ pv.precio = await preguntarNumero(g === 'papeleria' ? '¿A cuánto vendes 1 ' + uVoz(pv) + '?' : g === 'servicios' ? '¿Cuánto cuesta el servicio?' : g === 'restaurante' ? '¿Cuánto cuesta el platillo?' : '¿A cuánto lo vendes?'); },
       ver: (pv) => dinVoz(pv.precio) },
     costo: { et: 'Costo', claves: ['costo'], cuando: (g, pv) => g !== 'servicios' || pv.tipo === 'producto',
-      async ask(g, pv){ const t = await preguntarYEscuchar('Costo, o di omitir.'); pv.costo = esOmision(t) ? 0 : (extraerNumeroDeVoz(t) ?? 0); },
+      async ask(g, pv){ const t = await preguntarYEscuchar('¿Cuánto te cuesta a ti? O di omitir.'); pv.costo = esOmision(t) ? 0 : (extraerNumeroDeVoz(t) ?? 0); },
       ver: (pv) => dinVoz(pv.costo) },
     duracion: { et: 'Duración', claves: ['duraci', 'minutos', 'tiempo'], cuando: (g, pv) => pv.tipo !== 'producto',
       async ask(g, pv){ const n = await preguntarNumero('¿Cuántos minutos dura?'); pv.duracion = Math.min(600, Math.max(5, Math.round((n || 30) / 5) * 5)); },
       ver: (pv) => (pv.duracion || 30) + ' minutos' },
     stock: { et: 'Existencias', claves: ['stock', 'existencia', 'inventario', 'cantidad', 'disponible'], habla: true, cuando: (g, pv) => g !== 'servicios' || pv.tipo === 'producto',
-      async ask(g, pv){ pv.stock = await preguntarNumero(g === 'restaurante' || g === 'cafeteria' ? 'Cuántos hay disponibles hoy. Di cero si está agotado.' : 'Stock disponible.'); },
+      async ask(g, pv){ pv.stock = await preguntarNumero(g === 'restaurante' || g === 'cafeteria' ? '¿Cuántos tienes disponibles hoy? Di cero si está agotado.' : '¿Cuántos tienes?'); },
       ver: (pv) => String(Number(pv.stock || 0)) },
     existencias: { et: 'Existencias', claves: ['stock', 'existencia', 'inventario', 'cantidad', 'paquete'], habla: true, cuando: (g, pv) => !pv.esServicio,
-      async ask(g, pv){ const u = uVoz(pv), t = (await preguntarYEscuchar('¿Tienes ' + plural(u) + ' sueltas o en paquetes? Di sueltas o paquetes.')).toLowerCase();
+      async ask(g, pv){ const u = uVoz(pv), t = (await preguntarYEscuchar('¿Lo tienes suelto o en paquetes? Di suelto o paquetes.')).toLowerCase();
         if(/paquet|caja|resma/.test(t)){ pv.modo = 'paq'; pv.paqN = await preguntarNumero('¿Cuántos paquetes tienes?'); pv.paqU = await preguntarNumero('¿' + cuantos(u) + ' ' + plural(u) + ' trae cada paquete?');
           if(!(pv.paqU > 0)){ pv.paqU = 1; await hablar('Dejo 1 por paquete, lo corriges después.'); }
           const ct = await preguntarYEscuchar('¿Cuánto te costó cada paquete? O di omitir.'); pv.paqCosto = esOmision(ct) ? 0 : (extraerNumeroDeVoz(ct) ?? 0); }
-        else { pv.modo = 'uni'; pv.stock = await preguntarNumero('¿' + cuantos(u) + ' ' + plural(u) + ' tienes?'); const ct = await preguntarYEscuchar('Costo de 1 ' + u + ', o di omitir.'); pv.costo = esOmision(ct) ? 0 : (extraerNumeroDeVoz(ct) ?? 0); } },
+        else { pv.modo = 'uni'; pv.stock = await preguntarNumero('¿' + cuantos(u) + ' ' + plural(u) + ' tienes?'); const ct = await preguntarYEscuchar('¿Cuánto te cuesta 1 ' + u + '? O di omitir.'); pv.costo = esOmision(ct) ? 0 : (extraerNumeroDeVoz(ct) ?? 0); } },
       ver: (pv) => pv.modo === 'paq' ? pv.paqN + ' paquetes de ' + pv.paqU + ' = ' + redondear3(pv.paqN * pv.paqU) + ' ' + plural(uVoz(pv)) : Number(pv.stock || 0) + ' ' + plural(uVoz(pv)) },
     mayoreo: { et: 'Descuento por cantidad', claves: ['mayoreo', 'descuento'],
-      async ask(g, pv){ if(await siONo('¿Das descuento por cantidad?')){ const u = uVoz(pv), d = await preguntarNumero('¿A partir de cuántas ' + plural(u) + '?'), p = await preguntarNumero('¿A qué precio cada ' + u + '?'); pv.mayoreo = d > 0 ? { desde: d, pu: p } : null; } else pv.mayoreo = null; },
+      async ask(g, pv){ if(await siONo('¿Das descuento si llevan muchas?')){ const u = uVoz(pv), d = await preguntarNumero('¿Desde cuántas ' + plural(u) + '?'), p = await preguntarNumero('¿A cuánto queda cada ' + u + '?'); pv.mayoreo = d > 0 ? { desde: d, pu: p } : null; } else pv.mayoreo = null; },
       ver: (pv) => pv.mayoreo ? 'Desde ' + pv.mayoreo.desde + ': ' + dinVoz(pv.mayoreo.pu) + ' c/u' : 'No' },
-    insumo: { et: 'Gasta del inventario', claves: ['gasta', 'insumo', 'inventario'], cuando: (g, pv) => !!pv.esServicio,
-      async ask(g, pv){ pv.insumo = null; const t = await preguntarYEscuchar('¿Qué artículo de tu inventario gasta? Por ejemplo hoja carta. O di ninguno.');
+    insumo: { et: 'Gasta de tus artículos', claves: ['gasta', 'insumo', 'inventario'], cuando: (g, pv) => !!pv.esServicio,
+      async ask(g, pv){ pv.insumo = null; const t = await preguntarYEscuchar('¿Qué artículo tuyo gasta? Por ejemplo hoja carta. O di ninguno.');
         if(!esOmision(t)){ const cand = productosCache.filter(p => p.tipo !== 'servicio' && coincideBusqueda(p, t)).slice(0, 3);
           for(const c of cand){ if(await siONo('¿Es ' + c.nombre + '?')){ pv.insumo = { id: c.id, nombre: c.nombre }; break; } }
           if(!pv.insumo) await hablar('No lo encontré. Lo agregas después desde Artículos.'); } },
       ver: (pv) => pv.insumo ? pv.insumo.nombre : 'Ninguno' },
     foto: { et: 'Foto', claves: ['foto', 'imagen'], async ask(g, pv){ await pedirFotoVoz(pv); }, ver: (pv) => pv.foto_path ? 'Sí' : 'Sin foto' },
     caducidad: { et: 'Caducidad', claves: ['caduc'],
-      async ask(g, pv){ const t = await preguntarYEscuchar('Caducidad, por ejemplo marzo de 2027. O di omitir.'); pv.caducidad = esOmision(t) ? null : fechaDeVoz(t);
+      async ask(g, pv){ const t = await preguntarYEscuchar('¿Cuándo caduca? Por ejemplo marzo de 2027. O di omitir.'); pv.caducidad = esOmision(t) ? null : fechaDeVoz(t);
         if(!esOmision(t) && !pv.caducidad) await hablar('No entendí la fecha, la dejo vacía.'); },
       ver: (pv) => pv.caducidad || 'Sin fecha' }
   };
@@ -13741,7 +13759,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   // --- Formulario del artículo (encargado): pocas preguntas a la vista, lo avanzado en secciones plegables ---
-  const UNIDADES_PAP = [['pieza', 'Pieza'], ['hoja', 'Hoja'], ['metro', 'Metro'], ['copia', 'Copia'], ['pliego', 'Pliego'], ['otra', 'Otra…']];
+  const UNIDADES_PAP = [['pieza', 'Por pieza'], ['hoja', 'Por hoja'], ['metro', 'Por metro'], ['copia', 'Por copia'], ['pliego', 'Por pliego'], ['otra', 'Otra…']];
   const plural = (w) => { w = String(w || '').trim().toLowerCase(); if(!w) return 'unidades'; return /[aeiou]$/.test(w) ? w + 's' : w + 'es'; };
   const cuantos = (w) => /a$/i.test(String(w || '').trim()) ? 'Cuántas' : 'Cuántos';
   const idv = (id) => document.getElementById(id);
@@ -13772,10 +13790,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(!esPapeleria()) return;
     const u = unidadForm(), pl = plural(u), t = (id, txt) => { const e = idv(id); if(e) e.textContent = txt; };
     t('lblPrecioPap', 'Precio de 1 ' + u); t('lblCostoPap', 'Costo de 1 ' + u + ' (opcional)');
-    document.querySelector('label[for="pPrecio"]').textContent = 'Precio de 1 ' + u; document.querySelector('label[for="pCosto"]').textContent = 'Costo de 1 ' + u + ' (opcional)';
-    document.querySelector('label[for="pStock"]').textContent = cuantos(u) + ' ' + pl + ' tienes';
-    t('lblPaqU', cuantos(u) + ' ' + pl + ' trae cada paquete?'); t('lblPeso', 'Peso de 1 ' + u + ' (en gramos)');
-    t('sumPres', 'Venderlo también por paquete o caja'); t('sumVol', 'Dar descuento si llevan varias');
+    document.querySelector('label[for="pPrecio"]').textContent = '¿A cuánto vendes 1 ' + u + '?'; document.querySelector('label[for="pCosto"]').textContent = '¿Cuánto te cuesta 1 ' + u + '? (opcional)';
+    document.querySelector('label[for="pStock"]').textContent = '¿' + cuantos(u) + ' ' + pl + ' tienes?';
+    t('lblPaqU', '¿' + cuantos(u) + ' ' + pl + ' trae cada paquete?'); t('lblPeso', '¿Cuánto pesa 1 ' + u + '? (en gramos)');
+    t('sumPres', '¿También lo vendes por paquete o caja?'); t('sumVol', '¿Das descuento si llevan muchas?');
   }
   function cambiarModoInv(m){
     const paq = (m || modoInv()) === 'paq'; idv('pModoInvVal').value = paq ? 'paq' : 'uni';
@@ -13808,17 +13826,17 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const fila = () => { const f = el('div', 'empleado-fila'); f.style.cssText = 'flex-wrap:wrap; gap:6px; align-items:center;'; return f; };
     formPap.pres.forEach((r, k) => {
       const f = fila(), n = el('input', 'input-mini'); n.type = 'text'; n.maxLength = 30; n.placeholder = 'Paquete'; n.value = r.nombre; n.style.width = '110px'; n.oninput = () => { r.nombre = n.value; };
-      const un = num('Cuántas', '76px', r.unidades), pr = num('$ (opcional)', '96px', r.precio, '0.01'), hint = el('div', 'nota'); hint.style.cssText = 'margin:0; flex-basis:100%;';
+      const un = num('Cuántas', '76px', r.unidades), pr = num('Precio (opcional)', '110px', r.precio, '0.01'), hint = el('div', 'nota'); hint.style.cssText = 'margin:0; flex-basis:100%;';
       const act = () => { r.unidades = parseFloat(un.value) || 0; r.precio = pr.value; const auto = Math.round(precioUni() * r.unidades * 100) / 100;
-        hint.textContent = r.unidades > 0 ? (pr.value !== '' ? 'Se cobra $' + parseFloat(pr.value).toFixed(2) + ' (ahorra $' + Math.max(0, auto - parseFloat(pr.value)).toFixed(2) + ')' : 'Se cobra $' + auto.toFixed(2) + ' (se calcula solo)') : ''; };
+        hint.textContent = r.unidades > 0 ? (pr.value !== '' ? 'Lo cobras en $' + parseFloat(pr.value).toFixed(2) + ' (ahorra $' + Math.max(0, auto - parseFloat(pr.value)).toFixed(2) + ')' : 'Lo cobras en $' + auto.toFixed(2) + ' (se calcula solo)') : ''; };
       un.oninput = act; pr.oninput = act; act();
       const d = el('button', 'texto', 'Quitar'); d.type = 'button'; d.onclick = () => { formPap.pres.splice(k, 1); pintarEditoresPap(); };
-      agregarHijosPuve(f, [n, el('span', 'nota', 'trae'), un, el('span', 'nota', pl + ' · precio'), pr, d, hint]); ep.appendChild(f);
+      agregarHijosPuve(f, [n, el('span', 'nota', 'trae'), un, el('span', 'nota', pl + ' · cobrar'), pr, d, hint]); ep.appendChild(f);
     });
     const ap = el('button', 'texto', '+ Agregar paquete o caja'); ap.type = 'button'; ap.onclick = () => { if(formPap.pres.length >= 6) return; formPap.pres.push({ nombre: 'Paquete', unidades: '', precio: '' }); pintarEditoresPap(); }; ep.appendChild(ap);
     formPap.vol.forEach((r, k) => {
       const f = fila(), d1 = num('Cuántas', '76px', r.desde), p1 = num('$', '84px', r.precio, 'any'), hint = el('div', 'nota'); hint.style.cssText = 'margin:0; flex-basis:100%;';
-      const act = () => { r.desde = d1.value; r.precio = p1.value; const b = precioUni(), pv = parseFloat(p1.value); hint.textContent = (b > 0 && pv >= 0 && d1.value) ? (pv < b ? 'Ahorra ' + Math.round((1 - pv / b) * 100) + '% por cada ' + u : 'Ojo: sale más caro que el precio normal') : ''; };
+      const act = () => { r.desde = d1.value; r.precio = p1.value; const b = precioUni(), pv = parseFloat(p1.value); hint.textContent = (b > 0 && pv >= 0 && d1.value) ? (pv < b ? 'Cada ' + u + ' sale ' + Math.round((1 - pv / b) * 100) + '% más barata' : 'Ojo: sale más caro que el precio normal') : ''; };
       d1.oninput = act; p1.oninput = act; act();
       const q = el('button', 'texto', 'Quitar'); q.type = 'button'; q.onclick = () => { formPap.vol.splice(k, 1); pintarEditoresPap(); };
       agregarHijosPuve(f, [el('span', 'nota', 'Si llevan'), d1, el('span', 'nota', pl + ' o más, cada una a $'), p1, q, hint]); ev.appendChild(f);
@@ -13869,7 +13887,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     registro.unidad = unidad; registro.paso_venta = paso; registro.peso_unitario_g = peso > 0 ? peso : null;
     if(esServicioForm()){
       const cant = parseFloat(idv('pInsumoCant').value) || 1;
-      if(cant <= 0 || cant > 1000) return 'Cuánto gasta de tu inventario debe ser mayor a 0.';
+      if(cant <= 0 || cant > 1000) return 'Lo que gasta cada vez debe ser mayor a 0.';
       registro.tipo = 'servicio'; registro.stock = 999999; registro.costo = parseFloat(idv('pCosto').value) || 0;
       registro.insumo_id = formPap.insumo ? formPap.insumo.id : null; registro.insumo_cantidad = cant; registro.impresion_tipo = idv('pImpresionTipo').value || null;
     } else {
@@ -13885,14 +13903,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         registro.stock = s;
       }
     }
-    if(registro.stock > 99999999) return 'El inventario es demasiado grande.';
+    if(registro.stock > 99999999) return 'Esa cantidad es demasiado grande.';
     const pres = [], nombres = new Set();
     for(const r of formPap.pres){
       const nombre = String(r.nombre || '').trim(), u = parseFloat(r.unidades), pr = r.precio === '' || r.precio == null ? null : parseFloat(r.precio);
       if(!nombre) return 'Ponle nombre a cada paquete o caja.';
       if(!(u > 0)) return 'Escribe cuántas ' + plural(unidad) + ' trae "' + nombre + '".';
       if(pr != null && !(pr >= 0)) return 'El precio de "' + nombre + '" no es válido.';
-      if(nombres.has(nombre.toLowerCase())) return 'Tienes dos presentaciones con el nombre "' + nombre + '".';
+      if(nombres.has(nombre.toLowerCase())) return 'Tienes dos paquetes con el nombre "' + nombre + '".';
       nombres.add(nombre.toLowerCase()); pres.push({ nombre, unidades: u, precio: pr });
     }
     const vol = [], desdes = new Set();
@@ -13918,25 +13936,25 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   function abrirCuentahojas(){
     const id = document.getElementById('productoId').value, p = productosCache.find(x => x.id === id);
     if(!p){ mostrarMensaje('mensajeProducto', 'Guarda el artículo primero para contarlo por peso.', 'error'); return; }
-    const { caja, fondo } = modalBase('Contar por peso: ' + p.nombre, 440), uni = p.unidad || 'pieza';
+    const { caja, fondo } = modalBase('Contar pesando: ' + p.nombre, 440), uni = p.unidad || 'pieza';
     const campo = (rot, val, ph) => { caja.appendChild(el('div', 'cr-etq', rot)); const i = el('input', 'input-mini'); i.type = 'number'; i.min = 0; i.step = 'any'; i.placeholder = ph || ''; i.value = val; i.style.cssText = 'width:100%; margin-bottom:8px;'; caja.appendChild(i); return i; };
-    const unit = campo('Peso de 1 ' + uni + ' (gramos)', p.peso_unitario_g || '', 'ej. 4.6');
-    caja.appendChild(el('div', 'nota', 'Si no lo sabes: pesa una cantidad conocida (ej. 100) y escribe aquí los datos para calcularlo.'));
-    const cN = campo('Calibrar: cuántas ' + uni + ' pesaste', '', 'ej. 100'), cG = campo('Calibrar: peso de esas (gramos)', '', 'ej. 465');
-    const cal = el('button', 'texto', 'Calcular peso por ' + uni); cal.type = 'button'; cal.onclick = () => { const n = parseFloat(cN.value), g = parseFloat(cG.value); if(n > 0 && g > 0){ unit.value = redondear3(g / n); refrescar(); } }; caja.appendChild(cal);
-    const total = campo('Peso total del montón (gramos)', '', 'ej. 1573'), tara = campo('Peso del envase o charola (gramos, opcional)', '', '0');
+    const unit = campo('¿Cuánto pesa 1 ' + uni + '? (gramos)', p.peso_unitario_g || '', 'ej. 4.6');
+    caja.appendChild(el('div', 'nota', 'Si no lo sabes: pesa, por ejemplo, 100 y anota cuánto pesaron.'));
+    const cN = campo('¿Cuántas ' + uni + ' pesaste?', '', 'ej. 100'), cG = campo('¿Cuánto pesaron en total? (gramos)', '', 'ej. 465');
+    const cal = el('button', 'texto', 'Calcular cuánto pesa 1 ' + uni); cal.type = 'button'; cal.onclick = () => { const n = parseFloat(cN.value), g = parseFloat(cG.value); if(n > 0 && g > 0){ unit.value = redondear3(g / n); refrescar(); } }; caja.appendChild(cal);
+    const total = campo('Peso de toda la pila (gramos)', '', 'ej. 1573'), tara = campo('Peso del recipiente (gramos, opcional)', '', '0');
     const res = el('div', 'nota'); res.style.cssText = 'font-size:16px; margin:8px 0;'; caja.appendChild(res);
-    const ok = el('button', 'principal', 'Ajustar inventario'); ok.type = 'button'; ok.style.width = '100%'; caja.appendChild(ok);
+    const ok = el('button', 'principal', 'Actualizar'); ok.type = 'button'; ok.style.width = '100%'; caja.appendChild(ok);
     let n = 0;
     function refrescar(){
       n = contarPorPeso(total.value, tara.value, unit.value); ok.disabled = !(n > 0);
       const dif = n - Number(p.stock);
-      res.textContent = n > 0 ? '≈ ' + n + ' ' + uni + (Math.abs(dif) < 1 ? ' (coincide con tu sistema)' : ' · el sistema dice ' + p.stock + ' (' + (dif > 0 ? '+' : '') + redondear3(dif) + ')') : 'Escribe el peso total para contar.';
-      ok.textContent = n > 0 ? 'Ajustar inventario a ' + n : 'Ajustar inventario';
+      res.textContent = n > 0 ? '≈ ' + n + ' ' + uni + (Math.abs(dif) < 1 ? ' (coincide con lo que tienes anotado)' : ' · tienes anotado ' + p.stock + ' (' + (dif > 0 ? '+' : '') + redondear3(dif) + ')') : 'Escribe el peso total para contar.';
+      ok.textContent = n > 0 ? 'Actualizar a ' + n : 'Actualizar';
     }
     [unit, total, tara].forEach(i => { i.oninput = refrescar; }); refrescar();
     ok.onclick = async () => {
-      if(!confirm('El inventario de "' + p.nombre + '" pasará de ' + p.stock + ' a ' + n + ' ' + uni + '. ¿Continuar?')) return;
+      if(!confirm('Vas a cambiar lo que tienes de "' + p.nombre + '": de ' + p.stock + ' a ' + n + ' ' + uni + '. ¿Seguro?')) return;
       ok.disabled = true;
       if(parseFloat(unit.value) > 0 && parseFloat(unit.value) !== Number(p.peso_unitario_g)) await sb.from('productos').update({ peso_unitario_g: parseFloat(unit.value) }).eq('id', p.id);
       const { error } = await sb.rpc('ajustar_inventario', { p_producto_id: p.id, p_nuevo_stock: n, p_motivo: 'Conteo por peso: ' + total.value + ' g' });
@@ -14281,21 +14299,33 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     progAvisado = true; sonidoProg();
     const { caja, fondo } = modalBase('Pedidos en línea por atender', 440);
     const arch = abiertos.reduce((s, p) => s + (p.pedido_prog_trabajos || []).length, 0), arts = abiertos.filter(p => (p.pedido_prog_items || []).length).length;
-    caja.appendChild(el('div', '', abiertos.length + ' pedido(s) · ' + arch + ' archivo(s) para imprimir · ' + arts + ' con artículos'));
-    abiertos.slice(0, 5).forEach(p => { const f = el('div', 'nota'); f.style.margin = '6px 0'; f.textContent = '• ' + p.nombre + ' — ' + (p.asap || !p.para_cuando ? 'lo antes posible' : progFecha(p.para_cuando)); caja.appendChild(f); });
+    caja.appendChild(el('div', 'nota', abiertos.length + (abiertos.length === 1 ? ' pedido' : ' pedidos') + ' por atender' + (arch ? ' · ' + arch + (arch === 1 ? ' archivo' : ' archivos') + ' para imprimir' : '')));
+    abiertos.slice(0, 5).forEach(p => { const f = el('div', ''); f.style.margin = '8px 0'; f.textContent = entregaProg(p).titulo + ' · ' + p.nombre; caja.appendChild(f); });
     const ver = el('button', 'principal', 'Ver pedidos'); ver.type = 'button'; ver.style.cssText = 'width:100%; margin-top:12px;'; ver.onclick = () => { fondo.remove(); cambiarSeccion('enlinea'); }; caja.appendChild(ver);
   }
-  function urgenciaProg(p){
-    if(p.asap || !p.para_cuando) return { txt: 'Lo antes posible', err: true };
-    const min = Math.round((new Date(p.para_cuando).getTime() - Date.now()) / 60000), f = progFecha(p.para_cuando);
-    return min < 0 ? { txt: f + ' · atrasado ' + Math.abs(min) + ' min', err: true } : min < 60 ? { txt: f + ' · en ' + min + ' min', err: true } : { txt: f, err: false };
+  // --- Tarjeta de pedido: lo más grande es CUÁNDO se entrega; cuándo se envió va chiquito al final ---
+  const progHora = (d) => d.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' });
+  function progDia(d){
+    const h = new Date(), h0 = new Date(h.getFullYear(), h.getMonth(), h.getDate()), d0 = new Date(d.getFullYear(), d.getMonth(), d.getDate()), dif = Math.round((d0 - h0) / 86400000);
+    return dif === 0 ? 'Hoy' : dif === 1 ? 'Mañana' : dif === -1 ? 'Ayer' : d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
+  }
+  const progDur = (m) => m < 60 ? m + ' min' : m < 1440 ? Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + (m % 60) + ' min' : '') : Math.floor(m / 1440) + (Math.floor(m / 1440) === 1 ? ' día' : ' días');
+  function entregaProg(p){
+    if(p.asap || !p.para_cuando){ const m = Math.max(0, Math.round((Date.now() - new Date(p.creado_en)) / 60000)); return { titulo: 'Lo antes posible', chip: 'esperando ' + progDur(m), urgente: m >= 15 }; }
+    const d = new Date(p.para_cuando), min = Math.round((d - Date.now()) / 60000);
+    return { titulo: progDia(d) + ' ' + progHora(d), chip: min < 0 ? 'atrasado ' + progDur(-min) : 'en ' + progDur(min), urgente: min < 60 };
+  }
+  function haceProg(iso){ const m = Math.round((Date.now() - new Date(iso)) / 60000); if(m < 1) return 'hace un momento'; if(m < 60) return 'hace ' + m + ' min'; const d = new Date(iso); return progDia(d).toLowerCase() + ' ' + progHora(d); }
+  function detalleTrabajoProg(t){
+    return [t.copias + (t.copias === 1 ? ' copia' : ' copias'), t.color === 'color' ? 'A color' : 'Blanco y negro', t.tamano === 'oficio' ? 'Tamaño oficio' : null, t.caras === 2 ? 'Ambas caras' : null, t.engargolado ? 'Engargolado' : null,
+      t.paginas_rango ? 'Págs. ' + t.paginas_rango : (t.paginas_cobrar ? t.paginas_cobrar + (t.paginas_cobrar === 1 ? ' página' : ' páginas') : null)].filter(Boolean).join(' · ');
   }
   function renderizarProg(){
     const cont = document.getElementById('listaEnlinea'); if(!cont) return; cont.textContent = '';
-    if(!progCache.length){ cont.appendChild(el('div', 'vacio', progActivo ? 'No hay pedidos pendientes. Cuando un cliente escanee tu QR, suba sus archivos y programe su pedido, aparecerá aquí con aviso sonoro.' : 'Los pedidos en línea están desactivados.')); return; }
-    [['nuevo', 'Nuevos'], ['en_proceso', 'En proceso'], ['listo', 'Listos para recoger']].forEach(([est, tit]) => {
+    if(!progCache.length){ cont.appendChild(el('div', 'vacio', progActivo ? 'No hay pedidos por ahora. Cuando un cliente pida con tu QR, aparecerá aquí y sonará un aviso.' : 'Activa el QR para empezar a recibir pedidos.')); return; }
+    [['nuevo', 'Por atender'], ['en_proceso', 'En proceso'], ['listo', 'Listos para entregar']].forEach(([est, tit]) => {
       const lista = progCache.filter(p => p.estado === est); if(!lista.length) return;
-      cont.appendChild(el('h3', '', tit + ' (' + lista.length + ')')); lista.forEach(p => cont.appendChild(tarjetaProg(p)));
+      const h = el('h3', '', tit + ' (' + lista.length + ')'); h.style.margin = '18px 0 8px'; cont.appendChild(h); lista.forEach(p => cont.appendChild(tarjetaProg(p)));
     });
   }
   async function abrirArchivoProg(t, descargar){
@@ -14311,29 +14341,28 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     return progCache.find(o => o.id !== p.id && o.num < p.num && String(o.nombre || '').trim().toLowerCase() === n && firmaProg(o) === f && Math.abs(new Date(p.creado_en) - new Date(o.creado_en)) < 15 * 60000) || null;
   }
   function tarjetaProg(p){
-    const card = el('div', 'pedido-card'), cab = el('div', 'pedido-cab'), u = urgenciaProg(p);
-    cab.appendChild(el('b', '', 'P-' + String(p.num).padStart(4, '0') + ' · ' + p.nombre)); const lim = el('span', u.err ? 'badge err' : 'nota', u.txt); cab.appendChild(lim); card.appendChild(cab);
-    card.appendChild(el('div', 'nota', 'Solicitado ' + progFecha(p.creado_en) + (p.telefono ? ' · Tel. ' + p.telefono : '')));
-    const dup = duplicadoDeProg(p); if(dup){ const w = el('div', 'badge err', 'Posible duplicado de P-' + String(dup.num).padStart(4, '0') + ' (mismo cliente y pedido). Si es repetido, cancélalo.'); w.style.margin = '6px 0'; card.appendChild(w); }
+    const e = entregaProg(p), card = el('div', 'pcard' + (e.urgente ? ' urg' : ''));
+    const top = el('div', 'pc-top'); top.appendChild(el('div', 'pc-cuando', e.titulo)); top.appendChild(el('span', 'pc-chip' + (e.urgente ? ' urg' : ''), e.chip)); card.appendChild(top);
+    const quien = el('div', 'pc-quien'); quien.appendChild(el('b', '', p.nombre));
+    if(p.telefono){ const a = el('a', '', p.telefono); a.href = 'tel:' + String(p.telefono).replace(/[^0-9+]/g, ''); quien.appendChild(a); } card.appendChild(quien);
+    const dup = duplicadoDeProg(p); if(dup) card.appendChild(el('div', 'pc-dup', 'Parece repetido del pedido P-' + String(dup.num).padStart(4, '0') + '. Si es el mismo, cancela este.'));
     (p.pedido_prog_trabajos || []).slice().sort((a, b) => a.orden - b.orden).forEach(t => {
-      const f = el('div', 'pedido-linea'); f.style.cssText = 'margin:8px 0; padding:8px; border:1px solid var(--borde); border-radius:8px;';
-      f.appendChild(el('div', '', t.nombre_archivo));
-      f.appendChild(el('div', 'nota', [t.copias + (t.copias === 1 ? ' copia' : ' copias'), t.color === 'color' ? 'Color' : 'B/N', t.tamano === 'oficio' ? 'Oficio' : 'Carta', t.caras === 2 ? 'Doble cara' : 'Una cara',
-        t.paginas ? t.paginas + ' pág.' + (t.paginas_rango ? ' (rango ' + t.paginas_rango + ')' : '') : 'páginas por contar', t.engargolado ? 'Engargolado' : null, t.subtotal_estimado != null ? '≈ $' + Number(t.subtotal_estimado).toFixed(2) : null].filter(Boolean).join(' · ')));
-      if(t.notas) f.appendChild(el('div', 'pedido-nota', '“' + t.notas + '”'));
-      if(t.ruta){ const a = el('div', 'pedido-acc'), b1 = el('button', '', 'Abrir'), b2 = el('button', '', 'Descargar'); b1.type = b2.type = 'button'; b1.onclick = () => abrirArchivoProg(t, false); b2.onclick = () => abrirArchivoProg(t, true); agregarHijosPuve(a, [b1, b2]); f.appendChild(a); }
+      const f = el('div', 'pc-fila'); f.appendChild(el('div', '', t.nombre_archivo)); f.appendChild(el('div', 'pc-det', detalleTrabajoProg(t)));
+      if(t.notas) f.appendChild(el('div', 'pc-nota', '“' + t.notas + '”'));
+      if(t.ruta){ const a = el('div', 'pc-btns'), b1 = el('button', '', 'Abrir'), b2 = el('button', '', 'Descargar'); b1.type = b2.type = 'button'; b1.onclick = () => abrirArchivoProg(t, false); b2.onclick = () => abrirArchivoProg(t, true); agregarHijosPuve(a, [b1, b2]); f.appendChild(a); }
       card.appendChild(f);
     });
-    (p.pedido_prog_items || []).forEach(i => card.appendChild(el('div', 'pedido-linea', Number(i.cantidad) + ' × ' + i.producto_nombre + ' · $' + Number(i.subtotal).toFixed(2))));
-    if(p.nota) card.appendChild(el('div', 'pedido-nota', '“' + p.nota + '”'));
-    card.appendChild(el('div', 'pedido-linea', 'Total estimado: $' + Number(p.total_estimado).toFixed(2) + (p.precio_pendiente ? ' (sin impresión: configura tus servicios de B/N y color)' : '')));
-    const acc = el('div', 'pedido-acc'), btn = (txt, cls, fn) => { const b = el('button', cls, txt); b.type = 'button'; b.onclick = fn; acc.appendChild(b); };
-    if(p.estado === 'nuevo') btn('Aceptar', 'principal', () => cambiarEstadoProg(p, 'en_proceso'));
-    if(p.estado !== 'listo') btn('Marcar listo', '', () => cambiarEstadoProg(p, 'listo'));
-    btn('Pasar a caja', '', () => pasarACajaProg(p));
-    if(p.estado === 'listo') btn('Entregado', 'principal', () => { if(confirm('¿Marcar como entregado? Los archivos del cliente se borrarán.')) cambiarEstadoProg(p, 'entregado'); });
-    btn('Cancelar', 'texto', () => { if(confirm('¿Cancelar este pedido? Los archivos se borrarán.')) cambiarEstadoProg(p, 'cancelado'); });
-    card.appendChild(acc); return card;
+    (p.pedido_prog_items || []).forEach(i => card.appendChild(el('div', 'pc-fila', Number(i.cantidad) + ' × ' + i.producto_nombre)));
+    if(p.nota) card.appendChild(el('div', 'pc-nota', '“' + p.nota + '”'));
+    card.appendChild(el('div', 'pc-total', 'Total $' + Number(p.total_estimado).toFixed(2) + (p.precio_pendiente ? ' + impresión' : '')));
+    const acc = el('div', 'pc-acc'), btn = (txt, cls, fn) => { const b = el('button', cls, txt); b.type = 'button'; b.onclick = fn; acc.appendChild(b); return b; };
+    const sig = { nuevo: ['Aceptar pedido', 'en_proceso'], en_proceso: ['Ya está listo', 'listo'], listo: ['Entregado', 'entregado'] }[p.estado];
+    btn(sig[0], 'principal', () => { if(sig[1] === 'entregado' && !confirm('¿Ya se lo entregaste a ' + p.nombre + '? Sus archivos se borrarán.')) return; cambiarEstadoProg(p, sig[1]); });
+    btn('Cobrar', 'sec', () => pasarACajaProg(p));
+    btn('Cancelar pedido', 'cancelar', () => { if(confirm('¿Cancelar el pedido de ' + p.nombre + '? Sus archivos se borrarán.')) cambiarEstadoProg(p, 'cancelado'); });
+    card.appendChild(acc);
+    card.appendChild(el('div', 'pc-meta', 'P-' + String(p.num).padStart(4, '0') + ' · enviado ' + haceProg(p.creado_en)));
+    return card;
   }
   async function cambiarEstadoProg(p, estado){
     const { data, error } = await sb.rpc('pap_cambiar_estado', { p_id: p.id, p_estado: estado });
@@ -14358,26 +14387,34 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   async function abrirEnlinea(){
     await cargarEstadoProg(); const cfg = document.getElementById('cfgEnlinea'); if(cfg) cfg.classList.toggle('oculto', miRol !== 'admin');
     const chk = document.getElementById('progActivoChk'); if(chk) chk.checked = !!progActivo;
-    if(miRol === 'admin') await pintarQrProg();
-    refrescarProg();
+    pintarAccionesQr(); refrescarProg();
+  }
+  function pintarAccionesQr(){
+    const a = document.getElementById('accionesQrProg'), c = document.getElementById('cambiarQrProg');
+    if(a) a.style.display = progActivo ? 'flex' : 'none'; if(c) c.style.display = progActivo ? 'block' : 'none';
   }
   async function alternarEnlinea(activo){
     const { data, error } = await sb.rpc('pap_config', { p_activo: activo, p_rotar: false });
     if(error){ mostrarMensaje('mensajeEnlinea', error.message, 'error'); document.getElementById('progActivoChk').checked = !activo; return; }
-    progFirma = data; progActivo = activo; if(activo) abrirCanalProg(); else cerrarCanalProg(); progActivo = activo; await pintarQrProg(); renderizarProg();
-    mostrarMensaje('mensajeEnlinea', activo ? 'Pedidos en línea activados. Imprime tu QR y pégalo en el mostrador.' : 'Pedidos en línea desactivados: el QR dejó de recibir pedidos.', 'exito');
+    progFirma = data; progActivo = activo; if(activo) abrirCanalProg(); else cerrarCanalProg(); progActivo = activo; pintarAccionesQr(); renderizarProg();
+    mostrarMensaje('mensajeEnlinea', activo ? 'Listo. Descarga tu QR y pégalo en el mostrador.' : 'QR desactivado: ya no se reciben pedidos.', 'exito');
   }
   function urlMostradorQr(f){ const u = new URL('pedir.html', location.href); u.hash = 'n=' + negocioId + '&m=MOSTRADOR&f=' + f; return u.href; }
-  async function pintarQrProg(){
-    const cont = document.getElementById('qrEnlinea'); if(!cont) return; cont.textContent = '';
-    if(!progActivo){ return; }
-    if(!progFirma){ const { data } = await sb.rpc('pap_firma_mostrador'); progFirma = data; } if(!progFirma) return;
-    const url = urlMostradorQr(progFirma), cuadro = el('div', 'qr-svg'); cuadro.style.maxWidth = '180px'; cuadro.innerHTML = qrSvgPuve(url); cont.appendChild(cuadro);
-    const a = el('div', 'nota', url); a.style.wordBreak = 'break-all'; a.style.margin = '6px 0'; cont.appendChild(a);
-    const acc = el('div', 'foto-acc'), b1 = el('button', '', 'Descargar tarjeta PDF'), b2 = el('button', '', 'Copiar enlace'), b3 = el('button', 'texto', 'Regenerar QR');
-    b1.type = b2.type = b3.type = 'button'; b1.onclick = () => descargarPdfMostrador(url); b2.onclick = () => { navigator.clipboard && navigator.clipboard.writeText(url); mostrarMensaje('mensajeEnlinea', 'Enlace copiado.', 'exito'); };
-    b3.onclick = async () => { if(!confirm('El QR anterior dejará de funcionar y tendrás que imprimir uno nuevo. ¿Continuar?')) return; const { data, error } = await sb.rpc('pap_config', { p_activo: true, p_rotar: true }); if(error){ mostrarMensaje('mensajeEnlinea', error.message, 'error'); return; } progFirma = data; pintarQrProg(); };
-    agregarHijosPuve(acc, [b1, b2, b3]); cont.appendChild(acc);
+  async function urlProgListo(){
+    if(!progFirma){ const { data } = await sb.rpc('pap_firma_mostrador'); progFirma = data; }
+    if(!progFirma){ mostrarMensaje('mensajeEnlinea', 'No se pudo obtener tu QR. Intenta de nuevo.', 'error'); return null; }
+    return urlMostradorQr(progFirma);
+  }
+  async function descargarQrProg(){ const u = await urlProgListo(); if(u) descargarPdfMostrador(u); }
+  async function copiarEnlaceProg(){
+    const u = await urlProgListo(); if(!u) return;
+    try { await navigator.clipboard.writeText(u); mostrarMensaje('mensajeEnlinea', 'Enlace copiado.', 'exito'); } catch(e){ window.prompt('Copia este enlace:', u); }
+  }
+  async function cambiarQrProg(){
+    if(!confirm('El QR que tienes pegado dejará de funcionar y tendrás que imprimir uno nuevo. ¿Continuar?')) return;
+    const { data, error } = await sb.rpc('pap_config', { p_activo: true, p_rotar: true });
+    if(error){ mostrarMensaje('mensajeEnlinea', error.message, 'error'); return; }
+    progFirma = data; mostrarMensaje('mensajeEnlinea', 'Listo. Descarga el QR nuevo; el anterior ya no funciona.', 'exito');
   }
   function descargarPdfMostrador(url){
     const J = window.jspdf && window.jspdf.jsPDF; if(!J){ mostrarMensaje('mensajeEnlinea', 'No se pudo cargar el generador de PDF. Revisa tu conexión.', 'error'); return; }
