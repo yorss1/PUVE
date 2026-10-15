@@ -66,6 +66,8 @@
   .opc{ display:block; color:var(--s); font-size:12.5px; margin-top:2px; } .pr2{ font-weight:600; white-space:nowrap; margin-left:10px; } .campo-txt{ width:100%; margin-top:12px; border:1px solid var(--b); border-radius:16px; padding:12px 14px; background:var(--v2); color:var(--t); font:inherit; }
   .logo{ width:56px; height:56px; border-radius:16px; object-fit:cover; border:1px solid var(--b); background:var(--v2); display:block; margin-bottom:12px; }
   .fil{ background:var(--v); border:1px solid var(--b); border-radius:20px; padding:14px; margin-top:12px; } .fil .grp{ margin:8px 0 2px; } .fil .campo-txt{ margin-top:8px; }
+  .ln.sel{ background:#000; color:#fff; border-radius:14px; padding:10px 12px; margin-top:6px; border-bottom-color:transparent; } .ln.sel .opc{ color:#cfcfcf; } .ln.sel .st button{ background:#fff; color:#000; border-color:#fff; }
+  @media (prefers-color-scheme:dark){ .ln.sel{ outline:2px solid #fff; } }
 </style>
 </head>
 <body>
@@ -247,7 +249,7 @@
     if(d.estado === 'entregado' || d.estado === 'cancelado'){ var b = $('button', 'btn', 'Hacer otro pedido'); b.type = 'button'; b.style.marginTop = '18px'; b.onclick = function(){ LS.del(KEYPED); seguimiento = null; menu = null; location.reload(); }; app.appendChild(b); }
   }
   // ===== Papelería: imprimir archivos y pedir artículos para recoger (QR del mostrador) =====
-  var KEYPP = 'puve_pp_' + NEG, MAXB = 8 * 1024 * 1024;
+  var KEYPP = 'puve_pp_' + NEG, MAXB = 25 * 1024 * 1024, TROZO = 5 * 1024 * 1024;
   var PAP = { menu:null, tab:'imp', archivos:[], items:{}, resultados:[], buscando:false };
   function apiPap(body){
     return fetch(SUPA + '/functions/v1/pedido-programado', { method:'POST', headers:{ 'Content-Type':'application/json', 'apikey':KEY, 'Authorization':'Bearer ' + KEY }, body:JSON.stringify(body) })
@@ -259,6 +261,26 @@
       .then(function(r){ return r.json().catch(function(){ return null; }).then(function(d){ return { ok:r.ok, status:r.status, d:d }; }); })
       .catch(function(){ return { ok:false, status:0, d:{ error:'Se cortó la conexión al subir el archivo.' } }; });
   }
+  // Archivos de hasta 6 MB: una sola petición. Mayores: trozos de 5 MB (cada uno con reintentos) y el servidor los ensambla y revisa completos.
+  function subirArchivoPap(codigo, trabajo, blob, prog){
+    if(blob.size <= 6 * 1024 * 1024) return subirPap(codigo, trabajo, blob);
+    var n = Math.ceil(blob.size / TROZO), i = 0;
+    function trozo(k, intento){
+      var parte = blob.slice(k * TROZO, Math.min((k + 1) * TROZO, blob.size));
+      return fetch(SUPA + '/functions/v1/pedido-programado?accion=trozo&codigo=' + codigo + '&trabajo=' + trabajo + '&i=' + k + '&n=' + n, { method:'POST', headers:{ 'Content-Type':'application/octet-stream', 'apikey':KEY, 'Authorization':'Bearer ' + KEY }, body:parte })
+        .then(function(r){ return r.json().catch(function(){ return null; }).then(function(d){ return { ok:r.ok, status:r.status, d:d }; }); })
+        .catch(function(){ return { ok:false, status:0, d:{ error:'Se cortó la conexión al subir el archivo.' } }; })
+        .then(function(u){ if(u.ok || intento >= 3 || !(u.status === 0 || u.status >= 500)) return u; return new Promise(function(res){ setTimeout(res, 1500 * intento); }).then(function(){ return trozo(k, intento + 1); }); });
+    }
+    function sig(){
+      if(i >= n) return apiPap({ accion:'ensamblar', codigo:codigo, trabajo:trabajo, n:n, tam:blob.size });
+      if(prog) prog(i, n);
+      return trozo(i, 1).then(function(u){ if(!u.ok) return u; i++; return sig(); });
+    }
+    return sig();
+  }
+  function uuid4(){ if(window.crypto && crypto.randomUUID) return crypto.randomUUID(); var b = new Uint8Array(16); crypto.getRandomValues(b); b[6] = (b[6] & 15) | 64; b[8] = (b[8] & 63) | 128; var h = Array.prototype.map.call(b, function(x){ return (x + 256).toString(16).slice(1); }).join(''); return h.slice(0, 8) + '-' + h.slice(8, 12) + '-' + h.slice(12, 16) + '-' + h.slice(16, 20) + '-' + h.slice(20); }
+  function huella(t){ var h = 5381; for(var i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return String(h); }
   function kb(n){ return n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; }
   function fechaBonita(iso){ return new Date(iso).toLocaleString('es-MX', { weekday:'short', day:'numeric', month:'short', hour:'numeric', minute:'2-digit' }); }
   function precioImp(t){ var c = (PAP.menu.impresion || []).filter(function(x){ return x.tipo === t; })[0]; return c || null; }
@@ -267,7 +289,7 @@
     var g = LS.get(KEYPP); if(g && /^[0-9a-f]{36}$/.test(g)){ seguimiento = g; return verSegPap(); }
     apiPap({ accion:'menu', negocio:NEG, busqueda:'' }).then(function(r){
       if(!r.ok || !r.d || r.d.giro !== 'papeleria') return aviso(r.status === 429 ? 'Hay muchas consultas ahora. Intenta en un momento.' : 'Los pedidos en línea no están disponibles por ahora. Pide ayuda al personal.');
-      PAP.menu = r.d; menu = r.d; marcaNegocio(); pintarPap();
+      PAP.menu = r.d; PAP.top = r.d.productos || []; menu = r.d; marcaNegocio(); pintarPap();
     });
   }
   function logoImg(){
@@ -290,7 +312,7 @@
   }
   function totalArt(){ var t = 0; Object.keys(PAP.items).forEach(function(k){ var l = PAP.items[k], p = l.p, pu = Number(p.precio); if(p.mayoreo_desde && l.cant >= Number(p.mayoreo_desde)) pu = Number(p.mayoreo_precio); t += Math.round(pu * l.cant * 100) / 100; }); return t; }
   function pintarImp(cont){
-    cont.appendChild($('div', 'nota', 'Sube tus archivos en PDF, JPG o PNG (hasta 8 MB cada uno, máximo 5). Si es Word o PowerPoint, expórtalo primero a PDF.'));
+    cont.appendChild($('div', 'nota', 'Sube tus archivos en PDF, JPG o PNG (hasta 25 MB cada uno, máximo 5). Si es Word o PowerPoint, expórtalo primero a PDF.'));
     var bn = precioImp('bn'), co = precioImp('color');
     if(bn || co) cont.appendChild($('div', 'nota', 'Precio por página: ' + (bn ? 'B/N ' + money(bn.precio) : '') + (bn && co ? ' · ' : '') + (co ? 'Color ' + money(co.precio) : '') + '. El total final se calcula con el número real de páginas.'));
     var inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png'; inp.style.display = 'none';
@@ -317,7 +339,7 @@
     var nombre = (f.name || 'archivo').slice(0, 80), esPdf = f.type === 'application/pdf' || /\.pdf$/i.test(nombre), esImg = /^image\/(jpeg|png)$/.test(f.type) || /\.(jpe?g|png)$/i.test(nombre);
     if(!esPdf && !esImg) return err('Solo se aceptan PDF, JPG o PNG. Si es Word o PowerPoint, expórtalo a PDF.');
     if(f.size > MAXB * 4 && !esPdf) { /* las fotos grandes se reducen abajo */ }
-    if(esPdf){ if(f.size > MAXB) return err('El PDF pesa más de 8 MB. Reduce su tamaño e inténtalo de nuevo.'); return PAP.archivos.push({ nombre:nombre, blob:f, esPdf:true, copias:1, color:'bn', tamano:'carta', caras:1, paginas:'', engargolado:false, notas:'' }), pintarPap(); }
+    if(esPdf){ if(f.size > MAXB) return err('El PDF pesa más de 25 MB. Reduce su tamaño e inténtalo de nuevo.'); return PAP.archivos.push({ nombre:nombre, blob:f, esPdf:true, copias:1, color:'bn', tamano:'carta', caras:1, paginas:'', engargolado:false, notas:'' }), pintarPap(); }
     // Las fotos se re-dibujan como JPEG: reduce el peso y elimina metadatos/contenido oculto (la validación real se hace igual en el servidor)
     if(!window.createImageBitmap) return err('Tu navegador no puede preparar la imagen. Usa un PDF.');
     createImageBitmap(f).then(function(bm){
@@ -329,7 +351,7 @@
   }
   var tBusq = null;
   function pintarArt(cont){
-    var q = $('input', 'campo-txt'); q.type = 'search'; q.placeholder = 'Buscar un artículo (ej. cartulina azul)'; q.value = PAP.q || ''; q.style.marginTop = '4px'; cont.appendChild(q);
+    var q = $('input', 'campo-txt'); q.type = 'search'; q.placeholder = 'Busca otro artículo (ej. cartulina azul)'; q.value = PAP.q || ''; q.style.marginTop = '4px'; cont.appendChild(q);
     var lista = $('div'); lista.id = 'listaArt'; cont.appendChild(lista); pintarListaArt();
     q.oninput = function(){ PAP.q = q.value; clearTimeout(tBusq); tBusq = setTimeout(function(){ buscarArt(PAP.q); }, 350); };
     var sel = Object.keys(PAP.items); if(sel.length){ cont.appendChild($('div', 'gt', 'En tu pedido')); sel.forEach(function(k){ cont.appendChild(filaArt(PAP.items[k].p)); }); }
@@ -340,12 +362,13 @@
   }
   function pintarListaArt(){
     var l = document.getElementById('listaArt'); if(!l) return; l.textContent = '';
-    if(!PAP.q || PAP.q.trim().length < 2){ l.appendChild($('div', 'nota', 'Escribe al menos 2 letras para buscar entre los artículos disponibles.')); return; }
-    if(!PAP.resultados.length) l.appendChild($('div', 'nota', 'No encontré artículos con ese nombre.'));
-    PAP.resultados.forEach(function(p){ l.appendChild(filaArt(p)); });
+    var hay = !!(PAP.q && PAP.q.trim().length >= 2), lista = hay ? PAP.resultados : (PAP.top || []);
+    l.appendChild($('div', 'gt', hay ? 'Resultados' : 'Los más comprados'));
+    if(!lista.length) l.appendChild($('div', 'nota', hay ? 'No encontré artículos con ese nombre.' : 'Por ahora no hay artículos disponibles para pedir en línea.'));
+    lista.forEach(function(p){ l.appendChild(filaArt(p)); });
   }
   function filaArt(p){
-    var f = $('div', 'ln'), iz = $('div'); iz.appendChild($('div', '', p.nombre)); iz.appendChild($('small', 'opc', money(p.precio) + ' por ' + p.unidad + (p.mayoreo_desde ? ' · desde ' + p.mayoreo_desde + ' a ' + money(p.mayoreo_precio) : '')));
+    var f = $('div', 'ln'), iz = $('div'); f.className = 'ln' + (PAP.items[p.id] ? ' sel' : ''); iz.appendChild($('div', '', p.nombre)); iz.appendChild($('small', 'opc', money(p.precio) + ' por ' + p.unidad + (p.mayoreo_desde ? ' · desde ' + p.mayoreo_desde + ' a ' + money(p.mayoreo_precio) : '')));
     var st = $('div', 'st'), paso = Number(p.paso) || 1, cur = PAP.items[p.id] ? PAP.items[p.id].cant : 0, m = $('button', '', '−'), s = $('button', '', '+'); m.type = s.type = 'button';
     var set = function(n){ n = Math.round(n * 100) / 100; if(n <= 0) delete PAP.items[p.id]; else PAP.items[p.id] = { p:p, cant:Math.min(999, n) }; pintarPap(); };
     m.onclick = function(){ set(cur - paso); }; s.onclick = function(){ set(cur + paso); };
@@ -369,25 +392,32 @@
     var ts = null; if(TS_SITEKEY){ ts = $('div'); hj.appendChild(ts); cargarTurnstile(ts); }
     var msg = $('div', 'msg oculto'); hj.appendChild(msg);
     var f2 = $('div', 'row'); f2.style.marginTop = '14px'; var seg = $('button', 'btn sec', 'Volver'); seg.type = 'button'; seg.onclick = cerrarHoja; var env = $('button', 'btn', 'Enviar pedido'); env.type = 'button'; $$(f2, [seg, env]); hj.appendChild(f2);
-    var fallo = function(t){ msg.textContent = t; msg.classList.remove('oculto'); env.disabled = false; env.textContent = 'Enviar pedido'; };
+    var fallo = function(t){ PAP.enviando = false; msg.textContent = t; msg.classList.remove('oculto'); env.disabled = false; seg.disabled = false; env.textContent = 'Enviar pedido'; };
     env.onclick = function(){
+      if(PAP.enviando) return;   // el doble clic no envía dos veces
       msg.classList.add('oculto'); PAP.nombre = nom.value; PAP.tel = tel.value; var err = '';
       if(nom.value.trim().length < 2) err = 'Escribe tu nombre para poder llamarte.'; else if(!modoAsap && !dt.value) err = 'Elige la fecha y hora.'; else if(!ck.checked) err = 'Marca que leíste el Aviso de privacidad.'; else if(TS_SITEKEY && !tsToken) err = 'Completa la verificación de seguridad.';
       if(err) return fallo(err);
-      env.disabled = true; env.textContent = 'Enviando…';
+      PAP.enviando = true; env.disabled = true; seg.disabled = true; env.textContent = 'Enviando…';
       var items = Object.keys(PAP.items).map(function(k){ return { producto_id:k, cantidad:PAP.items[k].cant }; });
       var trabajos = PAP.archivos.map(function(a){ return { nombre:a.nombre, copias:a.copias, color:a.color, tamano:a.tamano, caras:a.caras, paginas:a.esPdf ? a.paginas : '', engargolado:a.engargolado, notas:a.notas }; });
-      apiPap({ accion:'crear', negocio:NEG, firma:FIRMA, nombre:nom.value.trim(), telefono:tel.value.trim(), asap:modoAsap, para:modoAsap ? null : new Date(dt.value).toISOString(), nota:nota.value, items:items, trabajos:trabajos, web:trampa.value, turnstile:tsToken }).then(function(r){
+      // Clave anti-duplicado: la misma solicitud (doble clic, reintento por mala señal) devuelve el mismo pedido; si cambias algo, es otra
+      var hu = huella(JSON.stringify([items, trabajos, nom.value.trim(), tel.value.trim(), modoAsap, modoAsap ? '' : dt.value, nota.value, PAP.archivos.map(function(a){ return a.blob.size; })]));
+      if(PAP.idemHuella !== hu){ PAP.idemHuella = hu; PAP.idem = uuid4(); }
+      apiPap({ accion:'crear', negocio:NEG, firma:FIRMA, clave:PAP.idem, nombre:nom.value.trim(), telefono:tel.value.trim(), asap:modoAsap, para:modoAsap ? null : new Date(dt.value).toISOString(), nota:nota.value, items:items, trabajos:trabajos, web:trampa.value, turnstile:tsToken }).then(function(r){
         if(!(r.ok && r.d && r.d.codigo)){ tsToken = ''; if(window.turnstile && tsWidget != null) try{ window.turnstile.reset(tsWidget); }catch(e){} return fallo((r.d && r.d.error) || 'No se pudo enviar el pedido. Intenta de nuevo.'); }
         var codigo = r.d.codigo, ids = r.d.trabajos || [], i = 0;
+        var listo = function(){ LS.set(KEYPP, codigo); seguimiento = codigo; PAP.archivos = []; PAP.items = {}; PAP.idem = null; PAP.idemHuella = null; PAP.enviando = false; cerrarHoja(); var b = document.getElementById('barra'); if(b) b.remove(); verSegPap(); };
+        if(!PAP.archivos.length || r.d.estado !== 'subiendo') return listo();   // pedido solo de artículos (o ya completo): no hay archivos que subir
         var siguiente = function(){
           if(i >= PAP.archivos.length) return apiPap({ accion:'finalizar', codigo:codigo }).then(function(f){
-            if(!(f.ok && f.d && f.d.codigo)) return apiPap({ accion:'abortar', codigo:codigo }).then(function(){ fallo((f.d && f.d.error) || 'No se pudo completar el pedido.'); });
-            LS.set(KEYPP, codigo); seguimiento = codigo; PAP.archivos = []; PAP.items = {}; cerrarHoja(); var b = document.getElementById('barra'); if(b) b.remove(); verSegPap(); });
-          env.textContent = 'Subiendo archivo ' + (i + 1) + ' de ' + PAP.archivos.length + '…';
-          return subirPap(codigo, ids[i], PAP.archivos[i].blob).then(function(u){
+            if(f.ok && f.d && f.d.codigo) return listo();
+            return apiPap({ accion:'abortar', codigo:codigo }).then(function(){ fallo((f.d && f.d.error) || 'No se pudo completar el pedido.'); });
+          });
+          var rotulo = 'Subiendo archivo ' + (i + 1) + ' de ' + PAP.archivos.length + '…'; env.textContent = rotulo;
+          return subirArchivoPap(codigo, ids[i], PAP.archivos[i].blob, function(k, n){ env.textContent = rotulo + ' ' + Math.round(k * 100 / n) + '%'; }).then(function(u){
             if(u.ok){ i++; return siguiente(); }
-            var nm = PAP.archivos[i].nombre; return apiPap({ accion:'abortar', codigo:codigo }).then(function(){ fallo('No pudimos aceptar “' + nm + '”: ' + ((u.d && u.d.error) || 'error al subirlo') + ' Quítalo o cámbialo e intenta de nuevo.'); });
+            var nm = PAP.archivos[i].nombre; return apiPap({ accion:'abortar', codigo:codigo }).then(function(){ PAP.idem = null; PAP.idemHuella = null; fallo('No pudimos aceptar “' + nm + '”: ' + ((u.d && u.d.error) || 'error al subirlo') + ' Quítalo o cámbialo e intenta de nuevo.'); });
           });
         };
         siguiente();

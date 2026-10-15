@@ -14304,10 +14304,17 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(error || !data){ if(w) w.close(); mostrarMensaje('mensajeEnlinea', 'No se pudo abrir el archivo: ' + ((error && error.message) || 'intenta de nuevo'), 'error'); return; }
     if(descargar){ const a = document.createElement('a'); a.href = data.signedUrl; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); } else w.location.href = data.signedUrl;
   }
+  // Mismo cliente y mismo contenido en pocos minutos = casi seguro un doble envío
+  function firmaProg(p){ return [(p.pedido_prog_items || []).map(i => i.producto_id + ':' + Number(i.cantidad)).sort().join(','), (p.pedido_prog_trabajos || []).map(t => [t.nombre_archivo, t.copias, t.color, t.tamano, t.caras, t.paginas_rango || ''].join('|')).sort().join(',')].join('#'); }
+  function duplicadoDeProg(p){
+    const n = String(p.nombre || '').trim().toLowerCase(), f = firmaProg(p);
+    return progCache.find(o => o.id !== p.id && o.num < p.num && String(o.nombre || '').trim().toLowerCase() === n && firmaProg(o) === f && Math.abs(new Date(p.creado_en) - new Date(o.creado_en)) < 15 * 60000) || null;
+  }
   function tarjetaProg(p){
     const card = el('div', 'pedido-card'), cab = el('div', 'pedido-cab'), u = urgenciaProg(p);
     cab.appendChild(el('b', '', 'P-' + String(p.num).padStart(4, '0') + ' · ' + p.nombre)); const lim = el('span', u.err ? 'badge err' : 'nota', u.txt); cab.appendChild(lim); card.appendChild(cab);
     card.appendChild(el('div', 'nota', 'Solicitado ' + progFecha(p.creado_en) + (p.telefono ? ' · Tel. ' + p.telefono : '')));
+    const dup = duplicadoDeProg(p); if(dup){ const w = el('div', 'badge err', 'Posible duplicado de P-' + String(dup.num).padStart(4, '0') + ' (mismo cliente y pedido). Si es repetido, cancélalo.'); w.style.margin = '6px 0'; card.appendChild(w); }
     (p.pedido_prog_trabajos || []).slice().sort((a, b) => a.orden - b.orden).forEach(t => {
       const f = el('div', 'pedido-linea'); f.style.cssText = 'margin:8px 0; padding:8px; border:1px solid var(--borde); border-radius:8px;';
       f.appendChild(el('div', '', t.nombre_archivo));
