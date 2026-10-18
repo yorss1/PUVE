@@ -40,6 +40,7 @@
 <link id="icono" rel="icon" href="img/logo_mini.png" type="image/png" sizes="any">
 <script>(function(){ try { if(localStorage.getItem('puve_tema_oscuro') === '1'){ ['icono','iconoApple'].forEach(function(id){ var l = document.getElementById(id); if(l) l.setAttribute('href','img/logo_mini.black.png'); }); } } catch(e){} })();</script>
 <script src="puve-consent.js" data-pagina="app" defer></script>
+<script src="puve-hardware.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
@@ -1341,7 +1342,12 @@
           <thead><tr><th>Fecha</th><th>Movimiento</th><th>Método</th><th>Monto</th></tr></thead>
           <tbody id="cuerpoEstadoCuentaCliente"><tr><td colspan="4" class="nota">Cargando...</td></tr></tbody>
         </table></div>
-        <button class="texto" type="button" style="width:100%; margin-top:14px;" onclick="document.getElementById('modalEstadoCuentaCliente').classList.add('oculto')">Cerrar</button>
+        <div style="display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;">
+          <button class="principal" type="button" style="flex:1; min-width:150px; width:auto;" onclick="pdfEstadoCuentaCliente()">Descargar PDF</button>
+          <button class="principal" type="button" id="btnWhatsEstadoCuenta" style="flex:1; min-width:150px; width:auto; background:var(--texto);" onclick="whatsappEstadoCuentaCliente()">Enviar por WhatsApp</button>
+        </div>
+        <p class="nota" style="margin:8px 0 0;">WhatsApp se abre con el mensaje ya escrito; solo se envía si tú lo mandas.</p>
+        <button class="texto" type="button" style="width:100%; margin-top:10px;" onclick="document.getElementById('modalEstadoCuentaCliente').classList.add('oculto')">Cerrar</button>
       </div>
     </div>
 
@@ -1552,6 +1558,7 @@
           <div class="buscador" style="display:flex; gap:8px; flex-wrap:wrap;">
             <input id="buscarProducto" type="text" placeholder="Buscar producto..." oninput="renderizarListaVenta()" style="flex:1;">
             <button type="button" id="btnListaEscolar" class="btn-escanear oculto" onclick="abrirListaEscolar()">Lista escolar</button>
+            <button type="button" id="btnImpresoraBascula" class="texto" style="width:auto; border:1px solid var(--borde); border-radius:7px; padding:8px 14px;" onclick="PuveHW.abrirPanel()">Impresora y báscula</button>
             <button type="button" id="btnEscanearVender" class="btn-escanear" onclick="conTutorial('btn-escanear', this, abrirEscaner, escanearParaVender)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Escanear</button>
           </div>
           <div id="filtroCategoriasVenta" class="filtro-cats"></div>
@@ -1577,6 +1584,7 @@
             <p class="nota oculto" id="avisoErrorQR" style="color:var(--error); margin:8px 0;">—</p>
             <p class="nota" style="margin:10px 0;">El cliente lo escanea con su celular para ver y descargar su ticket.</p>
             <a id="enlaceTicketQR" href="#" target="_blank" rel="noopener noreferrer" class="nota" style="display:block; word-break:break-all; font-size:11px; margin-bottom:10px;">—</a>
+            <button type="button" class="texto" style="width:100%; margin-bottom:8px;" onclick="PuveHW.imprimirUltima()">Imprimir ticket</button>
             <button class="principal ticket-exito-nueva-venta" onclick="cerrarTicketExito()">Nueva venta</button>
           </div>
           </div>
@@ -5870,7 +5878,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <td style="white-space:nowrap;">
           <button type="button" class="texto" style="width:auto; font-size:12px; padding:4px 0;" onclick="event.stopPropagation(); editarLimiteCreditoCliente(${jsAttr(c.id)}, ${jsAttr(c.telefono)}, ${Number(c.limite_credito) || 0})">Crédito</button>
           ${Number(c.saldo_credito) > 0 ? `<button type="button" class="texto" style="width:auto; font-size:12px; padding:4px 0 4px 10px;" onclick="event.stopPropagation(); registrarAbonoClienteDirectorio(${jsAttr(c.telefono)}, ${Number(c.saldo_credito) || 0})">Cobrar abono</button>` : ''}
-          <button type="button" class="texto" style="width:auto; font-size:12px; padding:4px 0 4px 10px;" onclick="event.stopPropagation(); verEstadoCuentaCliente(${jsAttr(c.id)}, ${jsAttr(c.nombre || c.telefono)})">Historial</button>
+          <button type="button" class="texto" style="width:auto; font-size:12px; padding:4px 0 4px 10px;" onclick="event.stopPropagation(); verEstadoCuentaCliente(${jsAttr(c.id)}, ${jsAttr(c.nombre || c.telefono)}, ${jsAttr(c.telefono)}, ${Number(c.saldo_credito) || 0})">Historial</button>
+          ${Number(c.saldo_credito) > 0 ? `<button type="button" class="texto" style="width:auto; font-size:12px; padding:4px 0 4px 10px;" onclick="event.stopPropagation(); recordatorioFiadoWhatsApp(${jsAttr(c.telefono)}, ${jsAttr(c.nombre || '')}, ${Number(c.saldo_credito) || 0})">Recordar</button>` : ''}
         </td>
       </tr>
     `).join('');
@@ -5881,7 +5890,84 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     });
   }
 
-  async function verEstadoCuentaCliente(clienteId, nombre){
+  // Estado de cuenta que se está viendo (lo usan el PDF y el mensaje de WhatsApp).
+  let estadoCuentaActual = { nombre: '', telefono: '', saldo: 0, movimientos: [] };
+
+  // wa.me pide el número con lada de país y sin signos. Si son 10 dígitos se asume México (52).
+  function telefonoParaWhatsApp(tel){
+    let d = String(tel || '').replace(/\D/g, '');
+    if(d.length === 10) d = '52' + d;
+    else if(d.length === 13 && d.startsWith('521')) d = '52' + d.slice(3);
+    return d.length >= 11 ? d : '';
+  }
+  function abrirWhatsAppTexto(tel, texto){
+    const num = telefonoParaWhatsApp(tel);
+    if(!num){ alert('El teléfono de este cliente no parece válido para WhatsApp. Edítalo e inténtalo de nuevo.'); return; }
+    window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(texto), '_blank', 'noopener');
+  }
+  function recordatorioFiadoWhatsApp(telefono, nombre, saldo){
+    const negocio = (document.getElementById('nombreNegocioBarra')?.textContent || '').trim();
+    const saludo = nombre ? 'Hola ' + nombre + ', ' : 'Hola, ';
+    abrirWhatsAppTexto(telefono, saludo + 'te escribimos de ' + (negocio && negocio !== '—' ? negocio : 'tu negocio de confianza') + '. Tu saldo pendiente es de ' + formatoDinero(saldo) + '. Cuando puedas pasar a abonar, te lo agradecemos mucho.');
+  }
+  function whatsappEstadoCuentaCliente(){
+    const e = estadoCuentaActual;
+    recordatorioFiadoWhatsApp(e.telefono, e.nombre === e.telefono ? '' : e.nombre, e.saldo);
+  }
+  function pdfEstadoCuentaCliente(){
+    const e = estadoCuentaActual;
+    if(typeof window.jspdf === 'undefined'){ alert('No se pudo generar el PDF. Revisa tu conexión e inténtalo de nuevo.'); return; }
+    if(!e.movimientos.length){ alert('Este cliente todavía no tiene movimientos.'); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+    const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), mg = 48;
+    const NEGRO = [24, 24, 27], GRIS = [113, 113, 122], LINEA = [228, 228, 231];
+    const negocio = (document.getElementById('nombreNegocioBarra')?.textContent || '').trim();
+    const dinero = n => formatoDinero(n);
+    const etiquetas = { cargo: 'Compra a crédito', abono: 'Abono' };
+    const encabezado = () => {
+      doc.setFillColor(...NEGRO); doc.rect(0, 0, W, 70, 'F');
+      doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
+      doc.text(negocio && negocio !== '—' ? negocio : 'Estado de cuenta', mg, 44);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5);
+      doc.text('ESTADO DE CUENTA', W - mg, 36, { align: 'right' });
+      doc.text(new Date().toLocaleDateString('es-MX'), W - mg, 50, { align: 'right' });
+    };
+    encabezado();
+    let y = 100;
+    doc.setTextColor(...NEGRO); doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
+    doc.text(String(e.nombre || e.telefono), mg, y);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(...GRIS);
+    if(e.nombre && e.nombre !== e.telefono) doc.text('Tel. ' + e.telefono, mg, y + 15);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...NEGRO);
+    doc.text('Saldo pendiente: ' + dinero(e.saldo), W - mg, y, { align: 'right' });
+    y += 40;
+    const cabecera = () => {
+      doc.setDrawColor(...LINEA); doc.setLineWidth(0.8); doc.line(mg, y + 6, W - mg, y + 6);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...GRIS);
+      doc.text('FECHA', mg, y); doc.text('MOVIMIENTO', mg + 90, y); doc.text('MÉTODO', mg + 250, y); doc.text('MONTO', W - mg, y, { align: 'right' });
+      y += 22;
+    };
+    cabecera();
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+    // Del más antiguo al más reciente, como un estado de cuenta normal.
+    [...e.movimientos].reverse().forEach(m => {
+      if(y > H - 70){ doc.addPage(); y = 60; cabecera(); doc.setFont('helvetica', 'normal'); doc.setFontSize(10); }
+      doc.setTextColor(...NEGRO);
+      doc.text(new Date(m.creado_en).toLocaleDateString('es-MX'), mg, y);
+      doc.text(etiquetas[m.tipo] || String(m.tipo), mg + 90, y);
+      doc.text(m.metodo_pago ? String(m.metodo_pago) : '—', mg + 250, y);
+      doc.text((m.tipo === 'cargo' ? '+' : '-') + dinero(m.monto), W - mg, y, { align: 'right' });
+      y += 18;
+    });
+    doc.setFontSize(8); doc.setTextColor(...GRIS);
+    doc.text('Documento informativo generado con PUVE. No es un comprobante fiscal.', mg, H - 30);
+    const base = String(e.nombre || e.telefono).replace(/[^\w\-]+/g, '_').slice(0, 40);
+    doc.save('estado-de-cuenta-' + base + '.pdf');
+  }
+
+  async function verEstadoCuentaCliente(clienteId, nombre, telefono, saldo){
+    estadoCuentaActual = { nombre: nombre || '', telefono: telefono || '', saldo: Number(saldo) || 0, movimientos: [] };
     document.getElementById('tituloEstadoCuentaCliente').textContent = 'Estado de cuenta — ' + nombre;
     document.getElementById('cuerpoEstadoCuentaCliente').innerHTML = '<tr><td colspan="4" class="nota">Cargando...</td></tr>';
     document.getElementById('modalEstadoCuentaCliente').classList.remove('oculto');
@@ -5890,6 +5976,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const cuerpo = document.getElementById('cuerpoEstadoCuentaCliente');
     if(error){ cuerpo.innerHTML = '<tr><td colspan="4" class="nota">No se pudo cargar: ' + escapar(error.message) + '</td></tr>'; return; }
     if(!data || !data.length){ cuerpo.innerHTML = '<tr><td colspan="4" class="nota">Sin movimientos todavía.</td></tr>'; return; }
+    estadoCuentaActual.movimientos = data;
     const etiquetas = { cargo: 'Compra a crédito', abono: 'Abono' };
     cuerpo.innerHTML = data.map(m => `
       <tr>
@@ -7691,7 +7778,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       const tasa = await obtenerTasaCambio(moneda);
       const convertido = total * tasa;
       bloque.textContent = 'El cliente paga ≈ ' + convertido.toLocaleString('es-MX', { style: 'currency', currency: moneda }) +
-        ' (tipo de cambio: 1 ' + moneda + ' = ' + formatoDinero(1 / tasa) + ')';
+        ' (tipo de cambio: 1 ' + moneda + ' = ' + formatoDinero(1 / tasa) + ') · Fuente: Frankfurter / ExchangeRate-API (exchangerate-api.com)';
     } catch(e){
       bloque.textContent = 'No se pudo obtener el tipo de cambio en este momento. Intenta de nuevo en unos segundos.';
     }
@@ -7711,7 +7798,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       const tasa = await obtenerTasaCambio(moneda);
       const convertido = ingresos * tasa;
       texto.textContent = 'Ingresos de este periodo ≈ ' + convertido.toLocaleString('es-MX', { style: 'currency', currency: moneda }) +
-        ' (tipo de cambio: 1 ' + moneda + ' = ' + formatoDinero(1 / tasa) + ')';
+        ' (tipo de cambio: 1 ' + moneda + ' = ' + formatoDinero(1 / tasa) + ') · Fuente: Frankfurter / ExchangeRate-API (exchangerate-api.com)';
     } catch(e){
       texto.textContent = 'No se pudo obtener el tipo de cambio en este momento. Intenta de nuevo en unos segundos.';
     }
@@ -7777,7 +7864,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       if(telefonoCliente){
         mostrarMensaje('mensajeVenta', 'Sin conexión: la venta se guarda, pero los puntos no se pueden acumular ni canjear hasta que vuelva internet.', 'error');
       }
-      guardarVentaEnCola(items, total, metodoPago, montoEfectivo);
+      try { PuveHW.registrarVenta({ ventaId: null, items: carrito.map(i => ({ nombre: i.nombre, cantidad: i.cantidad, unidad: i.unidad || '', precio: i.precio, subtotal: subLinea(i) })), total, metodo: metodoPago, vale: 0 }); } catch(e){ console.error('ticket:', e); }
+        guardarVentaEnCola(items, total, metodoPago, montoEfectivo);
       aplicarDescuentoLocal(items);
       if(!telefonoCliente) mostrarMensaje('mensajeVenta', 'Sin conexión: la venta se guardó, el ticket digital estará listo en cuanto sincronices.', 'exito');
       carrito = [];
@@ -7801,6 +7889,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(error){
       if(esErrorDeRed(error) && !valeAplicado && !asignaciones.length){
         enLinea = false;
+        try { PuveHW.registrarVenta({ ventaId: null, items: carrito.map(i => ({ nombre: i.nombre, cantidad: i.cantidad, unidad: i.unidad || '', precio: i.precio, subtotal: subLinea(i) })), total, metodo: metodoPago, vale: 0 }); } catch(e){ console.error('ticket:', e); }
         guardarVentaEnCola(items, total, metodoPago, montoEfectivo);
         aplicarDescuentoLocal(items);
         mostrarMensaje('mensajeVenta', 'Se perdió la conexión: la venta se guardó y se enviará sola en cuanto vuelva.', 'exito');
@@ -7817,6 +7906,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     }
 
     mostrarMensaje('mensajeVenta', valeAplicado ? 'Venta registrada. Vale canjeado: cobra ' + dineroVale(total - valeAplicado.monto) + '.' : 'Venta registrada correctamente.', 'exito');
+    try { PuveHW.registrarVenta({ ventaId: typeof ventaId === 'string' ? ventaId : (ventaId && (ventaId.id || ventaId.registrar_venta)) || null, items: carrito.map(i => ({ nombre: i.nombre, cantidad: i.cantidad, unidad: i.unidad || '', precio: i.precio, subtotal: subLinea(i) })), total, metodo: metodoPago, vale: valeAplicado ? valeAplicado.monto : 0 }); } catch(e){ console.error('ticket:', e); }
     if(valeAplicado) quitarValeAplicado();
     completarCitaTrasVenta(ventaId, items);
     document.getElementById('recompensaTelefono').value = '';
@@ -8019,6 +8109,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     } else if(p.estado === 'listo'){
       btn('Entregado', 'principal', () => cambiarEstadoPedidoQr(p.id, 'entregado'));
     }
+    if(['por_confirmar', 'preparando'].includes(p.estado)) btn('Imprimir comanda', 'texto', () => PuveHW.imprimirComanda({ titulo: 'COMANDA', mesa: p.mesa === 'BARRA' ? 'BARRA' + (p.cliente_alias ? ' - ' + p.cliente_alias : '') : 'MESA ' + p.mesa, fecha: p.creado_en, items: (p.pedido_qr_items || []).map(i => ({ cantidad: i.cantidad, nombre: i.producto_nombre, nota: (i.opciones || []).map(o => o.g + ': ' + o.o).join(', ') })), nota: p.nota || '' }));
     if(miRol === 'vendedor' && ['por_confirmar', 'preparando', 'listo'].includes(p.estado)) btn('Cobrar en caja', '', () => cobrarPedidoQr(p.id));
     if(acc.children.length) card.appendChild(acc);
     return card;
@@ -8287,6 +8378,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       if(ev.key !== 'Enter' || !escanerFisicoActivo()) return;
       const codigo = inp.value.trim(); if(!codigo) return;
       if(RUTA_VALE.test(codigo.toUpperCase())){ ev.preventDefault(); inp.value = ''; aplicarValeCodigo(codigo); return; }
+      if(PuveHW.esEtiquetaPeso(codigo)){ ev.preventDefault(); inp.value = ''; agregarPorEtiquetaPeso(codigo); renderizarListaVenta(); return; }
       const prod = productosCache.find(p => mismoCodigoBarras(p.sku, codigo));
       if(prod){ ev.preventDefault(); agregarAlCarrito(prod.id); inp.value = ''; renderizarListaVenta(); }
       else if(/^\d{6,}$/.test(codigo)){ ev.preventDefault(); inp.value = ''; renderizarListaVenta(); mostrarMensaje('mensajeVenta', 'No existe un producto con el código ' + codigo + '.', 'error'); }
@@ -11527,12 +11619,35 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   
   
   
-  const sonidoEscaneo = new Audio('escaner.mp3');
-  sonidoEscaneo.preload = 'auto';
+  // Sonido del escáner fabricado con Web Audio (sin archivo .mp3): un "bip" corto y agudo.
+  // Un solo AudioContext reutilizado (crear uno por lectura satura al navegador en escaneo continuo).
+  let audioEscaner = null, ultimoBipEscaner = 0;
+  function prepararAudioEscaner(){
+    try {
+      const C = window.AudioContext || window.webkitAudioContext;
+      if(!C) return null;
+      if(!audioEscaner) audioEscaner = new C();
+      if(audioEscaner.state === 'suspended') audioEscaner.resume();
+      return audioEscaner;
+    } catch(e){ return null; }
+  }
+  ['click', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, prepararAudioEscaner, { passive: true }));
   function reproducirSonidoEscaneo(){
     try {
-      sonidoEscaneo.currentTime = 0;
-      sonidoEscaneo.play().catch(() => {});
+      const ahora = Date.now();
+      if(ahora - ultimoBipEscaner < 120) return;   // evita dobles bips por lecturas repetidas del mismo código
+      ultimoBipEscaner = ahora;
+      const c = prepararAudioEscaner(); if(!c) return;
+      const t = c.currentTime, g = c.createGain();
+      g.connect(c.destination);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.28, t + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+      const o1 = c.createOscillator(); o1.type = 'sine'; o1.frequency.setValueAtTime(2300, t); o1.frequency.exponentialRampToValueAtTime(2700, t + 0.05);
+      const o2 = c.createOscillator(); o2.type = 'triangle'; o2.frequency.value = 4600;
+      const g2 = c.createGain(); g2.gain.value = 0.12; o2.connect(g2); g2.connect(g);
+      o1.connect(g);
+      o1.start(t); o2.start(t); o1.stop(t + 0.13); o2.stop(t + 0.13);
     } catch(e) {}
   }
   let intervaloPollingVinculo = null;
@@ -12245,8 +12360,36 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('modalVoz').classList.add('oculto');
   }
 
+  // Etiqueta de peso EAN-13 de uso interno (2 T PLU VALOR C): suma el producto con su peso o importe exacto.
+  function agregarPorEtiquetaPeso(codigo){
+    const r = PuveHW.decodificarEtiquetaPeso(codigo); if(!r) return;
+    const prod = productosCache.find(p => /^\d{1,5}$/.test(String(p.sku || '').trim()) && parseInt(p.sku, 10) === r.plu);
+    if(!prod){ mostrarMensaje('mensajeVenta', 'Etiqueta de peso leída, pero ningún producto tiene el PLU ' + r.plu + '. Captura ese número (1 a 5 dígitos) como código de barras del producto.', 'error'); return; }
+    let cant;
+    if(r.tipo === 'peso'){
+      cant = PuveHW.kgAUnidad(r.valor / 1000, prod.unidad);
+      if(cant == null){ mostrarMensaje('mensajeVenta', prod.nombre + ' no se vende por peso (kg, g o lb); cambia su unidad para usar etiquetas de peso.', 'error'); return; }
+    } else {
+      cant = redondear3((r.valor / 100) / Number(prod.precio));
+    }
+    if(!(cant > 0)){ mostrarMensaje('mensajeVenta', 'La etiqueta no trae una cantidad válida.', 'error'); return; }
+    const ex = carrito.find(i => i.id === prod.id), total = redondear3((ex ? ex.cantidad : 0) + cant);
+    if(total > Number(prod.stock) + 1e-9){ mostrarMensaje('mensajeVenta', 'No alcanza el stock de ' + prod.nombre + ': hay ' + redondear3(Number(prod.stock)) + ' ' + (prod.unidad || '') + '.', 'error'); return; }
+    if(ex) ex.cantidad = total;
+    else carrito.push({ id: prod.id, nombre: prod.nombre, precio: Number(prod.precio), cantidad: cant, stock: Number(prod.stock), paso: Number(prod.paso_venta) || 1, unidad: prod.unidad || 'pieza' });
+    ocultarMensaje('mensajeVenta'); renderizarCarrito(); actualizarStepperEnLista(prod.id);
+    mostrarMensaje('mensajeVenta', 'Agregado: ' + prod.nombre + ' (' + redondear3(cant) + ' ' + (prod.unidad || '') + ')', 'exito');
+  }
+  PuveHW.enlazar({
+    productos: () => productosCache,
+    aviso: (m) => mostrarMensaje('mensajeVenta', m, 'error'),
+    dinero: (n) => formatoDinero(n),
+    negocio: () => { const e = document.getElementById('nombreNegocioBarra'); const t = e ? e.textContent.trim() : ''; return t && t !== '—' ? t : ''; }
+  });
+
   function escanearParaVender(codigo){
     if(RUTA_VALE.test(String(codigo).trim().toUpperCase())){ aplicarValeCodigo(codigo); return; }
+    if(PuveHW.esEtiquetaPeso(codigo)){ agregarPorEtiquetaPeso(codigo); return; }
     const producto = productosCache.find(p => mismoCodigoBarras(p.sku, codigo));
     if(producto){
       agregarAlCarrito(producto.id);
@@ -13811,6 +13954,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     caja.appendChild(el('div', 'cr-etq', 'Cantidad (' + uni + ')')); caja.appendChild(cant);
     const fila = el('div', 'filtro-cats'); fila.style.flexWrap = 'wrap'; caja.appendChild(fila);
     const sumar = (n) => { cant.value = redondear3((parseFloat(cant.value) || 0) + n); refrescar(); };
+    try { PuveHW.montarBascula(caja, uni, (n) => { cant.value = n; refrescar(); }); } catch(e){}
     const b1 = el('button', 'chip-cat', '+' + paso + ' ' + uni); b1.type = 'button'; b1.onclick = () => sumar(paso); fila.appendChild(b1);
     pres.slice().sort((a, b) => a.unidades - b.unidades).forEach(r => { const b = el('button', 'chip-cat', '+ ' + r.nombre + ' (' + r.unidades + ')'); b.type = 'button'; b.onclick = () => sumar(r.unidades); fila.appendChild(b); });
     const info = el('div', 'nota'); info.style.margin = '10px 0'; caja.appendChild(info);
