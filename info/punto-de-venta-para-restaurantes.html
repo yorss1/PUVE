@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Punto de venta para restaurantes y fondas | PUVE</title>
+<meta name="description" content="Sistema de punto de venta para restaurantes y fondas: mesas con QR, menú con fotos y cobro rápido, incluso sin internet.">
+<link rel="canonical" href="https://puve.yorss01.workers.dev/info/punto-de-venta-para-restaurantes.html">
+<meta name="theme-color" content="#F8FAFC" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta property="og:type" content="website"><meta property="og:site_name" content="PUVE"><meta property="og:locale" content="es_MX">
+<meta property="og:url" content="https://puve.yorss01.workers.dev/info/punto-de-venta-para-restaurantes.html"><meta property="og:title" content="Punto de venta para restaurantes y fondas | PUVE"><meta property="og:description" content="Sistema de punto de venta para restaurantes y fondas: mesas con QR, menú con fotos y cobro rápido, incluso sin internet.">
+<meta property="og:image" content="https://puve.yorss01.workers.dev/img/og-image-cuadrada.png"><meta property="og:image:type" content="image/png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="600"><meta property="og:image:alt" content="PUVE — Punto de Venta Digital">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Punto de venta para restaurantes y fondas | PUVE"><meta name="twitter:description" content="Sistema de punto de venta para restaurantes y fondas: mesas con QR, menú con fotos y cobro rápido, incluso sin internet."><meta name="twitter:image" content="https://puve.yorss01.workers.dev/img/og-image-cuadrada.png">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://ckzueunptmlqmtypowmg.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+<link id="icono" rel="icon" href="../img/logo_mini.png" type="image/png" sizes="any"><link id="iconoApple" rel="apple-touch-icon" href="../img/logo_mini.png">
+<script>
+/* Tema antes de pintar (evita el parpadeo) y ícono según el tema: claro → logo_mini.png, oscuro → logo_mini.black.png. La preferencia es la misma que usa la app. */
+(function(){ var g = null; try { g = localStorage.getItem('puve_tema_oscuro'); } catch(e){}
+  var oscuro = g === '1' || (g === null && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+  if(oscuro) document.documentElement.classList.add('tema-oscuro');
+  var src = oscuro ? '../img/logo_mini.black.png' : '../img/logo_mini.png';
+  ['icono', 'iconoApple'].forEach(function(id){ var l = document.getElementById(id); if(l) l.setAttribute('href', src); });
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{ --texto:#18181B; --texto-suave:#52525B; --borde:#E4E4E7; --fondo:#F8FAFC; --superficie:#FFFFFF; --acento:#18181B; --texto-sobre-acento:#FFFFFF; --foco:#2563EB; --neutral-bg:#F1F5F9; --sombra:0 1px 2px rgba(15,23,42,.04),0 12px 32px rgba(15,23,42,.06); --error:#DC2626; --error-bg:#FEF2F2; }
+html.tema-oscuro{ --texto:#FAFAFA; --texto-suave:#A1A1AA; --borde:#3F3F46; --fondo:#000000; --superficie:#18181B; --acento:#FAFAFA; --texto-sobre-acento:#000000; --foco:#4C9AFF; --neutral-bg:#27272A; --sombra:0 1px 2px rgba(0,0,0,.4),0 12px 32px rgba(0,0,0,.5); --error:#FF6B6B; --error-bg:#3A1414; }
+*{ box-sizing:border-box; } html{ scroll-behavior:smooth; scroll-padding-top:84px; }
+body{ margin:0; background:var(--fondo); color:var(--texto); font-family:'Inter',-apple-system,system-ui,sans-serif; line-height:1.55; -webkit-font-smoothing:antialiased; }
+a{ color:inherit; } img,svg,canvas{ display:block; max-width:100%; }
+.serif{ font-family:'Instrument Serif',Georgia,serif; font-style:italic; font-weight:400; letter-spacing:-.01em; }
+.contenedor{ width:min(1180px,100% - 40px); margin-inline:auto; }
+.salto{ position:absolute; left:-9999px; top:8px; background:var(--acento); color:var(--texto-sobre-acento); padding:10px 16px; border-radius:10px; z-index:100; } .salto:focus{ left:12px; }
+:focus-visible{ outline:3px solid var(--foco); outline-offset:3px; border-radius:6px; }
+/* botones */
+.btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:14px 24px; border-radius:999px; border:1.5px solid var(--acento); background:var(--acento); color:var(--texto-sobre-acento); font:600 15px 'Inter',sans-serif; text-decoration:none; cursor:pointer; transition:transform .15s, box-shadow .15s; }
+.btn:hover{ transform:translateY(-1px); box-shadow:0 8px 22px rgba(0,0,0,.18); } .btn.sec{ background:transparent; color:var(--texto); } .btn.chico{ padding:10px 18px; font-size:14px; }
+/* barra superior */
+header.barra{ position:sticky; top:0; z-index:50; background:color-mix(in srgb,var(--fondo) 86%,transparent); backdrop-filter:saturate(1.4) blur(14px); -webkit-backdrop-filter:saturate(1.4) blur(14px); border-bottom:1px solid var(--borde); }
+.barra .fila{ display:flex; align-items:center; gap:20px; height:68px; }
+.marca{ display:flex; align-items:center; gap:10px; text-decoration:none; font:400 28px 'Instrument Serif',serif; letter-spacing:-.01em; } .marca img{ width:30px; height:30px; border-radius:8px; }
+.barra nav{ margin-left:auto; display:flex; gap:26px; } .barra nav a{ text-decoration:none; font-size:14.5px; font-weight:500; color:var(--texto-suave); } .barra nav a:hover{ color:var(--texto); }
+.acciones{ display:flex; gap:10px; align-items:center; }
+.tema{ width:42px; height:42px; border-radius:50%; border:1.5px solid var(--borde); background:var(--superficie); color:var(--texto); cursor:pointer; display:grid; place-items:center; } .tema svg{ width:18px; height:18px; }
+.menu-m{ display:none; } @media(max-width:900px){ .barra nav{ display:none; } .barra .fila{ gap:10px; } .acciones{ margin-left:auto; } .btn.ocultar-m{ display:none; } }
+/* hero */
+.hero{ padding:56px 0 34px; } .hero .rejilla{ display:grid; grid-template-columns:1.02fr 1fr; gap:48px; align-items:center; }
+.etiqueta{ display:inline-flex; align-items:center; gap:8px; padding:7px 14px; border:1px solid var(--borde); border-radius:999px; background:var(--superficie); font-size:13px; font-weight:600; color:var(--texto-suave); }
+.etiqueta i{ width:8px; height:8px; border-radius:50%; background:#16A34A; }
+h1{ font-size:clamp(40px,6.4vw,78px); line-height:1.02; letter-spacing:-.035em; margin:20px 0 20px; font-weight:600; } h1 .serif{ font-size:1.08em; }
+.sub{ font-size:clamp(17px,2vw,20px); color:var(--texto-suave); max-width:34em; margin:0 0 28px; } .cta-fila{ display:flex; gap:12px; flex-wrap:wrap; }
+.puntos{ display:flex; gap:10px 22px; flex-wrap:wrap; margin:26px 0 0; padding:0; list-style:none; font-size:14px; color:var(--texto-suave); } .puntos li::before{ content:'✓'; margin-right:7px; color:var(--texto); font-weight:700; }
+.arte{ position:relative; aspect-ratio:4/3.3; border-radius:32px; overflow:hidden; border:1px solid var(--borde); background:linear-gradient(135deg,#f6a8a0 0%,#f4b7a4 40%,#e8a7b7 100%); box-shadow:var(--sombra); isolation:isolate; }
+.arte::before{ content:''; position:absolute; inset:-20% -30%; z-index:0; background:linear-gradient(115deg,transparent 30%,rgba(196,150,222,.78) 30% 58%,transparent 58%); }
+html.tema-oscuro .arte{ background:linear-gradient(135deg,#3a1d3f 0%,#4a2340 45%,#5a2b4d 100%); } html.tema-oscuro .arte::before{ background:linear-gradient(115deg,transparent 30%,rgba(120,70,170,.55) 30% 58%,transparent 58%); }
+.arte canvas{ position:absolute; inset:0; width:100%; height:100%; z-index:1; touch-action:pan-y; }
+.arte .estatica{ position:absolute; inset:0; z-index:1; display:none; } .arte.sin-webgl .estatica{ display:block; } .arte.sin-webgl canvas{ display:none; }
+@media(max-width:900px){ .hero .rejilla{ grid-template-columns:1fr; gap:30px; } .arte{ order:-1; aspect-ratio:4/3.4; border-radius:26px; } .hero{ padding-top:24px; } }
+/* franja de giros */
+.franja{ border-block:1px solid var(--borde); background:var(--superficie); overflow:hidden; padding:16px 0; } .franja .pista{ display:flex; gap:44px; width:max-content; animation:corre 38s linear infinite; font:400 26px 'Instrument Serif',serif; color:var(--texto-suave); white-space:nowrap; }
+.franja span::after{ content:'✦'; font-size:14px; margin-left:44px; vertical-align:middle; } @keyframes corre{ to{ transform:translateX(-50%); } }
+/* secciones */
+section{ padding:96px 0; } .num{ font-size:13px; font-weight:600; letter-spacing:.12em; color:var(--texto-suave); text-transform:uppercase; }
+h2{ font-size:clamp(32px,4.6vw,56px); line-height:1.05; letter-spacing:-.03em; margin:12px 0 16px; font-weight:600; max-width:18em; } h2 .serif{ font-size:1.08em; }
+.lead{ font-size:18px; color:var(--texto-suave); max-width:40em; margin:0 0 40px; }
+.tarjetas{ display:grid; grid-template-columns:repeat(3,1fr); gap:18px; } .tarjeta{ background:var(--superficie); border:1px solid var(--borde); border-radius:24px; padding:28px; box-shadow:var(--sombra); }
+.tarjeta .ic{ width:46px; height:46px; border-radius:14px; display:grid; place-items:center; background:var(--neutral-bg); margin-bottom:20px; } .tarjeta .ic svg{ width:22px; height:22px; stroke:var(--texto); fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.tarjeta h3{ margin:0 0 8px; font-size:20px; letter-spacing:-.015em; } .tarjeta p{ margin:0; color:var(--texto-suave); font-size:15.5px; }
+.cifras{ display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-top:44px; } .cifra{ border-top:1.5px solid var(--texto); padding-top:16px; } .cifra b{ display:block; font:400 clamp(44px,6vw,72px)/1 'Instrument Serif',serif; letter-spacing:-.02em; } .cifra span{ color:var(--texto-suave); font-size:15px; }
+@media(max-width:900px){ section{ padding:64px 0; } .tarjetas,.cifras{ grid-template-columns:1fr; } }
+/* giros */
+.giros{ display:grid; grid-template-columns:320px 1fr; gap:22px; align-items:start; } .lista-giros{ display:flex; flex-direction:column; gap:8px; }
+.lista-giros button{ text-align:left; padding:16px 18px; border-radius:16px; border:1.5px solid var(--borde); background:var(--superficie); color:var(--texto); font:600 16px 'Inter',sans-serif; cursor:pointer; display:flex; justify-content:space-between; align-items:center; transition:border-color .15s; }
+.lista-giros button[aria-selected="true"]{ background:var(--acento); color:var(--texto-sobre-acento); border-color:var(--acento); } .lista-giros button::after{ content:'→'; opacity:.6; }
+.panel-giro{ background:var(--superficie); border:1px solid var(--borde); border-radius:28px; padding:36px; box-shadow:var(--sombra); min-height:340px; } .panel-giro h3{ font-size:30px; letter-spacing:-.02em; margin:0 0 8px; } .panel-giro p{ color:var(--texto-suave); margin:0 0 22px; font-size:17px; }
+.panel-giro ul{ list-style:none; padding:0; margin:0; display:grid; grid-template-columns:1fr 1fr; gap:12px 22px; } .panel-giro li{ padding:14px 16px; border:1px solid var(--borde); border-radius:14px; font-size:15px; background:var(--fondo); }
+@media(max-width:900px){ .giros{ grid-template-columns:1fr; } .lista-giros{ flex-direction:row; overflow-x:auto; padding-bottom:6px; scrollbar-width:none; } .lista-giros button{ white-space:nowrap; } .lista-giros button::after{ display:none; } .panel-giro{ padding:24px; } .panel-giro ul{ grid-template-columns:1fr; } }
+.panel-giro li a{ display:block; margin:-14px -16px; padding:14px 16px; text-decoration:none; font-weight:600; } .panel-giro li:hover{ border-color:var(--acento); } .panel-giro ul{ grid-template-columns:repeat(2,1fr); }
+.pie-giros{ margin-top:34px; padding-top:26px; border-top:1px solid var(--borde); display:grid; grid-template-columns:repeat(4,1fr); gap:24px; } .pie-giros h4{ margin:0 0 10px; font-size:13px; letter-spacing:.1em; text-transform:uppercase; color:var(--texto-suave); } .pie-giros a{ display:block; padding:4px 0; color:var(--texto); text-decoration:none; font-size:14px; } .pie-giros a:hover{ text-decoration:underline; } @media(max-width:900px){ .pie-giros{ grid-template-columns:1fr 1fr; } } @media(max-width:560px){ .pie-giros{ grid-template-columns:1fr; } }
+/* pasos */
+.pasos{ display:grid; grid-template-columns:repeat(3,1fr); gap:18px; counter-reset:p; } .paso{ border-top:1.5px solid var(--texto); padding-top:18px; } .paso b{ display:block; font:400 64px/1 'Instrument Serif',serif; margin-bottom:12px; } .paso h3{ margin:0 0 6px; font-size:20px; } .paso p{ margin:0; color:var(--texto-suave); }
+@media(max-width:900px){ .pasos{ grid-template-columns:1fr; } }
+/* funciones */
+.func{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; } .func div{ background:var(--superficie); border:1px solid var(--borde); border-radius:20px; padding:22px; } .func h3{ margin:0 0 6px; font-size:17px; } .func p{ margin:0; color:var(--texto-suave); font-size:14.5px; }
+@media(max-width:900px){ .func{ grid-template-columns:1fr 1fr; } } @media(max-width:560px){ .func{ grid-template-columns:1fr; } }
+/* imprime */
+.imprime{ background:var(--acento); color:var(--texto-sobre-acento); border-radius:36px; padding:clamp(28px,5vw,64px); display:grid; grid-template-columns:1.1fr 1fr; gap:44px; align-items:center; }
+.imprime h2{ margin-top:10px; } .imprime .lead{ color:inherit; opacity:.78; margin-bottom:20px; } .imprime ul{ list-style:none; padding:0; margin:0 0 26px; display:grid; gap:10px; } .imprime li::before{ content:'✓'; margin-right:10px; font-weight:700; }
+.imprime .btn{ background:var(--texto-sobre-acento); color:var(--acento); border-color:var(--texto-sobre-acento); }
+.maqueta{ background:var(--superficie); color:var(--texto); border-radius:22px; padding:18px 20px; border-left:4px solid #DC2626; box-shadow:0 20px 50px rgba(0,0,0,.25); font-size:14.5px; } .maqueta .gr{ font-size:24px; font-weight:700; letter-spacing:-.01em; } .maqueta .fila2{ display:flex; justify-content:space-between; gap:8px; align-items:center; flex-wrap:wrap; }
+.maqueta .chip{ background:#FEF2F2; color:#DC2626; border-radius:99px; padding:3px 10px; font-size:12px; font-weight:700; } .maqueta .sep{ border-top:1px solid #E4E4E7; margin-top:10px; padding-top:10px; } .maqueta small{ color:#71717A; display:block; }
+.maqueta .bt{ margin-top:12px; background:#18181B; color:#fff; border-radius:8px; padding:10px; text-align:center; font-weight:600; }
+@media(max-width:900px){ .imprime{ grid-template-columns:1fr; border-radius:26px; } }
+/* precios */
+.precio{ display:grid; grid-template-columns:1fr 1fr; gap:18px; } .plan{ background:var(--superficie); border:1.5px solid var(--borde); border-radius:28px; padding:34px; box-shadow:var(--sombra); } .plan.dest{ border-color:var(--acento); }
+.plan h3{ margin:0 0 6px; font-size:19px; } .plan .p{ font:400 64px/1 'Instrument Serif',serif; letter-spacing:-.02em; margin:12px 0 4px; } .plan .p small{ font:500 15px 'Inter',sans-serif; color:var(--texto-suave); letter-spacing:0; } .plan ul{ list-style:none; padding:0; margin:18px 0 24px; display:grid; gap:9px; color:var(--texto-suave); font-size:15px; } .plan li::before{ content:'✓'; color:var(--texto); font-weight:700; margin-right:9px; }
+.nota-precio{ margin-top:16px; color:var(--texto-suave); font-size:14px; } @media(max-width:900px){ .precio{ grid-template-columns:1fr; } }
+/* confianza */
+.conf{ display:grid; grid-template-columns:repeat(3,1fr); gap:18px; } .conf div{ border-top:1.5px solid var(--texto); padding-top:16px; } .conf h3{ margin:0 0 6px; font-size:19px; } .conf p{ margin:0; color:var(--texto-suave); font-size:15px; } @media(max-width:900px){ .conf{ grid-template-columns:1fr; } }
+/* preguntas */
+details{ border-bottom:1px solid var(--borde); } details summary{ list-style:none; cursor:pointer; padding:22px 0; font-size:19px; font-weight:600; letter-spacing:-.01em; display:flex; justify-content:space-between; gap:16px; } details summary::-webkit-details-marker{ display:none; } details summary::after{ content:'+'; font-size:26px; line-height:1; color:var(--texto-suave); } details[open] summary::after{ content:'–'; }
+details p{ margin:0 0 22px; color:var(--texto-suave); max-width:46em; } .faq{ max-width:860px; }
+/* final y pie */
+.final{ text-align:center; background:var(--acento); color:var(--texto-sobre-acento); border-radius:36px; padding:clamp(40px,7vw,96px) 24px; } .final h2{ margin-inline:auto; } .final p{ opacity:.78; max-width:32em; margin:0 auto 28px; font-size:18px; }
+.final .btn{ background:var(--texto-sobre-acento); color:var(--acento); border-color:var(--texto-sobre-acento); }
+footer{ padding:64px 0 40px; } .pie{ display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:30px; } .pie h4{ margin:0 0 12px; font-size:13px; letter-spacing:.1em; text-transform:uppercase; color:var(--texto-suave); } .pie a,.pie button{ display:block; padding:5px 0; color:var(--texto); text-decoration:none; font:500 15px 'Inter',sans-serif; background:none; border:none; cursor:pointer; text-align:left; }
+.pie a:hover,.pie button:hover{ text-decoration:underline; } .copy{ margin-top:36px; padding-top:20px; border-top:1px solid var(--borde); color:var(--texto-suave); font-size:13.5px; } @media(max-width:700px){ .pie{ grid-template-columns:1fr; } }
+@media(prefers-reduced-motion:reduce){ *{ animation:none !important; scroll-behavior:auto !important; transition:none !important; } }
+.reveal{ opacity:0; transform:translateY(18px); transition:opacity .6s ease, transform .6s ease; } .reveal.v{ opacity:1; transform:none; } @media(prefers-reduced-motion:reduce){ .reveal{ opacity:1; transform:none; } }
+
+.mini{ font-size:14px; color:var(--texto-suave); margin:0 0 18px; } .mini a{ color:inherit; } .hero-g{ padding:48px 0 20px; } .hero-g h1{ font-size:clamp(34px,5.4vw,64px); max-width:16em; }
+.dolores{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; } .dolores div{ background:var(--superficie); border:1px solid var(--borde); border-radius:20px; padding:22px; color:var(--texto-suave); font-size:15.5px; }
+.lista-f{ list-style:none; padding:0; margin:0; display:grid; grid-template-columns:1fr 1fr; gap:12px; } .lista-f li{ background:var(--superficie); border:1px solid var(--borde); border-radius:16px; padding:16px 18px; font-size:15.5px; } .lista-f li::before{ content:'✓'; font-weight:700; margin-right:10px; }
+.otros{ display:flex; flex-wrap:wrap; gap:10px; } .otros a{ padding:10px 16px; border:1.5px solid var(--borde); border-radius:999px; text-decoration:none; font-weight:500; font-size:14.5px; background:var(--superficie); } .otros a:hover{ border-color:var(--acento); }
+@media(max-width:900px){ .dolores,.lista-f{ grid-template-columns:1fr; } }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Inicio","item":"https://puve.yorss01.workers.dev/"},{"@type":"ListItem","position":2,"name":"Comida y bebida","item":"https://puve.yorss01.workers.dev/#giros"},{"@type":"ListItem","position":3,"name":"Restaurantes y fondas","item":"https://puve.yorss01.workers.dev/info/punto-de-venta-para-restaurantes.html"}]},{"@type":"WebPage","@id":"https://puve.yorss01.workers.dev/info/punto-de-venta-para-restaurantes.html","url":"https://puve.yorss01.workers.dev/info/punto-de-venta-para-restaurantes.html","name":"Punto de venta para restaurantes y fondas | PUVE","description":"Sistema de punto de venta para restaurantes y fondas: mesas con QR, menú con fotos y cobro rápido, incluso sin internet.","inLanguage":"es-MX","isPartOf":{"@id":"https://puve.yorss01.workers.dev/#web"},"about":{"@id":"https://puve.yorss01.workers.dev/#app"}},{"@type":"FAQPage","mainEntity":[{"@type":"Question","name":"¿Mis clientes pueden pedir desde la mesa?","acceptedAnswer":{"@type":"Answer","text":"Sí. Cada mesa tiene su QR: el cliente abre el menú en su celular, elige y el pedido te llega a caja con aviso sonoro."}},{"@type":"Question","name":"¿Puedo poner foto a mis platillos?","acceptedAnswer":{"@type":"Answer","text":"Sí. Cada producto del menú puede llevar su foto."}},{"@type":"Question","name":"¿Funciona sin internet?","acceptedAnswer":{"@type":"Answer","text":"Sí. Si se cae la conexión sigues cobrando: las ventas se guardan en el dispositivo y se envían solas cuando regresa."}},{"@type":"Question","name":"¿Cuánto cuesta PUVE?","acceptedAnswer":{"@type":"Answer","text":"Pagas por cada cajero (dispositivo) que usa PUVE: desde $250 MXN al mes, o con 10% de descuento si pagas el año. El precio exacto está siempre en la página principal."}}]}]}</script>
+</head>
+<body>
+<a class="salto" href="#contenido">Saltar al contenido</a>
+<header class="barra"><div class="contenedor fila">
+  <a class="marca" href="../index.html" aria-label="PUVE, inicio"><img src="../img/logo_mini.png" id="logoMarca" alt="" width="30" height="30">PUVE</a>
+  <nav aria-label="Principal"><a href="../index.html#giros">Para tu negocio</a><a href="../index.html#como">Cómo funciona</a><a href="../index.html#funciones">Funciones</a><a href="../index.html#precios">Precios</a></nav>
+  <div class="acciones"><button class="tema" id="botonTema" type="button" aria-pressed="false" aria-label="Cambiar entre modo claro y oscuro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button><a class="btn sec chico ocultar-m" href="../puve.html" data-cta="nav_entrar">Entrar</a><a class="btn chico" href="../puve.html#registro" data-cta="probar_nav">Probar PUVE</a></div>
+</div></header>
+<main id="contenido">
+<section class="hero-g" data-seccion="hero"><div class="contenedor">
+  <p class="mini"><a href="../index.html">Inicio</a> › <a href="../index.html#giros">Comida y bebida</a> › Restaurantes y fondas</p>
+  <h1>Punto de venta para <span class="serif">restaurantes y fondas</span></h1>
+  <p class="sub">Del comedor a la caja sin papelitos perdidos. Tus clientes piden desde su mesa con un QR, el pedido llega a caja con aviso sonoro y tú cobras sin cuentas a mano, aunque se caiga el internet.</p>
+  <div class="cta-fila"><a class="btn" href="../puve.html#registro" data-cta="probar_hero" data-giro="restaurantes">Crear mi cuenta</a><a class="btn sec" href="#incluye">Ver qué incluye</a></div>
+</div></section>
+<section data-seccion="problemas" style="padding-top:30px;"><div class="contenedor">
+  <span class="num">Lo que enfrentas</span><h2>Los problemas de restaurantes y fondas, <span class="serif">resueltos.</span></h2>
+  <div class="dolores" style="margin-top:28px;"><div class="reveal">Comandas en papel que se pierden o no se entienden: el pedido de cada mesa llega a caja ya escrito.</div><div class="reveal">Menús impresos que se desactualizan: cambias un platillo o un precio una vez y aplica en todos los dispositivos.</div><div class="reveal">Cuentas que no cuadran al cerrar: el corte de caja separa efectivo, tarjeta y transferencia.</div></div>
+</div></section>
+<section data-seccion="incluye" id="incluye" style="padding-top:30px;"><div class="contenedor">
+  <span class="num">Lo que incluye</span><h2>PUVE para <span class="serif">restaurantes y fondas.</span></h2>
+  <ul class="lista-f" style="margin-top:28px;"><li class="reveal">Pedidos desde la mesa con un QR y aviso sonoro en caja.</li><li class="reveal">Foto de cada platillo en tu menú.</li><li class="reveal">Escanea el código de bebidas y productos empacados con la cámara.</li><li class="reveal">Funciona sin internet: las ventas se guardan y se envían solas al volver la conexión.</li><li class="reveal">Cajeros con turno, corte de caja y retiros registrados.</li><li class="reveal">Reportes de lo más vendido, por día y por hora.</li></ul>
+</div></section>
+<section data-seccion="como" style="padding-top:30px;"><div class="contenedor">
+  <span class="num">Cómo empezar</span><h2>Listo para vender <span class="serif">en una tarde.</span></h2>
+  <div class="pasos" style="margin-top:28px;"><div class="paso reveal"><b>1</b><h3>Crea tu cuenta</h3><p>Elige «Restaurantes y fondas» y PUVE se acomoda a tu giro.</p></div><div class="paso reveal"><b>2</b><h3>Agrega tus productos</h3><p>Platillo por platillo, con tu voz o escaneando el código de las bebidas con la cámara.</p></div><div class="paso reveal"><b>3</b><h3>Cobra y mira cómo va</h3><p>Vende desde cualquier dispositivo y revisa ventas, inventario y corte de caja.</p></div></div>
+</div></section>
+<section data-seccion="precios" id="precios" style="padding-top:30px;"><div class="contenedor"><div class="plan dest reveal" style="max-width:560px;">
+  <h3>Precio de PUVE</h3><div class="p">$<span id="precioMes">250</span> <small>MXN al mes por cajero</small></div>
+  <div style="color:var(--texto-suave);font-size:15px;">o <b id="precioAnio">$2,700</b> MXN al año por cajero (10% de ahorro). Todas las funciones de tu giro incluidas.</div>
+  <div style="margin-top:20px;"><a class="btn" href="../puve.html#registro" data-cta="probar_precios" data-giro="restaurantes">Crear mi cuenta</a></div>
+</div></div></section>
+<section data-seccion="preguntas" style="padding-top:30px;"><div class="contenedor">
+  <span class="num">Preguntas</span><h2>Lo que más preguntan <span class="serif">restaurantes y fondas.</span></h2>
+  <div class="faq" style="margin-top:24px;"><details><summary>¿Mis clientes pueden pedir desde la mesa?</summary><p>Sí. Cada mesa tiene su QR: el cliente abre el menú en su celular, elige y el pedido te llega a caja con aviso sonoro.</p></details><details><summary>¿Puedo poner foto a mis platillos?</summary><p>Sí. Cada producto del menú puede llevar su foto.</p></details><details><summary>¿Funciona sin internet?</summary><p>Sí. Si se cae la conexión sigues cobrando: las ventas se guardan en el dispositivo y se envían solas cuando regresa.</p></details><details><summary>¿Cuánto cuesta PUVE?</summary><p>Pagas por cada cajero (dispositivo) que usa PUVE: desde $250 MXN al mes, o con 10% de descuento si pagas el año. El precio exacto está siempre en la página principal.</p></details></div>
+</div></section>
+<section data-seccion="otros" style="padding-top:20px;"><div class="contenedor">
+  <span class="num">También en Comida y bebida</span><div class="otros" style="margin-top:14px;"><a href="punto-de-venta-para-taquerias.html">Taquerías</a><a href="punto-de-venta-para-pizzerias.html">Pizzerías y comida rápida</a><a href="punto-de-venta-para-bares.html">Bares y cantinas</a><a href="punto-de-venta-para-cafeterias.html">Cafeterías</a><a href="punto-de-venta-para-heladerias.html">Heladerías y paleterías</a><a href="punto-de-venta-para-panaderia.html">Panadería y repostería</a></div>
+  <p class="mini" style="margin-top:18px;"><a href="../index.html#giros">Ver todos los giros</a></p>
+</div></section>
+<section data-seccion="final" style="padding-top:20px;"><div class="contenedor"><div class="final"><h2>Empieza a vender <span class="serif">más fácil hoy.</span></h2><p>Crea tu cuenta, agrega tus primeros productos y cobra tu primera venta en una tarde.</p><a class="btn" href="../puve.html#registro" data-cta="probar_final" data-giro="restaurantes">Crear mi cuenta</a></div></div></section>
+</main>
+<footer><div class="contenedor"><div class="pie">
+  <div><a class="marca" href="../index.html" style="padding:0;"><img src="../img/logo_mini.png" id="logoPie" alt="" width="30" height="30">PUVE</a><p style="color:var(--texto-suave);max-width:24em;margin-top:12px;">El punto de venta que se entiende sin manual.</p></div>
+  <div><h4>Producto</h4><a href="../index.html#giros">Para tu negocio</a><a href="../index.html#funciones">Funciones</a><a href="../index.html#precios">Precios</a><a href="../puve.html">Entrar</a></div>
+  <div><h4>Legal</h4><a href="../docs_legales/terminos-y-condiciones.html">Términos y condiciones</a><a href="../docs_legales/aviso-de-privacidad.html">Aviso de privacidad</a><a href="../docs_legales/politica-de-cookies.html">Política de cookies</a><a href="../docs_legales/politica-de-reembolsos.html">Política de reembolsos</a><button type="button" data-puve-cookies>Preferencias de cookies</button></div>
+</div><div class="copy">© <span id="anio">2026</span> PUVE. Todos los derechos reservados.</div></div></footer>
+<script>
+(function(){
+  var raiz = document.documentElement, SUPA = 'https://ckzueunptmlqmtypowmg.supabase.co', KEY = 'sb_publishable_jkE5ikAW_a0OfE2S-6u3VA_P8uEzUSp';
+  document.getElementById('anio').textContent = new Date().getFullYear();
+  // ---- tema + ícono (claro: logo_mini.png · oscuro: logo_mini.black.png)
+  var boton = document.getElementById('botonTema');
+  function aplicarTema(oscuro, guardar){
+    raiz.classList.toggle('tema-oscuro', oscuro); boton.setAttribute('aria-pressed', oscuro ? 'true' : 'false');
+    var src = oscuro ? '../img/logo_mini.black.png' : '../img/logo_mini.png';
+    ['icono', 'iconoApple'].forEach(function(id){ var l = document.getElementById(id); if(l) l.setAttribute('href', src); });
+    ['logoMarca', 'logoPie'].forEach(function(id){ var i = document.getElementById(id); if(i) i.setAttribute('src', src); });
+    if(guardar){ try { localStorage.setItem('puve_tema_oscuro', oscuro ? '1' : '0'); } catch(e){} }
+    if(window.__hero) window.__hero.tema(oscuro);
+  }
+  aplicarTema(raiz.classList.contains('tema-oscuro'), false);
+  boton.addEventListener('click', function(){ aplicarTema(!raiz.classList.contains('tema-oscuro'), true); });
+  if(window.matchMedia){ var mq = matchMedia('(prefers-color-scheme: dark)'), alCambiar = function(e){ var g = null; try { g = localStorage.getItem('puve_tema_oscuro'); } catch(x){} if(g === null) aplicarTema(e.matches, false); };
+    if(mq.addEventListener) mq.addEventListener('change', alCambiar); }
+
+  fetch(SUPA + '/rest/v1/rpc/obtener_config_publica_puve', { method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }, body: '{}' })
+    .then(function(r){ return r.ok ? r.json() : null; }).then(function(c){ if(!c) return; var m = Number(c.precio_mensual_dispositivo), f = function(n){ return n.toLocaleString('es-MX', { maximumFractionDigits: 0 }); };
+      if(m > 0){ document.getElementById('precioMes').textContent = f(m); document.getElementById('precioAnio').textContent = '$' + f(Math.round(m * 12 * 0.9)); } }).catch(function(){});
+  if('IntersectionObserver' in window){ var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('v'); io.unobserve(e.target); } }); }, { threshold: 0.12 });
+    [].forEach.call(document.querySelectorAll('.reveal'), function(n){ io.observe(n); }); } else { [].forEach.call(document.querySelectorAll('.reveal'), function(n){ n.classList.add('v'); }); }
+})();
+</script>
+<script src="../puve-consent.js" data-pagina="landing" data-auto="landing" defer></script>
+</body>
+</html>
