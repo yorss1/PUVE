@@ -773,6 +773,30 @@
   input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea{ border-radius:14px; background:var(--vid2); border:1px solid var(--borde); color:var(--texto); transition:border-color .15s,box-shadow .15s; }
   .campo input,.campo select,.buscador input,.form-agregar-admin input,.form-agregar-admin select{ padding:12px 15px; } .input-mini{ border-radius:99px; padding:8px 14px; } .chat-pie textarea,.ctrl-editor textarea{ border-radius:16px; }
   .campo input:focus,.campo select:focus,.buscador input:focus,.input-mini:focus,textarea:focus,.form-agregar-admin input:focus{ border-color:var(--foco); box-shadow:0 0 0 3px rgba(91,105,230,.18); outline:none; }
+
+  /* selector de giros (lista agrupada con estilo propio; el <select> nativo queda oculto como fuente de datos) */
+  select.giro-nativo{ display:none; }
+  .giro-sel{ position:relative; }
+  .giro-sel .giro-btn{ width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px; text-align:left; padding:12px 15px; border-radius:14px; background:var(--vid2); border:1px solid var(--borde); color:var(--texto); font:500 14px 'Inter',sans-serif; cursor:pointer; transition:border-color .15s, box-shadow .15s; }
+  .giro-sel .giro-btn:disabled{ opacity:.55; cursor:not-allowed; }
+  .giro-sel .giro-btn.vacio .giro-btn-txt{ color:var(--texto-suave); font-weight:400; }
+  .giro-sel .giro-btn[aria-expanded="true"], .giro-sel .giro-btn:focus-visible{ border-color:var(--foco); box-shadow:0 0 0 3px rgba(91,105,230,.18); outline:none; }
+  .giro-sel .giro-btn svg{ width:16px; height:16px; flex:none; stroke:var(--texto-suave); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; transition:transform .15s; }
+  .giro-sel .giro-btn[aria-expanded="true"] svg{ transform:rotate(180deg); }
+  .giro-panel{ margin-top:8px; border:1px solid var(--borde); border-radius:18px; background:var(--superficie); overflow:hidden; }
+  .giro-panel[hidden], .giro-op[hidden], .giro-grupo[hidden], .giro-vacio[hidden]{ display:none; }
+  .giro-buscar{ padding:10px; border-bottom:1px solid var(--borde); }
+  .giro-buscar input{ width:100%; padding:10px 14px; font-size:14px; }
+  .giro-buscar input:focus{ border-color:var(--foco); box-shadow:0 0 0 3px rgba(91,105,230,.18); outline:none; }
+  .giro-lista{ position:relative; max-height:min(340px,52vh); overflow-y:auto; overscroll-behavior:contain; padding:4px 8px 10px; }
+  .giro-grupo-t{ display:flex; flex-direction:column; gap:1px; padding:14px 10px 6px; font-size:11.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--texto); }
+  .giro-grupo-t small{ font-size:12px; font-weight:400; letter-spacing:0; text-transform:none; color:var(--texto-suave); }
+  .giro-op{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-radius:12px; font-size:14px; color:var(--texto); cursor:pointer; user-select:none; }
+  .giro-op:hover{ background:var(--sub); }
+  .giro-op:focus{ outline:none; background:var(--sub); box-shadow:inset 0 0 0 2px var(--foco); }
+  .giro-op[aria-selected="true"]{ background:var(--acento); color:var(--texto-sobre-acento); font-weight:600; }
+  .giro-op[aria-selected="true"]::after{ content:'✓'; font-weight:700; }
+  .giro-vacio{ padding:18px 12px; text-align:center; font-size:13.5px; color:var(--texto-suave); }
   .campo label{ font-size:12.5px; color:var(--texto-suave); font-weight:500; margin-left:3px; } .campo input::placeholder,textarea::placeholder{ color:var(--texto-suave); opacity:.65; }
   input[type=checkbox],input[type=radio],input[type=range]{ accent-color:var(--acento); } body.tema-oscuro select,body.tema-oscuro input,body.tema-oscuro textarea{ color-scheme:dark; }
   input[type=file]{ font-size:13px; color:var(--texto-suave); } input[type=file]::file-selector-button{ font:600 13px Inter; border:1px solid var(--borde); background:var(--vid2); color:var(--texto); border-radius:99px; padding:7px 14px; margin-right:10px; cursor:pointer; }
@@ -1446,7 +1470,7 @@
         <div class="campo"><label for="ubiMunicipio">Municipio / Ciudad</label><input id="ubiMunicipio" type="text" required placeholder="Guadalajara"></div>
         <div class="campo"><label for="ubiCP">Código postal</label><input id="ubiCP" type="text" required placeholder="44100"></div>
       <div class="campo"><label for="ubiGiro">¿Cuál es el giro de tu negocio?</label>
-        <select id="ubiGiro" required>
+        <select id="ubiGiro">
               <option value="">Selecciona...</option>
             </select>
         <p class="nota" style="margin-top:6px;">Con esto adaptamos PUVE a tu negocio desde el primer día. Podrás cambiarlo después en Configuración.</p>
@@ -2254,7 +2278,7 @@
           <p class="nota">Elige tu giro y te sugerimos qué activar. Elegirlo no cambia nada por sí solo.</p>
           <div class="campo">
             <label for="cfgTipoNegocio">Giro</label>
-            <select id="cfgTipoNegocio" onchange="conTutorialToggle('cfg-tipo-negocio', this, function(){ guardarConfiguracion(); mostrarSugerenciaTipoNegocio(); })">
+            <select id="cfgTipoNegocio" onchange="conTutorialToggle('cfg-tipo-negocio', document.getElementById('cfgTipoNegocioUI') || this, function(){ guardarConfiguracion(); mostrarSugerenciaTipoNegocio(); })">
               <option value="">Selecciona...</option>
             </select>
           </div>
@@ -3838,7 +3862,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     'cfg-devoluciones':   { titulo:'Activar devoluciones', texto:'Si lo prendes, aparecerá la sección "Devoluciones" para que puedas registrar cuando un cliente regresa un producto.', seccion:'config', selector:'#cfgDevoluciones', requiere:'no-cajero' },
     'cfg-recompensas':    { titulo:'Activar recompensas por teléfono', texto:'Si lo prendes, en cada venta podrás anotar el teléfono del cliente para acumularle puntos, como las tarjetas de puntos de las tiendas de conveniencia — él después puede canjear esos puntos por descuento.', seccion:'config', selector:'#cfgRecompensasActivo', requiere:'no-cajero' },
     'cfg-clientes':       { titulo:'Directorio de clientes y crédito', texto:'Guarda el nombre e historial de compra de tus clientes por teléfono. Si le das un límite de crédito a alguien, podrás venderle "fiado" en el punto de venta hasta ese límite.', seccion:'config', selector:'#cfgClientesActivo', requiere:'no-cajero' },
-    'cfg-tipo-negocio':   { titulo:'Tipo de negocio', texto:'Cuéntanos a qué se dedica tu negocio y te sugerimos qué funciones te conviene prender — tú decides si aplicar la sugerencia o dejarlo como está.', seccion:'config', selector:'#cfgTipoNegocio', requiere:'no-cajero' },
+    'cfg-tipo-negocio':   { titulo:'Tipo de negocio', texto:'Cuéntanos a qué se dedica tu negocio y te sugerimos qué funciones te conviene prender — tú decides si aplicar la sugerencia o dejarlo como está.', seccion:'config', selector:'#cfgTipoNegocioUI', requiere:'no-cajero' },
     'cfg-ver-tutoriales': { titulo:'Ver tutoriales', texto:'Aquí puedes volver a ver la explicación de cualquier función de PUVE, cuando quieras.', oculto:true, requiere:'no-cajero' },
 
     'producto-guardar':          { titulo:'Guardar producto', texto:'Da de alta un producto nuevo o guarda los cambios de uno existente. Se refleja de inmediato en tu inventario y ya queda disponible para vender.', seccion:'productos', selector:'#btnGuardarProducto', requiere:'no-admin' },
@@ -14582,6 +14606,84 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     });
   }
   poblarSelectGiros();
+
+  // ===== Selector de giros con estilo propio: lista agrupada, con búsqueda y teclado =====
+  // El <select> nativo sigue en la página (oculto) como fuente de datos: su .value, su evento "change" y su onchange funcionan igual que antes.
+  function crearSelectorGiros(id){
+    const sel = document.getElementById(id); if(!sel || sel.dataset.giroUi) return; sel.dataset.giroUi = '1';
+    const mk = (t, c, txt) => { const n = document.createElement(t); if(c) n.className = c; if(txt != null) n.textContent = txt; return n; };
+    const norm = (s) => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    sel.removeAttribute('required'); sel.classList.add('giro-nativo'); sel.tabIndex = -1; sel.setAttribute('aria-hidden', 'true');
+
+    const raiz = mk('div', 'giro-sel'); raiz.id = id + 'UI';
+    const btn = mk('button', 'giro-btn vacio'); btn.type = 'button'; btn.id = id + 'Btn'; btn.setAttribute('aria-haspopup', 'listbox'); btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-controls', id + 'Panel');
+    const txt = mk('span', 'giro-btn-txt', 'Selecciona tu giro'); btn.appendChild(txt);
+    btn.insertAdjacentHTML('beforeend', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>');
+    const panel = mk('div', 'giro-panel'); panel.id = id + 'Panel'; panel.hidden = true;
+    const cajaBuscar = mk('div', 'giro-buscar'); const buscar = mk('input'); buscar.type = 'text'; buscar.placeholder = 'Buscar giro…'; buscar.autocomplete = 'off'; buscar.setAttribute('aria-label', 'Buscar giro'); cajaBuscar.appendChild(buscar);
+    const lista = mk('div', 'giro-lista'); lista.setAttribute('role', 'listbox'); lista.setAttribute('aria-label', 'Giros');
+    const ops = [], grupos = [];
+    GRUPOS_GIRO.forEach(gr => {
+      const g = mk('div', 'giro-grupo'); g.setAttribute('role', 'group');
+      const t = mk('div', 'giro-grupo-t'); t.id = id + 'G' + gr.id; t.appendChild(mk('span', '', gr.nombre)); if(gr.desc) t.appendChild(mk('small', '', gr.desc));
+      g.setAttribute('aria-labelledby', t.id); g.appendChild(t);
+      gr.giros.forEach(x => { const o = mk('div', 'giro-op'); o.setAttribute('role', 'option'); o.setAttribute('aria-selected', 'false'); o.tabIndex = -1; o.dataset.v = x.id; o.dataset.q = norm(x.nombre); o.appendChild(mk('span', '', x.nombre)); g.appendChild(o); ops.push(o); });
+      lista.appendChild(g); grupos.push(g);
+    });
+    const vacio = mk('div', 'giro-vacio', 'No encontramos ese giro. Prueba con otra palabra.'); vacio.hidden = true; lista.appendChild(vacio);
+    panel.appendChild(cajaBuscar); panel.appendChild(lista); raiz.appendChild(btn); raiz.appendChild(panel);
+    sel.parentNode.insertBefore(raiz, sel.nextSibling);
+    const lab = document.querySelector('label[for="' + id + '"]'); if(lab) lab.setAttribute('for', btn.id);
+
+    const visibles = () => ops.filter(o => !o.hidden);
+    function refrescar(){
+      const v = sel.value; let nombre = '';
+      ops.forEach(o => { const es = o.dataset.v === v; o.setAttribute('aria-selected', es ? 'true' : 'false'); if(es) nombre = o.textContent; });
+      txt.textContent = nombre || 'Selecciona tu giro'; btn.classList.toggle('vacio', !nombre);
+    }
+    function filtrar(q){
+      q = norm(q.trim()); ops.forEach(o => { o.hidden = !!q && o.dataset.q.indexOf(q) < 0; });
+      grupos.forEach(g => { g.hidden = !g.querySelector('.giro-op:not([hidden])'); }); vacio.hidden = visibles().length > 0;
+    }
+    function abrir(){
+      if(btn.disabled) return; panel.hidden = false; btn.setAttribute('aria-expanded', 'true'); buscar.value = ''; filtrar('');
+      const s = ops.find(o => o.getAttribute('aria-selected') === 'true');
+      if(s) lista.scrollTop = Math.max(0, s.offsetTop - lista.clientHeight / 2); else lista.scrollTop = 0;
+      // en celular no se enfoca el buscador para que no salte el teclado; se puede tocar cuando se quiera
+      if(!(window.matchMedia && matchMedia('(pointer:coarse)').matches)) buscar.focus({ preventScroll: true });
+    }
+    function cerrar(devolverFoco){ panel.hidden = true; btn.setAttribute('aria-expanded', 'false'); if(devolverFoco) btn.focus({ preventScroll: true }); }
+    function elegir(o){
+      const cambio = sel.value !== o.dataset.v; sel.value = o.dataset.v;
+      if(cambio) sel.dispatchEvent(new Event('change', { bubbles: true }));
+      refrescar(); cerrar(true);
+    }
+    btn.addEventListener('click', () => { if(panel.hidden) abrir(); else cerrar(false); });
+    btn.addEventListener('keydown', (e) => { if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); if(panel.hidden) abrir(); } });
+    lista.addEventListener('click', (e) => { const o = e.target.closest('.giro-op'); if(o) elegir(o); });
+    buscar.addEventListener('input', () => filtrar(buscar.value));
+    panel.addEventListener('keydown', (e) => {
+      const its = visibles(), i = its.indexOf(document.activeElement);
+      if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); cerrar(true); }
+      else if(e.key === 'Tab'){ cerrar(false); }
+      else if(e.key === 'ArrowDown'){ e.preventDefault(); if(its.length) its[Math.min(i + 1, its.length - 1)].focus(); }
+      else if(e.key === 'ArrowUp'){ e.preventDefault(); if(i <= 0) buscar.focus(); else its[i - 1].focus(); }
+      else if(e.key === 'Home' && i >= 0){ e.preventDefault(); its[0].focus(); }
+      else if(e.key === 'End' && i >= 0){ e.preventDefault(); its[its.length - 1].focus(); }
+      else if((e.key === 'Enter' || e.key === ' ') && i >= 0){ e.preventDefault(); elegir(its[i]); }
+      else if(e.key === 'Enter' && document.activeElement === buscar){ e.preventDefault(); if(its.length) elegir(its[0]); }
+    });
+    document.addEventListener('pointerdown', (e) => { if(!panel.hidden && !raiz.contains(e.target)) cerrar(false); });
+
+    // Si otro código cambia sel.value (por ejemplo al cargar la configuración), la lista se actualiza sola.
+    const d = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+    Object.defineProperty(sel, 'value', { configurable: true, get(){ return d.get.call(sel); }, set(v){ d.set.call(sel, v); refrescar(); } });
+    // Si otro código deshabilita el select (por ejemplo por rol), también se deshabilita la lista.
+    const sincronizarEstado = () => { btn.disabled = sel.disabled; if(sel.disabled) cerrar(false); };
+    new MutationObserver(sincronizarEstado).observe(sel, { attributes: true, attributeFilter: ['disabled'] });
+    sincronizarEstado(); refrescar();
+  }
+  crearSelectorGiros('cfgTipoNegocio'); crearSelectorGiros('ubiGiro');
 
   aplicarPreferenciasApariencia();
   if(sesionEscaneoRemoto){
