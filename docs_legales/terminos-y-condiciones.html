@@ -7,13 +7,13 @@
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; base-uri 'self'; form-action 'self'; object-src 'none';">
 <title>Términos y condiciones — PUVE</title>
-<link rel="icon" href="../img/logo_mini.png" type="image/png" sizes="any">
+<link id="icono" rel="icon" href="../img/logo_mini.png" type="image/png" sizes="any">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --texto:#18181B;--texto-suave:#71717A;--borde:#E4E4E7;
-  --fondo:#FAFAFA;--superficie:#FFFFFF;--acento:#18181B;
+  --fondo:#F8FAFC;--superficie:#FFFFFF;--acento:#18181B;
   --texto-sobre-acento:#FFFFFF;--foco:#2563EB;
 }
 body.tema-oscuro{
@@ -89,6 +89,7 @@ li{margin:6px 0}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style>
+<script src="doc.js" defer></script>
 </head>
 <body>
 
@@ -97,7 +98,7 @@ li{margin:6px 0}
     <div class="logo">PUVE</div>
     <p class="etiqueta">Documento contractual</p>
     <h1>Términos y condiciones</h1>
-    <p class="intro">Última actualización: 2 de octubre de 2026 · Versión 1.5</p>
+    <p class="intro">Última actualización: 16 de octubre de 2026 · Versión 1.6</p>
   </header>
 
   <div class="aviso">
@@ -246,6 +247,7 @@ li{margin:6px 0}
     <p>PUVE procura mantener el Servicio disponible y operativo, pero no garantiza disponibilidad ininterrumpida. Pueden existir interrupciones por mantenimiento, actualizaciones, fallas de proveedores de infraestructura, redes, energía, dispositivos, navegadores, sistemas operativos, servicios de terceros, acontecimientos fuera del control razonable de PUVE o causas de fuerza mayor.</p>
     <p>Cuando una función permita registrar temporalmente operaciones sin conexión, dichas operaciones podrán quedar pendientes de sincronización. El Usuario deberá verificar posteriormente que la sincronización haya concluido correctamente. La existencia de una operación local o pendiente no equivale, por sí sola, a una confirmación definitiva del registro en los sistemas remotos.</p>
     <p>El Usuario deberá mantener conectividad, equipos compatibles, energía eléctrica y condiciones técnicas adecuadas para operar el Servicio, salvo que PUVE indique expresamente lo contrario.</p>
+    <p><strong>Caídas, interrupciones y ventas no realizadas.</strong> El Usuario reconoce y acepta que ningún sitio o servicio en línea puede garantizarse libre de interrupciones. Por ello, PUVE <strong>no pagará, reembolsará ni compensará</strong> el importe de las ventas que el Usuario no haya podido realizar, cobrar o registrar durante una caída, interrupción, lentitud o indisponibilidad total o parcial del Servicio, ni la pérdida de ingresos, utilidades, clientes u oportunidades de negocio que de ello resulte, cualquiera que sea su causa. El Usuario es responsable de contar con medios alternos para seguir operando (por ejemplo, el modo sin conexión cuando esté disponible, un registro manual y su propio medio de cobro).</p>
   </section>
 
   <section class="seccion" id="seguridad">
@@ -260,6 +262,7 @@ li{margin:6px 0}
     <p>En la máxima medida permitida por la legislación aplicable, PUVE será responsable únicamente de los daños directos que sean consecuencia inmediata de un incumplimiento imputable a PUVE y que hayan sido debidamente acreditados.</p>
     <p>PUVE no será responsable, en la medida permitida por la ley, por pérdidas derivadas de decisiones comerciales del Usuario, errores de captura, precios incorrectos, inventarios inexactos, credenciales compartidas, dispositivos comprometidos, fallas de conectividad, actos de terceros, información fiscal incorrecta proporcionada por el Usuario, incumplimiento de obligaciones legales del Negocio o uso contrario a estos Términos.</p>
     <p>PUVE tampoco garantiza resultados económicos, incremento de ventas, reducción de mermas, exactitud absoluta de recomendaciones analíticas ni cumplimiento fiscal automático.</p>
+    <p>En particular, y sin perjuicio de lo dispuesto en la sección 12, PUVE no responderá por lucro cesante, pérdida de ventas, de ingresos o de clientela, ni por daños indirectos, incidentales o consecuenciales, aun cuando hubieran sido causados por una interrupción del Servicio.</p>
     <p>Nada en estos Términos pretende excluir o limitar derechos que legalmente sean irrenunciables, responsabilidades que no puedan limitarse por ley, ni las obligaciones que correspondan al proveedor frente a consumidores conforme a la legislación aplicable.</p>
   </section>
 
@@ -335,12 +338,21 @@ li{margin:6px 0}
     <p><strong>Alcance.</strong> La agenda no envía recordatorios ni mensajes automáticos a los clientes. Los cálculos de comisiones son una ayuda administrativa basada en los porcentajes que el propio negocio configura y no sustituyen sus obligaciones laborales ni fiscales.</p>
   </section>
 
+  <section class="seccion" id="anexo-pedidos-linea">
+    <h2>Anexo C. Pedidos en línea para recoger y archivos de impresión</h2>
+    <p><strong>Responsabilidad del negocio.</strong> El negocio es el único responsable de sus precios, existencias, tiempos de entrega, calidad de lo que vende e imprime, y de la relación con sus clientes. PUVE es solo la herramienta tecnológica que recibe y organiza las solicitudes.</p>
+    <p><strong>El pedido no es una confirmación.</strong> Un pedido enviado por el cliente es una solicitud sujeta a que el negocio la acepte. La fecha y hora elegidas son una preferencia, no una garantía. Esta función no procesa pagos: el cobro se realiza directamente con el negocio, y el total mostrado es una estimación que el negocio confirma, por ejemplo con el número real de páginas.</p>
+    <p><strong>Archivos de los clientes.</strong> Los archivos se revisan automáticamente (tipo, estructura y contenido activo) y se guardan en almacenamiento privado al que solo accede el personal autorizado del negocio. Se eliminan al entregar o cancelar el pedido y, a más tardar, a los 10 días. La revisión automática reduce, pero no elimina, el riesgo de archivos maliciosos: PUVE no es un antivirus y no garantiza su ausencia. El negocio debe abrirlos con un navegador actualizado y evitar hacerlo en equipos con información sensible.</p>
+    <p><strong>Contenido y derechos.</strong> Quien sube un archivo declara tener derecho a imprimirlo. Está prohibido subir contenido ilegal o que infrinja derechos de terceros, y el negocio podrá negarse a imprimirlo. PUVE no revisa el contenido de los documentos.</p>
+    <p><strong>Uso adecuado.</strong> Está prohibido enviar pedidos falsos o automatizados o intentar eludir los límites de seguridad. PUVE podrá bloquear accesos o desactivar la función ante uso abusivo.</p>
+  </section>
+
  -->
 
   <div class="firma">
     <p><strong>Integridad contractual.</strong> Si alguna disposición de estos Términos fuera declarada inválida o inaplicable, las demás disposiciones conservarán su validez en la medida permitida por la ley. La falta de ejercicio de un derecho no constituirá renuncia a éste.</p>
     <p>Estos Términos deben leerse conjuntamente con el Aviso de Privacidad, la Política de Cookies y la Política de Reembolsos y Cancelaciones de PUVE, cuando resulten aplicables.</p>
-    <p><strong>Versión:</strong> 1.5 · <strong>Fecha de vigencia:</strong> 2 de octubre de 2026.</p>
+    <p><strong>Versión:</strong> 1.6 · <strong>Fecha de vigencia:</strong> 16 de octubre de 2026.</p>
   </div>
 </main>
 
@@ -357,11 +369,6 @@ li{margin:6px 0}
   </div>
 </footer>
 
-<script>
-document.getElementById('footerAnio').textContent = new Date().getFullYear();
-try {
-  if (localStorage.getItem('puve_tema_oscuro') === '1') document.body.classList.add('tema-oscuro');
-} catch(e) {}
-</script>
+
 </body>
 </html>
