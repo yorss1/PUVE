@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /pedir.html
+
+Sitemap: https://puve.yorss01.workers.dev/sitemap.xml

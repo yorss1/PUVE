@@ -1177,7 +1177,13 @@
         <div class="campo">
           <label style="display:flex; gap:8px; align-items:flex-start; font-weight:400; line-height:1.4;">
             <input id="regAcepto" type="checkbox" required style="width:auto; margin-top:3px;">
-            <span>Acepto los <a href="docs_legales/terminos-y-condiciones.html" target="_blank" rel="noopener noreferrer">Términos y condiciones</a> y he leído el <a href="docs_legales/aviso-de-privacidad.html" target="_blank" rel="noopener noreferrer">Aviso de privacidad</a>.</span>
+            <span>Acepto los <a href="docs_legales/terminos-y-condiciones.html" target="_blank" rel="noopener noreferrer">Términos y condiciones</a>, incluidos los límites de responsabilidad por interrupciones del servicio.</span>
+          </label>
+        </div>
+        <div class="campo">
+          <label style="display:flex; gap:8px; align-items:flex-start; font-weight:400; line-height:1.4;">
+            <input id="regAceptoPriv" type="checkbox" required style="width:auto; margin-top:3px;">
+            <span>He leído el <a href="docs_legales/aviso-de-privacidad.html" target="_blank" rel="noopener noreferrer">Aviso de privacidad</a> y consiento el tratamiento de mis datos personales conforme a él.</span>
           </label>
         </div>
         <button class="principal" type="submit" id="btnRegistro">Crear cuenta</button>
@@ -1205,7 +1211,13 @@
         <div class="campo">
           <label style="display:flex; gap:8px; align-items:flex-start; font-weight:400; line-height:1.4;">
             <input id="embAcepto" type="checkbox" required style="width:auto; margin-top:3px;">
-            <span>Acepto los <a href="docs_legales/terminos-y-condiciones.html" target="_blank" rel="noopener noreferrer">Términos y condiciones</a> y he leído el <a href="docs_legales/aviso-de-privacidad.html" target="_blank" rel="noopener noreferrer">Aviso de privacidad</a>.</span>
+            <span>Acepto los <a href="docs_legales/terminos-y-condiciones.html" target="_blank" rel="noopener noreferrer">Términos y condiciones</a>, incluidos los límites de responsabilidad por interrupciones del servicio.</span>
+          </label>
+        </div>
+        <div class="campo">
+          <label style="display:flex; gap:8px; align-items:flex-start; font-weight:400; line-height:1.4;">
+            <input id="embAceptoPriv" type="checkbox" required style="width:auto; margin-top:3px;">
+            <span>He leído el <a href="docs_legales/aviso-de-privacidad.html" target="_blank" rel="noopener noreferrer">Aviso de privacidad</a> y consiento el tratamiento de mis datos personales conforme a él.</span>
           </label>
         </div>
         <button class="principal" type="submit" id="btnRegistroEmbajador">Crear cuenta de Embajador</button>
@@ -1224,8 +1236,20 @@
           <div class="campo"><label for="unirseCodigo">Código de caja</label><input id="unirseCodigo" type="text" required placeholder="Ej. ABC123" style="text-transform:uppercase; letter-spacing:0.05em;" autocomplete="off"></div>
           <div class="campo">
             <label style="display:flex; gap:8px; align-items:flex-start; font-weight:400; line-height:1.4;">
+              <input id="unirseMayor" type="checkbox" required style="width:auto; margin-top:3px;">
+              <span>Declaro bajo protesta de decir verdad que soy <strong>mayor de 18 años</strong> (mayor de edad).</span>
+            </label>
+          </div>
+          <div class="campo">
+            <label style="display:flex; gap:8px; align-items:flex-start; font-weight:400; line-height:1.4;">
               <input id="unirseAcepto" type="checkbox" required style="width:auto; margin-top:3px;">
-              <span>Declaro que soy <strong>mayor de 18 años</strong>, acepto los <a href="docs_legales/terminos-y-condiciones.html" target="_blank" rel="noopener noreferrer">Términos y condiciones</a> y he leído el <a href="docs_legales/aviso-de-privacidad.html" target="_blank" rel="noopener noreferrer">Aviso de privacidad</a>.</span>
+              <span>Acepto los <a href="docs_legales/terminos-y-condiciones.html" target="_blank" rel="noopener noreferrer">Términos y condiciones</a>, incluidos los límites de responsabilidad por interrupciones del servicio.</span>
+            </label>
+          </div>
+          <div class="campo">
+            <label style="display:flex; gap:8px; align-items:flex-start; font-weight:400; line-height:1.4;">
+              <input id="unirsePriv" type="checkbox" required style="width:auto; margin-top:3px;">
+              <span>He leído el <a href="docs_legales/aviso-de-privacidad.html" target="_blank" rel="noopener noreferrer">Aviso de privacidad</a> y consiento el tratamiento de mis datos personales conforme a él.</span>
             </label>
           </div>
           <button class="principal" type="submit" id="btnUnirse">Entrar</button>
@@ -1423,16 +1447,8 @@
         <div class="campo"><label for="ubiCP">Código postal</label><input id="ubiCP" type="text" required placeholder="44100"></div>
       <div class="campo"><label for="ubiGiro">¿Cuál es el giro de tu negocio?</label>
         <select id="ubiGiro" required>
-          <option value="">Selecciona...</option>
-          <option value="tienda">Tienda de abarrotes / conveniencia</option>
-              <option value="cafeteria">Cafetería</option>
-              <option value="restaurante">Restaurante / comida</option>
-              <option value="ferreteria">Ferretería</option>
-              <option value="ropa">Ropa, calzado y accesorios</option>
-              <option value="farmacia">Farmacia</option>
-              <option value="papeleria">Papelería</option>
-              <option value="servicios">Servicios (barbería, salón, spa)</option>
-        </select>
+              <option value="">Selecciona...</option>
+            </select>
         <p class="nota" style="margin-top:6px;">Con esto adaptamos PUVE a tu negocio desde el primer día. Podrás cambiarlo después en Configuración.</p>
       </div>
         <button class="principal" type="submit" id="btnGuardarUbicacion">Continuar</button>
@@ -2240,15 +2256,6 @@
             <label for="cfgTipoNegocio">Giro</label>
             <select id="cfgTipoNegocio" onchange="conTutorialToggle('cfg-tipo-negocio', this, function(){ guardarConfiguracion(); mostrarSugerenciaTipoNegocio(); })">
               <option value="">Selecciona...</option>
-              <option value="tienda">Tienda de abarrotes / conveniencia</option>
-              <option value="cafeteria">Cafetería</option>
-              <option value="restaurante">Restaurante / comida</option>
-              <option value="ferreteria">Ferretería</option>
-              <option value="ropa">Ropa, calzado y accesorios</option>
-              <option value="farmacia">Farmacia</option>
-              <option value="papeleria">Papelería</option>
-              <option value="servicios">Servicios (barbería, salón, spa)</option>
-              
             </select>
           </div>
           <div class="oculto" id="bloqueSugerenciaTipoNegocio" style="margin-top:10px; padding:12px; border:1px solid var(--borde); border-radius:8px;">
@@ -3728,9 +3735,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       btn.disabled = false; btn.textContent = 'Crear cuenta de Embajador';
       mostrarMensaje('mensajeAuth', 'Debes declarar que eres mayor de 18 años para crear tu cuenta.', 'error'); return false;
     }
-    if(!document.getElementById('embAcepto').checked){
+    if(!document.getElementById('embAcepto').checked || !document.getElementById('embAceptoPriv').checked){
       btn.disabled = false; btn.textContent = 'Crear cuenta de Embajador';
-      mostrarMensaje('mensajeAuth', 'Debes aceptar los Términos y el Aviso de privacidad para crear tu cuenta.', 'error'); return false;
+      mostrarMensaje('mensajeAuth', !document.getElementById('embAcepto').checked ? 'Debes aceptar los Términos y condiciones para crear tu cuenta.' : 'Debes confirmar que leíste el Aviso de privacidad para crear tu cuenta.', 'error'); return false;
     }
     trackApp('registro_envio', { tipo: 'embajador' });
     const { data, error } = await sb.auth.signUp({ email, password, options: { data: { nombre, tipo_cuenta: 'embajador', acepta_terminos: true, mayor_de_edad: true, version_legal: VERSION_LEGAL } } });
@@ -3740,7 +3747,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       mostrarMensaje('mensajeAuth', traducirError(error.message), 'error');
       return false;
     }
-    if(window.PuveLegal) PuveLegal.registrar({ user_id: data.user && data.user.id, email, nombre, tipo_cuenta: 'embajador', texto: textoCasillaLegal('embAcepto'), mayor_de_edad: true, metodo: 'casilla_registro', version: VERSION_LEGAL });
+    if(window.PuveLegal) PuveLegal.registrar({ user_id: data.user && data.user.id, email, nombre, tipo_cuenta: 'embajador', texto: textoCasillaLegal('embMayorEdad'), documentos: [{ doc: 'terminos', version: VERSION_LEGAL, texto: textoCasillaLegal('embAcepto') }, { doc: 'privacidad', version: VERSION_LEGAL, texto: textoCasillaLegal('embAceptoPriv') }], mayor_de_edad: true, metodo: 'casilla_registro', version: VERSION_LEGAL });
     trackApp('registro_ok', { tipo: 'embajador' });
 
     let usuario = data.user;
@@ -4007,7 +4014,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   // Versión vigente de los documentos legales (debe coincidir con docs_legales/*.html).
-  const VERSION_LEGAL = '1.5';
+  const VERSION_LEGAL = '1.6';
   async function registrarAceptacionLegal(){
     try { await sb.rpc('registrar_aceptacion_legal', { p_version: VERSION_LEGAL }); } catch(e){ console.warn('No se pudo registrar la aceptación legal:', e); }
   }
@@ -4048,15 +4055,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       tEdad.textContent = 'Declaro bajo protesta de decir verdad que soy mayor de 18 años (mayor de edad).';
       filaEdad.append(cEdad, tEdad);
 
-      const filaLeg = document.createElement('label');
-      filaLeg.style.cssText = 'display:flex; gap:8px; align-items:flex-start; font-weight:400; line-height:1.4; margin-bottom:14px;';
-      const cLeg = document.createElement('input');
-      cLeg.type = 'checkbox'; cLeg.style.cssText = 'width:auto; margin-top:3px;';
-      const tLeg = document.createElement('span');
-      const a1 = document.createElement('a'); a1.href = 'docs_legales/terminos-y-condiciones.html'; a1.target = '_blank'; a1.rel = 'noopener noreferrer'; a1.textContent = 'Términos y condiciones';
-      const a2 = document.createElement('a'); a2.href = 'docs_legales/aviso-de-privacidad.html'; a2.target = '_blank'; a2.rel = 'noopener noreferrer'; a2.textContent = 'Aviso de privacidad';
-      tLeg.append('Acepto los ', a1, ' y he leído el ', a2, '.');
-      filaLeg.append(cLeg, tLeg);
+      const mkFila = (ultima) => { const f = document.createElement('label'); f.style.cssText = 'display:flex; gap:8px; align-items:flex-start; font-weight:400; line-height:1.4; margin-bottom:' + (ultima ? '14px' : '10px') + ';'; const c = document.createElement('input'); c.type = 'checkbox'; c.style.cssText = 'width:auto; margin-top:3px;'; const t = document.createElement('span'); f.append(c, t); return { f, c, t }; };
+      const lnk = (href, txt) => { const x = document.createElement('a'); x.href = href; x.target = '_blank'; x.rel = 'noopener noreferrer'; x.textContent = txt; return x; };
+      const rTer = mkFila(false), rPri = mkFila(true), cTer = rTer.c, cPri = rPri.c, filaTer = rTer.f, filaPri = rPri.f;
+      rTer.t.append('Acepto los ', lnk('docs_legales/terminos-y-condiciones.html', 'Términos y condiciones'), ', incluidos los límites de responsabilidad por interrupciones del servicio.');
+      rPri.t.append('He leído el ', lnk('docs_legales/aviso-de-privacidad.html', 'Aviso de privacidad'), ' y consiento el tratamiento de mis datos personales conforme a él.');
 
       const msg = document.createElement('div');
       msg.className = 'mensaje';
@@ -4066,9 +4069,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       btnSalir.type = 'button'; btnSalir.className = 'texto'; btnSalir.style.marginTop = '8px'; btnSalir.textContent = 'Cerrar sesión';
 
       btnOk.onclick = async () => {
-        if(!cEdad.checked || !cLeg.checked){
+        if(!cEdad.checked || !cTer.checked || !cPri.checked){
           msg.className = 'mensaje error';
-          msg.textContent = 'Marca las dos casillas para continuar.';
+          msg.textContent = 'Marca las tres casillas para continuar.';
           return;
         }
         btnOk.disabled = true;
@@ -4079,7 +4082,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           msg.textContent = 'No se pudo guardar tu confirmación. Intenta de nuevo.';
           return;
         }
-        registrarEvidenciaLegal({ tipo: 'cuenta', metodo: 'pantalla_aceptacion', mayor: true, texto: [cEdad, cLeg].map(c => c.parentElement ? c.parentElement.textContent.replace(/\s+/g, ' ').trim() : '').join(' | ').slice(0, 800) });
+        registrarEvidenciaLegal({ tipo: 'cuenta', metodo: 'pantalla_aceptacion', mayor: true, texto: cEdad.parentElement.textContent.replace(/\s+/g, ' ').trim().slice(0, 400), documentos: [{ doc: 'terminos', version: VERSION_LEGAL, texto: cTer.parentElement.textContent.replace(/\s+/g, ' ').trim().slice(0, 400) }, { doc: 'privacidad', version: VERSION_LEGAL, texto: cPri.parentElement.textContent.replace(/\s+/g, ' ').trim().slice(0, 400) }] });
         fondo.remove();
         resolve(true);
       };
@@ -4090,7 +4093,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         resolve(false);
       };
 
-      caja.append(titulo, intro, filaEdad, filaLeg, msg, btnOk, btnSalir);
+      caja.append(titulo, intro, filaEdad, filaTer, filaPri, msg, btnOk, btnSalir);
       fondo.append(caja);
       document.body.append(fondo);
     });
@@ -4109,9 +4112,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       btn.disabled = false; btn.textContent = 'Crear cuenta';
       mostrarMensaje('mensajeAuth', 'Debes declarar que eres mayor de 18 años para crear tu cuenta.', 'error'); return false;
     }
-    if(!document.getElementById('regAcepto').checked){
+    if(!document.getElementById('regAcepto').checked || !document.getElementById('regAceptoPriv').checked){
       btn.disabled = false; btn.textContent = 'Crear cuenta';
-      mostrarMensaje('mensajeAuth', 'Debes aceptar los Términos y el Aviso de privacidad para crear tu cuenta.', 'error'); return false;
+      mostrarMensaje('mensajeAuth', !document.getElementById('regAcepto').checked ? 'Debes aceptar los Términos y condiciones para crear tu cuenta.' : 'Debes confirmar que leíste el Aviso de privacidad para crear tu cuenta.', 'error'); return false;
     }
     trackApp('registro_envio', { tipo: 'negocio' });
     const codigoInvitacion = (document.getElementById('regReferido').value || '').trim().toUpperCase();
@@ -4119,7 +4122,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const { data, error } = await sb.auth.signUp({ email, password, options: { data: { nombre, nombre_negocio, acepta_terminos: true, mayor_de_edad: true, version_legal: VERSION_LEGAL } } });
     btn.disabled = false; btn.textContent = 'Crear cuenta';
     if(error){ mostrarMensaje('mensajeAuth', traducirError(error.message), 'error'); return false; }
-    if(window.PuveLegal) PuveLegal.registrar({ user_id: data.user && data.user.id, email, nombre, tipo_cuenta: 'negocio', texto: textoCasillaLegal('regAcepto'), mayor_de_edad: true, metodo: 'casilla_registro', version: VERSION_LEGAL });
+    if(window.PuveLegal) PuveLegal.registrar({ user_id: data.user && data.user.id, email, nombre, tipo_cuenta: 'negocio', texto: textoCasillaLegal('regMayorEdad'), documentos: [{ doc: 'terminos', version: VERSION_LEGAL, texto: textoCasillaLegal('regAcepto') }, { doc: 'privacidad', version: VERSION_LEGAL, texto: textoCasillaLegal('regAceptoPriv') }], mayor_de_edad: true, metodo: 'casilla_registro', version: VERSION_LEGAL });
     trackApp('registro_ok', { tipo: 'negocio' });
 
     
@@ -4157,8 +4160,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     btn.disabled = true; btn.textContent = 'Entrando...';
     ocultarMensaje('mensajeAuthCajero');
     const codigo = document.getElementById('unirseCodigo').value.trim().toUpperCase();
-    if(!document.getElementById('unirseAcepto').checked){
-      mostrarMensaje('mensajeAuthCajero', 'Debes declarar que eres mayor de 18 años y aceptar los Términos y el Aviso de privacidad.', 'error');
+    if(!document.getElementById('unirseMayor').checked || !document.getElementById('unirseAcepto').checked || !document.getElementById('unirsePriv').checked){
+      mostrarMensaje('mensajeAuthCajero', 'Marca las tres casillas: mayoría de edad, Términos y condiciones, y Aviso de privacidad.', 'error');
       btn.disabled = false; btn.textContent = 'Entrar';
       return false;
     }
@@ -4193,7 +4196,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
       cerrarModalCajero();
       await registrarAceptacionLegal();
-      registrarEvidenciaLegal({ tipo: 'cajero', metodo: 'acceso_cajero' });
+      registrarEvidenciaLegal({ tipo: 'cajero', metodo: 'acceso_cajero', mayor: true, texto: textoCasillaLegal('unirseMayor'), documentos: [{ doc: 'terminos', version: VERSION_LEGAL, texto: textoCasillaLegal('unirseAcepto') }, { doc: 'privacidad', version: VERSION_LEGAL, texto: textoCasillaLegal('unirsePriv') }] });
       const { data: userData } = await sb.auth.getUser();
       await entrarApp(userData.user);
     } catch(err){
@@ -5939,7 +5942,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('cfgPesosPorPunto').value = configNegocio.recompensas?.pesos_por_punto ?? 10;
     document.getElementById('cfgValorPunto').value = configNegocio.recompensas?.valor_punto ?? 0.5;
     document.getElementById('cfgClientesActivo').checked = !!configNegocio.clientes;
-    document.getElementById('cfgTipoNegocio').value = configNegocio.tipo_negocio || '';
+    document.getElementById('cfgTipoNegocio').value = valorSelectGiro();
     alternarBloqueConfigRecompensas();
   }
 
@@ -6024,13 +6027,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   };
 
   function mostrarSugerenciaTipoNegocio(){
-    const tipo = document.getElementById('cfgTipoNegocio').value;
+    const sel = document.getElementById('cfgTipoNegocio').value, tipo = baseDeGiro(sel), esp = GIRO_POR_ID[sel] || null;
     const bloque = document.getElementById('bloqueSugerenciaTipoNegocio');
     const preset = PRESETS_TIPO_NEGOCIO[tipo];
     if(!tipo || !preset){ bloque.classList.add('oculto'); return; }
-    document.getElementById('textoSugerenciaTipoNegocio').innerHTML = preset.items.map(it => `
+    const incluidas = esp ? esp.feats.filter(f => FEAT_TEXTO[f]).map(f => ({ funcion: FEAT_TEXTO[f][0], razon: FEAT_TEXTO[f][1], incluida: true })).concat(esp.extra.map(t => ({ funcion: t, razon: 'Pensado para ' + esp.nombre.toLowerCase() + '.', incluida: true }))) : [];
+    document.getElementById('textoSugerenciaTipoNegocio').innerHTML = preset.items.concat(incluidas).map(it => `
       <div style="margin-bottom:8px;">
-        <div style="font-weight:600; font-size:13px; color:var(--texto);">${escapar(it.funcion)}${it.on ? '' : ' <span class="nota" style="font-weight:400;">(informativo)</span>'}</div>
+        <div style="font-weight:600; font-size:13px; color:var(--texto);">${escapar(it.funcion)}${it.incluida ? ' <span class="nota" style="font-weight:400;">(incluida en tu giro)</span>' : it.on ? '' : ' <span class="nota" style="font-weight:400;">(informativo)</span>'}</div>
         <div class="nota" style="margin:1px 0 0;">${escapar(it.razon)}</div>
       </div>
     `).join('');
@@ -6038,7 +6042,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   async function aplicarSugerenciaTipoNegocio(){
-    const tipo = document.getElementById('cfgTipoNegocio').value;
+    const tipo = baseDeGiro(document.getElementById('cfgTipoNegocio').value);
     const preset = PRESETS_TIPO_NEGOCIO[tipo];
     if(!preset) return;
     document.getElementById('cfgCorteCaja').checked = preset.corte_caja;
@@ -6063,7 +6067,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         valor_punto: Number(document.getElementById('cfgValorPunto').value) || 0
       },
       clientes: document.getElementById('cfgClientesActivo').checked,
-      tipo_negocio: document.getElementById('cfgTipoNegocio').value || null
+      tipo_negocio: (document.getElementById('cfgTipoNegocio').value === valorSelectGiro()) ? (configNegocio.tipo_negocio || null) : (baseDeGiro(document.getElementById('cfgTipoNegocio').value) || null),
+      // el giro específico solo cambia si la persona lo cambia (así nadie recibe funciones nuevas sin pedirlas)
+      subgiro: (document.getElementById('cfgTipoNegocio').value === valorSelectGiro()) ? (configNegocio.subgiro || null) : (document.getElementById('cfgTipoNegocio').value || null)
     };
     const { error } = await sb.from('negocios').update({ configuracion: configNegocio }).eq('id', negocioId);
     if(error){ mostrarMensaje('mensajeConfig', 'No se pudo guardar: ' + error.message, 'error'); return; }
@@ -6868,9 +6874,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       codigo_postal: document.getElementById('ubiCP').value.trim()
     };
 
-    const giro = document.getElementById('ubiGiro').value, pre = PRESETS_TIPO_NEGOCIO[giro];
+    const giroSel = document.getElementById('ubiGiro').value, giro = baseDeGiro(giroSel), pre = PRESETS_TIPO_NEGOCIO[giro];
     if(!giro || !pre){ btn.disabled = false; btn.textContent = 'Continuar'; mostrarMensaje('mensajeUbicacion', 'Elige el giro de tu negocio.', 'error'); return false; }
-    const cfgNuevo = Object.assign({}, configNegocio, { tipo_negocio: giro, corte_caja: pre.corte_caja, categorias: pre.categorias, codigo_barras: pre.codigo_barras, devoluciones: pre.devoluciones });
+    const cfgNuevo = Object.assign({}, configNegocio, { tipo_negocio: giro, subgiro: giroSel, corte_caja: pre.corte_caja, categorias: pre.categorias, codigo_barras: pre.codigo_barras, devoluciones: pre.devoluciones });
     const { error } = await sb.from('negocios').update(Object.assign({}, datos, { configuracion: cfgNuevo })).eq('id', negocioId);
     btn.disabled = false; btn.textContent = 'Continuar';
 
@@ -6971,8 +6977,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     switch(cual){
       case 'vender':       return esCajeroAhora;
       case 'productos':    return esCajeroAhora || esEncargadoAhora;
-      case 'enlinea':      return (esCajeroAhora || esEncargadoAhora) && document.body.classList.contains('giro-papeleria');
-      case 'encargos':     return (esCajeroAhora || esEncargadoAhora) && document.body.classList.contains('giro-papeleria');
+      case 'enlinea':      return (esCajeroAhora || esEncargadoAhora) && usaPedProg();
+      case 'encargos':     return (esCajeroAhora || esEncargadoAhora) && usaEncargos();
       case 'agenda':       return (esCajeroAhora || esEncargadoAhora) && document.body.classList.contains('giro-servicios');
       case 'comisiones':   return esEncargadoAhora && document.body.classList.contains('giro-servicios');
       case 'pedidos':      return (esCajeroAhora || esEncargadoAhora) && pedidosQrActivo === true;
@@ -7282,7 +7288,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     fotoForm = { original: p.foto_path || null, actual: p.foto_path || null, subida: null }; pintarFotoForm(); estadoFoto('');
     if(document.body.classList.contains('giro-servicios')){ document.getElementById('pTipo').value = p.tipo || 'producto'; document.getElementById('pDuracion').value = p.duracion_min || ''; ajustarFormServicio(); }
     if(document.body.classList.contains('giro-ropa')){ document.getElementById('pNombre').value = p.modelo || p.nombre; document.getElementById('pTalla').value = p.talla || ''; document.getElementById('pColor').value = p.color || ''; }
-    if(esPapeleria()) cargarFormPap(p);
+    if(usaUnidades()) cargarFormPap(p);
     alternarFormulario(true);
   }
 
@@ -7313,12 +7319,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(document.body.classList.contains('giro-restaurante') || document.body.classList.contains('giro-cafeteria')) registro.foto_path = fotoForm.actual;
     if(document.body.classList.contains('giro-servicios')){ registro.tipo = document.getElementById('pTipo').value; if(registro.tipo === 'servicio'){ registro.duracion_min = parseInt(document.getElementById('pDuracion').value, 10) || null; registro.stock = 999999; } else registro.duracion_min = null; }
     if(document.body.classList.contains('giro-ropa')){ const talla = document.getElementById('pTalla').value.trim(), color = document.getElementById('pColor').value.trim(), base = registro.nombre; registro.modelo = base; registro.talla = talla || null; registro.color = color || null; registro.nombre = [base, talla, color].filter(Boolean).join(' '); }
-    if(esPapeleria()){ const errPap = valoresFormPap(registro); if(errPap){ btn.disabled = false; mostrarMensaje('mensajeProducto', errPap, 'error'); return false; } }
+    if(usaUnidades()){ const errPap = valoresFormPap(registro); if(errPap){ btn.disabled = false; mostrarMensaje('mensajeProducto', errPap, 'error'); return false; } }
     let error, idGuardado = id;
     if(id){ ({ error } = await sb.from('productos').update(registro).eq('id', id)); }
-    else if(esPapeleria()){ const r = await sb.from('productos').insert(registro).select('id').single(); error = r.error; idGuardado = r.data && r.data.id; }
+    else if(usaUnidades()){ const r = await sb.from('productos').insert(registro).select('id').single(); error = r.error; idGuardado = r.data && r.data.id; }
     else { ({ error } = await sb.from('productos').insert(registro)); }
-    if(!error && esPapeleria() && idGuardado){
+    if(!error && usaUnidades() && idGuardado){
       const r2 = await guardarPreciosPap(idGuardado);
       if(r2.error){ btn.disabled = false; mostrarMensaje('mensajeProducto', 'El artículo se guardó, pero no sus presentaciones o precios por volumen: ' + r2.error.message, 'error'); await cargarProductos(); return false; }
     }
@@ -7327,7 +7333,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     confirmarFotoGuardada();
     alternarFormulario(false);
     await cargarProductos();
-    if(esPapeleria()) await cargarPreciosPap();
+    if(usaUnidades()) await cargarPreciosPap();
     return false;
   }
 
@@ -7431,7 +7437,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const p0 = productosCache.find(x => x.id === id);
     if(document.body.classList.contains('giro-servicios') && esServicioProd(p0)){ pedirEmpleado(p0); return; }
     if(p0 && esCafeteria() && gruposDe(p0).length){ abrirPersonalizarPos(p0); return; }
-    if(p0 && esPapeleria() && necesitaHojaPap(p0)){ abrirVentaPap(p0); return; }
+    if(p0 && usaUnidades() && necesitaHojaPap(p0)){ abrirVentaPap(p0); return; }
     agregarAlCarritoOriginal(id);
   }
   function agregarAlCarritoOriginal(id){
@@ -7497,7 +7503,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   function renderizarCarrito(){
-    if(esPapeleria()) repriceCarritoPap();
+    if(usaUnidades()) repriceCarritoPap();
     actualizarCobroRapido(); actualizarBloqueVale(); actualizarCrossSell(); actualizarResumenServicios();
     const contenedor = document.getElementById('lineasCarrito');
     const vacio = document.getElementById('carritoVacio');
@@ -8018,7 +8024,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   // ----- Configuración: activar y generar QR de mesas (solo encargado, giro Restaurante) -----
   async function actualizarBloquePedidosQr(){
     const b = document.getElementById('bloquePedidosQr'); if(!b) return;
-    const esRest = ['restaurante', 'cafeteria'].includes(document.getElementById('cfgTipoNegocio').value);
+    const esRest = ['restaurante', 'cafeteria'].includes(baseDeGiro(document.getElementById('cfgTipoNegocio').value));
     b.classList.toggle('oculto', !(esRest && miRol === 'admin' && !esAdminActual));
     if(!esRest) return;
     const { data } = await sb.from('negocios').select('pedidos_qr_activo').eq('id', negocioId).maybeSingle();
@@ -8124,7 +8130,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       nota: 'Organiza por uso: escolar, oficina, arte, regalos, copias y servicios…', catPh: 'Ej. Escolar, Oficina, Arte, Regalos...' }
   };
   function aplicarVocabularioGiro(){
-    const giro = configNegocio.tipo_negocio || '', v = VOCAB_GIRO[giro] || null;
+    const giro = configNegocio.tipo_negocio || '', esp = giroEspecifico(), v0 = VOCAB_GIRO[giro] || null, v = (v0 || esp) ? Object.assign({}, v0 || {}, esp ? { ph: esp.ph, catPh: esp.catPh } : {}) : null;
     document.body.className = document.body.className.replace(/\bgiro-\S+/g, '').trim(); if(giro) document.body.classList.add('giro-' + giro);
     const txt = (el, nuevo) => { if(!el || el.children.length) return; if(el.dataset.orig === undefined) el.dataset.orig = el.textContent; el.textContent = nuevo != null ? nuevo : el.dataset.orig; };
     const ph = (el, nuevo) => { if(!el) return; if(el.dataset.orig === undefined) el.dataset.orig = el.placeholder; el.placeholder = nuevo != null ? nuevo : el.dataset.orig; };
@@ -8135,13 +8141,16 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const sku = document.getElementById('pSku'); if(sku && sku.closest('.campo')) sku.closest('.campo').style.display = (v && v.sinSku) ? 'none' : '';
     document.querySelectorAll('[onclick*="abrirEscaner"]').forEach(b => { b.style.display = (v && v.sinEscaner) ? 'none' : ''; });
     document.querySelectorAll('.campo-ropa').forEach(e => e.classList.toggle('oculto', giro !== 'ropa'));
-    document.querySelectorAll('.campo-papeleria').forEach(e => e.classList.toggle('oculto', giro !== 'papeleria')); if(giro === 'papeleria'){ iniciarFormPap(); cargarPreciosPap(); }
+    document.querySelectorAll('.campo-papeleria').forEach(e => e.classList.toggle('oculto', !usaUnidades()));
+    ['detPeso', 'detServ'].forEach(id => { const e = document.getElementById(id); if(e) e.classList.toggle('oculto', giro !== 'papeleria'); });   // báscula y servicios de impresión: solo papelería
+    const cadF = document.getElementById('pCaducidad'); if(cadF && cadF.closest('.campo')) cadF.closest('.campo').style.display = mostrarCaducidadForm() ? '' : 'none';
+    if(usaUnidades()){ iniciarFormPap(); cargarPreciosPap(); }
     const cf = document.getElementById('campoFotoPlatillo'); if(cf) cf.classList.toggle('oculto', !(v && v.foto));
     const nc = document.getElementById('navComisiones'); if(nc) nc.classList.toggle('oculto', !(giro === 'servicios' && miRol === 'admin' && !esAdminActual));
     const tc = document.getElementById('tabClimaAnalitica'); if(tc) tc.classList.toggle('oculto', !(climaDisponible() && miRol === 'admin' && !esAdminActual));
-    if(giro === 'papeleria') cargarEstadoProg();
-    const nl = document.getElementById('navEnlinea'); if(nl) nl.classList.toggle('oculto', !(giro === 'papeleria' && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
-    const ne = document.getElementById('navEncargos'); if(ne) ne.classList.toggle('oculto', !(giro === 'papeleria' && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
+    if(usaPedProg()) cargarEstadoProg();
+    const nl = document.getElementById('navEnlinea'); if(nl) nl.classList.toggle('oculto', !(usaPedProg() && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
+    const ne = document.getElementById('navEncargos'); if(ne) ne.classList.toggle('oculto', !(usaEncargos() && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
     const bl = document.getElementById('btnListaEscolar'); if(bl) bl.classList.toggle('oculto', giro !== 'papeleria');
     const na = document.getElementById('navAgenda'); if(na) na.classList.toggle('oculto', !(giro === 'servicios' && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
     if(giro === 'servicios') cargarEmpleados(); if(giro === 'cafeteria') cargarGrupos(); if(GIROS_CLIMA.includes(giro)) iniciarClima(); ajustarFormServicio();
@@ -11978,7 +11987,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     _base: ['nombre', 'categoria', 'sku', 'precio', 'costo', 'stock']
   };
   const giroVoz = () => (configNegocio && configNegocio.tipo_negocio) || 'otro';
-  const guionVoz = (g) => GUION_VOZ[g] || GUION_VOZ._base;
+  const guionVoz = (g) => {
+    let base = (g !== 'papeleria' && usaUnidades()) ? ['nombre', 'categoria', 'sku', 'unidad', 'precio', 'existencias', 'mayoreo'] : (GUION_VOZ[g] || GUION_VOZ._base);
+    if(g !== 'papeleria' && featGiro('caducidad') && base.indexOf('caducidad') < 0) base = base.concat(['caducidad']);
+    return base;
+  };
   const esSiVoz = (texto) => { const t = String(texto || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); return /\b(si|claro|dale|ok|va)\b/.test(t) && !/\bno\b/.test(t); };  // "sí" con acento no casaba con \b
   const siONo = async (q) => esSiVoz(await preguntarYEscuchar(q + ' Di sí o no.'));
   const uVoz = (pv) => pv.unidad || 'pieza';
@@ -12042,12 +12055,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     talla: { et: 'Talla', claves: ['talla'], async ask(g, pv){ const t = await preguntarYEscuchar('¿Qué talla es? Por ejemplo mediana o 28. O di omitir.'); pv.talla = esOmision(t) ? null : t; }, ver: (pv) => pv.talla || '—' },
     color: { et: 'Color', claves: ['color'], async ask(g, pv){ const t = await preguntarYEscuchar('¿De qué color es? O di omitir.'); pv.color = esOmision(t) ? null : t; }, ver: (pv) => pv.color || '—' },
     unidad: { et: 'Se vende por', claves: ['unidad', 'vende por'], cuando: (g, pv) => !pv.esServicio || !pv.hecho.has('unidad'),
-      async ask(g, pv){ const t = (await preguntarYEscuchar('¿Se vende por pieza, hoja, metro, copia o pliego? Di cuál, o di otra.')).toLowerCase();
-        const m = [['hoja', 'hoja'], ['metro', 'metro'], ['copia', 'copia'], ['impresi', 'copia'], ['pliego', 'pliego'], ['pieza', 'pieza']].find(([k]) => t.includes(k));
+      async ask(g, pv){ const t = (await preguntarYEscuchar((esPapeleria() ? '¿Se vende por pieza, hoja, metro, copia o pliego? Di cuál, o di otra.' : '¿Se vende por pieza, kilo, litro, metro o paquete? Di cuál, o di otra.'))).toLowerCase();
+        const m = [['hoja', 'hoja'], ['metro', 'metro'], ['copia', 'copia'], ['impresi', 'copia'], ['pliego', 'pliego'], ['kilo', 'kilo'], ['litro', 'litro'], ['paquete', 'paquete'], ['pieza', 'pieza']].find(([k]) => t.includes(k));
         if(m) pv.unidad = m[1]; else if(/otr/.test(t)){ const o = await preguntarHastaObtener('¿Cómo se llama? Por ejemplo litro o juego.'); pv.unidad = o.toLowerCase().replace(/[^a-záéíóúñ ]/g, '').trim().slice(0, 20) || 'pieza'; } else pv.unidad = 'pieza'; },
       ver: (pv) => uVoz(pv) },
     precio: { et: 'Precio', claves: ['precio'], habla: true,
-      async ask(g, pv){ pv.precio = await preguntarNumero(g === 'papeleria' ? '¿A cuánto vendes 1 ' + uVoz(pv) + '?' : g === 'servicios' ? '¿Cuánto cuesta el servicio?' : g === 'restaurante' ? '¿Cuánto cuesta el platillo?' : '¿A cuánto lo vendes?'); },
+      async ask(g, pv){ pv.precio = await preguntarNumero((g === 'papeleria' || usaUnidades()) ? '¿A cuánto vendes 1 ' + uVoz(pv) + '?' : g === 'servicios' ? '¿Cuánto cuesta el servicio?' : g === 'restaurante' ? '¿Cuánto cuesta el platillo?' : '¿A cuánto lo vendes?'); },
       ver: (pv) => dinVoz(pv.precio) },
     costo: { et: 'Costo', claves: ['costo'], cuando: (g, pv) => g !== 'servicios' || pv.tipo === 'producto',
       async ask(g, pv){ const t = await preguntarYEscuchar('¿Cuánto te cuesta a ti? O di omitir.'); pv.costo = esOmision(t) ? 0 : (extraerNumeroDeVoz(t) ?? 0); },
@@ -12122,8 +12135,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(g === 'restaurante' || g === 'cafeteria') registro.foto_path = pv.foto_path || null;
     if(g === 'servicios'){ registro.tipo = pv.tipo || 'servicio'; if(registro.tipo === 'servicio'){ registro.duracion_min = pv.duracion || 30; registro.stock = 999999; registro.costo = 0; } else registro.duracion_min = null; }
     if(g === 'ropa'){ const base = registro.nombre; registro.modelo = base; registro.talla = pv.talla || null; registro.color = pv.color || null; registro.nombre = [base, pv.talla, pv.color].filter(Boolean).join(' '); if(pv.sku === '__generar__') registro.sku = ctx.nuevoEan(); }
-    if(g === 'farmacia') registro.fecha_caducidad = pv.caducidad || null;
-    if(g === 'papeleria'){
+    if(g === 'farmacia' || (ctx && ctx.caducidad)) registro.fecha_caducidad = pv.caducidad || null;
+    if(g === 'papeleria' || (ctx && ctx.unidades)){
       registro.unidad = uVoz(pv); registro.paso_venta = 1; registro.peso_unitario_g = null;
       if(pv.esServicio){ registro.tipo = 'servicio'; registro.stock = 999999; registro.sku = null; registro.insumo_id = pv.insumo ? pv.insumo.id : null; registro.insumo_cantidad = 1; }
       else { registro.tipo = 'producto'; registro.insumo_id = null; registro.insumo_cantidad = 1;
@@ -12134,12 +12147,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
   async function guardarProductoDesdeVoz(){
     if(!puedoEditarProductos()){ await hablar('Solo el encargado puede guardar productos.'); return false; }
-    const g = giroVoz(), { registro, presentaciones, volumen } = construirRegistroVoz(g, productoVoz, { negocioId, nuevoEan: eanNuevoUnico });
+    const g = giroVoz(), { registro, presentaciones, volumen } = construirRegistroVoz(g, productoVoz, { negocioId, nuevoEan: eanNuevoUnico, unidades: usaUnidades(), caducidad: featGiro('caducidad') });
     let error, id = null;
-    if(g === 'papeleria'){ const r = await sb.from('productos').insert(registro).select('id').single(); error = r.error; id = r.data && r.data.id; }
+    if(g === 'papeleria' || usaUnidades()){ const r = await sb.from('productos').insert(registro).select('id').single(); error = r.error; id = r.data && r.data.id; }
     else { ({ error } = await sb.from('productos').insert(registro)); }
     if(error){ await hablar('Hubo un error al guardar: ' + textoErrorProducto(error)); return false; }
-    if(g === 'papeleria' && id && (presentaciones.length || volumen.length)){
+    if((g === 'papeleria' || usaUnidades()) && id && (presentaciones.length || volumen.length)){
       const r2 = await sb.rpc('guardar_precios_papeleria', { p_producto: id, p_presentaciones: presentaciones, p_volumen: volumen });
       if(r2.error) await hablar('Se guardó, pero no el paquete o el descuento: ' + r2.error.message);
     }
@@ -13688,7 +13701,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     try{ const o = JSON.parse(lsGet('puve_pap_cache') || 'null'); if(o){ presCache = new Map(o.pres || []); volCache = new Map(o.vol || []); } }catch(e){}
   }
   async function cargarPreciosPap(){
-    if(!esPapeleria() || !negocioId || !enLinea) return;
+    if(!usaUnidades() || !negocioId || !enLinea) return;
     const [a, b] = await Promise.all([
       traerTodoPaginado(() => sb.from('presentaciones_producto').select('id,producto_id,nombre,unidades,precio').eq('negocio_id', negocioId).order('id')),
       traerTodoPaginado(() => sb.from('precios_volumen').select('producto_id,desde,precio_unitario').eq('negocio_id', negocioId).order('id'))
@@ -13719,7 +13732,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   function necesitaHojaPap(p){ return (Number(p.paso_venta) || 1) !== 1 || (presCache.get(p.id) || []).length > 0; }
   function stockTxt(p){
     const s = Number(p.stock);
-    if(!esPapeleria()) return String(s);
+    if(!usaUnidades()) return String(s);
     if(p.tipo === 'servicio') return 'servicio';
     let t = s + ' ' + (p.unidad || 'pieza');
     const grande = (presCache.get(p.id) || []).slice().sort((x, y) => y.unidades - x.unidades)[0];
@@ -13729,7 +13742,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     return t;
   }
   function controlCantidad(i){
-    if(!esPapeleria()) return '<span>' + i.cantidad + '</span>';
+    if(!usaUnidades()) return '<span>' + i.cantidad + '</span>';
     return '<input class="input-mini cant-input" type="number" min="0" step="' + (i.paso || 1) + '" value="' + i.cantidad + '" style="width:64px; padding:3px 4px; text-align:center;" aria-label="Cantidad" onchange="fijarCantidad(' + jsAttr(i.id) + ', this.value)">';
   }
   function fijarCantidad(id, v){
@@ -13751,7 +13764,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     return toks.every(t => p.__q.includes(t));
   }
   function limitarListaPap(lista, termino, nota){
-    if(!esPapeleria()) return lista;
+    if(!usaUnidades()) return lista;
     const MAX = 80;
     let l = lista;
     if(termino){
@@ -13799,8 +13812,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   // --- Formulario del artículo (encargado): pocas preguntas a la vista, lo avanzado en secciones plegables ---
-  const UNIDADES_PAP = [['pieza', 'Por pieza'], ['hoja', 'Por hoja'], ['metro', 'Por metro'], ['copia', 'Por copia'], ['pliego', 'Por pliego'], ['otra', 'Otra…']];
-  const plural = (w) => { w = String(w || '').trim().toLowerCase(); if(!w) return 'unidades'; return /[aeiou]$/.test(w) ? w + 's' : w + 'es'; };
+    const plural = (w) => { w = String(w || '').trim().toLowerCase(); if(!w) return 'unidades'; return /[aeiou]$/.test(w) ? w + 's' : w + 'es'; };
   const cuantos = (w) => /a$/i.test(String(w || '').trim()) ? 'Cuántas' : 'Cuántos';
   const idv = (id) => document.getElementById(id);
   const unidadForm = () => ((idv('pUnidad') || {}).value || '').trim().toLowerCase() || 'pieza';
@@ -13808,14 +13820,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   const esServicioForm = () => !!(idv('pEsServicio') || {}).checked;
 
   function iniciarFormPap(){
-    const s = idv('pStock'); if(s && esPapeleria()){ s.step = 'any'; s.required = false; }
+    const s = idv('pStock'); if(s && usaUnidades()){ s.step = 'any'; s.required = false; }
     pintarChipsUnidad(); etiquetasPap(); pintarEditoresPap(); pintarInsumo();
-    const cad = idv('pCaducidad'); if(cad && cad.closest('.campo')) cad.closest('.campo').style.display = esPapeleria() ? 'none' : '';
+    const cad = idv('pCaducidad'); if(cad && cad.closest('.campo')) cad.closest('.campo').style.display = mostrarCaducidadForm() ? '' : 'none';
   }
   function pintarChipsUnidad(){
     const c = idv('chipsUnidad'); if(!c) return; c.textContent = '';
-    const u = unidadForm(), basicas = UNIDADES_PAP.slice(0, -1).map(x => x[0]), esOtra = !basicas.includes(u);
-    UNIDADES_PAP.forEach(([v, et]) => { const b = el('button', 'chip-cat' + (((v === 'otra') === esOtra && (esOtra || v === u)) ? ' activo' : ''), et); b.type = 'button'; b.onclick = () => elegirUnidad(v); c.appendChild(b); });
+    const lista = unidadesGiro(), u = unidadForm(), basicas = lista.slice(0, -1).map(x => x[0]), esOtra = !basicas.includes(u);
+    lista.forEach(([v, et]) => { const b = el('button', 'chip-cat' + (((v === 'otra') === esOtra && (esOtra || v === u)) ? ' activo' : ''), et); b.type = 'button'; b.onclick = () => elegirUnidad(v); c.appendChild(b); });
     const o = idv('pUnidadOtra'); if(o){ o.classList.toggle('oculto', !esOtra); if(esOtra) o.value = (u === 'otra' || u === 'pieza') ? '' : u; }
   }
   function elegirUnidadOtra(v){ idv('pUnidad').value = String(v || '').trim().toLowerCase() || 'otra'; etiquetasPap(); recalcPaq(); pintarEditoresPap(); }
@@ -13823,11 +13835,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const h = idv('pUnidad'), o = idv('pUnidadOtra'), paso = idv('pPaso');
     if(v === 'otra'){ h.value = (o.value || '').trim().toLowerCase() || 'otra'; o.classList.remove('oculto'); o.value = h.value === 'otra' ? '' : h.value; o.focus(); }
     else { h.value = v; o.classList.add('oculto'); }
-    if(paso){ if(v === 'metro' && paso.value === '1') paso.value = '0.5'; else if(v !== 'metro' && paso.value === '0.5') paso.value = '1'; }
+    if(paso){ const def = PASO_POR_UNIDAD[v]; if(def && paso.value === '1') paso.value = def; else if(!def && Object.values(PASO_POR_UNIDAD).indexOf(paso.value) >= 0) paso.value = '1'; }
     pintarChipsUnidad(); etiquetasPap(); recalcPaq();
   }
   function etiquetasPap(){
-    if(!esPapeleria()) return;
+    if(!usaUnidades()) return;
     const u = unidadForm(), pl = plural(u), t = (id, txt) => { const e = idv(id); if(e) e.textContent = txt; };
     t('lblPrecioPap', 'Precio de 1 ' + u); t('lblCostoPap', 'Costo de 1 ' + u + ' (opcional)');
     document.querySelector('label[for="pPrecio"]').textContent = '¿A cuánto vendes 1 ' + u + '?'; document.querySelector('label[for="pCosto"]').textContent = '¿Cuánto te cuesta 1 ' + u + '? (opcional)';
@@ -13923,6 +13935,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(unidad === 'otra') return 'Escribe cómo se llama la unidad (por ejemplo litro o juego).';
     const paso = parseFloat(idv('pPaso').value) || 1;
     if(paso < 0.01) return 'El mínimo que se puede vender es 0.01.';
+    if(registro.tipo === 'servicio' && !esPapeleria()){ registro.unidad = unidad; registro.paso_venta = 1; registro.peso_unitario_g = null; formPap.listo = { pres: [], vol: [] }; return ''; }
     const peso = parseFloat(idv('pPeso').value);
     registro.unidad = unidad; registro.paso_venta = paso; registro.peso_unitario_g = peso > 0 ? peso : null;
     if(esServicioForm()){
@@ -14298,7 +14311,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     } catch(e){}
   }
   async function cargarEstadoProg(){
-    if(!negocioId || !esPapeleria()) return;
+    if(!negocioId || !usaPedProg()) return;
     const { data, error } = await sb.from('negocios').select('pedidos_prog_activo').eq('id', negocioId).maybeSingle(); if(error) return;
     progActivo = !!(data && data.pedidos_prog_activo);
     if(progActivo) abrirCanalProg();
@@ -14315,7 +14328,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     clearInterval(progTimer); progTimer = null; progActivo = null; progCache = []; progVistos = new Set(); progYaCargo = false; progAvisado = false;
   }
   async function refrescarProg(){
-    if(!negocioId || !esPapeleria()) return;
+    if(!negocioId || !usaPedProg()) return;
     const { data, error } = await sb.from('pedidos_prog').select('*, pedido_prog_items(*), pedido_prog_trabajos(*)').eq('negocio_id', negocioId)
       .in('estado', ['nuevo', 'en_proceso', 'listo']).order('para_cuando', { ascending: true, nullsFirst: true }).order('creado_en').limit(200);
     if(error) return;
@@ -14333,7 +14346,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
   // Al abrir la caja (o al entrar si ya estaba abierta): sonido + resumen de lo pendiente
   function avisarPedidosProg(forzar){
-    if(!esPapeleria() || !progActivo && !progCache.length) return;
+    if(!usaPedProg() || !progActivo && !progCache.length) return;
     if(progAvisado && !forzar) return;
     const abiertos = progCache.filter(p => p.estado === 'nuevo' || p.estado === 'en_proceso'); if(!abiertos.length) return;
     progAvisado = true; sonidoProg();
@@ -14517,7 +14530,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   async function registrarEvidenciaLegal(ctx){
     try {
       const { data: { session } } = await sb.auth.getSession(); if(!session || !window.PuveLegal) return;
-      PuveLegal.registrar({ token: session.access_token, nombre: (session.user.user_metadata || {}).nombre, tipo_cuenta: ctx.tipo, texto: ctx.texto || null, mayor_de_edad: ctx.mayor === true ? true : null, metodo: ctx.metodo, version: VERSION_LEGAL });
+      PuveLegal.registrar({ token: session.access_token, nombre: (session.user.user_metadata || {}).nombre, tipo_cuenta: ctx.tipo, texto: ctx.texto || null, documentos: ctx.documentos || undefined, mayor_de_edad: ctx.mayor === true ? true : null, metodo: ctx.metodo, version: VERSION_LEGAL });
     } catch(e){}
   }
   const trackApp = (t, v) => { try { if(window.PuveAnalitica) PuveAnalitica.track(t, null, v); } catch(e){} };
@@ -14532,6 +14545,43 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const t = setInterval(() => { n++; const v = document.getElementById('vistaAuth'), s = document.getElementById('selectorTipoAcceso');
       if(v && getComputedStyle(v).display !== 'none' && s){ clearInterval(t); try { elegirTipoAcceso(location.hash === '#embajador' ? 'embajador' : 'negocio'); cambiarTab('registro'); } catch(e){} } else if(n > 40) clearInterval(t); }, 250);
   })();
+
+
+  // ===== Giros de PUVE: grupos, giros y las funciones que cada uno enciende =====
+  // tipo_negocio guarda la FAMILIA (tienda, restaurante, cafeteria, ferreteria, ropa, farmacia, papeleria, servicios): así todo lo que ya existe sigue funcionando.
+  // subgiro guarda el giro específico y decide el lenguaje y las funciones extra (unidades/granel, encargos, pedidos en línea, caducidad).
+  const GRUPOS_GIRO = [{"id":"comida","nombre":"Comida y bebida","desc":"Comandas, mesas y cocina.","giros":[{"id":"restaurantes","nombre":"Restaurantes y fondas","base":"restaurante","feats":["mesas","fotos","camara"],"ph":"Tacos al pastor","catPh":"Ej. Entradas, Platos fuertes, Bebidas, Postres...","extra":["Foto de cada platillo en tu menú"]},{"id":"taquerias","nombre":"Taquerías","base":"restaurante","feats":["mesas","fotos"],"ph":"Orden de pastor (5 tacos)","catPh":"Ej. Tacos, Órdenes, Bebidas, Extras...","extra":["Menú con precios por orden o por pieza"]},{"id":"pizzerias","nombre":"Pizzerías y comida rápida","base":"restaurante","feats":["mesas","fotos"],"ph":"Pizza grande pepperoni","catPh":"Ej. Pizzas, Hamburguesas, Complementos, Bebidas...","extra":["Menú con fotos para vender más"]},{"id":"bares","nombre":"Bares y cantinas","base":"restaurante","feats":["mesas"],"ph":"Cerveza clara","catPh":"Ej. Cervezas, Cocteles, Botanas, Promociones...","extra":["Pedidos por mesa con QR"]},{"id":"cafeterias","nombre":"Cafeterías","base":"cafeteria","feats":["fotos","camara"],"ph":"Latte mediano","catPh":"Ej. Café, Té, Postres, Alimentos...","extra":["Personaliza cada bebida con opciones y extras","Pedidos por QR en barra"]},{"id":"heladerias","nombre":"Heladerías y paleterías","base":"cafeteria","feats":["fotos"],"ph":"Helado de vainilla (2 bolas)","catPh":"Ej. Helados, Paletas, Aguas, Toppings...","extra":["Opciones de sabor, tamaño y toppings"]},{"id":"panaderia","nombre":"Panadería y repostería","base":"cafeteria","feats":["encargos","pedprog","fotos","caducidad"],"ph":"Concha de vainilla","catPh":"Ej. Pan dulce, Pan salado, Pasteles, Galletas...","extra":["Encargos de pasteles con anticipo y fecha de entrega","Pedidos en línea para recoger"]}]},{"id":"abarrotes","nombre":"Abarrotes y alimentos","desc":"Venta a granel, caducidad y fiado.","giros":[{"id":"abarrotes","nombre":"Abarrotes y tiendas de conveniencia","base":"tienda","feats":["unidades","caducidad","fiado","pedprog","camara"],"ph":"Refresco 600 ml","catPh":"Ej. Botanas, Bebidas, Lácteos, Limpieza...","extra":[]},{"id":"licorerias","nombre":"Licorerías y cervecerías","base":"tienda","feats":["pedprog","camara"],"ph":"Cerveza clara (six)","catPh":"Ej. Cervezas, Tequila, Whisky, Refrescos...","extra":["Precio por caja o por pieza con descuento por volumen"]},{"id":"carnicerias","nombre":"Carnicerías","base":"tienda","feats":["unidades","caducidad","pedprog"],"ph":"Bistec de res (kg)","catPh":"Ej. Res, Cerdo, Pollo, Embutidos...","extra":["Cortes y empaques por kilo"]},{"id":"dulcerias","nombre":"Dulcerías","base":"tienda","feats":["unidades","caducidad","pedprog"],"ph":"Gomitas a granel (100 g)","catPh":"Ej. Dulces, Chocolates, Botanas, Fiestas...","extra":["Venta a granel y por bolsita"]},{"id":"cremerias","nombre":"Cremerías y salchichonerías","base":"tienda","feats":["unidades","caducidad","fiado"],"ph":"Queso Oaxaca (kg)","catPh":"Ej. Quesos, Cremas, Jamones, Lácteos...","extra":["Quesos y embutidos por kilo"]},{"id":"fruterias","nombre":"Fruterías y verdulerías","base":"tienda","feats":["unidades","pedprog"],"ph":"Jitomate (kg)","catPh":"Ej. Frutas, Verduras, Hierbas, Abarrotes...","extra":["Venta por kilo, pieza o manojo"]},{"id":"pollerias","nombre":"Pollerías y pescaderías","base":"tienda","feats":["unidades","caducidad","pedprog"],"ph":"Pechuga de pollo (kg)","catPh":"Ej. Pollo, Pescado, Mariscos, Congelados...","extra":["Pedidos para recoger por la tarde"]},{"id":"tortillerias","nombre":"Tortillerías y molinos","base":"tienda","feats":["unidades","fiado"],"ph":"Tortilla de maíz (kg)","catPh":"Ej. Tortillas, Masa, Totopos, Abarrotes...","extra":["Cobro por kilo y por pieza"]}]},{"id":"especialidad","nombre":"Tienda y especialidad","desc":"Tallas, colores y productos sin código.","giros":[{"id":"ropa","nombre":"Ropa y zapatos","base":"ropa","feats":["tallas","vales","camara"],"ph":"Playera básica","catPh":"Ej. Playeras, Jeans, Calzado, Accesorios...","extra":["Tallas y colores por cada modelo","Vales de saldo a favor para cambios"]},{"id":"joyeria","nombre":"Joyería y relojería","base":"tienda","feats":["encargos","camara"],"ph":"Cadena de plata 45 cm","catPh":"Ej. Anillos, Cadenas, Relojes, Aretes...","extra":["Apartados con anticipo y fecha límite"]},{"id":"ferreteria","nombre":"Ferreterías y tlapalerías","base":"ferreteria","feats":["unidades","encargos","pedprog","camara"],"ph":"Tornillo 1/4 x 2 (pieza)","catPh":"Ej. Tornillería, Herramientas, Plomería, Electricidad...","extra":["Precio por volumen: más barato al llevar más"]},{"id":"electronicos","nombre":"Electrónicos y celulares","base":"tienda","feats":["encargos","camara"],"ph":"Cargador USB-C 20 W","catPh":"Ej. Celulares, Accesorios, Cables, Audio...","extra":["Apartados y pedidos de equipos"]},{"id":"papelerias","nombre":"Papelerías y copias","base":"papeleria","feats":["unidades","encargos","pedprog","impresion","caducidad_no"],"ph":"Cartulina azul","catPh":"Ej. Escolar, Oficina, Arte, Regalos...","extra":["Imprime y pide: tus clientes suben archivos con un QR","Lista escolar por texto o foto"]},{"id":"refaccionarias","nombre":"Refaccionarias","base":"ferreteria","feats":["unidades","encargos","camara"],"ph":"Balata delantera (juego)","catPh":"Ej. Frenos, Motor, Suspensión, Eléctrico...","extra":["Pedido de piezas que no tienes, con anticipo"]},{"id":"floristerias","nombre":"Florerías","base":"tienda","feats":["encargos","pedprog","fotos"],"ph":"Ramo de rosas (12)","catPh":"Ej. Ramos, Arreglos, Plantas, Detalles...","extra":["Encargos con fecha, hora y anticipo"]},{"id":"regalos","nombre":"Regalos y novedades","base":"tienda","feats":["encargos","pedprog","camara"],"ph":"Taza personalizada","catPh":"Ej. Tazas, Peluches, Detalles, Fiestas...","extra":["Pedidos para recoger en tu tienda"]}]},{"id":"salud","nombre":"Salud y servicios","desc":"Inventario actualizado y tienda en línea.","giros":[{"id":"farmacias","nombre":"Farmacias","base":"farmacia","feats":["caducidad","pedprog","camara"],"ph":"Paracetamol 500 mg (caja)","catPh":"Ej. Medicamentos, Genéricos, Cuidado personal, Bebés...","extra":["Caducidad en cada producto"]},{"id":"estetica","nombre":"Estética, barbería y spa","base":"servicios","feats":["citas"],"ph":"Corte de cabello","catPh":"Ej. Cabello, Uñas, Barba, Tratamientos...","extra":["Agenda de citas","Cada servicio con su duración"]},{"id":"suplementos","nombre":"Tiendas de suplementos","base":"tienda","feats":["caducidad","pedprog","camara"],"ph":"Proteína 2 lb vainilla","catPh":"Ej. Proteínas, Vitaminas, Pre-entreno, Accesorios...","extra":["Puntos de recompensa para clientes frecuentes"]},{"id":"veterinarias","nombre":"Veterinarias y tiendas de mascotas","base":"servicios","feats":["citas","unidades","caducidad","pedprog"],"ph":"Croquetas adulto (kg)","catPh":"Ej. Alimento, Accesorios, Higiene, Consultas...","extra":["Alimento a granel por kilo"]},{"id":"talleres","nombre":"Talleres y lavado de autos","base":"servicios","feats":["citas"],"ph":"Cambio de aceite","catPh":"Ej. Mantenimiento, Lavado, Frenos, Refacciones...","extra":["Agenda por servicio y duración"]},{"id":"lavanderias","nombre":"Lavanderías y tintorerías","base":"servicios","feats":["citas","encargos"],"ph":"Lavado por kilo","catPh":"Ej. Lavado, Planchado, Tintorería, Edredones...","extra":["Pedidos con anticipo y fecha de entrega"]}]}];
+  const GIRO_POR_ID = {}; GRUPOS_GIRO.forEach(gr => gr.giros.forEach(x => { x.grupo = gr.id; GIRO_POR_ID[x.id] = x; }));
+  const GIRO_BASE_DEFECTO = { tienda: 'abarrotes', servicios: 'estetica', restaurante: 'restaurantes', cafeteria: 'cafeterias', farmacia: 'farmacias', papeleria: 'papelerias', ropa: 'ropa', ferreteria: 'ferreteria' };
+  const baseDeGiro = (id) => (GIRO_POR_ID[id] ? GIRO_POR_ID[id].base : id);
+  function giroEspecifico(){
+    const c = configNegocio || {}, id = c.subgiro || (c.tipo_negocio === 'papeleria' ? 'papelerias' : null), g = id && GIRO_POR_ID[id];
+    return (g && g.base === c.tipo_negocio) ? g : null;
+  }
+  const featGiro = (f) => { const g = giroEspecifico(); return !!(g && g.feats.indexOf(f) >= 0); };
+  const usaUnidades = () => featGiro('unidades'), usaEncargos = () => featGiro('encargos'), usaPedProg = () => featGiro('pedprog');
+  function valorSelectGiro(){ const g = giroEspecifico(); return g ? g.id : (GIRO_BASE_DEFECTO[(configNegocio || {}).tipo_negocio] || ''); }
+  const mostrarCaducidadForm = () => { const g = giroEspecifico(); return g ? g.feats.indexOf('caducidad') >= 0 : !esPapeleria(); };
+  const UNIDADES_PAPELERIA = [['pieza', 'Por pieza'], ['hoja', 'Por hoja'], ['metro', 'Por metro'], ['copia', 'Por copia'], ['pliego', 'Por pliego'], ['otra', 'Otra…']];
+  const UNIDADES_GRANEL = [['pieza', 'Por pieza'], ['kilo', 'Por kilo'], ['litro', 'Por litro'], ['metro', 'Por metro'], ['paquete', 'Por paquete'], ['otra', 'Otra…']];
+  const unidadesGiro = () => esPapeleria() ? UNIDADES_PAPELERIA : UNIDADES_GRANEL;
+  const PASO_POR_UNIDAD = { metro: '0.5', kilo: '0.25', litro: '0.25' };
+  const FEAT_TEXTO = {
+    unidades: ['Venta a granel y por medida', 'Vende por kilo, litro, metro o pieza, con medios y cuartos y precio por cantidad — en Productos.'],
+    encargos: ['Encargos y apartados', 'Registra anticipo, fecha de entrega y saldo — en Encargos.'],
+    pedprog: ['Pedidos en línea para recoger', 'Tus clientes piden con un QR y eligen la hora — en Pedidos en línea.'],
+    caducidad: ['Fechas de caducidad', 'Cada producto puede llevar su fecha de caducidad — en Productos.'],
+    citas: ['Agenda de citas', 'Servicios con duración y citas — en Agenda.'], mesas: ['Pedidos por mesa con QR', 'Tus clientes piden desde su mesa — en Menú QR.']
+  };
+  function poblarSelectGiros(){
+    ['cfgTipoNegocio', 'ubiGiro'].forEach(id => {
+      const s = document.getElementById(id); if(!s) return; const actual = s.value; s.textContent = '';
+      const o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'Selecciona...'; s.appendChild(o0);
+      GRUPOS_GIRO.forEach(gr => { const og = document.createElement('optgroup'); og.label = gr.nombre; gr.giros.forEach(x => { const o = document.createElement('option'); o.value = x.id; o.textContent = x.nombre; og.appendChild(o); }); s.appendChild(og); });
+      s.value = actual;
+    });
+  }
+  poblarSelectGiros();
 
   aplicarPreferenciasApariencia();
   if(sesionEscaneoRemoto){

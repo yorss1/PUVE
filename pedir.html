@@ -108,12 +108,13 @@
   var PERFIL = {
     restaurante:{ titulo:'Menú', desc:'Mira el menú de {n} y haz tu pedido desde tu celular.' },
     cafeteria:{ titulo:'Menú', desc:'Pide tu café, bebidas y alimentos en {n} desde tu celular.' },
+    recoger:{ titulo:'Pide y recoge', desc:'{n}: arma tu pedido desde tu celular y elige a qué hora pasar por él.' },
     papeleria:{ titulo:'Imprime y pide', desc:'{n}: sube tus archivos para imprimir y programa tu pedido para recogerlo sin hacer fila.' },
     _otro:{ titulo:'Pedidos', desc:'Haz tu pedido en {n} desde tu celular.' }
   };
   function marcaNegocio(){
     var set = function(id, attr, val){ var e = document.getElementById(id); if(e) e.setAttribute(attr, val); };
-    var pf = PERFIL[menu.giro] || PERFIL._otro, titulo = pf.titulo + ' · ' + menu.negocio, desc = pf.desc.replace('{n}', menu.negocio);
+    var pf = menu.recoger ? PERFIL.recoger : (PERFIL[menu.giro] || PERFIL._otro), titulo = pf.titulo + ' · ' + menu.negocio, desc = pf.desc.replace('{n}', menu.negocio);
     document.title = titulo; set('ogTitle', 'content', titulo); set('twTitle', 'content', titulo); set('appTitle', 'content', menu.negocio);
     set('metaDesc', 'content', desc); set('ogDesc', 'content', desc); set('twDesc', 'content', desc); set('ogSite', 'content', menu.negocio);
     if(/^[0-9a-f-]{36}\/favicon\.png$/.test(menu.favicon || '')){ var u = SUPA + '/storage/v1/object/public/fotos-negocios/' + menu.favicon; set('favicon', 'href', u); set('appleIcon', 'href', u); }
@@ -135,7 +136,7 @@
     app.textContent = '';
     var hd = $('header'); var lg0 = logoImg(); if(lg0) hd.appendChild(lg0); hd.appendChild($('small', '', BARRA ? 'Pide aquí y te avisamos' : 'Pide desde tu mesa')); hd.appendChild($('h1', '', menu.negocio)); hd.appendChild($('span', 'mesa', ETQ)); app.appendChild(hd);
     var cats = $('div', 'cats'); cats.id = 'cats'; app.appendChild(cats); var grid = $('div', 'grid'); grid.id = 'grid'; app.appendChild(grid);
-    var f = $('footer'); f.appendChild(document.createTextNode('Los precios y la disponibilidad los define el negocio. ')); var a = $('a', '', 'Aviso de privacidad'); a.href = AVISO; a.target = '_blank'; a.rel = 'noopener noreferrer'; f.appendChild(a); app.appendChild(f);
+    var f = $('footer'); f.appendChild(document.createTextNode('Los precios y la disponibilidad los define el negocio. ')); var a = $('a', '', 'Aviso de privacidad'); a.href = AVISO; a.target = '_blank'; a.rel = 'noopener noreferrer'; f.appendChild(a); f.appendChild(document.createTextNode(' · ')); var pv = $('a', '', 'Hecho con PUVE'); pv.href = 'https://puve.yorss01.workers.dev/?utm_source=pedir&utm_medium=hecho_con_puve'; pv.target = '_blank'; pv.rel = 'noopener'; f.appendChild(pv); app.appendChild(f);
     var barra = $('div', 'barra oculto'); barra.id = 'barra'; var iz = $('div'); iz.appendChild($('small', '', 'Tu pedido')); var tt = $('div', 'tot'); tt.id = 'tt'; iz.appendChild(tt);
     var bv = $('button', 'btn', 'Ver pedido'); bv.type = 'button'; bv.onclick = abrirHoja; $$(barra, [iz, bv]); document.body.appendChild(barra); pintarCats(); pintarGrid();
   }
@@ -288,8 +289,8 @@
   function iniciarPap(){
     var g = LS.get(KEYPP); if(g && /^[0-9a-f]{36}$/.test(g)){ seguimiento = g; return verSegPap(); }
     apiPap({ accion:'menu', negocio:NEG, busqueda:'' }).then(function(r){
-      if(!r.ok || !r.d || r.d.giro !== 'papeleria') return aviso(r.status === 429 ? 'Hay muchas consultas ahora. Intenta en un momento.' : 'Los pedidos en línea no están disponibles por ahora. Pide ayuda al personal.');
-      PAP.menu = r.d; PAP.top = r.d.productos || []; menu = r.d; marcaNegocio(); pintarPap();
+      if(!r.ok || !r.d) return aviso(r.status === 429 ? 'Hay muchas consultas ahora. Intenta en un momento.' : 'Los pedidos en línea no están disponibles por ahora. Pide ayuda al personal.');
+      PAP.menu = r.d; PAP.top = r.d.productos || []; PAP.imp = r.d.impresion_disponible === true; if(!PAP.imp){ PAP.tab = 'art'; r.d.recoger = true; } menu = r.d; marcaNegocio(); pintarPap();
     });
   }
   function logoImg(){
@@ -299,11 +300,11 @@
   }
   function pintarPap(){
     app.textContent = ''; var hd = $('header'), lg = logoImg(); if(lg) hd.appendChild(lg);
-    hd.appendChild($('small', '', 'Imprime y pide sin hacer fila')); hd.appendChild($('h1', '', PAP.menu.negocio)); app.appendChild(hd);
-    var tabs = $('div', 'cats'); [['imp', 'Imprimir' + (PAP.archivos.length ? ' (' + PAP.archivos.length + ')' : '')], ['art', 'Artículos' + (cuentaItemsPap() ? ' (' + cuentaItemsPap() + ')' : '')]].forEach(function(t){
+    hd.appendChild($('small', '', PAP.imp ? 'Imprime y pide sin hacer fila' : 'Pide y recoge sin hacer fila')); hd.appendChild($('h1', '', PAP.menu.negocio)); app.appendChild(hd);
+    var tabs = $('div', 'cats'); (PAP.imp ? [['imp', 'Imprimir' + (PAP.archivos.length ? ' (' + PAP.archivos.length + ')' : '')], ['art', 'Artículos' + (cuentaItemsPap() ? ' (' + cuentaItemsPap() + ')' : '')]] : [['art', 'Artículos' + (cuentaItemsPap() ? ' (' + cuentaItemsPap() + ')' : '')]]).forEach(function(t){
       var b = $('button', 'chip' + (PAP.tab === t[0] ? ' on' : ''), t[1]); b.type = 'button'; b.onclick = function(){ PAP.tab = t[0]; pintarPap(); }; tabs.appendChild(b); }); app.appendChild(tabs);
     var cuerpo = $('div'); app.appendChild(cuerpo); if(PAP.tab === 'imp') pintarImp(cuerpo); else pintarArt(cuerpo);
-    var f = $('footer'); f.appendChild(document.createTextNode('Los precios los define el negocio y el pago se hace en la papelería. ')); var a = $('a', '', 'Aviso de privacidad'); a.href = AVISO; a.target = '_blank'; a.rel = 'noopener noreferrer'; f.appendChild(a); app.appendChild(f);
+    var f = $('footer'); f.appendChild(document.createTextNode('Los precios los define el negocio y el pago se hace en el negocio. ')); var a = $('a', '', 'Aviso de privacidad'); a.href = AVISO; a.target = '_blank'; a.rel = 'noopener noreferrer'; f.appendChild(a); f.appendChild(document.createTextNode(' · ')); var pv = $('a', '', 'Hecho con PUVE'); pv.href = 'https://puve.yorss01.workers.dev/?utm_source=pedir&utm_medium=hecho_con_puve'; pv.target = '_blank'; pv.rel = 'noopener'; f.appendChild(pv); app.appendChild(f);
     var barra = document.getElementById('barra'); if(barra) barra.remove();
     if(PAP.archivos.length || cuentaItemsPap()){
       barra = $('div', 'barra'); barra.id = 'barra'; var iz = $('div'); iz.appendChild($('small', '', PAP.archivos.length + ' archivo(s) · ' + cuentaItemsPap() + ' artículo(s)')); iz.appendChild($('div', 'tot', totalArt() > 0 ? money(totalArt()) : 'Tu pedido'));
@@ -384,11 +385,11 @@
     bA.onclick = function(){ modoAsap = true; bA.className = 'chip on'; bF.className = 'chip'; dt.classList.add('oculto'); }; bF.onclick = function(){ modoAsap = false; bF.className = 'chip on'; bA.className = 'chip'; dt.classList.remove('oculto'); };
     var nom = $('input', 'campo-txt'); nom.type = 'text'; nom.maxLength = 40; nom.placeholder = 'Tu nombre (para llamarte)'; nom.value = PAP.nombre || ''; nom.autocomplete = 'given-name'; hj.appendChild(nom);
     var tel = $('input', 'campo-txt'); tel.type = 'tel'; tel.maxLength = 20; tel.placeholder = 'Teléfono (opcional)'; tel.value = PAP.tel || ''; tel.autocomplete = 'tel'; hj.appendChild(tel);
-    var nota = $('textarea'); nota.rows = 2; nota.maxLength = 200; nota.placeholder = 'Nota para la papelería (opcional)'; hj.appendChild(nota);
-    hj.appendChild($('div', 'nota', 'No escribas datos personales sensibles en la nota. El pago se hace directamente en la papelería.'));
+    var nota = $('textarea'); nota.rows = 2; nota.maxLength = 200; nota.placeholder = 'Nota para el negocio (opcional)'; hj.appendChild(nota);
+    hj.appendChild($('div', 'nota', 'No escribas datos personales sensibles en la nota. El pago se hace directamente en el negocio.'));
     var trampa = $('input'); trampa.type = 'text'; trampa.tabIndex = -1; trampa.autocomplete = 'off'; trampa.setAttribute('aria-hidden', 'true'); trampa.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;opacity:0'; hj.appendChild(trampa);
     var lg = $('label', 'legal'), ck = $('input'), tx = $('span'); ck.type = 'checkbox'; tx.appendChild(document.createTextNode('He leído el ')); var a = $('a', '', 'Aviso de privacidad'); a.href = AVISO; a.target = '_blank'; a.rel = 'noopener noreferrer'; tx.appendChild(a);
-    tx.appendChild(document.createTextNode('. Entiendo que mis archivos solo los usa la papelería para imprimir y se eliminan al entregar mi pedido.')); $$(lg, [ck, tx]); hj.appendChild(lg);
+    tx.appendChild(document.createTextNode(PAP.archivos.length ? '. Entiendo que mis archivos solo se usan para imprimir mi pedido y se eliminan al entregarlo.' : '. Entiendo que mis datos solo se usan para preparar mi pedido.')); $$(lg, [ck, tx]); hj.appendChild(lg);
     var ts = null; if(TS_SITEKEY){ ts = $('div'); hj.appendChild(ts); cargarTurnstile(ts); }
     var msg = $('div', 'msg oculto'); hj.appendChild(msg);
     var f2 = $('div', 'row'); f2.style.marginTop = '14px'; var seg = $('button', 'btn sec', 'Volver'); seg.type = 'button'; seg.onclick = cerrarHoja; var env = $('button', 'btn', 'Enviar pedido'); env.type = 'button'; $$(f2, [seg, env]); hj.appendChild(f2);
@@ -424,7 +425,7 @@
       });
     };
   }
-  var TXTP = { nuevo:['Pedido recibido', 'La papelería lo revisará en cuanto abra caja o lo tenga a la mano.', 1], en_proceso:['Estamos con tu pedido', 'Ya lo están preparando.', 2], listo:['¡Tu pedido está listo!', 'Pasa por él a la papelería.', 3], entregado:['Entregado', '¡Gracias por tu compra!', 4], cancelado:['Pedido cancelado', 'La papelería no pudo atenderlo. Pregunta en el mostrador.', 0] };
+  var TXTP = { nuevo:['Pedido recibido', 'El negocio lo revisará en cuanto abra caja o lo tenga a la mano.', 1], en_proceso:['Estamos con tu pedido', 'Ya lo están preparando.', 2], listo:['¡Tu pedido está listo!', 'Pasa por él a el negocio.', 3], entregado:['Entregado', '¡Gracias por tu compra!', 4], cancelado:['Pedido cancelado', 'El negocio no pudo atenderlo. Pregunta en el mostrador.', 0] };
   function verSegPap(){
     clearTimeout(timer);
     apiPap({ accion:'estado', codigo:seguimiento }).then(function(r){
@@ -442,7 +443,7 @@
     (d.trabajos || []).forEach(function(w){ var l = $('div', 'ln'); l.appendChild($('div', '', w.nombre + ' · ' + w.copias + (w.copias === 1 ? ' copia' : ' copias') + ' · ' + (w.color === 'color' ? 'Color' : 'B/N') + (w.paginas ? ' · ' + w.paginas + ' pág.' : ''))); app.appendChild(l); });
     (d.items || []).forEach(function(it){ var l = $('div', 'ln'); l.appendChild($('div', '', it.cantidad + ' × ' + it.nombre)); l.appendChild($('span', '', money(it.subtotal))); app.appendChild(l); });
     var tl = $('div', 'ln'); tl.appendChild($('b', '', d.precio_pendiente ? 'Total estimado (sin impresión)' : 'Total estimado')); tl.appendChild($('b', '', money(d.total))); app.appendChild(tl);
-    app.appendChild($('div', 'nota', 'El total final lo confirma la papelería con el número real de páginas. El pago se hace en la papelería.'));
+    app.appendChild($('div', 'nota', 'El total final lo confirma el negocio con el número real de páginas. El pago se hace en el negocio.'));
     if(d.estado === 'entregado' || d.estado === 'cancelado'){ var b = $('button', 'btn', 'Hacer otro pedido'); b.type = 'button'; b.style.marginTop = '18px'; b.onclick = function(){ LS.del(KEYPP); seguimiento = null; location.reload(); }; app.appendChild(b); }
   }
 
