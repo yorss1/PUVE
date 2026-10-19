@@ -41,6 +41,8 @@
   @media (prefers-color-scheme:dark){ body{ background:var(--f); } }
   button{ font:inherit; color:inherit; cursor:pointer; } .oculto{ display:none !important; } main{ max-width:640px; margin:0 auto; }
   header{ padding:26px 4px 12px; } header small{ color:var(--s); } h1{ font:400 34px/1.1 var(--serif); letter-spacing:-.01em; } .mesa{ display:inline-block; margin-top:8px; padding:4px 12px; border-radius:99px; background:var(--v); border:1px solid var(--b); font-size:13px; font-weight:600; }
+  .et{ display:flex; flex-wrap:wrap; gap:4px; margin-top:-4px; } .et span{ font-size:11px; color:var(--s); border:1px solid var(--b); border-radius:99px; padding:1px 8px; } .et .al{ border-color:var(--er); color:var(--er); }
+  .evita{ margin:-4px 0 12px; font-size:12px; color:var(--s); } .evita .chip{ padding:5px 12px; font-size:12px; margin:0 6px 6px 0; }
   .cats{ display:flex; gap:8px; overflow-x:auto; margin:10px -14px 14px; padding:2px 14px; scrollbar-width:none; scroll-snap-type:x proximity; } .cats::-webkit-scrollbar{ display:none; }
   .chip{ flex:none; scroll-snap-align:start; padding:9px 17px; border-radius:99px; border:1px solid var(--b); background:var(--v2); font-size:13px; font-weight:500; white-space:nowrap; } .chip.on{ background:var(--a); color:var(--as); border-color:var(--a); }
   .grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } @media (min-width:560px){ .grid{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
@@ -135,10 +137,20 @@
   function pintarMenu(){
     app.textContent = '';
     var hd = $('header'); var lg0 = logoImg(); if(lg0) hd.appendChild(lg0); hd.appendChild($('small', '', BARRA ? 'Pide aquí y te avisamos' : 'Pide desde tu mesa')); hd.appendChild($('h1', '', menu.negocio)); hd.appendChild($('span', 'mesa', ETQ)); app.appendChild(hd);
-    var cats = $('div', 'cats'); cats.id = 'cats'; app.appendChild(cats); var grid = $('div', 'grid'); grid.id = 'grid'; app.appendChild(grid);
+    var cats = $('div', 'cats'); cats.id = 'cats'; app.appendChild(cats); var ev = $('div', 'evita'); ev.id = 'evita'; app.appendChild(ev); pintarEvitar(); var grid = $('div', 'grid'); grid.id = 'grid'; app.appendChild(grid);
     var f = $('footer'); f.appendChild(document.createTextNode('Los precios y la disponibilidad los define el negocio. ')); var a = $('a', '', 'Aviso de privacidad'); a.href = AVISO; a.target = '_blank'; a.rel = 'noopener noreferrer'; f.appendChild(a); f.appendChild(document.createTextNode(' · ')); var pv = $('a', '', 'Hecho con PUVE'); pv.href = 'https://puve.yorss01.workers.dev/?utm_source=pedir&utm_medium=hecho_con_puve'; pv.target = '_blank'; pv.rel = 'noopener'; f.appendChild(pv); app.appendChild(f);
     var barra = $('div', 'barra oculto'); barra.id = 'barra'; var iz = $('div'); iz.appendChild($('small', '', 'Tu pedido')); var tt = $('div', 'tot'); tt.id = 'tt'; iz.appendChild(tt);
     var bv = $('button', 'btn', 'Ver pedido'); bv.type = 'button'; bv.onclick = abrirHoja; $$(barra, [iz, bv]); document.body.appendChild(barra); pintarCats(); pintarGrid();
+  }
+  var ET = { gluten:'gluten', lacteos:'lácteos', huevo:'huevo', pescado:'pescado', mariscos:'mariscos', cacahuate:'cacahuate', nueces:'nueces', soya:'soya', ajonjoli:'ajonjolí', picante:'Picante', vegetariano:'Vegetariano', vegano:'Vegano' };
+  var ALERG = ['gluten', 'lacteos', 'huevo', 'pescado', 'mariscos', 'cacahuate', 'nueces', 'soya', 'ajonjoli'], evitar = {};
+  function pintarEvitar(){
+    var c = document.getElementById('evita'); if(!c) return; c.textContent = '';
+    var hay = {}; menu.productos.forEach(function(p){ (p.etiquetas || []).forEach(function(e){ if(ALERG.indexOf(e) !== -1) hay[e] = 1; }); });
+    var lista = ALERG.filter(function(e){ return hay[e]; }); if(!lista.length) return;
+    c.appendChild($('div', '', 'Evitar platillos con:'));
+    lista.forEach(function(e){ var b = $('button', 'chip' + (evitar[e] ? ' on' : ''), ET[e]); b.type = 'button'; b.onclick = function(){ evitar[e] = !evitar[e]; pintarEvitar(); pintarGrid(); }; c.appendChild(b); });
+    c.appendChild($('div', '', 'Es una guía del negocio. Si tienes alergias, confirma con tu mesero antes de pedir.'));
   }
   function pintarCats(){
     var c = document.getElementById('cats'); c.textContent = ''; var usadas = {}; menu.productos.forEach(function(p){ if(p.categoria_id) usadas[p.categoria_id] = 1; });
@@ -146,12 +158,16 @@
     lista.forEach(function(x){ var b = $('button', 'chip' + (cat === x.id ? ' on' : ''), x.nombre); b.type = 'button'; b.onclick = function(){ cat = x.id; pintarCats(); pintarGrid(); }; c.appendChild(b); });
   }
   function pintarGrid(){
-    var g = document.getElementById('grid'); g.textContent = ''; var ps = menu.productos.filter(function(p){ return !cat || p.categoria_id === cat; });
+    var g = document.getElementById('grid'); g.textContent = ''; var ps = menu.productos.filter(function(p){ return (!cat || p.categoria_id === cat) && !(p.etiquetas || []).some(function(e){ return evitar[e]; }); });
     if(!ps.length) g.appendChild($('div', 'centro', 'No hay productos en esta categoría.'));
     ps.forEach(function(p){
       var card = $('div', 'p');
       if(/^[0-9a-f-]{36}\/[0-9a-f-]{36}\.jpg$/.test(p.foto || '')){ var im = document.createElement('img'); im.alt = p.nombre; im.loading = 'lazy'; im.decoding = 'async'; im.referrerPolicy = 'no-referrer'; im.src = SUPA + '/storage/v1/object/public/fotos-negocios/' + p.foto; card.appendChild(im); }
-      card.appendChild($('b', '', p.nombre)); var fila = $('div', 'row'); fila.appendChild($('span', 'pr', money(p.precio))); fila.appendChild(control(p)); card.appendChild(fila); g.appendChild(card);
+      card.appendChild($('b', '', p.nombre));
+      var ets = p.etiquetas || [];
+      if(ets.length){ var fe = $('div', 'et'), con = ets.filter(function(e){ return ALERG.indexOf(e) !== -1; }).map(function(e){ return ET[e]; });
+        if(con.length) fe.appendChild($('span', 'al', 'Contiene: ' + con.join(', ')));
+        ets.filter(function(e){ return ALERG.indexOf(e) === -1 && ET[e]; }).forEach(function(e){ fe.appendChild($('span', '', ET[e])); }); card.appendChild(fe); } var fila = $('div', 'row'); fila.appendChild($('span', 'pr', money(p.precio))); fila.appendChild(control(p)); card.appendChild(fila); g.appendChild(card);
     }); resumen();
   }
   function control(p){

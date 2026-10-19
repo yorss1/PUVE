@@ -51,7 +51,8 @@
     const secTiempos = bloque(cont, 'Tiempos de servicio', 'Minutos desde que entra un pedido por QR hasta que cocina lo marca listo. Se llena desde que se activó esta función.');
     const secHoras = bloque(cont, 'Horas pico y horas muertas', 'Tickets por día y hora (hora de México). Las horas más bajas son tus mejores momentos para una promoción.');
     const secCajeros = bloque(cont, 'Ventas por cajero');
-    await Promise.all([menu(secMenu), tiempos(secTiempos), horas(secHoras), cajeros(secCajeros)]);
+    const secPropinas = bloque(cont, 'Propinas', 'Se registran aparte de la venta (no suman a tus ingresos ni a tus impuestos). Se capturan al cobrar, en la pantalla de venta exitosa.');
+    await Promise.all([menu(secMenu), tiempos(secTiempos), horas(secHoras), cajeros(secCajeros), propinas(secPropinas)]);
   }
 
   async function menu(sec){
@@ -156,6 +157,17 @@
     if(!filas.length){ sec.appendChild(h('p', 'nota', 'Todavía no hay ventas en este periodo.')); return; }
     const t = tabla(['Cajero', 'Tickets', 'Vendido', 'Ticket promedio']); sec.appendChild(t.wrap);
     filas.forEach((f, i) => { const tr = h('tr'); celda(tr, (i + 1) + '. ' + f.nombre + (f.rol === 'admin' ? ' (encargado)' : ''), 'font-weight:600;'); celda(tr, String(f.tickets)); celda(tr, enlace.dinero(f.total)); celda(tr, enlace.dinero(f.ticket_promedio)); t.tb.appendChild(tr); });
+  }
+
+  async function propinas(sec){
+    const { data, error: e } = await enlace.sb.rpc('propinas_resumen', { p_dias: periodo });
+    if(e){ error(sec, e.message); return; }
+    if(!data || !data.n){ sec.appendChild(h('p', 'nota', 'Todavía no hay propinas registradas en este periodo.')); return; }
+    const fila = h('div', null, null, 'display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;');
+    tarjeta(fila, enlace.dinero(data.total), 'Propinas del periodo'); tarjeta(fila, String(data.n), 'Cuentas con propina');
+    if(data.promedio_pct != null) tarjeta(fila, fmt(data.promedio_pct) + '%', 'Propina promedio sobre la cuenta'); sec.appendChild(fila);
+    const t = tabla(['Cajero', 'Cuentas', 'Propinas']); sec.appendChild(t.wrap);
+    (data.por_cajero || []).forEach((f) => { const tr = h('tr'); celda(tr, f.nombre, 'font-weight:600;'); celda(tr, String(f.n)); celda(tr, enlace.dinero(f.total)); t.tb.appendChild(tr); });
   }
 
   window.PuveAnaliticaRest = {

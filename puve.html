@@ -44,6 +44,8 @@
 <script src="plano-salon.js"></script>
 <script src="puve-insumos.js"></script>
 <script src="puve-analitica-rest.js"></script>
+<script src="puve-restaurante.js"></script>
+<script src="puve-cotizaciones.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
@@ -1587,6 +1589,7 @@
             <p class="nota oculto" id="avisoErrorQR" style="color:var(--error); margin:8px 0;">—</p>
             <p class="nota" style="margin:10px 0;">El cliente lo escanea con su celular para ver y descargar su ticket.</p>
             <a id="enlaceTicketQR" href="#" target="_blank" rel="noopener noreferrer" class="nota" style="display:block; word-break:break-all; font-size:11px; margin-bottom:10px;">—</a>
+            <div id="bloquePropina" style="display:none; margin:10px 0; padding:12px; border:1px solid var(--borde); border-radius:12px; text-align:left;"></div>
             <button type="button" class="texto" style="width:100%; margin-bottom:8px;" onclick="PuveHW.imprimirUltima()">Imprimir ticket</button>
             <button class="principal ticket-exito-nueva-venta" onclick="cerrarTicketExito()">Nueva venta</button>
           </div>
@@ -1660,6 +1663,11 @@
             </div>
           </div>
           <div id="mensajeVenta" class="mensaje"></div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+            <button type="button" id="btnDividirCuenta" class="texto" style="width:auto; display:none;" onclick="PuveRestaurante.dividirCuenta()">Dividir cuenta</button>
+            <button type="button" class="texto" style="width:auto;" onclick="PuveCotizaciones.nueva()">Cotizar</button>
+            <button type="button" class="texto" style="width:auto;" onclick="PuveCotizaciones.anteriores()">Cotizaciones</button>
+          </div>
           <button class="principal" id="btnCobrar" onclick="conTutorial('btn-cobrar', this, function(){ if(funcionPuveActiva('cajero.cobrar')) cobrar(); })" disabled>Cobrar</button>
           </div>
         </div>
@@ -2371,6 +2379,11 @@
               <button type="button" class="texto" onclick="invalidarQrMesas()">Invalidar QR impresos</button>
             </div>
             <div id="qrMesasSalida" class="qr-mesas"></div>
+            <div style="margin-top:26px; padding-top:18px; border-top:1px solid var(--borde);">
+              <h3 style="margin:0 0 6px;">Alérgenos y etiquetas del menú</h3>
+              <p class="nota">Marca qué platillos contienen gluten, lácteos, mariscos…, o son picantes, vegetarianos o veganos. Tus clientes lo ven en el menú QR y pueden ocultar lo que no pueden comer.</p>
+              <button type="button" onclick="PuveRestaurante.editarEtiquetas()">Editar etiquetas de platillos</button>
+            </div>
             <div id="bloqueCocina" style="margin-top:26px; padding-top:18px; border-top:1px solid var(--borde);">
               <h3 style="margin:0 0 6px;">Pantalla de cocina (Pedidos)</h3>
               <p class="nota">Crea un enlace para la tablet de tus chefs: ven los pedidos en tiempo real, con su mesa y su lugar en el plano de tu salón, y marcan “Aceptado” y “Listo”. No necesitan cuenta ni ocupan un dispositivo de tu plan. El cobro y la entrega siguen siendo tuyos o de tu cajero.</p>
@@ -7962,6 +7975,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const img = document.getElementById('imgTicketQR');
     const avisoError = document.getElementById('avisoErrorQR');
     bloque.classList.remove('oculto');
+    try { PuveRestaurante.montarPropina(['restaurante', 'cafeteria'].includes(configNegocio.tipo_negocio) ? document.getElementById('bloquePropina') : null, ventaId, total); } catch(e){ console.error(e); }
     document.getElementById('montoTicketExito').textContent = formatoDinero(total || 0);
     enlaceTexto.textContent = enlace;
     enlaceTexto.href = enlace;
@@ -8348,6 +8362,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const cf = document.getElementById('campoFotoPlatillo'); if(cf) cf.classList.toggle('oculto', !(v && v.foto));
     const nc = document.getElementById('navComisiones'); if(nc) nc.classList.toggle('oculto', !(giro === 'servicios' && miRol === 'admin' && !esAdminActual));
     const tc = document.getElementById('tabClimaAnalitica'); if(tc) tc.classList.toggle('oculto', !(climaDisponible() && miRol === 'admin' && !esAdminActual));
+    const bdc = document.getElementById('btnDividirCuenta'); if(bdc) bdc.style.display = ['restaurante', 'cafeteria'].includes(giro) ? 'inline-block' : 'none';
     const tre = document.getElementById('tabRestauranteAnalitica'); if(tre) tre.classList.toggle('oculto', !(['restaurante', 'cafeteria'].includes(giro) && miRol === 'admin' && !esAdminActual));
     if(usaPedProg()) cargarEstadoProg();
     const nl = document.getElementById('navEnlinea'); if(nl) nl.classList.toggle('oculto', !(usaPedProg() && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
@@ -12468,6 +12483,21 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     ocultarMensaje('mensajeVenta'); renderizarCarrito(); actualizarStepperEnLista(prod.id);
     mostrarMensaje('mensajeVenta', 'Agregado: ' + prod.nombre + ' (' + redondear3(cant) + ' ' + (prod.unidad || '') + ')', 'exito');
   }
+  function cargarCotizacionAlCarrito(items){
+    let ok = 0; const omitidos = [];
+    (items || []).forEach((it) => {
+      const prod = it.producto_id && productosCache.find((p) => p.id === it.producto_id);
+      if(!prod){ omitidos.push(it.nombre); return; }
+      const ex = carrito.find((i) => i.id === prod.id), cant = redondear3((ex ? ex.cantidad : 0) + Number(it.cantidad));
+      if(cant > Number(prod.stock) + 1e-9){ omitidos.push(it.nombre); return; }
+      if(ex) ex.cantidad = cant;
+      else carrito.push({ id: prod.id, nombre: prod.nombre, precio: Number(prod.precio), cantidad: Number(it.cantidad), stock: Number(prod.stock), paso: Number(prod.paso_venta) || 1, unidad: prod.unidad || 'pieza' });
+      ok++;
+    });
+    renderizarCarrito(); return { ok, omitidos };
+  }
+  PuveRestaurante.enlazar({ sb: sb, productos: () => productosCache, total: () => carrito.reduce((s, i) => s + subLinea(i), 0), dinero: (n) => formatoDinero(n), aviso: (m) => alert(m) });
+  PuveCotizaciones.enlazar({ sb: sb, carrito: () => carrito, negocio: () => { const e = document.getElementById('nombreNegocioBarra'); const t = e ? e.textContent.trim() : ''; return t && t !== '—' ? t : ''; }, dinero: (n) => formatoDinero(n), cargarAlCarrito: cargarCotizacionAlCarrito, aviso: (m) => alert(m) });
   PuveAnaliticaRest.enlazar({ sb: sb, dinero: (n) => formatoDinero(n) });
   PuveInsumos.enlazar({ sb: sb, productos: () => productosCache, dinero: (n) => formatoDinero(n), recargarProductos: () => cargarProductos(), aviso: (m) => alert(m) });
   PuveHW.enlazar({
