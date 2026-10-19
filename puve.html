@@ -42,6 +42,8 @@
 <script src="puve-consent.js" data-pagina="app" defer></script>
 <script src="puve-hardware.js"></script>
 <script src="plano-salon.js"></script>
+<script src="puve-insumos.js"></script>
+<script src="puve-analitica-rest.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
@@ -2024,6 +2026,8 @@
         <button class="activo" data-vista="ordenes" onclick="cambiarVistaInventario('ordenes')">Órdenes de compra</button>
         <button data-vista="mermas" onclick="cambiarVistaInventario('mermas')">Mermas y ajustes</button>
         <button data-vista="proveedores" onclick="cambiarVistaInventario('proveedores')">Proveedores</button>
+        <button data-vista="recetas" id="tabInvRecetas" style="display:none;" onclick="cambiarVistaInventario('recetas')">Recetas e insumos</button>
+        <button data-vista="caducidad" onclick="cambiarVistaInventario('caducidad')">Caducidad</button>
       </div>
 
       <div id="vistaInventarioOrdenes">
@@ -2064,6 +2068,8 @@
         </table></div>
       </div>
       </div>
+      <div id="vistaInventarioRecetas" style="display:none;"></div>
+      <div id="vistaInventarioCaducidad" style="display:none;"></div>
       <div id="vistaInventarioProveedores" style="display:none;">
       <div class="bloque-analitica" style="margin-bottom:20px;">
         <h3>Proveedores</h3>
@@ -2096,6 +2102,7 @@
         <button data-vista="productos" onclick="cambiarVistaAnalitica('productos')">Productos</button>
         <button data-vista="clientes" id="tabClientesAnalitica" class="oculto" onclick="cambiarVistaAnalitica('clientes')">Clientes</button>
         <button data-vista="clima" id="tabClimaAnalitica" class="oculto" onclick="cambiarVistaAnalitica('clima')">Clima</button>
+        <button data-vista="restaurante" id="tabRestauranteAnalitica" class="oculto" onclick="cambiarVistaAnalitica('restaurante')">Restaurante</button>
       </div>
 
       <div class="barra-filtros">
@@ -2167,6 +2174,7 @@
         </div>
       </div>
 
+      <div id="vistaAnaliticaRestaurante" style="display:none;"></div>
       <div id="vistaAnaliticaClima" style="display:none;">
       <div class="bloque-analitica">
         <h3>Qué se vende según el clima</h3>
@@ -7146,7 +7154,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(cual === 'corte') cargarHistorialCortes();
     if(cual === 'devoluciones'){ cargarHistorialDevoluciones(); document.getElementById('formBuscarVentaDevolucion').reset(); document.getElementById('resultadoBuscarVenta').classList.add('oculto'); ocultarMensaje('mensajeDevoluciones'); }
     if(cual === 'gastos'){ cargarGastos(); document.getElementById('panelGasto').classList.remove('activo'); ocultarMensaje('mensajeGasto'); }
-    if(cual === 'inventario'){ if(!productosCache.length) cargarProductos(); cargarProveedores(); cargarOrdenesCompra(); cargarMovimientosInventario(); }
+    if(cual === 'inventario'){ const tr = document.getElementById('tabInvRecetas'); if(tr) tr.style.display = ['restaurante', 'cafeteria'].includes(configNegocio.tipo_negocio) ? '' : 'none'; if(!productosCache.length) cargarProductos(); cargarProveedores(); cargarOrdenesCompra(); cargarMovimientosInventario(); }
     if(cual === 'analitica'){ if(!productosCache.length) cargarProductos(); cambiarVistaAnalitica('resumen'); cargarAnalitica(); }
     if(cual === 'dispositivos'){ cambiarVistaDispositivos('cajeros'); cargarDispositivos(); cargarCajas(); cargarSolicitudCajeroPendiente(); }
     if(cual === 'soporte'){
@@ -8045,7 +8053,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   // ===== Pedidos por QR (solo restaurantes) =====
-  let pedidosQrActivo = null, pedidosQrCache = [], canalPedidosQr = null, tiempoPedidosQr = null, pedidosQrVistos = new Set(), pedidosQrYaCargo = false;
+  let pedidosQrActivo = null, pedidosQrCache = [], canalPedidosQr = null, tiempoPedidosQr = null, canalMenu86 = null, tiempoMenu86 = null, pedidosQrVistos = new Set(), pedidosQrYaCargo = false;
   const el = (tag, cls, txt) => { const e = document.createElement(tag); if(cls) e.className = cls; if(txt != null) e.textContent = txt; return e; };
 
   function actualizarNavPedidos(sinAcceso){
@@ -8067,9 +8075,15 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     canalPedidosQr = sb.channel('pedidos-qr-' + negocioId).on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos_qr', filter: 'negocio_id=eq.' + negocioId }, () => refrescarPedidosQr()).subscribe();
     tiempoPedidosQr = setInterval(() => { if(document.getElementById('seccionPedidos').classList.contains('activa') || !pedidosQrYaCargo) refrescarPedidosQr(); }, 20000);
     refrescarPedidosQr();
+    // Botón 86: cuando la cocina agota un platillo, esta caja recarga sus productos (aviso sin datos por un canal secreto)
+    sb.rpc('canal_tiempo_real').then(({ data }) => {
+      if(!data || canalMenu86 || !canalPedidosQr) return;
+      canalMenu86 = sb.channel('cocina:' + data).on('broadcast', { event: 'menu' }, () => { clearTimeout(tiempoMenu86); tiempoMenu86 = setTimeout(() => cargarProductos(), 700); }).subscribe();
+    }).catch(() => {});
   }
   function cerrarCanalPedidosQr(){
     if(canalPedidosQr){ try { sb.removeChannel(canalPedidosQr); } catch(e){} canalPedidosQr = null; }
+    if(canalMenu86){ try { sb.removeChannel(canalMenu86); } catch(e){} canalMenu86 = null; }
     clearInterval(tiempoPedidosQr); tiempoPedidosQr = null; pedidosQrActivo = null; pedidosQrCache = []; pedidosQrVistos = new Set(); pedidosQrYaCargo = false;
   }
   function sonidoPedidoQr(){
@@ -8334,6 +8348,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const cf = document.getElementById('campoFotoPlatillo'); if(cf) cf.classList.toggle('oculto', !(v && v.foto));
     const nc = document.getElementById('navComisiones'); if(nc) nc.classList.toggle('oculto', !(giro === 'servicios' && miRol === 'admin' && !esAdminActual));
     const tc = document.getElementById('tabClimaAnalitica'); if(tc) tc.classList.toggle('oculto', !(climaDisponible() && miRol === 'admin' && !esAdminActual));
+    const tre = document.getElementById('tabRestauranteAnalitica'); if(tre) tre.classList.toggle('oculto', !(['restaurante', 'cafeteria'].includes(giro) && miRol === 'admin' && !esAdminActual));
     if(usaPedProg()) cargarEstadoProg();
     const nl = document.getElementById('navEnlinea'); if(nl) nl.classList.toggle('oculto', !(usaPedProg() && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
     const ne = document.getElementById('navEncargos'); if(ne) ne.classList.toggle('oculto', !(usaEncargos() && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
@@ -9532,13 +9547,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   function cambiarVistaAnalitica(vista){
-    ['resumen','ventas','productos','clientes','clima'].forEach(v => {
+    ['resumen','ventas','productos','clientes','clima','restaurante'].forEach(v => {
       document.getElementById('vistaAnalitica' + v.charAt(0).toUpperCase() + v.slice(1)).style.display = (v === vista ? '' : 'none');
     });
     document.querySelectorAll('#seccionAnalitica button[data-vista]').forEach(b => {
       b.classList.toggle('activo', b.dataset.vista === vista);
     });
     if(vista === 'clima') cargarAnaliticaClima();
+    if(vista === 'restaurante'){ try { PuveAnaliticaRest.abrir(); } catch(e){ console.error(e); } }
   }
 
   function cambiarVistaConfig(vista){
@@ -9553,9 +9569,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   function cambiarVistaInventario(vista){
-    ['ordenes','mermas','proveedores'].forEach(v => {
+    ['ordenes','mermas','proveedores','recetas','caducidad'].forEach(v => {
       document.getElementById('vistaInventario' + v.charAt(0).toUpperCase() + v.slice(1)).style.display = (v === vista ? '' : 'none');
     });
+    if(vista === 'recetas' || vista === 'caducidad'){ try { PuveInsumos.abrir(vista); } catch(e){ console.error(e); } }
     document.querySelectorAll('#tabsInventario button[data-vista]').forEach(b => {
       b.classList.toggle('activo', b.dataset.vista === vista);
     });
@@ -12451,6 +12468,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     ocultarMensaje('mensajeVenta'); renderizarCarrito(); actualizarStepperEnLista(prod.id);
     mostrarMensaje('mensajeVenta', 'Agregado: ' + prod.nombre + ' (' + redondear3(cant) + ' ' + (prod.unidad || '') + ')', 'exito');
   }
+  PuveAnaliticaRest.enlazar({ sb: sb, dinero: (n) => formatoDinero(n) });
+  PuveInsumos.enlazar({ sb: sb, productos: () => productosCache, dinero: (n) => formatoDinero(n), recargarProductos: () => cargarProductos(), aviso: (m) => alert(m) });
   PuveHW.enlazar({
     productos: () => productosCache,
     aviso: (m) => mostrarMensaje('mensajeVenta', m, 'error'),

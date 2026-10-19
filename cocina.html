@@ -59,6 +59,18 @@
   .leyenda{ display:flex; gap:10px; flex-wrap:wrap; font-size:.75em; color:var(--suave); }
   .leyenda i{ display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:4px; }
   #bandeja{ display:flex; gap:6px; flex-wrap:wrap; }
+  #ov86{ display:none; position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.72); align-items:center; justify-content:center; padding:14px; }
+  #ov86 .caja{ background:var(--panel); border:1px solid var(--linea); border-radius:14px; width:100%; max-width:640px; max-height:92vh; display:flex; flex-direction:column; }
+  #ov86 .cab86{ display:flex; align-items:center; gap:10px; padding:12px 14px; border-bottom:1px solid var(--linea); }
+  #ov86 .cab86 h2{ margin:0; font-size:1.1em; flex:1; }
+  #ov86 input{ width:calc(100% - 28px); margin:10px 14px 0; padding:10px 12px; font:inherit; color:var(--texto); background:var(--panel2); border:1px solid var(--linea); border-radius:8px; }
+  #l86{ overflow-y:auto; padding:8px 14px 14px; }
+  .r86{ display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--linea); }
+  .r86 .n{ flex:1; font-weight:600; }
+  .r86.ago .n{ color:var(--rojo); text-decoration:line-through; }
+  .r86 button{ border:0; border-radius:8px; padding:10px 14px; font-weight:700; background:var(--panel2); border:1px solid var(--linea); }
+  .r86.ago button{ background:var(--rojo); border-color:var(--rojo); color:#fff; }
+  .c86{ margin-top:10px; font-size:.7em; letter-spacing:.05em; text-transform:uppercase; color:var(--suave); }
   #pantallaError{ display:none; flex:1; align-items:center; justify-content:center; text-align:center; padding:24px; }
   #pantallaError div{ max-width:420px; }
   @media (max-width:1000px){ main{ grid-template-columns:1fr; overflow-y:auto; } #izq{ grid-template-columns:1fr; } .col{ max-height:none; } #der{ order:-1; } }
@@ -68,6 +80,7 @@
 <header>
   <div><h1 id="negocio">Cocina</h1><div class="sub"><span class="punto off" id="punto"></span><span id="estadoRed">Conectando…</span> · <span id="reloj"></span></div></div>
   <div class="grow"></div>
+  <button class="chip" id="b86" type="button">86 · Agotados</button>
   <button class="chip" id="bSonido" type="button">🔔 Sonido: sí</button>
   <button class="chip" id="bMenos" type="button" aria-label="Letra más pequeña">A−</button>
   <button class="chip" id="bMas" type="button" aria-label="Letra más grande">A+</button>
@@ -89,6 +102,13 @@
     <div id="bandeja"></div>
   </aside>
 </main>
+<div id="ov86" role="dialog" aria-modal="true" aria-label="Platillos agotados (86)">
+  <div class="caja">
+    <div class="cab86"><h2>86 · Platillos agotados</h2><button class="chip" id="c86" type="button">Cerrar</button></div>
+    <input id="b86Buscar" type="search" placeholder="Buscar platillo…" autocomplete="off">
+    <div id="l86"></div>
+  </div>
+</div>
 <script src="plano-salon.js"></script>
 <script>
 (function(){
@@ -110,7 +130,7 @@
   var conocidos = null;                // ids ya vistos (para sonar solo con pedidos nuevos)
   var sonar = LS.get('puve_cocina_sonido') !== '0';
   var zoom = Number(LS.get('puve_cocina_zoom')) || 1;
-  var canalRt = null, canalNombre = null, cliente = null, cargando = false, otraVez = false, ultimoOk = 0, enviando = {}, muerto = false;
+  var canalRt = null, canalNombre = null, cliente = null, cargando = false, otraVez = false, ultimoOk = 0, enviando = {}, muerto = false, menu = [];
   document.documentElement.style.setProperty('--z', zoom);
 
   function mostrarError(t, x){ muerto = true; $('principal').style.display = 'none'; $('filtros').style.display = 'none'; var p = $('pantallaError'); p.style.display = 'flex'; $('errTitulo').textContent = t; $('errTexto').textContent = x; }
@@ -258,7 +278,7 @@
       var ids = {}, hayNuevo = false;
       datos.pedidos.forEach(function(p){ ids[p.id] = 1; if(conocidos && !conocidos[p.id] && p.estado === 'por_confirmar') hayNuevo = true; });
       conocidos = ids; if(hayNuevo) avisoNuevo();
-      pintar(); suscribir();
+      pintar(); suscribir(); if(!menu.length && !menuCargado) cargarMenu();
     }).then(function(){ if(otraVez){ otraVez = false; cargar(); } });
   }
   function suscribir(){
@@ -268,10 +288,10 @@
       if(canalRt) cliente.removeChannel(canalRt);
       canalNombre = datos.canal;
       // El aviso no trae datos: solo dice "algo cambió"; la lista siempre se pide al servidor con el token.
-      canalRt = cliente.channel('cocina:' + datos.canal).on('broadcast', { event: 'cambio' }, function(){ cargar(); }).subscribe();
+      canalRt = cliente.channel('cocina:' + datos.canal).on('broadcast', { event: 'cambio' }, function(){ cargar(); }).on('broadcast', { event: 'menu' }, function(){ cargarMenu(); }).subscribe();
     } catch(e){ canalNombre = null; }
   }
-  setInterval(function(){ cargar(); }, 30000);                         // respaldo por si se pierde un aviso
+  setInterval(function(){ cargar(); if($('ov86').style.display === 'flex') cargarMenu(); }, 30000);                         // respaldo por si se pierde un aviso
   document.addEventListener('visibilitychange', function(){ if(!document.hidden) cargar(); });
   window.addEventListener('online', cargar);
   window.addEventListener('offline', function(){ conectado(false); });
@@ -282,6 +302,42 @@
     if(Date.now() - ultimoOk > 70000 && ultimoOk) conectado(false);
   }, 1000);
   setInterval(function(){ if(datos.pedidos.length) pintar(); }, 30000);  // reevalúa colores de retraso
+
+  // ----- Botón 86 (agotado en vivo) -----
+  var menuCargado = false;
+  function cargarMenu(){
+    return api({ accion: 'menu' }).then(function(r){
+      if(!r.ok || !r.d) return; menu = r.d.menu || []; menuCargado = true; pintar86();
+    });
+  }
+  function pintar86(){
+    var n = menu.filter(function(m){ return m.agotado; }).length;
+    $('b86').textContent = n ? '86 · ' + n + ' agotado' + (n > 1 ? 's' : '') : '86 · Agotados';
+    $('b86').className = 'chip' + (n ? ' on' : ''); if(n) $('b86').style.background = 'var(--rojo)', $('b86').style.borderColor = 'var(--rojo)'; else { $('b86').style.background = ''; $('b86').style.borderColor = ''; }
+    var q = $('b86Buscar').value.trim().toLowerCase(), l = $('l86'); l.textContent = '';
+    var vistos = 0, ult = null;
+    // los agotados primero, luego por categoría
+    menu.slice().sort(function(a, b){ return (b.agotado - a.agotado) || String(a.categoria || '').localeCompare(String(b.categoria || '')) || a.nombre.localeCompare(b.nombre); }).forEach(function(m){
+      if(q && m.nombre.toLowerCase().indexOf(q) === -1) return;
+      var grupo = m.agotado ? 'Agotados ahora' : (m.categoria || 'Sin categoría');
+      if(grupo !== ult){ l.appendChild(mk('div', 'c86', grupo)); ult = grupo; }
+      var f = mk('div', 'r86' + (m.agotado ? ' ago' : '')); f.appendChild(mk('span', 'n', m.nombre));
+      var b = mk('button', null, m.agotado ? 'Quitar 86' : 'Agotar'); b.onclick = function(){ b.disabled = true; alternar86(m); };
+      f.appendChild(b); l.appendChild(f); vistos++;
+    });
+    if(!vistos) l.appendChild(mk('div', 'vacio', menu.length ? 'Sin resultados' : 'No hay platillos con existencias.'));
+  }
+  function alternar86(m){
+    api({ accion: 'agotar', id: m.id, agotado: !m.agotado }).then(function(r){
+      if(r.status === 404){ mostrarError('Este enlace ya no es válido', 'Pide uno nuevo al encargado.'); LS.del('puve_cocina_t'); return; }
+      if(!r.ok) avisar((r.d && r.d.error) || 'No se pudo cambiar. Revisa la conexión.');
+      cargarMenu();
+    });
+  }
+  $('b86').onclick = function(){ $('ov86').style.display = 'flex'; $('b86Buscar').value = ''; cargarMenu(); };
+  $('c86').onclick = function(){ $('ov86').style.display = 'none'; };
+  $('ov86').addEventListener('click', function(e){ if(e.target === $('ov86')) $('ov86').style.display = 'none'; });
+  $('b86Buscar').oninput = pintar86;
 
   // ----- controles -----
   $('bSonido').onclick = function(){ sonar = !sonar; LS.set('puve_cocina_sonido', sonar ? '1' : '0'); $('bSonido').textContent = '🔔 Sonido: ' + (sonar ? 'sí' : 'no'); if(sonar) avisoNuevo(); };
