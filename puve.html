@@ -41,6 +41,7 @@
 <script>(function(){ try { if(localStorage.getItem('puve_tema_oscuro') === '1'){ ['icono','iconoApple'].forEach(function(id){ var l = document.getElementById(id); if(l) l.setAttribute('href','img/logo_mini.black.png'); }); } } catch(e){} })();</script>
 <script src="puve-consent.js" data-pagina="app" defer></script>
 <script src="puve-hardware.js"></script>
+<script src="plano-salon.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
@@ -2362,6 +2363,21 @@
               <button type="button" class="texto" onclick="invalidarQrMesas()">Invalidar QR impresos</button>
             </div>
             <div id="qrMesasSalida" class="qr-mesas"></div>
+            <div id="bloqueCocina" style="margin-top:26px; padding-top:18px; border-top:1px solid var(--borde);">
+              <h3 style="margin:0 0 6px;">Pantalla de cocina (Pedidos)</h3>
+              <p class="nota">Crea un enlace para la tablet de tus chefs: ven los pedidos en tiempo real, con su mesa y su lugar en el plano de tu salón, y marcan “Aceptado” y “Listo”. No necesitan cuenta ni ocupan un dispositivo de tu plan. El cobro y la entrega siguen siendo tuyos o de tu cajero.</p>
+              <div id="mensajeCocinaCfg" class="mensaje"></div>
+              <div class="form-agregar-admin" style="flex-wrap:wrap;">
+                <input id="cocinaNombre" type="text" maxlength="40" placeholder="Nombre (ej. Cocina principal)">
+                <select id="cocinaVigencia"><option value="">Sin caducidad</option><option value="1">Caduca en 1 día</option><option value="30">Caduca en 30 días</option><option value="90">Caduca en 90 días</option></select>
+                <button type="button" class="principal" style="width:auto;" onclick="crearEnlaceCocina()">Crear enlace de cocina</button>
+              </div>
+              <div id="cocinaEnlaceNuevo" class="oculto" style="margin-top:12px; padding:12px; border:1px solid var(--borde); border-radius:12px;"></div>
+              <div id="listaEnlacesCocina" style="margin-top:12px;"></div>
+              <h3 style="margin:22px 0 6px;">Plano del salón</h3>
+              <p class="nota">Dibuja tus mesas como están en tu local. En la pantalla de cocina cada pedido se ilumina en su mesa, con los minutos que lleva y un color si se está tardando.</p>
+              <button type="button" onclick="abrirEditorPlano()">Editar plano del salón</button>
+            </div>
           </div>
         </div>
         <div class="bloque-analitica oculto" id="bloquePersonalizaciones">
@@ -8149,7 +8165,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('estadoPedidosQr').textContent = activo ? 'Estado: activo. Tus clientes ya pueden pedir con el QR de su mesa.' : 'Estado: desactivado.';
     const btn = document.getElementById('btnTogglePedidosQr'); btn.textContent = activo ? 'Desactivar pedidos por QR' : 'Activar pedidos por QR'; btn.dataset.activo = activo ? '1' : '0';
     document.getElementById('panelMesasQr').classList.toggle('oculto', !activo);
-    if(activo) cargarQrGuardados();
+    if(activo){ cargarQrGuardados(); cargarEnlacesCocina(); }
   }
   async function alternarPedidosQr(){
     const nuevo = document.getElementById('btnTogglePedidosQr').dataset.activo !== '1';
@@ -8217,6 +8233,61 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       tarjetaQrPdf(doc, ox, oy, W, H, nombre, r.mesa, qrMatrizPuve(urlMesaQr(r)), !unica);
     });
     doc.save(unica ? 'QR-mesa-' + filas[0].mesa + '.pdf' : 'QR-mesas.pdf');
+  }
+  // ----- Pantalla de cocina (enlace para chefs) y plano del salón -----
+  function urlCocina(token){ const u = new URL('cocina.html', location.href); u.hash = 't=' + token; return u.href; }
+  const haceTexto = (iso) => { if(!iso) return 'todavía sin abrir'; const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000)); return m < 2 ? 'visto ahora' : m < 90 ? 'visto hace ' + m + ' min' : m < 2880 ? 'visto hace ' + Math.round(m / 60) + ' h' : 'visto hace ' + Math.round(m / 1440) + ' días'; };
+  async function cargarEnlacesCocina(){
+    const cont = document.getElementById('listaEnlacesCocina'); if(!cont) return;
+    const { data, error } = await sb.rpc('cocina_enlaces_listar'); if(error) return;
+    cont.textContent = '';
+    if(!(data || []).length){ cont.appendChild(el('p', 'nota', 'Todavía no has creado ningún enlace de cocina.')); return; }
+    data.forEach(e => {
+      const fila = el('div', null); fila.style.cssText = 'display:flex; gap:10px; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--borde); flex-wrap:wrap;';
+      const info = el('div'); info.appendChild(el('b', '', e.nombre));
+      const det = el('div', 'nota', haceTexto(e.ultimo_uso) + (e.expira_en ? ' · caduca el ' + new Date(e.expira_en).toLocaleDateString('es-MX') : '') + (e.vigente ? '' : ' · caducado')); det.style.margin = '2px 0 0'; info.appendChild(det);
+      const rev = el('button', 'texto', 'Revocar'); rev.type = 'button'; rev.style.cssText = 'width:auto; color:#c0392b;'; rev.onclick = () => revocarEnlaceCocina(e.id, e.nombre);
+      fila.appendChild(info); fila.appendChild(rev); cont.appendChild(fila);
+    });
+  }
+  async function crearEnlaceCocina(){
+    ocultarMensaje('mensajeCocinaCfg');
+    const nombre = document.getElementById('cocinaNombre').value.trim(), dias = document.getElementById('cocinaVigencia').value;
+    const { data, error } = await sb.rpc('cocina_enlace_crear', { p_nombre: nombre, p_dias: dias ? parseInt(dias, 10) : null });
+    if(error){ mostrarMensaje('mensajeCocinaCfg', error.message || 'No se pudo crear el enlace', 'error'); return; }
+    const url = urlCocina(data.token), caja = document.getElementById('cocinaEnlaceNuevo'); caja.textContent = ''; caja.classList.remove('oculto');
+    caja.appendChild(el('b', '', 'Enlace creado: ' + (nombre || 'Cocina')));
+    const aviso = el('p', 'nota', 'Cópialo o escanea el QR con la tablet de la cocina. Por seguridad solo se muestra ahora; si lo pierdes, revoca este y crea otro. Quien tenga el enlace puede ver y mover los pedidos, así que no lo publiques.'); caja.appendChild(aviso);
+    const inp = el('input'); inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.style.cssText = 'width:100%; font-size:12px;'; inp.onclick = () => inp.select(); caja.appendChild(inp);
+    const botones = el('div'); botones.style.cssText = 'display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;';
+    const bc = el('button', 'principal', 'Copiar enlace'); bc.type = 'button'; bc.style.width = 'auto';
+    bc.onclick = async () => { try { await navigator.clipboard.writeText(url); bc.textContent = 'Copiado'; } catch(e){ inp.select(); document.execCommand('copy'); bc.textContent = 'Copiado'; } };
+    const bo = el('button', '', 'Abrir pantalla de cocina'); bo.type = 'button'; bo.style.width = 'auto'; bo.onclick = () => window.open(url, '_blank', 'noopener');
+    botones.appendChild(bc); botones.appendChild(bo); caja.appendChild(botones);
+    const qr = el('div', 'qr-svg'); qr.style.cssText = 'width:170px; margin-top:12px;'; try { qr.innerHTML = qrSvgPuve(url); } catch(e){} caja.appendChild(qr);
+    document.getElementById('cocinaNombre').value = ''; cargarEnlacesCocina();
+  }
+  async function revocarEnlaceCocina(id, nombre){
+    if(!confirm('¿Revocar el enlace “' + nombre + '”? La tablet que lo use dejará de ver pedidos.')) return;
+    const { error } = await sb.rpc('cocina_enlace_revocar', { p_id: id });
+    if(error){ mostrarMensaje('mensajeCocinaCfg', error.message || 'No se pudo revocar', 'error'); return; }
+    document.getElementById('cocinaEnlaceNuevo').classList.add('oculto'); cargarEnlacesCocina();
+  }
+  async function abrirEditorPlano(){
+    ocultarMensaje('mensajePedidosQrCfg');
+    if(!qrFilas.length) await cargarQrGuardados();
+    const mesas = qrFilas.map(r => r.mesa);
+    if(!mesas.length){ mostrarMensaje('mensajePedidosQrCfg', 'Primero genera los QR de tus mesas: así el plano sabe cuáles mesas existen.', 'error'); return; }
+    const { data: plano } = await sb.rpc('obtener_plano_salon');
+    const fondo = el('div', 'modal-puve-fondo'), caja = el('div', 'modal-puve'); caja.style.maxWidth = '960px';
+    fondo.appendChild(caja);
+    const cab = el('div'); cab.style.cssText = 'display:flex; justify-content:space-between; align-items:center; gap:10px;';
+    cab.appendChild(el('h2', '', 'Plano del salón')); const x = el('button', 'texto', 'Cerrar'); x.type = 'button'; x.style.width = 'auto';
+    const cerrar = () => { if(ed.haySinGuardar() && !confirm('Tienes cambios sin guardar. ¿Cerrar de todos modos?')) return; fondo.remove(); };
+    x.onclick = cerrar; cab.appendChild(x); caja.appendChild(cab);
+    caja.appendChild(el('p', 'nota', 'Arrastra cada mesa a su lugar. Selecciónala para elegir qué mesa es (la del QR), cuántas sillas tiene, girarla o cambiar su tamaño. Agrega cocina, entrada, baño o plantas para que el dibujo se parezca a tu local.'));
+    const zona = el('div'); caja.appendChild(zona); document.body.appendChild(fondo);
+    const ed = window.PuvePlano.editor(zona, plano || { elementos: [] }, { mesas, tema: 'oscuro', alGuardar: async (p) => { const { data, error } = await sb.rpc('guardar_plano_salon', { p_plano: p }); if(error) throw new Error(error.message); return data; } });
   }
   async function invalidarQrMesas(){
     if(!confirm('Los QR que ya imprimiste dejarán de funcionar y tendrás que generar e imprimir otros. ¿Continuar?')) return;

@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /pedir.html
+Disallow: /cocina.html
 
 Sitemap: https://puve.yorss01.workers.dev/sitemap.xml
