@@ -8,7 +8,7 @@
   const MARGEN_MIN = 30;          // por debajo de este margen % se marca "Margen bajo"
   const ALZA_AVISO = 5;           // % de alza de costo que dispara el aviso
   const UNIDADES = [['kg', 'kg'], ['g', 'g'], ['l', 'litros'], ['ml', 'ml'], ['pza', 'piezas']];
-  let enlace = { sb: null, productos: () => [], dinero: (n) => '$' + Number(n).toFixed(2), recargarProductos: () => {}, aviso: (m) => alert(m) };
+  let enlace = { sb: null, productos: () => [], dinero: (n) => '$' + Number(n).toFixed(2), recargarProductos: () => {}, aviso: (m) => alert(m), irAInsumos: () => {} };
   let insumos = [], costeo = [], busca = '';
 
   function h(tag, cls, txt, estilo){ const e = document.createElement(tag); if(cls) e.className = cls; if(txt != null) e.textContent = txt; if(estilo) e.style.cssText = estilo; return e; }
@@ -171,56 +171,108 @@
     caja.appendChild(fila);
   }
 
-  function editorReceta(p, c, cont){
-    if(!insumos.length){ enlace.aviso('Primero agrega al menos un insumo.'); return; }
-    const { caja, cerrar } = modal('Receta: ' + p.nombre, 620);
-    caja.appendChild(h('p', 'nota', 'Cantidad de cada insumo que lleva UNA porción. Al vender 3, se descuenta el triple.', 'margin:0 0 8px;'));
-    const lineas = (c ? c.lineas : []).map((l) => ({ insumo_id: l.insumo_id, cantidad: String(l.cantidad) }));
-    const lista = h('div'); caja.appendChild(lista);
-    const resumen = h('div', null, null, 'margin:12px 0; padding:10px 12px; border:1px solid var(--borde); border-radius:10px; font-weight:600;'); caja.appendChild(resumen);
-    const msg = h('div', 'nota', '', 'color:var(--error); margin:6px 0;'); caja.appendChild(msg);
+  // Editor de líneas de receta, reutilizable: lo usa el modal de Inventario → Recetas y el formulario de Editar producto.
+  // Cada línea: insumo + cantidad por porción + dos casillas para el menú QR (lo ve el cliente / lo puede quitar).
+  function armarEditorLineas(caja, getPrecio, iniciales, opc){
+    opc = opc || {};
+    const lineas = (iniciales || []).map((l) => ({ insumo_id: l.insumo_id, cantidad: String(l.cantidad), mostrar: l.mostrar !== false, quitable: l.quitable !== false && l.mostrar !== false }));
+    const avisoCliente = h('p', 'nota', 'Marca qué ingredientes verá tu cliente en el menú QR y cuáles podrá quitar (por ejemplo “sin cebolla”). Lo que no marques (aceite, sal, empaques…) solo cuenta para el costo.', 'margin:0 0 8px; font-size:12.5px; color:var(--texto-suave); line-height:1.45;');
+    const lista = h('div'); caja.appendChild(avisoCliente); caja.appendChild(lista);
+    const msg = h('div', 'nota', '', 'color:var(--error); margin:6px 0; font-size:12.5px;');
+    const resumen = h('div', null, null, 'margin:12px 0; padding:10px 14px; border:1px solid var(--borde); border-radius:14px; font-weight:600; font-size:13.5px;');
+    const cambio = () => { if(opc.alCambiar) opc.alCambiar(); };
     const calcula = () => {
       let costo = 0; lineas.forEach((l) => { const i = insumos.find((x) => x.id === l.insumo_id), q = num(l.cantidad); if(i && !isNaN(q)) costo += q * Number(i.costo_unitario); });
-      const precio = Number(p.precio), gana = precio - costo, pct = precio > 0 ? gana / precio * 100 : 0;
+      const precio = Number(getPrecio()) || 0, gana = precio - costo, pct = precio > 0 ? gana / precio * 100 : 0;
       resumen.textContent = 'Costo ' + enlace.dinero(costo) + ' · Precio ' + enlace.dinero(precio) + ' · Ganas ' + enlace.dinero(gana) + ' (' + fmt(pct, 0) + '%)' + (lineas.length && pct < MARGEN_MIN ? ' — margen bajo' : '');
       resumen.style.color = lineas.length && pct < MARGEN_MIN ? 'var(--error)' : '';
+    };
+    const casilla = (txt, marcada, fn, deshabilitada) => {
+      const lb = h('label', 'nota', null, 'display:inline-flex; align-items:center; gap:6px; margin:0 14px 0 0; cursor:pointer; white-space:nowrap; font-size:12.5px; color:var(--texto-suave); line-height:1.45;' + (deshabilitada ? ' opacity:.5;' : ''));
+      const c = h('input'); c.type = 'checkbox'; c.checked = marcada; c.disabled = !!deshabilitada; c.style.cssText = 'width:18px; height:18px; margin:0; padding:0; flex:none;'; c.onchange = () => fn(c.checked); lb.appendChild(c); lb.appendChild(document.createTextNode(txt)); return lb;
     };
     const pintar = () => {
       lista.textContent = '';
       lineas.forEach((l, idx) => {
-        const fila = h('div', null, null, 'display:flex; gap:8px; align-items:center; margin:6px 0; flex-wrap:wrap;');
+        const caj = h('div', null, null, 'padding:8px 0; border-bottom:1px solid var(--borde);');
+        const fila = h('div', null, null, 'display:flex; gap:8px; align-items:center; flex-wrap:wrap;');
         const sel = h('select', 'input-mini', null, 'flex:1; min-width:170px;');
         insumos.filter((i) => i.id === l.insumo_id || !lineas.some((x) => x.insumo_id === i.id)).forEach((i) => { const o = h('option', null, i.nombre + ' (' + unidadTxt(i.unidad) + ')'); o.value = i.id; sel.appendChild(o); });
-        sel.value = l.insumo_id; sel.onchange = () => { l.insumo_id = sel.value; pintar(); };
-        const q = h('input', 'input-mini'); q.type = 'number'; q.min = '0'; q.step = 'any'; q.value = l.cantidad; q.placeholder = 'Cantidad'; q.style.width = '110px'; q.oninput = () => { l.cantidad = q.value; calcula(); };
-        const i = insumos.find((x) => x.id === l.insumo_id); const u = h('span', 'nota', i ? unidadTxt(i.unidad) : ''); 
-        const x = boton('Quitar', async () => { lineas.splice(idx, 1); pintar(); }, 'texto', 'color:#c0392b;');
-        fila.appendChild(sel); fila.appendChild(q); fila.appendChild(u); fila.appendChild(x); lista.appendChild(fila);
+        sel.value = l.insumo_id; sel.onchange = () => { l.insumo_id = sel.value; cambio(); pintar(); };
+        const q = h('input', 'input-mini'); q.type = 'number'; q.min = '0'; q.step = 'any'; q.value = l.cantidad; q.placeholder = 'Cantidad'; q.style.width = '110px'; q.oninput = () => { l.cantidad = q.value; cambio(); calcula(); };
+        const i = insumos.find((x) => x.id === l.insumo_id); const u = h('span', 'nota', i ? unidadTxt(i.unidad) : '', 'font-size:12.5px; color:var(--texto-suave); line-height:1.45;');
+        const x = boton('Quitar', async () => { lineas.splice(idx, 1); cambio(); pintar(); }, 'texto', 'color:#c0392b; margin-left:auto; padding:4px 10px;');
+        fila.appendChild(sel); fila.appendChild(q); fila.appendChild(u); caj.appendChild(fila);
+        const cas = h('div', null, null, 'margin-top:8px; display:flex; align-items:center; flex-wrap:wrap; row-gap:6px;');
+        cas.appendChild(casilla('Lo ve el cliente', l.mostrar, (v) => { l.mostrar = v; if(!v) l.quitable = false; cambio(); pintar(); }));
+        cas.appendChild(casilla('Puede quitarlo', l.quitable, (v) => { l.quitable = v; cambio(); }, !l.mostrar));
+        cas.appendChild(x); caj.appendChild(cas); lista.appendChild(caj);
       });
-      if(!lineas.length) lista.appendChild(h('p', 'nota', 'Aún no tiene ingredientes.'));
+      if(!lineas.length) lista.appendChild(h('p', 'nota', 'Aún no tiene ingredientes.', 'font-size:12.5px; color:var(--texto-suave); line-height:1.45;'));
       calcula();
     };
     const bAdd = boton('+ Agregar ingrediente', async () => {
       const libre = insumos.find((i) => !lineas.some((x) => x.insumo_id === i.id)); if(!libre){ msg.textContent = 'Ya agregaste todos tus insumos.'; return; }
-      lineas.push({ insumo_id: libre.id, cantidad: '' }); pintar();
-    }, 'editar'); caja.insertBefore(bAdd, resumen);
+      msg.textContent = ''; lineas.push({ insumo_id: libre.id, cantidad: '', mostrar: true, quitable: true }); cambio(); pintar();
+    }, 'editar');
+    caja.appendChild(bAdd); caja.appendChild(resumen); caja.appendChild(msg);
+    if(opc.lineaInicial && !lineas.length) lineas.push({ insumo_id: insumos[0].id, cantidad: '', mostrar: true, quitable: true });
+    pintar();
+    return {
+      msg, cantidad: () => lineas.length,
+      error(){ for(const l of lineas){ const q = num(l.cantidad); if(isNaN(q) || q <= 0) return 'Todas las cantidades de la receta deben ser mayores a 0.'; } return ''; },
+      valores(){ return lineas.map((l) => ({ insumo_id: l.insumo_id, cantidad: num(l.cantidad), mostrar: !!l.mostrar, quitable: !!l.mostrar && !!l.quitable })); },
+      recalcular: calcula
+    };
+  }
+
+  function editorReceta(p, c, cont){
+    if(!insumos.length){ enlace.aviso('Primero agrega al menos un insumo.'); return; }
+    const { caja, cerrar } = modal('Receta: ' + p.nombre, 620);
+    caja.appendChild(h('p', 'nota', 'Cantidad de cada insumo que lleva UNA porción. Al vender 3, se descuenta el triple.', 'margin:0 0 8px;'));
+    const ed = armarEditorLineas(caja, () => Number(p.precio), c ? c.lineas : [], { lineaInicial: true });
     const fila = h('div', null, null, 'display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;');
     fila.appendChild(boton('Cancelar', async () => cerrar()));
     if(c) fila.appendChild(boton('Quitar receta', async () => {
       if(!confirm('¿Quitar la receta de “' + p.nombre + '”? Dejará de descontar insumos.')) return;
-      const { error } = await enlace.sb.rpc('receta_guardar', { p_producto: p.id, p_lineas: [] }); if(error){ msg.textContent = error.message; return; }
+      const { error } = await enlace.sb.rpc('receta_guardar', { p_producto: p.id, p_lineas: [] }); if(error){ ed.msg.textContent = error.message; return; }
       cerrar(); pintarRecetas(cont);
     }, 'texto', 'color:#c0392b;'));
     fila.appendChild(boton('Guardar receta', async () => {
-      const ls = lineas.filter((l) => l.cantidad !== '' || true);
-      for(const l of ls){ const q = num(l.cantidad); if(isNaN(q) || q <= 0){ msg.textContent = 'Todas las cantidades deben ser mayores a 0.'; return; } }
-      const { error } = await enlace.sb.rpc('receta_guardar', { p_producto: p.id, p_lineas: ls.map((l) => ({ insumo_id: l.insumo_id, cantidad: num(l.cantidad) })) });
-      if(error){ msg.textContent = error.message; return; }
+      const e = ed.error(); if(e){ ed.msg.textContent = e; return; }
+      const { error } = await enlace.sb.rpc('receta_guardar', { p_producto: p.id, p_lineas: ed.valores() });
+      if(error){ ed.msg.textContent = error.message; return; }
       cerrar(); pintarRecetas(cont);
     }, 'principal'));
     caja.appendChild(fila);
-    if(!lineas.length) lineas.push({ insumo_id: insumos[0].id, cantidad: '' });
-    pintar();
+  }
+
+  // Receta dentro del formulario de Editar / Nuevo producto. Devuelve un control con sucio(), error() y guardar(idProducto).
+  // Solo guarda la receta si el encargado la tocó (guardar la receta vuelve a tomar los costos actuales como referencia).
+  async function montarRecetaProducto(cont, producto, getPrecio, alCambiar, vigente){
+    cont.textContent = '';
+    const ctl = { sucio: () => false, error: () => '', guardar: async () => '' };
+    cont.appendChild(h('div', 'nota', 'Cargando insumos…', 'font-size:12.5px; color:var(--texto-suave); line-height:1.45;'));
+    try { await Promise.all([cargarInsumos(), producto ? cargarCosteo() : Promise.resolve()]); }
+    catch(e){ cont.textContent = ''; cont.appendChild(h('p', 'nota', 'No se pudo cargar la receta: ' + ((e && e.message) || e), 'color:var(--error); font-size:12.5px;')); return ctl; }
+    if(vigente && !vigente()) return ctl;   // se cerró o reabrió el formulario mientras cargaba
+    cont.textContent = '';
+    if(!insumos.length){
+      cont.appendChild(h('p', 'nota', 'Para armar la receta primero registra tus insumos (carne, tortillas, aceite…) con su costo.', 'margin:0 0 8px; font-size:12.5px; color:var(--texto-suave); line-height:1.45;'));
+      cont.appendChild(boton('Ir a Recetas e insumos', async () => { enlace.irAInsumos(); }, 'editar'));
+      return ctl;
+    }
+    let sucio = false;
+    const c = producto ? costeo.find((x) => x.producto_id === producto.id) : null;
+    const ed = armarEditorLineas(cont, getPrecio, c ? c.lineas : [], { alCambiar: () => { sucio = true; if(alCambiar) alCambiar(); } });
+    ctl.sucio = () => sucio; ctl.recalcular = ed.recalcular;
+    ctl.error = () => sucio ? ed.error() : '';
+    ctl.guardar = async (idProducto) => {
+      if(!sucio) return '';
+      const { error } = await enlace.sb.rpc('receta_guardar', { p_producto: idProducto, p_lineas: ed.valores() });
+      return error ? error.message : '';
+    };
+    return ctl;
   }
 
   // =====================================================================
@@ -277,6 +329,7 @@
 
   window.PuveInsumos = {
     enlazar(o){ enlace = Object.assign(enlace, o || {}); },
+    montarRecetaProducto,
     abrir(vista){
       if(vista === 'recetas') return pintarRecetas(document.getElementById('vistaInventarioRecetas'));
       if(vista === 'caducidad') return pintarCaducidad(document.getElementById('vistaInventarioCaducidad'));

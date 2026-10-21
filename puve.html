@@ -1088,6 +1088,30 @@
   .rej-producto .campo select{ padding:12px 15px !important; border-radius:14px !important; }
   @media (max-width:700px){ .rej-producto{ grid-template-columns:1fr 1fr; } .rej-producto .c-2{ grid-column:1 / -1; } }
 
+  /* — PRODUCTOS · formulario en pantalla completa (con cerrar) y lista en tarjetas para el celular — */
+  body.modal-producto-abierto{ overflow:hidden; }
+  .prod-principal .panel-form.activo{ position:fixed; inset:0; z-index:9400; margin:0; padding:0; border:0; border-radius:0; box-shadow:none; background:var(--fondo); overflow-y:auto; overscroll-behavior:contain; }
+  .panel-form-cab{ position:sticky; top:0; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:calc(14px + env(safe-area-inset-top)) 20px 14px; background:var(--fondo); border-bottom:1px solid var(--borde); }
+  .panel-form-cab h2{ margin:0; font-family:var(--serif); font-weight:400; font-size:27px; letter-spacing:-.01em; }
+  .panel-form-cerrar{ width:40px; height:40px; padding:0; flex:none; background:var(--vid2); font-size:16px; }
+  .panel-form-cuerpo{ max-width:900px; margin:0 auto; padding:18px 20px 0; }
+  .panel-form-pie{ position:sticky; bottom:0; z-index:2; display:flex; gap:10px; margin:18px -20px 0; padding:14px 20px calc(14px + env(safe-area-inset-bottom)); background:var(--fondo); border-top:1px solid var(--borde); }
+  @media (max-width:760px){
+    #tablaProductos{ background:none; border:0; box-shadow:none; min-width:0 !important; }
+    .envoltura-tabla:has(#tablaProductos){ overflow-x:visible; }
+    #tablaProductos thead{ display:none; }
+    #tablaProductos, #tablaProductos tbody{ display:block; width:100%; }
+    #tablaProductos tr{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:2px 10px; padding:14px 16px; margin-bottom:10px; background:var(--vid); border:1px solid var(--linea); border-radius:18px; box-shadow:var(--sombra); }
+    #tablaProductos tbody td{ display:block; padding:0; border:0; min-width:0; text-align:left; font-size:13.5px; }
+    #tablaProductos tbody td.p-nombre{ grid-column:1 / 3; font-size:15px; font-weight:600; word-break:break-word; }
+    #tablaProductos tbody td.p-sku{ grid-column:3 / 5; text-align:right; color:var(--texto-suave); font-size:12px; overflow-wrap:anywhere; }
+    #tablaProductos tbody td.p-sku::before{ content:'SKU '; }
+    #tablaProductos tbody td.p-dato{ margin-top:8px; }
+    #tablaProductos tbody td.p-dato::before{ content:attr(data-l); display:block; font-size:11px; font-weight:500; color:var(--texto-suave); }
+    #tablaProductos tbody td.acciones{ grid-column:1 / -1; display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid var(--borde); white-space:normal; }
+    #tablaProductos tbody td.acciones button{ flex:1 1 90px; min-height:40px; border:1px solid var(--borde); background:var(--vid2); font-size:13px; }
+  }
+
   /* — CONFIGURACIÓN · funciones y giro primero; seguridad y accesos aparte — */
   .cfg-grid{ display:grid; gap:20px; align-items:start; }
   .cfg-col{ display:flex; flex-direction:column; gap:20px; min-width:0; }
@@ -1697,7 +1721,9 @@
       <div class="prod-layout">
         <div class="prod-principal">
           <div class="nota-solo-lectura" id="notaProductosSoloLectura">Vista de solo lectura: el encargado es quien agrega, edita y elimina productos. Si falta alguno, avísale.</div>
-      <div class="panel-form" id="panelForm">
+      <div class="panel-form" id="panelForm" role="dialog" aria-modal="true" aria-labelledby="tituloFormProducto">
+        <div class="panel-form-cab"><h2 id="tituloFormProducto">Nuevo producto</h2><button type="button" class="panel-form-cerrar" aria-label="Cerrar" onclick="alternarFormulario(false)">✕</button></div>
+        <div class="panel-form-cuerpo">
         <div id="mensajeProducto" class="mensaje"></div>
         <form id="formProducto" onsubmit="return funcionPuveActiva('admin.guardar_producto') ? manejarSubmitGuardarProducto(event) : false;">
           <input type="hidden" id="productoId">
@@ -1772,12 +1798,18 @@
               </div>
               <div class="nota" id="fotoEstado"></div>
             </div>
+            <div class="campo oculto c-full" id="campoRecetaProducto">
+              <label>Receta del platillo (ingredientes)</label>
+              <div class="nota" style="margin:0 0 8px; font-size:12.5px; color:var(--texto-suave); line-height:1.45;">Lo que lleva una porción. Sirve para el costo, para descontar inventario y para que tu cliente vea los ingredientes en el menú QR.</div>
+              <div id="recetaProductoCont"></div>
+            </div>
           </div>
-          <div style="display:flex; gap:10px; margin-top:16px;">
+          <div class="panel-form-pie">
             <button class="principal" type="submit" id="btnGuardarProducto" style="width:auto;">Guardar</button>
             <button type="button" class="texto" onclick="alternarFormulario(false)">Cancelar</button>
           </div>
         </form>
+        </div>
       </div>
       <div class="envoltura-tabla">
       <table id="tablaProductos">
@@ -7369,12 +7401,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('resumenInventario').textContent = productosCache.length + ' producto' + (productosCache.length === 1 ? '' : 's') + ' en inventario';
     cuerpo.innerHTML = productosCache.map(p => `
       <tr data-id="${p.id}">
-        <td>${escapar(p.nombre)}</td>
-        <td>${escapar(p.sku || '—')}</td>
-        <td>${escapar(categoriasCache.find(c => c.id === p.categoria_id)?.nombre || '—')}</td>
-        <td class="num">$${Number(p.precio).toFixed(2)}</td>
-        <td class="num">$${Number(p.costo).toFixed(2)}</td>
-        <td class="num">${formatearStock(p.stock)}</td>
+        <td class="p-nombre">${escapar(p.nombre)}</td>
+        <td class="p-sku">${escapar(p.sku || '—')}</td>
+        <td class="p-dato" data-l="Categoría">${escapar(categoriasCache.find(c => c.id === p.categoria_id)?.nombre || '—')}</td>
+        <td class="num p-dato" data-l="Precio">$${Number(p.precio).toFixed(2)}</td>
+        <td class="num p-dato" data-l="Costo">$${Number(p.costo).toFixed(2)}</td>
+        <td class="num p-dato" data-l="Stock">${formatearStock(p.stock)}</td>
         <td class="acciones">
           <button class="editar boton-editar-producto">Editar</button>
           <button class="eliminar boton-eliminar-producto">Eliminar</button>
@@ -7429,7 +7461,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const abrir = mostrar !== undefined ? mostrar : !panel.classList.contains('activo');
     if(abrir && !puedoEditarProductos()){ avisoSoloEncargado(); return; }
     panel.classList.toggle('activo', abrir);
+    document.body.classList.toggle('modal-producto-abierto', abrir);
+    if(abrir){
+      document.getElementById('tituloFormProducto').textContent = document.getElementById('productoId').value ? 'Editar producto' : 'Nuevo producto';
+      panel.scrollTop = 0; prepararRecetaProducto(document.getElementById('productoId').value);
+      const cerrarBtn = panel.querySelector('.panel-form-cerrar'); if(cerrarBtn) try { cerrarBtn.focus({ preventScroll: true }); } catch(e){}
+    }
     if(!abrir){
+      recetaSeq++; recetaProductoCtl = null;
       document.getElementById('formProducto').reset();
       document.getElementById('productoId').value = '';
       document.getElementById('btnGuardarProducto').textContent = 'Guardar';
@@ -7437,6 +7476,21 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       limpiarFotoPendiente(); if(document.getElementById('pTipo')){ document.getElementById('pTipo').value = 'servicio'; document.getElementById('pDuracion').value = ''; ajustarFormServicio(); } ['pTalla', 'pColor'].forEach(id => { const e = document.getElementById(id); if(e) e.value = ''; }); if(document.getElementById('pUnidad')) resetFormPap();
     }
   }
+
+  // Receta dentro de Editar producto (restaurantes y cafeterías): reutiliza el editor de Inventario → Recetas
+  let recetaProductoCtl = null, recetaSeq = 0;
+  async function prepararRecetaProducto(id){
+    const campo = document.getElementById('campoRecetaProducto'), cont = document.getElementById('recetaProductoCont');
+    const ver = document.body.classList.contains('giro-restaurante') || document.body.classList.contains('giro-cafeteria');
+    campo.classList.toggle('oculto', !ver); recetaProductoCtl = null; cont.textContent = ''; if(!ver) return;
+    const miSeq = ++recetaSeq, prod = id ? productosCache.find(x => x.id === id) : null;
+    const ctl = await PuveInsumos.montarRecetaProducto(cont, prod, () => parseFloat(document.getElementById('pPrecio').value) || 0, null, () => miSeq === recetaSeq);
+    if(miSeq === recetaSeq) recetaProductoCtl = ctl;
+  }
+  document.getElementById('pPrecio').addEventListener('input', () => { if(recetaProductoCtl && recetaProductoCtl.recalcular) recetaProductoCtl.recalcular(); });
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape' && document.getElementById('panelForm').classList.contains('activo') && !document.querySelector('.modal-puve-fondo:not(.oculto)')) alternarFormulario(false);
+  });
 
   function cargarParaEditar(p){
     document.getElementById('productoId').value = p.id;
@@ -7469,6 +7523,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     btn.disabled = true;
     ocultarMensaje('mensajeProducto');
     const id = document.getElementById('productoId').value;
+    const rec = recetaProductoCtl, errRec = rec ? rec.error() : '';
+    if(errRec){ btn.disabled = false; mostrarMensaje('mensajeProducto', errRec, 'error'); document.getElementById('campoRecetaProducto').scrollIntoView({ block: 'center', behavior: 'smooth' }); return false; }
     const registro = {
       negocio_id: negocioId,
       nombre: document.getElementById('pNombre').value.trim(),
@@ -7485,11 +7541,18 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(usaUnidades()){ const errPap = valoresFormPap(registro); if(errPap){ btn.disabled = false; mostrarMensaje('mensajeProducto', errPap, 'error'); return false; } }
     let error, idGuardado = id;
     if(id){ ({ error } = await sb.from('productos').update(registro).eq('id', id)); }
-    else if(usaUnidades()){ const r = await sb.from('productos').insert(registro).select('id').single(); error = r.error; idGuardado = r.data && r.data.id; }
+    else if(usaUnidades() || (rec && rec.sucio())){ const r = await sb.from('productos').insert(registro).select('id').single(); error = r.error; idGuardado = r.data && r.data.id; }
     else { ({ error } = await sb.from('productos').insert(registro)); }
     if(!error && usaUnidades() && idGuardado){
       const r2 = await guardarPreciosPap(idGuardado);
       if(r2.error){ btn.disabled = false; mostrarMensaje('mensajeProducto', 'El artículo se guardó, pero no sus presentaciones o precios por volumen: ' + r2.error.message, 'error'); await cargarProductos(); return false; }
+    }
+    if(!error && rec && rec.sucio() && idGuardado){
+      const errR = await rec.guardar(idGuardado);
+      if(errR){   // el producto ya existe: el formulario pasa a "editar" para no duplicarlo al reintentar
+        document.getElementById('productoId').value = idGuardado; document.getElementById('btnGuardarProducto').textContent = 'Actualizar'; document.getElementById('tituloFormProducto').textContent = 'Editar producto';
+        btn.disabled = false; mostrarMensaje('mensajeProducto', 'El producto se guardó, pero no su receta: ' + errR, 'error'); await cargarProductos(); return false;
+      }
     }
     btn.disabled = false;
     if(error){ mostrarMensaje('mensajeProducto', 'No se pudo guardar: ' + textoErrorProducto(error), 'error'); return false; }
@@ -8153,7 +8216,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   function tarjetaPedidoQr(p){
     const card = el('div', 'pedido-card'), cab = el('div', 'pedido-cab'), min = Math.max(0, Math.round((Date.now() - new Date(p.creado_en).getTime()) / 60000));
     cab.appendChild(el('b', '', p.mesa === 'BARRA' ? 'Barra' + (p.cliente_alias ? ' · ' + p.cliente_alias : '') : 'Mesa ' + p.mesa)); cab.appendChild(el('span', '', min < 1 ? 'ahora' : 'hace ' + min + ' min')); card.appendChild(cab);
-    (p.pedido_qr_items || []).forEach(i => { card.appendChild(el('div', 'pedido-linea', i.cantidad + ' × ' + i.producto_nombre)); if((i.opciones || []).length) card.appendChild(el('div', 'pedido-opc', i.opciones.map(o => o.g + ': ' + o.o).join(' · '))); });
+    (p.pedido_qr_items || []).forEach(i => { card.appendChild(el('div', 'pedido-linea', i.cantidad + ' × ' + i.producto_nombre)); if((i.opciones || []).length) card.appendChild(el('div', 'pedido-opc', i.opciones.map(textoOpcion).join(' · '))); });
     if(p.nota) card.appendChild(el('div', 'pedido-nota', '“' + p.nota + '”'));
     card.appendChild(el('div', 'pedido-linea', 'Total: $' + Number(p.total).toFixed(2)));
     if(p.estado === 'preparando' && p.minutos_estimados) card.appendChild(el('div', 'nota', 'Le dijiste al cliente: ~' + p.minutos_estimados + ' min'));
@@ -8168,13 +8231,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     } else if(p.estado === 'listo'){
       btn('Entregado', 'principal', () => cambiarEstadoPedidoQr(p.id, 'entregado'));
     }
-    if(['por_confirmar', 'preparando'].includes(p.estado)) btn('Imprimir comanda', 'texto', () => PuveHW.imprimirComanda({ titulo: 'COMANDA', mesa: p.mesa === 'BARRA' ? 'BARRA' + (p.cliente_alias ? ' - ' + p.cliente_alias : '') : 'MESA ' + p.mesa, fecha: p.creado_en, items: (p.pedido_qr_items || []).map(i => ({ cantidad: i.cantidad, nombre: i.producto_nombre, nota: (i.opciones || []).map(o => o.g + ': ' + o.o).join(', ') })), nota: p.nota || '' }));
+    if(['por_confirmar', 'preparando'].includes(p.estado)) btn('Imprimir comanda', 'texto', () => PuveHW.imprimirComanda({ titulo: 'COMANDA', mesa: p.mesa === 'BARRA' ? 'BARRA' + (p.cliente_alias ? ' - ' + p.cliente_alias : '') : 'MESA ' + p.mesa, fecha: p.creado_en, items: (p.pedido_qr_items || []).map(i => ({ cantidad: i.cantidad, nombre: i.producto_nombre, nota: (i.opciones || []).map(textoOpcion).join(', ') })), nota: p.nota || '' }));
     if(['por_confirmar', 'preparando', 'listo'].includes(p.estado)) btn('Etiquetas', 'texto', () => imprimirEtiquetasPedidoQr(p));
     if(p.estado === 'listo') btn('Avisar por WhatsApp', 'texto', () => avisarListoWhatsApp(p));
     if(miRol === 'vendedor' && ['por_confirmar', 'preparando', 'listo'].includes(p.estado)) btn('Cobrar en caja', '', () => cobrarPedidoQr(p.id));
     if(acc.children.length) card.appendChild(acc);
     return card;
   }
+  const textoOpcion = (o) => o.g === 'Sin' ? 'SIN ' + o.o : o.g + ': ' + o.o;
   // Una etiqueta por vaso/caja (nombre del cliente o mesa, producto y extras). Usa la impresión de comanda: térmica si está conectada, si no la del navegador.
   async function imprimirEtiquetasPedidoQr(p){
     const quien = p.mesa === 'BARRA' ? (p.cliente_alias || 'BARRA') : 'MESA ' + p.mesa, lista = [];
@@ -8183,7 +8247,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(lista.length > 10 && !confirm('Se imprimirán ' + lista.length + ' etiquetas. ¿Continuar?')) return;
     for(let n = 0; n < lista.length; n++){
       const i = lista[n];
-      await PuveHW.imprimirComanda({ titulo: quien + ' (' + (n + 1) + '/' + lista.length + ')', fecha: p.creado_en, items: [{ cantidad: 1, nombre: i.producto_nombre, nota: (i.opciones || []).map(o => o.g + ': ' + o.o).join('\n    ') }] });
+      await PuveHW.imprimirComanda({ titulo: quien + ' (' + (n + 1) + '/' + lista.length + ')', fecha: p.creado_en, items: [{ cantidad: 1, nombre: i.producto_nombre, nota: (i.opciones || []).map(textoOpcion).join('\n    ') }] });
     }
   }
   // El pedido por QR no guarda teléfono (privacidad): se escribe el que el cliente te dé en ese momento y no se guarda.
@@ -9000,7 +9064,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   function renderizarVistaBarra(cont){
     const mapa = new Map();
     pedidosQrCache.filter(p => p.estado === 'por_confirmar' || p.estado === 'preparando').forEach(p => (p.pedido_qr_items || []).forEach(i => {
-      const ops = (i.opciones || []).map(o => o.o).sort().join(', '), k = i.producto_nombre + '|' + ops;
+      const ops = (i.opciones || []).map(o => o.g === 'Sin' ? 'sin ' + o.o : o.o).sort().join(', '), k = i.producto_nombre + '|' + ops;
       if(!mapa.has(k)) mapa.set(k, { nombre: i.producto_nombre, ops: ops, cant: 0, mesas: [], primero: p.creado_en });
       const g = mapa.get(k); g.cant += i.cantidad; const et = p.mesa === 'BARRA' ? (p.cliente_alias || 'Barra') : 'Mesa ' + p.mesa; if(!g.mesas.includes(et)) g.mesas.push(et); if(p.creado_en < g.primero) g.primero = p.creado_en;
     }));
@@ -12591,7 +12655,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   PuveRestaurante.enlazar({ sb: sb, productos: () => productosCache, total: () => carrito.reduce((s, i) => s + subLinea(i), 0), dinero: (n) => formatoDinero(n), aviso: (m) => alert(m) });
   PuveCotizaciones.enlazar({ sb: sb, carrito: () => carrito, negocio: () => { const e = document.getElementById('nombreNegocioBarra'); const t = e ? e.textContent.trim() : ''; return t && t !== '—' ? t : ''; }, dinero: (n) => formatoDinero(n), cargarAlCarrito: cargarCotizacionAlCarrito, aviso: (m) => alert(m) });
   PuveAnaliticaRest.enlazar({ sb: sb, dinero: (n) => formatoDinero(n) });
-  PuveInsumos.enlazar({ sb: sb, productos: () => productosCache, dinero: (n) => formatoDinero(n), recargarProductos: () => cargarProductos(), aviso: (m) => alert(m) });
+  PuveInsumos.enlazar({ sb: sb, productos: () => productosCache, dinero: (n) => formatoDinero(n), recargarProductos: () => cargarProductos(), aviso: (m) => alert(m), irAInsumos: () => { alternarFormulario(false); cambiarSeccion('inventario'); try { cambiarVistaInventario('recetas'); } catch(e){} } });
   PuveHW.enlazar({
     productos: () => productosCache,
     aviso: (m) => mostrarMensaje('mensajeVenta', m, 'error'),
