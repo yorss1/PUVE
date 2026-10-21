@@ -106,9 +106,9 @@
   @media (prefers-color-scheme:dark){ .v2 .barra{ background:rgba(30,30,29,.82); } }
   .v2 .btn{ background:linear-gradient(135deg,var(--c1,var(--a)),var(--c2,var(--a))); color:var(--ct,var(--as)); font-weight:700; box-shadow:0 10px 22px -10px var(--c1,rgba(0,0,0,.45)); } .v2 .btn:disabled{ opacity:.45; box-shadow:none; }
   .v2 .btn.sec{ background:var(--card); color:var(--t); border:1px solid var(--b); box-shadow:none; }
-  .v2 .scrim{ background:rgba(20,18,14,.45); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); } .v2 .hoja{ border-radius:32px 32px 0 0; } .hoja.sinanim{ animation:none; }
+  .v2 .scrim{ background:rgba(20,18,14,.45); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); } .v2 .hoja{ border-radius:32px 32px 0 0; max-height:90vh; max-height:90dvh; } .hoja.sinanim{ animation:none; }
   .v2 .hoja h2{ font:700 22px/1.2 'Inter',sans-serif; letter-spacing:-.02em; }
-  .hoja.det{ padding:0; max-height:94vh; background:var(--f); background-image:linear-gradient(180deg,var(--cg,transparent),transparent 360px); }
+  .hoja.det{ padding:0; max-height:calc(100vh - 28px - env(safe-area-inset-top)); max-height:calc(100dvh - 28px - env(safe-area-inset-top)); background:var(--f); background-image:linear-gradient(180deg,var(--cg,transparent),transparent 360px); }
   .xb{ position:sticky; top:12px; z-index:2; display:grid; place-items:center; width:44px; height:44px; margin:12px 0 -56px 14px; padding:0; border:0; border-radius:50%; background:var(--card); color:var(--t); box-shadow:0 6px 18px -6px rgba(0,0,0,.3); }
   .hero{ display:grid; place-items:center; padding:48px 28px 14px; } .hero img{ width:min(74vw,310px); aspect-ratio:1; object-fit:cover; border-radius:50%; box-shadow:0 26px 50px -20px rgba(0,0,0,.5); background:var(--b); }
   .dbody{ padding:6px 22px 10px; } .dtit{ display:flex; justify-content:space-between; align-items:flex-start; gap:14px; } .dtit b{ font:700 22px/1.2 'Inter',sans-serif; letter-spacing:-.02em; } .dpr{ font:800 22px/1.2 'Inter',sans-serif; letter-spacing:-.02em; white-space:nowrap; }
@@ -339,7 +339,13 @@
 
   var scrim = null, hoja = null, tsToken = '', tsWidget = null;
   function cerrarHoja(){ if(scrim){ scrim.remove(); hoja.remove(); scrim = hoja = null; } }
-  function nuevaHoja(titulo, clase, sinAnim){ cerrarHoja(); hojaTok++; scrim = $('div', 'scrim'); scrim.onclick = cerrarHoja; hoja = $('div', 'hoja' + (clase ? ' ' + clase : '') + (sinAnim ? ' sinanim' : '')); hoja.setAttribute('role', 'dialog'); hoja.setAttribute('aria-modal', 'true'); if(titulo != null){ hoja.appendChild($('div', 'asa')); hoja.appendChild($('h2', '', titulo)); } document.body.appendChild(scrim); document.body.appendChild(hoja); return hoja; }
+  function nuevaHoja(titulo, clase, sinAnim){ cerrarHoja(); hojaTok++; scrim = $('div', 'scrim'); scrim.onclick = cerrarHoja; hoja = $('div', 'hoja' + (clase ? ' ' + clase : '') + (sinAnim ? ' sinanim' : '')); hoja.setAttribute('role', 'dialog'); hoja.setAttribute('aria-modal', 'true'); if(titulo != null){ hoja.appendChild($('div', 'asa')); hoja.appendChild($('h2', '', titulo)); } document.body.appendChild(scrim); document.body.appendChild(hoja); ajustarHoja(); return hoja; }
+  // En el celular, 100vh incluye la zona que tapa la barra del navegador. Se mide el área visible real para que el botón de regresar nunca quede oculto.
+  function ajustarHoja(){
+    if(!hoja || !document.body.classList.contains('v2')) return; var vv = window.visualViewport, h = Math.round(vv ? vv.height : window.innerHeight); if(!(h > 200)) return;
+    hoja.style.maxHeight = hoja.classList.contains('det') ? 'calc(' + h + 'px - 28px - env(safe-area-inset-top))' : Math.round(h * .9) + 'px';
+  }
+  if(window.visualViewport) window.visualViewport.addEventListener('resize', ajustarHoja); window.addEventListener('resize', ajustarHoja);
 
   function abrirPersonalizar(p){
     var gs = gruposDe(p), sel = {}, cant = 1, btns = {}, foto = FOTO.test(p.foto || ''); gs.forEach(function(g){ sel[g.id] = []; });
