@@ -258,7 +258,7 @@
     const refrescar = () => {
       const total = costoTotal(); let precio = Number(getPrecio()) || 0;
       if(modo.auto){
-        if(ultimoPrecio !== null && precio !== ultimoPrecio){ modo.auto = false; pintarPrecio(); }   // tocó el precio a mano en el formulario
+        if(opc.setPrecio && ultimoPrecio !== null && precio !== ultimoPrecio){ modo.auto = false; pintarPrecio(); }   // tocó el precio a mano en el formulario
         else { precio = redondeo(total + modo.extra); if(precio !== ultimoPrecio && opc.setPrecio){ ultimoPrecio = precio; opc.setPrecio(precio); } else ultimoPrecio = precio; }
       }
       etiquetas.forEach(({ l, el }) => { const c = costoDe(l); el.textContent = c > 0 ? 'Cuesta ' + enlace.dinero(c) + (total > 0 ? ' · ' + fmt(c / total * 100, 0) + '% del costo' : '') : ''; });
