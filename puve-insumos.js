@@ -42,8 +42,9 @@
   // Datos
   // =====================================================================
   async function cargarInsumos(){
-    const { data, error } = await enlace.sb.from('insumos').select('id,nombre,unidad,stock,costo_unitario,stock_minimo').eq('activo', true).order('nombre');
-    if(error) throw error; insumos = data || [];
+    let r = await enlace.sb.from('insumos').select('id,nombre,unidad,stock,costo_unitario,stock_minimo,piezas_por_unidad').eq('activo', true).order('nombre');
+    if(r.error) r = await enlace.sb.from('insumos').select('id,nombre,unidad,stock,costo_unitario,stock_minimo').eq('activo', true).order('nombre');   // aún sin SQL 100
+    if(r.error) throw r.error; insumos = r.data || [];
   }
   async function cargarCosteo(){
     const { data, error } = await enlace.sb.rpc('recetas_costeo'); if(error) throw error; costeo = data || [];
@@ -55,6 +56,7 @@
   async function pintarRecetas(cont){
     cont.textContent = '';
     cont.appendChild(h('p', 'nota', 'Registra tus insumos (carne, tortillas, aceite…) con su costo. Arma la receta de cada platillo y PUVE descuenta los insumos al vender y te dice cuánto cuesta y cuánto ganas.', 'margin:0 0 12px;'));
+    try { const rc = await enlace.sb.rpc('recetas_recalcular_precios'); if(!rc.error && Number(rc.data) > 0) await enlace.recargarProductos(); } catch(e){}   // precios automáticos al día
     try { await Promise.all([cargarInsumos(), cargarCosteo()]); }
     catch(e){ cont.appendChild(h('p', 'nota', 'No se pudo cargar: ' + ((e && e.message) || e), 'color:var(--error);')); return; }
 
@@ -63,11 +65,11 @@
     bi.appendChild(h('h3', null, 'Insumos'));
     const bajos = insumos.filter((i) => Number(i.stock_minimo) > 0 && Number(i.stock) <= Number(i.stock_minimo));
     if(bajos.length) bi.appendChild(h('p', null, 'Por debajo del mínimo: ' + bajos.map((i) => i.nombre).join(', ') + '.', 'margin:0 0 10px; font-weight:600; color:var(--error);'));
-    const t = tabla(['Insumo', 'Existencia', 'Costo por unidad', 'Mínimo', '']); bi.appendChild(t.wrap);
+    const t = tabla(['Insumo', 'Existencia (valor)', 'Costo por unidad', 'Mínimo', '']); bi.appendChild(t.wrap);
     if(!insumos.length){ const tr = h('tr'); const td = celda(tr, 'Todavía no tienes insumos. Agrega el primero abajo.'); td.colSpan = 5; td.className = 'nota'; t.tb.appendChild(tr); }
     insumos.forEach((i) => {
       const tr = h('tr'), bajo = Number(i.stock_minimo) > 0 && Number(i.stock) <= Number(i.stock_minimo);
-      celda(tr, i.nombre, 'font-weight:600;'); celda(tr, fmt(i.stock) + ' ' + unidadTxt(i.unidad), bajo ? 'color:var(--error); font-weight:700;' : '');
+      celda(tr, i.nombre, 'font-weight:600;'); celda(tr, fmt(i.stock) + ' ' + unidadTxt(i.unidad) + ' · vale ' + enlace.dinero(Number(i.stock) * Number(i.costo_unitario)), bajo ? 'color:var(--error); font-weight:700;' : '');
       celda(tr, enlace.dinero(i.costo_unitario) + ' / ' + unidadTxt(i.unidad)); celda(tr, Number(i.stock_minimo) ? fmt(i.stock_minimo) : '—');
       const ac = h('td', null, null, 'white-space:nowrap;');
       ac.appendChild(boton('Entrada', () => ajuste(i, 'entrada'))); ac.appendChild(boton('Merma', () => ajuste(i, 'merma')));
@@ -86,7 +88,7 @@
       const { error } = await enlace.sb.rpc('insumo_guardar', { p_id: null, p_nombre: nom.value.trim(), p_unidad: uni.value, p_costo: c, p_minimo: m });
       if(error) throw error; pintarRecetas(cont);
     }, 'principal'));
-    bi.appendChild(f);
+    bi.appendChild(f); calculadoraCosto(bi, () => uni.value, cos);
     bi.appendChild(h('p', 'nota', 'Costo por unidad = lo que te cuesta 1 kg, 1 litro o 1 pieza. Para subir existencias usa “Entrada”; el costo se promedia con lo que ya tenías.', 'margin:8px 0 0;'));
 
     // ----- Recetas y márgenes -----
@@ -152,7 +154,7 @@
     const { caja, cerrar } = modal('Editar ' + i.nombre, 440);
     const nom = campo(caja, 'Nombre', 'text', i.nombre, { maxLength: 60 });
     const w = h('div', 'campo'); w.appendChild(h('label', null, 'Unidad')); const uni = h('select'); UNIDADES.forEach(([v, tx]) => { const o = h('option', null, tx); o.value = v; uni.appendChild(o); }); uni.value = i.unidad; w.appendChild(uni); caja.appendChild(w);
-    const cos = campo(caja, 'Costo por unidad', 'number', i.costo_unitario, { min: '0', step: 'any' });
+    const cos = campo(caja, 'Costo por unidad', 'number', i.costo_unitario, { min: '0', step: 'any' }); calculadoraCosto(caja, () => uni.value, cos);
     const min = campo(caja, 'Avisar cuando baje de', 'number', i.stock_minimo, { min: '0', step: 'any' });
     const msg = h('div', 'nota', '', 'color:var(--error); margin:6px 0;'); caja.appendChild(msg);
     const fila = h('div', null, null, 'display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;');
@@ -171,66 +173,204 @@
     caja.appendChild(fila);
   }
 
-  // Editor de líneas de receta, reutilizable: lo usa el modal de Inventario → Recetas y el formulario de Editar producto.
-  // Cada línea: insumo + cantidad por porción + dos casillas para el menú QR (lo ve el cliente / lo puede quitar).
+  // Cantidades escritas como las dice el chef: 0.1 · 1/10 · 100 g · 250 ml. Se convierten a la unidad del insumo.
+  const A_BASE = { kg: ['kg', 1], g: ['kg', 0.001], gr: ['kg', 0.001], l: ['l', 1], lt: ['l', 1], ml: ['l', 0.001], pza: ['pza', 1], pzas: ['pza', 1], pieza: ['pza', 1], piezas: ['pza', 1] };
+  const DE_BASE = { kg: ['kg', 1], g: ['kg', 0.001], l: ['l', 1], ml: ['l', 0.001], pza: ['pza', 1] };
+  function parseCantidad(txt, unidad){
+    const t = String(txt == null ? '' : txt).trim().toLowerCase().replace(',', '.'); if(!t) return NaN;
+    const m = t.match(/^([0-9.\/ ]+?)\s*([a-z]+)?$/); if(!m) return NaN;
+    const n = m[1].trim(); let v;
+    if(n.indexOf('/') !== -1){ const p = n.split('/').map((x) => parseFloat(x)); if(p.length !== 2 || !isFinite(p[0]) || !isFinite(p[1]) || p[1] === 0) return NaN; v = p[0] / p[1]; }
+    else v = parseFloat(n);
+    if(!isFinite(v)) return NaN;
+    if(m[2]){
+      const de = A_BASE[m[2]], a = DE_BASE[unidad]; if(!de || !a || de[0] !== a[0]) return NaN;   // g/kg y ml/l solo con insumos de su misma familia
+      v = v * de[1] / a[1];
+    }
+    return Math.round(v * 10000) / 10000;
+  }
+  // "Pagué $500 por 1 kg" → costo por unidad. Acepta 10, 10 kg, 500 g, 1/2…
+  function calculadoraCosto(cont, getUnidad, cos){
+    const SUAVE = 'font-size:12.5px; color:var(--texto-suave);';
+    const f = h('div', null, null, 'display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:8px 0; ' + SUAVE);
+    const pago = h('input', 'input-mini'); pago.type = 'number'; pago.min = '0'; pago.step = 'any'; pago.placeholder = 'Total pagado $'; pago.style.width = '130px';
+    const cant = h('input', 'input-mini'); cant.type = 'text'; cant.inputMode = 'decimal'; cant.placeholder = 'Cantidad (10, 500 g)'; cant.style.width = '150px';
+    const res = h('span', 'nota', '', SUAVE);
+    f.appendChild(h('span', 'nota', '¿Lo compraste por paquete?', SUAVE)); f.appendChild(pago); f.appendChild(cant);
+    f.appendChild(boton('Calcular costo por unidad', async () => {
+      const p = num(pago.value), c = parseCantidad(cant.value, getUnidad());
+      if(isNaN(p) || p < 0 || isNaN(c) || c <= 0){ res.textContent = 'Escribe lo que pagaste y la cantidad (ej. 500 y 1 kg).'; return; }
+      const u = Math.round(p / c * 10000) / 10000; cos.value = String(u); res.textContent = 'Sale a ' + enlace.dinero(u) + ' por ' + unidadTxt(getUnidad()) + '.';
+    }, 'editar'));
+    f.appendChild(res); cont.appendChild(f);
+  }
+  // ---------------------------------------------------------------------
+  // Armar receta (versión simple): escribes el ingrediente, cuánto usas y listo.
+  //  - Si el ingrediente no existe se crea ahí mismo (sin ir a otra pantalla).
+  //  - La cantidad es un número + unidad (g, kg, ml, litros o piezas). "1 pieza" se descuenta del kilo según cuántas piezas salen de 1 kg.
+  //  - El precio se puede calcular solo: costo de la receta + tu ganancia / cargo por servicio. O dejas el tuyo.
+  // ---------------------------------------------------------------------
+  const B = { g: 0.001, kg: 1, ml: 0.001, l: 1 };
+  const redondeo = (n) => Math.round(n * 100) / 100;
+  const opcionesUnidad = (i) => i.unidad === 'pza' ? [['pza', 'piezas']] : ((i.unidad === 'kg' || i.unidad === 'g') ? [['g', 'gramos'], ['kg', 'kilos'], ['pieza', 'piezas']] : [['ml', 'ml'], ['l', 'litros'], ['pieza', 'piezas']]);
+  const factorU = (i, u) => u === 'pieza' ? (Number(i.piezas_por_unidad) > 0 ? 1 / Number(i.piezas_por_unidad) : NaN) : (u === 'pza' ? 1 : B[u] / B[i.unidad]);
+  function unidadInicial(i, base){   // cantidad guardada → número y unidad fáciles de leer (0.05 kg → 50 g)
+    if(i.unidad === 'pza') return [String(base), 'pza'];
+    const peso = i.unidad === 'kg' || i.unidad === 'g', grande = peso ? 'kg' : 'l', enGrande = base * B[i.unidad];
+    return enGrande < 1 ? [String(Math.round(enGrande * 100000) / 100), peso ? 'g' : 'ml'] : [String(Math.round(enGrande * 1000) / 1000), grande];
+  }
+  async function leerModoPrecio(id){
+    try { const { data, error } = await enlace.sb.from('productos').select('precio_auto,precio_extra').eq('id', id).maybeSingle(); return error ? {} : (data || {}); } catch(e){ return {}; }
+  }
+  async function guardarModoPrecio(id, m){
+    let r = await enlace.sb.rpc('receta_precio_auto', { p_producto: id, p_auto: !!m.auto, p_extra: m.extra });
+    if(r.error && /receta_precio_auto|function/i.test(r.error.message || '')){   // aún no ejecutaron el SQL 100: al menos se actualiza el precio
+      r = m.auto ? await enlace.sb.from('productos').update({ precio: m.precio }).eq('id', id) : { error: null };
+    }
+    return r.error ? r.error.message : '';
+  }
+
   function armarEditorLineas(caja, getPrecio, iniciales, opc){
     opc = opc || {};
-    const lineas = (iniciales || []).map((l) => ({ insumo_id: l.insumo_id, cantidad: String(l.cantidad), mostrar: l.mostrar !== false, quitable: l.quitable !== false && l.mostrar !== false }));
-    const avisoCliente = h('p', 'nota', 'Marca qué ingredientes verá tu cliente en el menú QR y cuáles podrá quitar (por ejemplo “sin cebolla”). Lo que no marques (aceite, sal, empaques…) solo cuenta para el costo.', 'margin:0 0 8px; font-size:12.5px; color:var(--texto-suave); line-height:1.45;');
-    const lista = h('div'); caja.appendChild(avisoCliente); caja.appendChild(lista);
-    const msg = h('div', 'nota', '', 'color:var(--error); margin:6px 0; font-size:12.5px;');
-    const resumen = h('div', null, null, 'margin:12px 0; padding:10px 14px; border:1px solid var(--borde); border-radius:14px; font-weight:600; font-size:13.5px;');
+    const SUAVE = 'font-size:12.5px; color:var(--texto-suave); line-height:1.45;';
+    const dl = 'dl' + Math.random().toString(36).slice(2, 8);
+    const vacia = () => ({ insumo_id: null, nombre: '', n: '', u: 'g', mostrar: true, quitable: true, nuevo: null });
+    const lineas = (iniciales || []).map((l) => { const i = insumos.find((x) => x.id === l.insumo_id), [n, u] = i ? unidadInicial(i, Number(l.cantidad)) : [String(l.cantidad), 'pza'];
+      return { insumo_id: l.insumo_id, nombre: i ? i.nombre : (l.nombre || ''), n, u, mostrar: l.mostrar !== false, quitable: l.quitable !== false && l.mostrar !== false, nuevo: null }; });
+    if(opc.lineaInicial && !lineas.length) lineas.push(vacia());
+    const lleno = (l) => l.insumo_id || l.nombre.trim() || String(l.n).trim();
+    const insumoDe = (l) => insumos.find((x) => x.id === l.insumo_id);
+    const cantidadDe = (l) => { const i = insumoDe(l), n = num(l.n); if(!i || isNaN(n) || n <= 0) return NaN; const f = factorU(i, l.u); return isNaN(f) ? NaN : Math.round(n * f * 10000) / 10000; };
+    const costoDe = (l) => { const i = insumoDe(l), q = cantidadDe(l); return (i && !isNaN(q)) ? q * Number(i.costo_unitario) : 0; };
+    const costoTotal = () => lineas.reduce((a, l) => a + costoDe(l), 0);
     const cambio = () => { if(opc.alCambiar) opc.alCambiar(); };
-    const calcula = () => {
-      let costo = 0; lineas.forEach((l) => { const i = insumos.find((x) => x.id === l.insumo_id), q = num(l.cantidad); if(i && !isNaN(q)) costo += q * Number(i.costo_unitario); });
-      const precio = Number(getPrecio()) || 0, gana = precio - costo, pct = precio > 0 ? gana / precio * 100 : 0;
-      resumen.textContent = 'Costo ' + enlace.dinero(costo) + ' · Precio ' + enlace.dinero(precio) + ' · Ganas ' + enlace.dinero(gana) + ' (' + fmt(pct, 0) + '%)' + (lineas.length && pct < MARGEN_MIN ? ' — margen bajo' : '');
-      resumen.style.color = lineas.length && pct < MARGEN_MIN ? 'var(--error)' : '';
+    const modo = { auto: opc.auto != null ? !!opc.auto : !(Number(getPrecio()) > 0), extra: 0 };
+    let ultimoPrecio = null;
+    { const t = costoTotal(), p = Number(getPrecio()) || 0; modo.extra = (opc.auto && opc.extra != null) ? Number(opc.extra) : (p > 0 && t > 0 ? Math.max(0, redondeo(p - t)) : 0); }
+
+    const lista = h('div'), msg = h('div', 'nota', '', 'color:var(--error); margin:6px 0; font-size:12.5px;');
+    const dlEl = h('datalist'); dlEl.id = dl;
+    const resumen = h('div', null, null, 'margin:12px 0 8px; padding:12px 14px; border:1px solid var(--borde); border-radius:14px; font-size:13.5px;');
+    const precioCaja = h('div', null, null, 'margin-top:6px;');
+    caja.appendChild(h('p', 'nota', 'Escribe lo que lleva UNA porción y cuánto usas de cada cosa. Si el ingrediente no existe, lo creas aquí mismo.', 'margin:0 0 8px; ' + SUAVE));
+    caja.appendChild(lista); caja.appendChild(dlEl);
+
+    const refrescar = () => {
+      const total = costoTotal(); let precio = Number(getPrecio()) || 0;
+      if(modo.auto){
+        if(ultimoPrecio !== null && precio !== ultimoPrecio){ modo.auto = false; pintarPrecio(); }   // tocó el precio a mano en el formulario
+        else { precio = redondeo(total + modo.extra); if(precio !== ultimoPrecio && opc.setPrecio){ ultimoPrecio = precio; opc.setPrecio(precio); } else ultimoPrecio = precio; }
+      }
+      etiquetas.forEach(({ l, el }) => { const c = costoDe(l); el.textContent = c > 0 ? 'Cuesta ' + enlace.dinero(c) + (total > 0 ? ' · ' + fmt(c / total * 100, 0) + '% del costo' : '') : ''; });
+      const gana = precio - total, pct = precio > 0 ? gana / precio * 100 : 0;
+      resumen.textContent = modo.auto
+        ? 'Ingredientes ' + enlace.dinero(total) + ' + tu ganancia ' + enlace.dinero(modo.extra) + ' = Precio de venta ' + enlace.dinero(precio)
+        : 'Ingredientes ' + enlace.dinero(total) + ' · Tu precio ' + enlace.dinero(precio) + ' · Ganas ' + enlace.dinero(gana) + ' (' + fmt(pct, 0) + '%)' + (!modo.auto && total > 0 && pct < MARGEN_MIN ? ' — margen bajo' : '');
+      resumen.style.fontWeight = '600'; resumen.style.color = (!modo.auto && total > 0 && pct < MARGEN_MIN) ? 'var(--error)' : '';
     };
-    const casilla = (txt, marcada, fn, deshabilitada) => {
-      const lb = h('label', 'nota', null, 'display:inline-flex; align-items:center; gap:6px; margin:0 14px 0 0; cursor:pointer; white-space:nowrap; font-size:12.5px; color:var(--texto-suave); line-height:1.45;' + (deshabilitada ? ' opacity:.5;' : ''));
-      const c = h('input'); c.type = 'checkbox'; c.checked = marcada; c.disabled = !!deshabilitada; c.style.cssText = 'width:18px; height:18px; margin:0; padding:0; flex:none;'; c.onchange = () => fn(c.checked); lb.appendChild(c); lb.appendChild(document.createTextNode(txt)); return lb;
-    };
+    const etiquetas = [];
+    function pintarPrecio(){
+      precioCaja.textContent = '';
+      const lb = h('label', null, null, 'display:flex; gap:8px; align-items:center; font-weight:600; font-size:14px; cursor:pointer;');
+      const c = h('input'); c.type = 'checkbox'; c.checked = modo.auto; c.style.cssText = 'width:18px; height:18px; margin:0; flex:none;';
+      c.onchange = () => { modo.auto = c.checked; ultimoPrecio = null; cambio(); pintarPrecio(); refrescar(); };
+      lb.appendChild(c); lb.appendChild(document.createTextNode('Calcular el precio por mí')); precioCaja.appendChild(lb);
+      precioCaja.appendChild(h('p', 'nota', modo.auto ? 'El precio sale de lo que cuestan los ingredientes más lo que tú quieras ganar. Si sube un ingrediente, el precio se actualiza solo.' : 'Se usará el precio que ya escribiste para este platillo.', 'margin:4px 0 6px 26px; ' + SUAVE));
+      if(modo.auto){
+        const f = h('div', null, null, 'display:flex; gap:8px; align-items:center; margin-left:26px; flex-wrap:wrap;');
+        f.appendChild(h('span', 'nota', 'Mi ganancia o cargo por servicio: $', SUAVE));
+        const e = h('input', 'input-mini'); e.type = 'number'; e.min = '0'; e.step = 'any'; e.inputMode = 'decimal'; e.value = modo.extra || ''; e.placeholder = '0'; e.style.width = '100px'; e.setAttribute('aria-label', 'Ganancia extra por servicio');
+        e.oninput = () => { const v = num(e.value); modo.extra = isFinite(v) && v >= 0 ? v : 0; cambio(); refrescar(); };
+        f.appendChild(e); precioCaja.appendChild(f);
+      }
+    }
+
     const pintar = () => {
-      lista.textContent = '';
+      lista.textContent = ''; etiquetas.length = 0; dlEl.textContent = '';
+      insumos.forEach((i) => { const o = h('option'); o.value = i.nombre; dlEl.appendChild(o); });
       lineas.forEach((l, idx) => {
-        const caj = h('div', null, null, 'padding:8px 0; border-bottom:1px solid var(--borde);');
-        const fila = h('div', null, null, 'display:flex; gap:8px; align-items:center; flex-wrap:wrap;');
-        const sel = h('select', 'input-mini', null, 'flex:1; min-width:170px;');
-        insumos.filter((i) => i.id === l.insumo_id || !lineas.some((x) => x.insumo_id === i.id)).forEach((i) => { const o = h('option', null, i.nombre + ' (' + unidadTxt(i.unidad) + ')'); o.value = i.id; sel.appendChild(o); });
-        sel.value = l.insumo_id; sel.onchange = () => { l.insumo_id = sel.value; cambio(); pintar(); };
-        const q = h('input', 'input-mini'); q.type = 'number'; q.min = '0'; q.step = 'any'; q.value = l.cantidad; q.placeholder = 'Cantidad'; q.style.width = '110px'; q.oninput = () => { l.cantidad = q.value; cambio(); calcula(); };
-        const i = insumos.find((x) => x.id === l.insumo_id); const u = h('span', 'nota', i ? unidadTxt(i.unidad) : '', 'font-size:12.5px; color:var(--texto-suave); line-height:1.45;');
-        const x = boton('Quitar', async () => { lineas.splice(idx, 1); cambio(); pintar(); }, 'texto', 'color:#c0392b; margin-left:auto; padding:4px 10px;');
-        fila.appendChild(sel); fila.appendChild(q); fila.appendChild(u); caj.appendChild(fila);
-        const cas = h('div', null, null, 'margin-top:8px; display:flex; align-items:center; flex-wrap:wrap; row-gap:6px;');
-        cas.appendChild(casilla('Lo ve el cliente', l.mostrar, (v) => { l.mostrar = v; if(!v) l.quitable = false; cambio(); pintar(); }));
-        cas.appendChild(casilla('Puede quitarlo', l.quitable, (v) => { l.quitable = v; cambio(); }, !l.mostrar));
-        cas.appendChild(x); caj.appendChild(cas); lista.appendChild(caj);
+        const caj = h('div', null, null, 'padding:10px 0; border-bottom:1px solid var(--borde);');
+        const f1 = h('div', null, null, 'display:flex; gap:8px; align-items:center; flex-wrap:wrap;');
+        const nom = h('input', 'input-mini'); nom.type = 'text'; nom.setAttribute('list', dl); nom.autocomplete = 'off'; nom.maxLength = 60; nom.value = l.nombre; nom.placeholder = 'Ingrediente (ej. Tortilla de maíz)'; nom.style.cssText = 'flex:1; min-width:180px;'; nom.setAttribute('aria-label', 'Ingrediente');
+        nom.onchange = () => {
+          l.nombre = nom.value.trim(); const i = insumos.find((x) => x.nombre.toLowerCase() === l.nombre.toLowerCase());
+          if(i && lineas.some((x) => x !== l && x.insumo_id === i.id)){ msg.textContent = '“' + i.nombre + '” ya está en la receta.'; l.nombre = ''; l.insumo_id = null; }
+          else { msg.textContent = ''; l.insumo_id = i ? i.id : null; if(i){ l.u = opcionesUnidad(i)[0][0]; l.nuevo = null; } else l.nuevo = l.nombre ? (l.nuevo || { u: 'kg', costo: '' }) : null; }
+          cambio(); pintar();
+        };
+        f1.appendChild(nom); caj.appendChild(f1);
+        const i = insumoDe(l);
+        if(i){
+          const f2 = h('div', null, null, 'display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap;');
+          f2.appendChild(h('span', 'nota', 'Uso', SUAVE));
+          const q = h('input', 'input-mini'); q.type = 'number'; q.min = '0'; q.step = 'any'; q.inputMode = 'decimal'; q.value = l.n; q.placeholder = 'Cantidad'; q.style.width = '100px'; q.setAttribute('aria-label', 'Cantidad que usa una porción');
+          const u = h('select', 'input-mini', null, 'width:auto;'); opcionesUnidad(i).forEach(([v, tx]) => { const o = h('option', null, tx); o.value = v; u.appendChild(o); }); u.value = l.u;
+          q.oninput = () => { l.n = q.value; cambio(); refrescar(); };
+          u.onchange = () => { l.u = u.value; cambio(); pintar(); };
+          f2.appendChild(q); f2.appendChild(u); f2.appendChild(h('span', 'nota', '(compras por ' + unidadTxt(i.unidad) + ' a ' + enlace.dinero(i.costo_unitario) + ')', SUAVE)); caj.appendChild(f2);
+          if(l.u === 'pieza' && !(Number(i.piezas_por_unidad) > 0)){
+            const f3 = h('div', null, null, 'display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap;');
+            f3.appendChild(h('span', 'nota', '¿Cuántas piezas salen de 1 ' + unidadTxt(i.unidad) + ' de ' + i.nombre + '?', SUAVE));
+            const pz = h('input', 'input-mini'); pz.type = 'number'; pz.min = '1'; pz.step = 'any'; pz.inputMode = 'decimal'; pz.placeholder = 'Ej. 28'; pz.style.width = '90px';
+            f3.appendChild(pz);
+            f3.appendChild(boton('Guardar', async () => {
+              const v = num(pz.value); if(isNaN(v) || v <= 0){ msg.textContent = 'Escribe cuántas piezas salen (ej. 28 tortillas por kilo).'; return; }
+              const { error } = await enlace.sb.rpc('insumo_piezas', { p_id: i.id, p_piezas: v }); if(error){ msg.textContent = /insumo_piezas|function/i.test(error.message) ? 'Falta ejecutar el SQL 100 en Supabase para usar piezas.' : error.message; return; }
+              msg.textContent = ''; i.piezas_por_unidad = v; cambio(); pintar();
+            }, 'editar')); caj.appendChild(f3);
+          }
+        } else if(l.nuevo){
+          const nv = l.nuevo, f2 = h('div', null, null, 'margin-top:8px; padding:10px 12px; border:1px dashed var(--borde); border-radius:12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;');
+          f2.appendChild(h('span', 'nota', '“' + l.nombre + '” es nuevo. Lo compro por', SUAVE));
+          const u = h('select', 'input-mini', null, 'width:auto;'); [['kg', 'kilo'], ['l', 'litro'], ['pza', 'pieza']].forEach(([v, tx]) => { const o = h('option', null, tx); o.value = v; u.appendChild(o); }); u.value = nv.u; u.onchange = () => { nv.u = u.value; pintar(); };
+          const c = h('input', 'input-mini'); c.type = 'number'; c.min = '0'; c.step = 'any'; c.inputMode = 'decimal'; c.value = nv.costo; c.placeholder = 'Costo $'; c.style.width = '100px'; c.oninput = () => { nv.costo = c.value; };
+          f2.appendChild(u); f2.appendChild(h('span', 'nota', 'y me cuesta $', SUAVE)); f2.appendChild(c);
+          f2.appendChild(boton('Crear ingrediente', async () => {
+            const v = nv.costo === '' ? 0 : num(nv.costo); if(isNaN(v) || v < 0){ msg.textContent = 'El costo no es válido (puede ser 0 si aún no lo sabes).'; return; }
+            const { data, error } = await enlace.sb.rpc('insumo_guardar', { p_id: null, p_nombre: l.nombre, p_unidad: nv.u, p_costo: v, p_minimo: 0 }); if(error){ msg.textContent = error.message; return; }
+            await cargarInsumos(); l.insumo_id = data; l.nuevo = null; const ni = insumoDe(l); if(ni) l.u = opcionesUnidad(ni)[0][0]; msg.textContent = ''; cambio(); pintar();
+          }, 'principal')); caj.appendChild(f2);
+        }
+        const costo = h('div', null, null, 'margin-top:4px; font-weight:600; font-size:13px;'); caj.appendChild(costo); etiquetas.push({ l, el: costo });
+        const det = h('details', null, null, 'margin-top:4px;'); det.appendChild(h('summary', 'nota', 'Opciones del menú QR', 'cursor:pointer; ' + SUAVE));
+        const cas = h('div', null, null, 'margin-top:6px; display:flex; flex-wrap:wrap; row-gap:6px;');
+        const casilla = (txt, marcada, fn, off) => { const lb = h('label', 'nota', null, 'display:inline-flex; align-items:center; gap:6px; margin:0 14px 0 0; cursor:pointer; white-space:nowrap; ' + SUAVE + (off ? ' opacity:.5;' : '')); const c = h('input'); c.type = 'checkbox'; c.checked = marcada; c.disabled = !!off; c.style.cssText = 'width:18px; height:18px; margin:0; flex:none;'; c.onchange = () => fn(c.checked); lb.appendChild(c); lb.appendChild(document.createTextNode(txt)); return lb; };
+        cas.appendChild(casilla('Mostrar al cliente', l.mostrar, (v) => { l.mostrar = v; if(!v) l.quitable = false; cambio(); pintar(); }));
+        cas.appendChild(casilla('Obligatorio (no se puede quitar)', l.mostrar && !l.quitable, (v) => { l.quitable = !v; cambio(); }, !l.mostrar));
+        det.appendChild(cas); caj.appendChild(det);
+        caj.appendChild(boton('Quitar', async () => { lineas.splice(idx, 1); cambio(); pintar(); }, 'texto', 'color:#c0392b; padding:4px 0; margin-top:2px;'));
+        lista.appendChild(caj);
       });
-      if(!lineas.length) lista.appendChild(h('p', 'nota', 'Aún no tiene ingredientes.', 'font-size:12.5px; color:var(--texto-suave); line-height:1.45;'));
-      calcula();
+      if(!lineas.length) lista.appendChild(h('p', 'nota', 'Aún no tiene ingredientes.', SUAVE));
+      refrescar();
     };
-    const bAdd = boton('+ Agregar ingrediente', async () => {
-      const libre = insumos.find((i) => !lineas.some((x) => x.insumo_id === i.id)); if(!libre){ msg.textContent = 'Ya agregaste todos tus insumos.'; return; }
-      msg.textContent = ''; lineas.push({ insumo_id: libre.id, cantidad: '', mostrar: true, quitable: true }); cambio(); pintar();
-    }, 'editar');
-    caja.appendChild(bAdd); caja.appendChild(resumen); caja.appendChild(msg);
-    if(opc.lineaInicial && !lineas.length) lineas.push({ insumo_id: insumos[0].id, cantidad: '', mostrar: true, quitable: true });
-    pintar();
+    caja.appendChild(boton('+ Agregar ingrediente', async () => { msg.textContent = ''; lineas.push(vacia()); cambio(); pintar(); }, 'editar'));
+    caja.appendChild(resumen); caja.appendChild(precioCaja); caja.appendChild(msg);
+    pintarPrecio(); pintar();
     return {
-      msg, cantidad: () => lineas.length,
-      error(){ for(const l of lineas){ const q = num(l.cantidad); if(isNaN(q) || q <= 0) return 'Todas las cantidades de la receta deben ser mayores a 0.'; } return ''; },
-      valores(){ return lineas.map((l) => ({ insumo_id: l.insumo_id, cantidad: num(l.cantidad), mostrar: !!l.mostrar, quitable: !!l.mostrar && !!l.quitable })); },
-      recalcular: calcula
+      msg, cantidad: () => lineas.filter(lleno).length, recalcular: refrescar,
+      precioModo: () => ({ auto: modo.auto, extra: modo.extra, precio: redondeo(costoTotal() + modo.extra) }),
+      error(){
+        const act = lineas.filter(lleno), vistos = {};
+        for(const l of act){
+          if(!l.insumo_id) return l.nombre.trim() ? 'Termina de crear el ingrediente “' + l.nombre + '” (botón Crear ingrediente) o quita ese renglón.' : 'Elige el ingrediente de cada renglón o quita el que sobra.';
+          if(vistos[l.insumo_id]) return 'Un ingrediente está repetido.'; vistos[l.insumo_id] = 1;
+          const i = insumoDe(l), v = cantidadDe(l);
+          if(l.u === 'pieza' && isNaN(factorU(i, 'pieza'))) return 'Indica cuántas piezas salen de 1 ' + unidadTxt(i.unidad) + ' de “' + i.nombre + '”.';
+          if(isNaN(v) || v <= 0) return 'Escribe cuánto usas de “' + i.nombre + '” (un número mayor a 0).';
+        }
+        if(act.length && modo.auto && costoTotal() <= 0) return 'Tus ingredientes cuestan $0, así que el precio automático saldría en $0. Escribe el costo de cada ingrediente.';
+        return '';
+      },
+      valores: () => lineas.filter(lleno).map((l) => ({ insumo_id: l.insumo_id, cantidad: cantidadDe(l), mostrar: !!l.mostrar, quitable: !!l.mostrar && !!l.quitable }))
     };
   }
 
-  function editorReceta(p, c, cont){
-    if(!insumos.length){ enlace.aviso('Primero agrega al menos un insumo.'); return; }
-    const { caja, cerrar } = modal('Receta: ' + p.nombre, 620);
-    caja.appendChild(h('p', 'nota', 'Cantidad de cada insumo que lleva UNA porción. Al vender 3, se descuenta el triple.', 'margin:0 0 8px;'));
-    const ed = armarEditorLineas(caja, () => Number(p.precio), c ? c.lineas : [], { lineaInicial: true });
+  async function editorReceta(p, c, cont){
+    await cargarInsumos().catch(() => {});
+    const fl = await leerModoPrecio(p.id);
+    const { caja, cerrar } = modal('Armar receta: ' + p.nombre, 620);
+    const ed = armarEditorLineas(caja, () => Number(p.precio), c ? c.lineas : [], { lineaInicial: true, auto: fl.precio_auto, extra: fl.precio_extra });
     const fila = h('div', null, null, 'display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;');
     fila.appendChild(boton('Cancelar', async () => cerrar()));
     if(c) fila.appendChild(boton('Quitar receta', async () => {
@@ -242,35 +382,33 @@
       const e = ed.error(); if(e){ ed.msg.textContent = e; return; }
       const { error } = await enlace.sb.rpc('receta_guardar', { p_producto: p.id, p_lineas: ed.valores() });
       if(error){ ed.msg.textContent = error.message; return; }
-      cerrar(); pintarRecetas(cont);
+      if(ed.cantidad()){ const er = await guardarModoPrecio(p.id, ed.precioModo()); if(er){ ed.msg.textContent = 'La receta se guardó, pero el precio no: ' + er; return; } }
+      cerrar(); try { await enlace.recargarProductos(); } catch(x){} pintarRecetas(cont);
     }, 'principal'));
     caja.appendChild(fila);
   }
 
   // Receta dentro del formulario de Editar / Nuevo producto. Devuelve un control con sucio(), error() y guardar(idProducto).
   // Solo guarda la receta si el encargado la tocó (guardar la receta vuelve a tomar los costos actuales como referencia).
-  async function montarRecetaProducto(cont, producto, getPrecio, alCambiar, vigente){
+  async function montarRecetaProducto(cont, producto, getPrecio, alCambiar, vigente, setPrecio){
     cont.textContent = '';
     const ctl = { sucio: () => false, error: () => '', guardar: async () => '' };
-    cont.appendChild(h('div', 'nota', 'Cargando insumos…', 'font-size:12.5px; color:var(--texto-suave); line-height:1.45;'));
-    try { await Promise.all([cargarInsumos(), producto ? cargarCosteo() : Promise.resolve()]); }
+    cont.appendChild(h('div', 'nota', 'Cargando ingredientes…', 'font-size:12.5px; color:var(--texto-suave); line-height:1.45;'));
+    let fl = {};
+    try { await Promise.all([cargarInsumos(), producto ? cargarCosteo() : Promise.resolve()]); if(producto) fl = await leerModoPrecio(producto.id); }
     catch(e){ cont.textContent = ''; cont.appendChild(h('p', 'nota', 'No se pudo cargar la receta: ' + ((e && e.message) || e), 'color:var(--error); font-size:12.5px;')); return ctl; }
     if(vigente && !vigente()) return ctl;   // se cerró o reabrió el formulario mientras cargaba
     cont.textContent = '';
-    if(!insumos.length){
-      cont.appendChild(h('p', 'nota', 'Para armar la receta primero registra tus insumos (carne, tortillas, aceite…) con su costo.', 'margin:0 0 8px; font-size:12.5px; color:var(--texto-suave); line-height:1.45;'));
-      cont.appendChild(boton('Ir a Recetas e insumos', async () => { enlace.irAInsumos(); }, 'editar'));
-      return ctl;
-    }
     let sucio = false;
     const c = producto ? costeo.find((x) => x.producto_id === producto.id) : null;
-    const ed = armarEditorLineas(cont, getPrecio, c ? c.lineas : [], { alCambiar: () => { sucio = true; if(alCambiar) alCambiar(); } });
+    const ed = armarEditorLineas(cont, getPrecio, c ? c.lineas : [], { alCambiar: () => { sucio = true; if(alCambiar) alCambiar(); }, setPrecio, auto: producto ? fl.precio_auto : undefined, extra: fl.precio_extra });
     ctl.sucio = () => sucio; ctl.recalcular = ed.recalcular;
     ctl.error = () => sucio ? ed.error() : '';
     ctl.guardar = async (idProducto) => {
       if(!sucio) return '';
       const { error } = await enlace.sb.rpc('receta_guardar', { p_producto: idProducto, p_lineas: ed.valores() });
-      return error ? error.message : '';
+      if(error) return error.message;
+      return ed.cantidad() ? await guardarModoPrecio(idProducto, ed.precioModo()) : '';
     };
     return ctl;
   }
