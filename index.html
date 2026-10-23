@@ -60,6 +60,29 @@ header.barra{ position:sticky; top:0; z-index:50; background:color-mix(in srgb,v
 .acciones{ display:flex; gap:10px; align-items:center; }
 .tema{ width:42px; height:42px; border-radius:50%; border:1.5px solid var(--borde); background:var(--superficie); color:var(--texto); cursor:pointer; display:grid; place-items:center; } .tema svg{ width:18px; height:18px; }
 .menu-m{ display:none; } @media(max-width:900px){ .barra nav{ display:none; } .barra .fila{ gap:10px; } .acciones{ margin-left:auto; } .btn.ocultar-m{ display:none; } }
+
+/* demo en vivo */
+:root{ --pc-fondo:var(--superficie); --pc-borde:var(--borde); --pc-texto:var(--texto); --pc-suave:var(--texto-suave); --pc-acento:var(--acento); --pc-sobre-acento:var(--texto-sobre-acento); }
+.demo-tabs{ display:flex; flex-wrap:wrap; gap:8px; margin:26px 0 12px; }
+.demo-tabs button{ font:600 14.5px 'Inter',sans-serif; padding:11px 20px; border-radius:999px; border:1.5px solid var(--borde); background:var(--superficie); color:var(--texto-suave); cursor:pointer; }
+.demo-tabs button[aria-selected="true"]{ background:var(--acento); color:var(--texto-sobre-acento); border-color:var(--acento); }
+.demo-aviso{ font-size:13.5px; color:var(--texto-suave); margin:0 0 22px; } .demo-aviso button{ font:inherit; font-weight:600; color:var(--texto); background:none; border:0; padding:0; text-decoration:underline; cursor:pointer; }
+.demo-escena{ display:grid; grid-template-columns:minmax(0,420px) 1fr; gap:44px; align-items:center; } .demo-escena.ancha{ grid-template-columns:minmax(0,1.25fr) minmax(0,1fr); }
+.tel{ position:relative; width:min(100%,340px); aspect-ratio:9/18.6; margin-inline:auto; padding:11px; border-radius:48px; background:#0b0b0c; box-shadow:0 30px 70px -24px rgba(0,0,0,.45),inset 0 0 0 2px #2a2a2d; }
+.tel::before{ content:''; position:absolute; top:19px; left:50%; width:92px; height:24px; transform:translateX(-50%); border-radius:99px; background:#0b0b0c; z-index:3; pointer-events:none; }
+.tablet{ position:relative; width:100%; aspect-ratio:4/3; padding:11px; border-radius:28px; background:#0b0b0c; box-shadow:0 30px 70px -24px rgba(0,0,0,.45),inset 0 0 0 2px #2a2a2d; }
+.pantalla{ position:relative; width:100%; height:100%; border-radius:37px; overflow:hidden; background:var(--fondo); } .tablet .pantalla{ border-radius:18px; }
+.pantalla iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; background:#fff; } .pantalla .carga{ position:absolute; inset:0; padding:46px 16px 16px; overflow:hidden; background:var(--fondo); z-index:1; }
+.pantalla .carga .nota-demo{ margin-top:12px; font-size:13px; color:var(--texto-suave); text-align:center; } .pantalla .carga .nota-demo a{ color:var(--texto); font-weight:600; }
+.demo-texto h3{ font-size:22px; letter-spacing:-.02em; margin:0 0 14px; } .demo-texto ol{ margin:0 0 22px; padding:0; list-style:none; counter-reset:d; display:grid; gap:12px; }
+.demo-texto li{ counter-increment:d; display:flex; gap:12px; align-items:flex-start; color:var(--texto-suave); line-height:1.5; } .demo-texto li::before{ content:counter(d); flex:none; width:26px; height:26px; border-radius:50%; display:grid; place-items:center; font:700 13px 'Inter',sans-serif; background:var(--acento); color:var(--texto-sobre-acento); } .demo-texto li b{ color:var(--texto); }
+.demo-texto .btn{ margin-right:8px; margin-top:4px; }
+.calc{ border:1.5px solid var(--borde); border-radius:24px; background:var(--superficie); padding:20px; } .calc table{ width:100%; border-collapse:collapse; font-size:14px; } .calc th{ text-align:left; font-weight:600; color:var(--texto-suave); padding:6px 6px 10px; font-size:12.5px; } .calc td{ padding:8px 6px; border-top:1px solid var(--borde); vertical-align:middle; }
+.calc input[type=text],.calc input[type=number]{ width:100%; min-width:84px; padding:9px 12px; border-radius:12px; border:1.5px solid var(--borde); background:var(--fondo); color:var(--texto); font:inherit; } .calc .eq{ display:block; font-size:11.5px; color:var(--texto-suave); margin-top:3px; }
+.calc .resumen{ display:flex; flex-wrap:wrap; gap:10px 28px; margin:16px 0 4px; } .calc .resumen div{ font-size:13px; color:var(--texto-suave); } .calc .resumen b{ display:block; font-size:22px; letter-spacing:-.02em; color:var(--texto); }
+.calc .sug{ margin-top:12px; padding:12px 14px; border-radius:14px; background:var(--neutral-bg); font-size:14px; } .calc .sug input{ width:70px; display:inline-block; min-width:0; padding:6px 8px; margin:0 4px; }
+.demo-fin{ margin-top:40px; }
+@media(max-width:900px){ .demo-escena,.demo-escena.ancha{ grid-template-columns:1fr; gap:26px; } .calc table,.calc tbody,.calc tr,.calc td{ display:block; } .calc thead{ display:none; } .calc tr{ padding:10px 0; border-top:1px solid var(--borde); } .calc td{ border:0; padding:4px 0; } .calc td[data-l]::before{ content:attr(data-l); display:block; font-size:11.5px; color:var(--texto-suave); } }
 /* hero */
 .hero{ padding:56px 0 34px; } .hero .rejilla{ display:grid; grid-template-columns:1.02fr 1fr; gap:48px; align-items:center; }
 .etiqueta{ display:inline-flex; align-items:center; gap:8px; padding:7px 14px; border:1px solid var(--borde); border-radius:999px; background:var(--superficie); font-size:13px; font-weight:600; color:var(--texto-suave); }
@@ -71,6 +94,8 @@ h1{ font-size:clamp(40px,6.4vw,78px); line-height:1.02; letter-spacing:-.035em; 
 .arte::before{ content:''; position:absolute; inset:-20% -30%; z-index:0; background:linear-gradient(115deg,transparent 30%,rgba(196,150,222,.78) 30% 58%,transparent 58%); }
 html.tema-oscuro .arte{ background:linear-gradient(135deg,#3a1d3f 0%,#4a2340 45%,#5a2b4d 100%); } html.tema-oscuro .arte::before{ background:linear-gradient(115deg,transparent 30%,rgba(120,70,170,.55) 30% 58%,transparent 58%); }
 .arte canvas{ position:absolute; inset:0; width:100%; height:100%; z-index:1; touch-action:pan-y; }
+.arte:not(.listo):not(.sin-webgl)::after{ content:''; position:absolute; inset:0; z-index:2; pointer-events:none; background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.38) 45%,transparent 60%); background-size:300% 100%; animation:brilloArte 1.6s ease-in-out infinite; }
+@keyframes brilloArte{ 0%{ background-position:100% 0; } 100%{ background-position:0 0; } } @media (prefers-reduced-motion:reduce){ .arte::after{ animation:none !important; } }
 .arte .estatica{ position:absolute; inset:0; z-index:1; display:none; } .arte.sin-webgl .estatica{ display:block; } .arte.sin-webgl canvas{ display:none; }
 @media(max-width:900px){ .hero .rejilla{ grid-template-columns:1fr; gap:30px; } .arte{ order:-1; aspect-ratio:4/3.4; border-radius:26px; } .hero{ padding-top:24px; } }
 /* franja de giros */
@@ -132,11 +157,11 @@ footer{ padding:64px 0 40px; } .pie{ display:grid; grid-template-columns:1.4fr 1
 <header class="barra">
   <div class="contenedor fila">
     <a class="marca" href="index.html" aria-label="PUVE, inicio"><img src="img/logo_mini.png" id="logoMarca" alt="" width="30" height="30">PUVE</a>
-    <nav aria-label="Principal"><a href="#giros">Para tu negocio</a><a href="#como">Cómo funciona</a><a href="#funciones">Funciones</a><a href="#precios">Precios</a><a href="#preguntas">Preguntas</a></nav>
+    <nav aria-label="Principal"><a href="#demo">Prueba la demo</a><a href="#giros">Para tu negocio</a><a href="#como">Cómo funciona</a><a href="#funciones">Funciones</a><a href="#precios">Precios</a><a href="#preguntas">Preguntas</a></nav>
     <div class="acciones">
       <button class="tema" id="botonTema" type="button" aria-pressed="false" aria-label="Cambiar entre modo claro y oscuro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
       <a class="btn sec chico ocultar-m" href="puve.html" data-cta="nav_entrar">Entrar</a>
-      <a class="btn chico" href="puve.html#registro" data-cta="probar_nav">Probar gratis</a>
+      <a class="btn chico" href="puve.html#registro" data-cta="probar_nav">Probar PUVE</a>
     </div>
   </div>
 </header>
@@ -159,6 +184,72 @@ footer{ padding:64px 0 40px; } .pie{ display:grid; grid-template-columns:1.4fr 1
 </section>
 
 <div class="franja" aria-hidden="true"><div class="pista"><span>Tiendas y abarrotes</span><span>Restaurantes</span><span>Cafeterías</span><span>Farmacias</span><span>Papelerías</span><span>Ropa y calzado</span><span>Servicios</span><span>Ferreterías y más</span><span>Tiendas y abarrotes</span><span>Restaurantes</span><span>Cafeterías</span><span>Farmacias</span><span>Papelerías</span><span>Ropa y calzado</span><span>Servicios</span><span>Ferreterías y más</span></div></div>
+
+<section data-seccion="demo" id="demo" style="padding-top:34px;">
+  <div class="contenedor">
+    <span class="num">Pruébalo ahora · sin registrarte</span>
+    <h2>Mira PUVE funcionando, <span class="serif">como lo verán tus clientes.</span></h2>
+    <p class="lead">Toca el celular y haz un pedido. Aparece en la pantalla de cocina, desde ahí lo aceptas, y tu cliente lo ve avanzar. Todo es de ejemplo y sucede en tu navegador.</p>
+    <div class="demo-tabs" role="tablist" aria-label="Qué quieres probar">
+      <button type="button" role="tab" id="dtCliente" aria-controls="dpCliente" aria-selected="true" data-demo="Cliente">Menú del cliente</button>
+      <button type="button" role="tab" id="dtCocina" aria-controls="dpCocina" aria-selected="false" tabindex="-1" data-demo="Cocina">Pantalla de cocina</button>
+      <button type="button" role="tab" id="dtCostos" aria-controls="dpCostos" aria-selected="false" tabindex="-1" data-demo="Costos">Recetas y costos</button>
+    </div>
+    <p class="demo-aviso">Es una prueba: nada se guarda en ninguna cuenta ni se envía a nadie. <button type="button" id="demoReiniciar">Reiniciar la demo</button></p>
+
+    <div id="dpCliente" role="tabpanel" aria-labelledby="dtCliente">
+      <div class="demo-escena">
+        <div class="tel"><div class="pantalla" id="telCliente"></div></div>
+        <div class="demo-texto">
+          <h3>Lo que tu cliente ve en su celular</h3>
+          <ol>
+            <li><span><b>Escanea el QR de su mesa</b> y se abre tu menú, sin descargar nada.</span></li>
+            <li><span><b>Toca un platillo</b> y quita los ingredientes que no quiere, o agrega extras. Cada foto pinta los botones con su propio color.</span></li>
+            <li><span><b>Envía el pedido</b> y mira cómo avanza: enviado, preparando, listo.</span></li>
+          </ol>
+          <button type="button" class="btn chico" data-ir="Cocina">Ahora ve a la cocina →</button>
+          <a class="btn sec chico" href="pedir.html?demo=1#m=5" target="_blank" rel="noopener">Abrir en pantalla completa</a>
+        </div>
+      </div>
+    </div>
+
+    <div id="dpCocina" role="tabpanel" aria-labelledby="dtCocina" hidden>
+      <div class="demo-escena ancha">
+        <div class="tablet"><div class="pantalla" id="telCocina"></div></div>
+        <div class="demo-texto">
+          <h3>Lo que ve tu cocina</h3>
+          <ol>
+            <li><span><b>Los pedidos llegan solos</b>, con la mesa, el tiempo que llevan esperando y lo que cada cliente quitó (por ejemplo “SIN cebolla”).</span></li>
+            <li><span><b>Acéptalos con un tiempo estimado</b> y márcalos como listos con un toque.</span></li>
+            <li><span><b>El cliente lo ve en su celular</b> al instante. Si nadie atiende la cocina, la demo avanza sola.</span></li>
+          </ol>
+          <button type="button" class="btn chico" data-ir="Cliente">← Volver al celular del cliente</button>
+          <a class="btn sec chico" href="cocina.html?demo=1" target="_blank" rel="noopener">Abrir en pantalla completa</a>
+        </div>
+      </div>
+    </div>
+
+    <div id="dpCostos" role="tabpanel" aria-labelledby="dtCostos" hidden>
+      <div class="demo-escena ancha">
+        <div class="calc" id="calc" aria-label="Calculadora de receta de ejemplo"></div>
+        <div class="demo-texto">
+          <h3>Tu receta hace las cuentas por ti</h3>
+          <ol>
+            <li><span><b>Registras tus insumos una vez</b>: si el kilo de carne te costó $180, PUVE lo sabe.</span></li>
+            <li><span><b>Armas el platillo</b> con cantidades como 1/10 o 100 g y ves lo que cuesta cada ingrediente y su porcentaje.</span></li>
+            <li><span><b>Marcas lo obligatorio</b>: el cliente no podrá quitarlo en su menú. Y PUVE te sugiere el precio para ganar lo que quieres.</span></li>
+          </ol>
+          <p style="color:var(--texto-suave);font-size:14px;margin:0">Cambia las cantidades y el precio para probarlo. Al vender, PUVE descuenta los insumos de tu inventario.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="cta-fila demo-fin">
+      <a class="btn" href="puve.html#registro" data-cta="probar_demo">Crear mi cuenta gratis</a>
+      <a class="btn sec" href="#giros">Ver mi tipo de negocio</a>
+    </div>
+  </div>
+</section>
 
 <section data-seccion="ofrecemos">
   <div class="contenedor">
@@ -367,8 +458,82 @@ footer{ padding:64px 0 40px; } .pie{ display:grid; grid-template-columns:1.4fr 1
       window.__hero.tema(raiz.classList.contains('tema-oscuro')); host.classList.add('listo'); }); }).catch(function(){ host.classList.add('sin-webgl'); });
   }
   if('requestIdleCallback' in window) requestIdleCallback(cargar3D, { timeout: 1500 }); else setTimeout(cargar3D, 400);
+  setTimeout(function(){ if(!host.classList.contains('listo')) host.classList.add('sin-webgl'); }, 9000);   // si el 3D tarda o falla, se queda la ilustración (nunca un hueco)
 })();
 </script>
 <script src="puve-consent.js" data-pagina="landing" data-auto="landing" defer></script>
+
+<script src="puve-carga.js" defer></script>
+<script>
+(function(){
+  'use strict';
+  var secc = document.getElementById('demo'); if(!secc) return;
+  var tabs = Array.prototype.slice.call(secc.querySelectorAll('[role=tab]')), llaves = ['Cliente', 'Cocina', 'Costos'];
+  function ir(nombre, enfocar){
+    tabs.forEach(function(t){ var on = t.getAttribute('data-demo') === nombre; t.setAttribute('aria-selected', on ? 'true' : 'false'); t.tabIndex = on ? 0 : -1; if(on && enfocar) t.focus(); });
+    llaves.forEach(function(k){ var p = document.getElementById('dp' + k); if(p) p.hidden = k !== nombre; });
+    if(typeof ajustarCocina === 'function') ajustarCocina();
+  }
+  tabs.forEach(function(t, i){
+    t.addEventListener('click', function(){ ir(t.getAttribute('data-demo')); });
+    t.addEventListener('keydown', function(e){ var d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0; if(d){ e.preventDefault(); ir(tabs[(i + d + tabs.length) % tabs.length].getAttribute('data-demo'), true); } });
+  });
+  Array.prototype.forEach.call(secc.querySelectorAll('[data-ir]'), function(b){ b.addEventListener('click', function(){ ir(b.getAttribute('data-ir')); secc.scrollIntoView({ behavior: 'smooth', block: 'start' }); }); });
+
+  // Marcos con la app real en modo demostración, con esqueleto mientras cargan y una salida si no cargan
+  var marcos = { Cliente: ['telCliente', 'pedir.html?demo=1#m=5', 'menu', 'Si no ves la demo, ábrela aquí'], Cocina: ['telCocina', 'cocina.html?demo=1', 'columnas', 'Si no ves la demo, ábrela aquí'] }, iniciados = false;
+  function crearMarco(clave, enlace){
+    var d = marcos[clave], cont = document.getElementById(d[0]); if(!cont) return;
+    var carga = document.createElement('div'); carga.className = 'carga'; cont.appendChild(carga);
+    if(window.PuveCarga) PuveCarga.mostrarEsqueleto(carga, d[2], clave === 'Cocina' ? 2 : 4);
+    var nota = document.createElement('div'); nota.className = 'nota-demo'; nota.textContent = 'Cargando la demo…'; carga.appendChild(nota);
+    var fr = document.createElement('iframe'); fr.title = clave === 'Cliente' ? 'Demostración del menú del cliente' : 'Demostración de la pantalla de cocina';
+    fr.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups'); fr.setAttribute('referrerpolicy', 'no-referrer');
+    var espera = setTimeout(function(){ nota.textContent = ''; var a = document.createElement('a'); a.href = d[1]; a.target = '_blank'; a.rel = 'noopener'; a.textContent = d[3]; nota.appendChild(a); }, 12000);
+    fr.addEventListener('load', function(){ clearTimeout(espera); setTimeout(function(){ if(carga.parentNode) carga.parentNode.removeChild(carga); }, 250); });
+    if(clave === 'Cocina'){ fr.style.cssText = 'position:absolute;top:0;left:0;width:1000px;height:750px;transform-origin:0 0;'; }   // se muestra a tamaño de pantalla ancha y se escala para que quepa
+    fr.src = d[1]; cont.appendChild(fr); if(clave === 'Cocina') ajustarCocina();
+  }
+  function ajustarCocina(){
+    var c = document.getElementById('telCocina'), f = c && c.querySelector('iframe'); if(!f || !c.clientWidth) return;
+    f.style.transform = 'scale(' + (c.clientWidth / 1000) + ')';
+  }
+  window.addEventListener('resize', ajustarCocina);
+  function iniciarMarcos(){ if(iniciados) return; iniciados = true; crearMarco('Cliente'); crearMarco('Cocina'); }
+  if('IntersectionObserver' in window){ var io = new IntersectionObserver(function(es){ if(es[0].isIntersecting){ io.disconnect(); iniciarMarcos(); } }, { rootMargin: '300px' }); io.observe(secc); } else iniciarMarcos();
+  document.getElementById('demoReiniciar').addEventListener('click', function(){
+    try { localStorage.removeItem('puve_demo_v1'); localStorage.removeItem('puve_pedido_00000000-0000-4000-8000-0000000000d1'); } catch(e){}
+    ['telCliente', 'telCocina'].forEach(function(id){ var c = document.getElementById(id); if(c) c.textContent = ''; }); iniciados = false; iniciarMarcos();
+  });
+
+  // Calculadora de receta (misma cuenta que hace PUVE al armar una receta)
+  var INS = [['Carne al pastor', 180, 'kg'], ['Tortilla de maíz', 1.5, 'pza'], ['Piña', 30, 'kg'], ['Cebolla', 25, 'kg'], ['Cilantro', 60, 'kg'], ['Salsa roja', 55, 'l']];
+  var BASE = { kg: { kg: 1, g: .001 }, l: { l: 1, ml: .001 }, pza: { pza: 1 } };
+  function cant(txt, unidad){
+    var t = String(txt || '').trim().toLowerCase().replace(',', '.'); if(!t) return NaN; var m = t.match(/^([0-9.\/ ]+?)\s*([a-z]+)?$/); if(!m) return NaN; var n = m[1].trim(), v;
+    if(n.indexOf('/') !== -1){ var q = n.split('/').map(parseFloat); if(q.length !== 2 || !isFinite(q[0]) || !isFinite(q[1]) || q[1] === 0) return NaN; v = q[0] / q[1]; } else v = parseFloat(n);
+    if(!isFinite(v)) return NaN; if(m[2]){ var f = BASE[unidad] && BASE[unidad][m[2]]; if(!f) return NaN; v = v * f; } return Math.round(v * 10000) / 10000;
+  }
+  var din = function(n){ return Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }); };
+  var filas = [['0', '100 g', true], ['1', '3', true], ['2', '20 g', false], ['3', '15 g', false], ['4', '5 g', false]], margen = 65, precio = 28;
+  var calc = document.getElementById('calc');
+  function pintarCalc(foco){
+    var tot = 0, cs = filas.map(function(f){ var i = INS[+f[0]], q = cant(f[1], i[2]), c = isNaN(q) ? 0 : q * i[1]; tot += c; return c; });
+    var html = '<table><thead><tr><th>Ingrediente</th><th>Cantidad</th><th>Cuesta</th><th>Obligatorio</th></tr></thead><tbody>';
+    filas.forEach(function(f, k){ var i = INS[+f[0]], q = cant(f[1], i[2]); html += '<tr><td data-l="Ingrediente">' + i[0] + '<span class="eq">' + din(i[1]) + ' por ' + (i[2] === 'pza' ? 'pieza' : i[2] === 'l' ? 'litro' : 'kilo') + '</span></td><td data-l="Cantidad"><input type="text" inputmode="decimal" data-k="' + k + '" value="' + f[1] + '" aria-label="Cantidad de ' + i[0] + '">' + (isNaN(q) ? '<span class="eq">Escribe 0.1, 1/10 o 100 g</span>' : '<span class="eq">= ' + q + ' ' + i[2] + '</span>') + '</td><td data-l="Cuesta"><b>' + din(cs[k]) + '</b><span class="eq">' + (tot > 0 ? Math.round(cs[k] / tot * 100) : 0) + '% del costo</span></td><td data-l="Obligatorio"><input type="checkbox" data-o="' + k + '"' + (f[2] ? ' checked' : '') + ' aria-label="' + i[0] + ' es obligatorio"></td></tr>'; });
+    var gana = precio - tot, pct = precio > 0 ? gana / precio * 100 : 0, sug = tot > 0 ? Math.ceil(tot / (1 - margen / 100)) : 0;
+    html += '</tbody></table><div class="resumen"><div>Costo del platillo<b>' + din(tot) + '</b></div><div>Precio de venta<b><input type="number" id="cPrecio" min="0" step="1" value="' + precio + '" style="width:110px;font-size:18px;font-weight:700"></b></div><div>Ganas<b>' + din(gana) + ' · ' + Math.round(pct) + '%</b></div></div>';
+    html += '<div class="sug">Para ganar <input type="number" id="cMargen" min="1" max="95" value="' + margen + '">% conviene un precio de <b>' + din(sug) + '</b></div>';
+    calc.innerHTML = html;
+    if(foco){ var e = calc.querySelector(foco); if(e){ e.focus(); try { e.setSelectionRange(e.value.length, e.value.length); } catch(x){} } }
+  }
+  calc.addEventListener('input', function(e){
+    var t = e.target; if(t.hasAttribute('data-k')){ filas[+t.getAttribute('data-k')][1] = t.value; pintarCalc('[data-k="' + t.getAttribute('data-k') + '"]'); }
+    else if(t.id === 'cPrecio'){ precio = parseFloat(t.value) || 0; pintarCalc('#cPrecio'); } else if(t.id === 'cMargen'){ margen = Math.max(1, Math.min(95, parseFloat(t.value) || 65)); pintarCalc('#cMargen'); }
+  });
+  calc.addEventListener('change', function(e){ var t = e.target; if(t.hasAttribute('data-o')) filas[+t.getAttribute('data-o')][2] = t.checked; });
+  pintarCalc();
+})();
+</script>
 </body>
 </html>

@@ -9,7 +9,7 @@
 <title>Cocina · PUVE</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4/dist/umd/supabase.js"></script>
 <style>
-  :root{ --fondo:#0f1318; --panel:#171c23; --panel2:#1e2530; --linea:#2b3340; --texto:#f3f4f6; --suave:#9aa4b2; --azul:#3b82f6; --ambar:#f59e0b; --verde:#22c55e; --rojo:#ef4444; --z:1; }
+  :root{ --pc-fondo:#171c23; --pc-borde:#2b3340; --pc-texto:#f3f4f6; --pc-suave:#9aa4b2; --pc-acento:#3b82f6; --pc-sobre-acento:#fff; --fondo:#0f1318; --panel:#171c23; --panel2:#1e2530; --linea:#2b3340; --texto:#f3f4f6; --suave:#9aa4b2; --azul:#3b82f6; --ambar:#f59e0b; --verde:#22c55e; --rojo:#ef4444; --z:1; }
   *{ box-sizing:border-box; }
   html,body{ margin:0; height:100%; background:var(--fondo); color:var(--texto); font:calc(16px * var(--z))/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
   body{ display:flex; flex-direction:column; padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
@@ -109,6 +109,8 @@
     <div id="l86"></div>
   </div>
 </div>
+<script src="puve-carga.js" data-banner="no"></script>
+<script>if(/[?&#]demo=1/.test(location.href)) document.write('<script src="puve-demo.js"><\/script>');</script>
 <script src="plano-salon.js"></script>
 <script>
 (function(){
@@ -120,8 +122,10 @@
 
   // ----- token: viene en el # del enlace (nunca viaja al servidor del sitio) y se recuerda en este dispositivo -----
   var m = /(?:^|[#&])t=([0-9a-f]{48})(?:&|$)/.exec(location.hash || '');
-  var TOKEN = m ? m[1] : (LS.get('puve_cocina_t') || '');
-  if(m){ LS.set('puve_cocina_t', TOKEN); try { history.replaceState(null, '', location.pathname); } catch(e){} }
+  // Modo demostración (?demo=1): pedidos de ejemplo que viven solo en este navegador y se comparten con el menú de demo
+  var DEMO = !!(window.PuveDemo && /[?&#]demo=1/.test(location.href));
+  var TOKEN = DEMO ? 'demo' : (m ? m[1] : (LS.get('puve_cocina_t') || ''));
+  if(m && !DEMO){ LS.set('puve_cocina_t', TOKEN); try { history.replaceState(null, '', location.pathname); } catch(e){} }
 
   var datos = { negocio: '', plano: null, canal: null, pedidos: [] };
   var offsetReloj = 0;                // diferencia entre el reloj del servidor y el de la tablet
@@ -132,11 +136,21 @@
   var zoom = Number(LS.get('puve_cocina_zoom')) || 1;
   var canalRt = null, canalNombre = null, cliente = null, cargando = false, otraVez = false, ultimoOk = 0, enviando = {}, muerto = false, menu = [];
   document.documentElement.style.setProperty('--z', zoom);
+  // Esqueleto en las columnas hasta que lleguen los pedidos; si la primera carga falla, se explica qué pasó
+  if(window.PuveCarga) ['lNuevos', 'lPrep', 'lListos'].forEach(function(id){ PuveCarga.mostrarEsqueleto($(id), 'columnas'); });
+  function falloInicial(r){
+    if(!window.PuveCarga) return; var cont = $('pcError');
+    if(!cont){ cont = mk('div'); cont.id = 'pcError'; $('principal').parentNode.insertBefore(cont, $('principal')); }
+    $('principal').style.display = 'none'; cont.style.display = '';
+    PuveCarga.error(cont, PuveCarga.diagnosticar(null, r.status), { reintentar: cargar, recargar: true });
+  }
+  function ocultarFalloInicial(){ var c = $('pcError'); if(c){ c.style.display = 'none'; $('principal').style.display = ''; } }
 
   function mostrarError(t, x){ muerto = true; $('principal').style.display = 'none'; $('filtros').style.display = 'none'; var p = $('pantallaError'); p.style.display = 'flex'; $('errTitulo').textContent = t; $('errTexto').textContent = x; }
   if(!TOKEN){ mostrarError('Falta el enlace de cocina', 'Abre el enlace completo que te dio el encargado. Si lo perdiste, pídele uno nuevo.'); return; }
 
   function api(body){
+    if(DEMO) return window.PuveDemo.cocinaApi(body);
     body.token = TOKEN;
     return fetch(SUPA + '/functions/v1/cocina-pedidos', { method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }, body: JSON.stringify(body) })
       .then(function(r){ return r.json().catch(function(){ return null; }).then(function(d){ return { ok: r.ok, status: r.status, d: d }; }); })
@@ -188,7 +202,7 @@
       if(!filtro && cat !== ult){ c.appendChild(mk('div', 'cat', cat)); ult = cat; }
       var d = mk('div', 'item', i.cantidad + ' × ' + i.nombre);
       if(filtro && cat !== filtro) d.style.opacity = '.45';
-      var ops = (i.opciones || []).map(function(o){ return o.o ? (o.g ? o.g + ': ' : '') + o.o : (o.nombre || ''); }).filter(Boolean).join(' · ');
+      var ops = (i.opciones || []).map(function(o){ return o.o ? (o.g === 'Sin' ? 'SIN ' + o.o : (o.g ? o.g + ': ' : '') + o.o) : (o.nombre || ''); }).filter(Boolean).join(' · ');
       if(ops) d.appendChild(mk('small', null, ops));
       c.appendChild(d);
     });
@@ -270,8 +284,8 @@
       cargando = false;
       if(r.status === 404){ LS.del('puve_cocina_t'); mostrarError('Este enlace ya no es válido', 'Pide uno nuevo al encargado.'); return; }
       if(r.status === 429){ conectado(true); return; }
-      if(!r.ok || !r.d){ conectado(false); return; }
-      conectado(true); ultimoOk = Date.now();
+      if(!r.ok || !r.d){ conectado(false); if(!ultimoOk) falloInicial(r); else if(window.PuveCarga){ var inf = PuveCarga.diagnosticar(null, r.status); avisar(inf.titulo + '. ' + inf.pasos[0]); } return; }
+      conectado(true); ultimoOk = Date.now(); ocultarFalloInicial();
       if(r.d.ahora) offsetReloj = new Date(r.d.ahora).getTime() - Date.now();
       datos = { negocio: r.d.negocio || '', plano: r.d.plano, canal: r.d.canal, pedidos: r.d.pedidos || [] };
       $('negocio').textContent = datos.negocio ? 'Cocina · ' + datos.negocio : 'Cocina'; document.title = (datos.negocio || 'Cocina') + ' · Cocina';
@@ -291,6 +305,7 @@
       canalRt = cliente.channel('cocina:' + datos.canal).on('broadcast', { event: 'cambio' }, function(){ cargar(); }).on('broadcast', { event: 'menu' }, function(){ cargarMenu(); }).subscribe();
     } catch(e){ canalNombre = null; }
   }
+  if(DEMO){ window.PuveDemo.suscribir(cargar); setInterval(cargar, 3000); }
   setInterval(function(){ cargar(); if($('ov86').style.display === 'flex') cargarMenu(); }, 30000);                         // respaldo por si se pierde un aviso
   document.addEventListener('visibilitychange', function(){ if(!document.hidden) cargar(); });
   window.addEventListener('online', cargar);

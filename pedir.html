@@ -29,7 +29,7 @@
 <meta name="apple-mobile-web-app-title" content="Pedidos" id="appTitle">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="theme-color" content="#000000">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://challenges.cloudflare.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://ckzueunptmlqmtypowmg.supabase.co; frame-src https://challenges.cloudflare.com; img-src 'self' data: https://ckzueunptmlqmtypowmg.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://ckzueunptmlqmtypowmg.supabase.co; frame-src https://challenges.cloudflare.com; img-src 'self' data: https://ckzueunptmlqmtypowmg.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Pedidos</title>
 <link rel="icon" href="img/logo_mini.png" type="image/png" sizes="any" id="favicon">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
@@ -70,6 +70,8 @@
   .fil{ background:var(--v); border:1px solid var(--b); border-radius:20px; padding:14px; margin-top:12px; } .fil .grp{ margin:8px 0 2px; } .fil .campo-txt{ margin-top:8px; }
   .ln.sel{ background:#000; color:#fff; border-radius:14px; padding:10px 12px; margin-top:6px; border-bottom-color:transparent; } .ln.sel .opc{ color:#cfcfcf; } .ln.sel .st button{ background:#fff; color:#000; border-color:#fff; }
   @media (prefers-color-scheme:dark){ .ln.sel{ outline:2px solid #fff; } }
+  body.enmarco.v2 header{ padding-top:46px; } body.enmarco .sg{ padding-top:46px; } body.enmarco .xb{ top:30px; } body.enmarco .hero{ padding-top:76px; }   /* demo dentro del celular de index.html: deja libre la "isla" */
+  :root{ --pc-fondo:var(--f); --pc-borde:var(--b); --pc-texto:var(--t); --pc-suave:var(--s); --pc-acento:var(--a); --pc-sobre-acento:var(--as); }
   /* ===== Menú v2 (restaurantes, cafeterías y todo servicio de comida): tarjetas suaves, burbujas de categoría y color tomado de la foto ===== */
   body.v2{ --card:#fff; --sh:0 12px 32px -14px rgba(40,36,28,.22); font-family:'Inter',-apple-system,sans-serif;
     background:radial-gradient(560px 380px at 88% -70px,var(--cg,rgba(120,120,130,.12)),transparent 72%),linear-gradient(180deg,#fcfcfe 0%,#f2f3f7 100%) fixed; }
@@ -136,6 +138,8 @@
 </head>
 <body>
 <main id="app"><div class="centro" id="cargando">Cargando…</div></main>
+<script src="puve-carga.js" data-banner="no"></script>
+<script>if(/[?&#]demo=1/.test(location.href)) document.write('<script src="puve-demo.js"><\/script>');</script>
 <script>
 (function(){
   'use strict';
@@ -144,6 +148,9 @@
   var AVISO = 'docs_legales/aviso-de-privacidad.html#anexo-pedidos-qr';
   var app = document.getElementById('app'), h = {};
   (location.hash || '').replace(/^#/, '').split('&').forEach(function(p){ var k = p.split('='); h[k[0]] = decodeURIComponent(k[1] || ''); });
+  // Modo demostración (?demo=1): negocio de ejemplo que vive solo en este navegador; no llama a ningún servidor
+  var DEMO = !!(window.PuveDemo && /[?&#]demo=1/.test(location.href));
+  if(DEMO){ h.n = h.n || '00000000-0000-4000-8000-0000000000d1'; h.m = h.m || '5'; h.f = h.f || 'dddddddddddddddddddddddd'; if(window.top !== window) document.body.classList.add('enmarco'); }
   var NEG = h.n || '', MESA = h.m || '', FIRMA = h.f || '', BARRA = MESA === 'BARRA', ETQ = BARRA ? 'Para llevar · Barra' : 'Mesa ' + MESA;
   var $ = function(t, c, x){ var e = document.createElement(t); if(c) e.className = c; if(x != null) e.textContent = x; return e; };
   var $$ = function(e, kids){ kids.forEach(function(k){ if(k) e.appendChild(k); }); return e; };
@@ -151,19 +158,29 @@
   var LS = { get:function(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }, set:function(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }, del:function(k){ try{ localStorage.removeItem(k); }catch(e){} } };
   var KEYPED = 'puve_pedido_' + NEG, UUID = /^[0-9a-f-]{36}$/i;
   function api(body){
-    return fetch(SUPA + '/functions/v1/pedido-qr', { method:'POST', headers:{ 'Content-Type':'application/json', 'apikey':KEY, 'Authorization':'Bearer ' + KEY }, body:JSON.stringify(body) })
-      .then(function(r){ return r.json().catch(function(){ return null; }).then(function(d){ return { ok:r.ok, status:r.status, d:d }; }); })
-      .catch(function(){ return { ok:false, status:0, d:{ error:'Sin conexión. Revisa tu internet e intenta de nuevo.' } }; });
+    if(DEMO) return window.PuveDemo.pedirApi(body);
+    var ctl = window.AbortController ? new AbortController() : null, tm = ctl ? setTimeout(function(){ ctl.abort(); }, 30000) : null;   // una conexión colgada no deja la pantalla esperando para siempre
+    return fetch(SUPA + '/functions/v1/pedido-qr', { method:'POST', headers:{ 'Content-Type':'application/json', 'apikey':KEY, 'Authorization':'Bearer ' + KEY }, body:JSON.stringify(body), signal: ctl ? ctl.signal : undefined })
+      .then(function(r){ return r.json().catch(function(){ return null; }).then(function(d){ clearTimeout(tm); return { ok:r.ok, status:r.status, d:d }; }); })
+      .catch(function(e){ clearTimeout(tm); return { ok:false, status:0, d:{ error:'Sin conexión. Revisa tu internet e intenta de nuevo.' }, err:e }; });
   }
   function aviso(t){ app.textContent = ''; app.appendChild($('div', 'centro', t)); }
+  // Error de carga explicado: qué pasó y qué hacer (conexión, servidor, saturación, menú no disponible…)
+  function falloCarga(r){
+    if(!window.PuveCarga) return aviso(r.status === 429 ? 'Hay muchas consultas ahora. Intenta en un momento.' : 'El menú no está disponible por ahora. Pide ayuda al personal.');
+    var st = r.ok ? 404 : (r.status === 400 || r.status === 422 ? 404 : r.status);
+    PuveCarga.error(app, PuveCarga.diagnosticar(r.err, st, { tituloNoEncontrado: 'Este menú no está disponible', textoNoEncontrado: 'Puede que el negocio haya pausado los pedidos por QR o que este código QR ya no sea válido.' }), { reintentar: iniciar, recargar: false });
+  }
   if(!UUID.test(NEG) || !/^[A-Za-z0-9 _-]{1,12}$/.test(MESA) || !/^[0-9a-f]{24}$/i.test(FIRMA)) return aviso('Este código QR no es válido. Pide ayuda al personal.');
 
   var menu = null, cat = '', lineas = [], seguimiento = null, timer = null, opIndex = {}, notaTxt = '', aliasTxt = '';
   function iniciar(){
     if(MESA === 'MOSTRADOR') return iniciarPap();   // QR del mostrador de una papelería
     var guardado = LS.get(KEYPED); if(guardado){ seguimiento = guardado; return verSeguimiento(); }
+    var vig = null; if(window.PuveCarga){ app.textContent = ''; PuveCarga.mostrarEsqueleto(app, 'menu'); vig = PuveCarga.vigilar(app, { reintentar: iniciar, inicio: 'Abriendo el menú…' }); }
     api({ accion:'menu', negocio:NEG }).then(function(r){
-      if(!r.ok || !r.d || !r.d.productos) return aviso(r.status === 429 ? 'Hay muchas consultas ahora. Intenta en un momento.' : 'El menú no está disponible por ahora. Pide ayuda al personal.');
+      if(vig) vig.listo();
+      if(!r.ok || !r.d || !r.d.productos) return falloCarga(r);
       menu = r.d; menu.grupos = menu.grupos || []; menu.grupos.forEach(function(g){ g.opciones.forEach(function(o){ opIndex[o.id] = { g:g, o:o }; }); });
       marcaNegocio(); pintarMenu();
     });
@@ -184,7 +201,9 @@
     if(/^[0-9a-f-]{36}\/favicon\.png$/.test(menu.favicon || '')){ var u = SUPA + '/storage/v1/object/public/fotos-negocios/' + menu.favicon; set('favicon', 'href', u); set('appleIcon', 'href', u); }
   }
   function prodPorId(id){ return menu.productos.filter(function(p){ return p.id === id; })[0]; }
-  function gruposDe(p){ return menu.grupos.filter(function(g){ return !g.categoria_id || g.categoria_id === p.categoria_id; }); }
+  // Un grupo aplica al platillo si es de su categoría; los grupos de "todos los productos" solo aplican si son opcionales
+  // (un obligatorio para todo el menú, como la leche en unos tacos, no tiene sentido y se ignora; lo obligatorio va en la receta).
+  function gruposDe(p){ return menu.grupos.filter(function(g){ return g.categoria_id ? g.categoria_id === p.categoria_id : !g.requerido; }); }
   function precioUnit(l){ var x = 0; l.ops.forEach(function(id){ x += Number(opIndex[id].o.extra); }); return Number(prodPorId(l.pid).precio) + x; }
   function total(){ var t = 0; lineas.forEach(function(l){ t += precioUnit(l) * l.cant; }); return t; }
   function cuenta(){ var n = 0; lineas.forEach(function(l){ n += l.cant; }); return n; }
@@ -245,7 +264,7 @@
     d.split('|').forEach(function(x){ var p = document.createElementNS(NS, 'path'); p.setAttribute('d', x); s.appendChild(p); }); return s;
   }
   var norm = function(s){ return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim(); };
-  var FOTO = /^[0-9a-f-]{36}\/[0-9a-f-]{36}\.jpg$/;
+  var FOTO = /^(?:[0-9a-f-]{36}\/[0-9a-f-]{36}\.jpg|demo:[a-z0-9_]{1,20})$/;
   function ajustarTema(){ var m = document.querySelector('meta[name=theme-color]'); if(m) m.setAttribute('content', window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? '#0E0E0D' : '#f4f5f8'); }
 
   // ===== Color de la foto: se aplica a botones, chips y brillos. Sin foto (o sin color): blanco y negro =====
@@ -261,7 +280,7 @@
   function leerColor(im){ try{ var c = document.createElement('canvas'); c.width = c.height = 40; var x = c.getContext('2d', { willReadFrequently:true }); x.drawImage(im, 0, 0, 40, 40); return dominante(x.getImageData(0, 0, 40, 40).data, 40, 40) || 0; }catch(e){ return 0; } }
   // Foto del negocio. Se pide con CORS para poder leer su color; si el servidor no lo permite, se muestra igual (en blanco y negro).
   function imgFoto(path, alt, cb){
-    var im = document.createElement('img'), url = SUPA + '/storage/v1/object/public/fotos-negocios/' + path, reintento = false;
+    var im = document.createElement('img'), url = path.indexOf('demo:') === 0 ? window.PuveDemo.foto(path.slice(5)) : SUPA + '/storage/v1/object/public/fotos-negocios/' + path, reintento = false;
     im.alt = alt || ''; im.loading = 'lazy'; im.decoding = 'async'; im.referrerPolicy = 'no-referrer'; im.crossOrigin = 'anonymous';
     im.onload = function(){ if(COL[path] === undefined) COL[path] = leerColor(im); if(cb) cb(COL[path] || null); };
     im.onerror = function(){ if(!reintento){ reintento = true; COL[path] = 0; im.removeAttribute('crossorigin'); im.src = url; } else im.style.visibility = 'hidden'; };
@@ -278,7 +297,7 @@
     var cats = $('div', 'cats'); cats.id = 'cats'; app.appendChild(cats); var ev = $('div', 'evita'); ev.id = 'evita'; app.appendChild(ev); pintarEvitar();
     var gh = $('div', 'gh'), gt = $('h2'), gc = $('span'); gt.id = 'gtit'; gc.id = 'gcnt'; gh.appendChild(gt); gh.appendChild(gc); app.appendChild(gh);
     var grid = $('div', 'grid'); grid.id = 'grid'; app.appendChild(grid);
-    var f = $('footer'); f.appendChild(document.createTextNode('Los precios y la disponibilidad los define el negocio. ')); var a = $('a', '', 'Aviso de privacidad'); a.href = AVISO; a.target = '_blank'; a.rel = 'noopener noreferrer'; f.appendChild(a); f.appendChild(document.createTextNode(' · ')); var pv = $('a', '', 'Hecho con PUVE'); pv.href = 'https://puve.yorss01.workers.dev/?utm_source=pedir&utm_medium=hecho_con_puve'; pv.target = '_blank'; pv.rel = 'noopener'; f.appendChild(pv); app.appendChild(f);
+    var f = $('footer'); f.appendChild(document.createTextNode(DEMO ? 'Esto es una demostración: tu pedido no se envía a ningún negocio. ' : 'Los precios y la disponibilidad los define el negocio. ')); var a = $('a', '', 'Aviso de privacidad'); a.href = AVISO; a.target = '_blank'; a.rel = 'noopener noreferrer'; f.appendChild(a); f.appendChild(document.createTextNode(' · ')); var pv = $('a', '', 'Hecho con PUVE'); pv.href = 'https://puve.yorss01.workers.dev/?utm_source=pedir&utm_medium=hecho_con_puve'; pv.target = '_blank'; pv.rel = 'noopener'; f.appendChild(pv); app.appendChild(f);
     var barra = $('div', 'barra oculto'); barra.id = 'barra'; var iz = $('div'), sm = $('small', '', 'Tu pedido'); sm.id = 'tn'; iz.appendChild(sm); var tot = $('div', 'tot'); tot.id = 'tt'; iz.appendChild(tot);
     var bv = $('button', 'btn', 'Ver pedido'); bv.type = 'button'; bv.onclick = function(){ abrirHoja(false); }; $$(barra, [iz, bv]); document.body.appendChild(barra); pintarCats(); pintarGrid();
   }
@@ -355,7 +374,7 @@
   if(window.visualViewport) window.visualViewport.addEventListener('resize', ajustarHoja); window.addEventListener('resize', ajustarHoja);
 
   function abrirPersonalizar(p){
-    var gs = gruposDe(p), sel = {}, cant = 1, btns = {}, quitar = [], ings = ingsDe(p), foto = FOTO.test(p.foto || ''); gs.forEach(function(g){ sel[g.id] = []; });
+    var gs = gruposDe(p), sel = {}, cant = 1, btns = {}, quitar = [], ings = ingsDe(p), foto = FOTO.test(p.foto || ''); gs.forEach(function(g){ sel[g.id] = (g.requerido && g.opciones.length) ? [g.opciones[0].id] : []; });
     acManual = true; ponerAc(foto ? (COL[p.foto] || null) : null);
     var hj = nuevaHoja(null, 'det'), tok = hojaTok, ok = $('button', 'btn', ''), nq = $('b', '', '1'), dpr = $('span', 'dpr', money(p.precio));
     var xb = $('button', 'xb'); xb.type = 'button'; xb.setAttribute('aria-label', 'Cerrar'); xb.appendChild(ico(IC.atras, 22, 2.4)); xb.onclick = cerrarHoja; hj.appendChild(xb);
@@ -381,19 +400,19 @@
       if(gs.length) cu.appendChild($('div', 'mtit', 'Extras y opciones'));
     }
     gs.forEach(function(g){
-      var bl = $('div', 'grp'); bl.appendChild($('div', 'gt', g.nombre + (g.requerido ? ' · obligatorio' : (g.tipo === 'varios' ? ' · elige las que quieras' : ' · opcional')))); var fila = $('div', 'opts');
+      var bl = $('div', 'grp'); bl.appendChild($('div', 'gt', g.nombre + (g.tipo === 'varios' ? ' · elige las que quieras' : ''))); var fila = $('div', 'opts');
       g.opciones.forEach(function(o){ var b = $('button', 'chip', o.nombre + (Number(o.extra) > 0 ? ' +' + money(o.extra) : '')); b.type = 'button'; b.onclick = function(){ alternar(g, o); }; btns[o.id] = b; fila.appendChild(b); });
       bl.appendChild(fila); cu.appendChild(bl);
     });
     function alternar(g, o){
       var s = sel[g.id], i = s.indexOf(o.id);
-      if(g.tipo === 'uno') sel[g.id] = (i >= 0 && !g.requerido) ? [] : [o.id]; else if(i >= 0) s.splice(i, 1); else if(s.length < 6) s.push(o.id);
+      if(g.tipo === 'uno') sel[g.id] = (i >= 0 && !g.requerido) ? [] : [o.id]; else if(i >= 0){ if(!(g.requerido && s.length === 1)) s.splice(i, 1); } else if(s.length < 6) s.push(o.id);
       refrescar();
     }
     function refrescar(){
-      var ops = [], faltan = false, extra = 0; gs.forEach(function(g){ sel[g.id].forEach(function(id){ ops.push(id); extra += Number(opIndex[id].o.extra); }); if(g.requerido && !sel[g.id].length) faltan = true; });
+      var ops = [], extra = 0; gs.forEach(function(g){ sel[g.id].forEach(function(id){ ops.push(id); extra += Number(opIndex[id].o.extra); }); });
       Object.keys(btns).forEach(function(id){ btns[id].className = 'chip' + (ops.indexOf(id) >= 0 ? ' on' : ''); });
-      ok.disabled = faltan; ok.textContent = faltan ? 'Elige las opciones obligatorias' : 'Agregar · ' + money((Number(p.precio) + extra) * cant); nq.textContent = String(cant); dpr.textContent = money(Number(p.precio) + extra);
+      ok.textContent = 'Agregar · ' + money((Number(p.precio) + extra) * cant); nq.textContent = String(cant); dpr.textContent = money(Number(p.precio) + extra);
     }
     var fq = $('div', 'qrow'); fq.appendChild($('span', 'nota', 'Cantidad')); var st = $('div', 'stp'), m = $('button', ''), s = $('button', 'mas'); m.type = s.type = 'button'; m.appendChild(ico(IC.menos, 16, 2.6)); s.appendChild(ico(IC.mas, 16, 2.6));
     m.setAttribute('aria-label', 'Quitar uno'); s.setAttribute('aria-label', 'Agregar uno'); m.onclick = function(){ if(cant > 1){ cant--; refrescar(); } }; s.onclick = function(){ if(cant < 20){ cant++; refrescar(); } }; $$(st, [m, nq, s]); fq.appendChild(st); cu.appendChild(fq);
@@ -448,18 +467,24 @@
   var TXT = { por_confirmar:['Pedido enviado', 'Esperando a que el negocio lo confirme.', 1], preparando:['Preparando tu pedido', '', 2], listo:['¡Tu pedido está listo!', BARRA ? 'Pasa por él a la barra.' : 'Pronto te lo llevan a la mesa.', 3], entregado:['Entregado', '¡Buen provecho!', 4], cancelado:['Pedido cancelado', 'El negocio no pudo atenderlo. Pide ayuda al personal.', 0] };
   function verSeguimiento(){
     document.body.classList.add('v2'); clearTimeout(timer);
+    if(window.PuveCarga && !app.querySelector('.sg')){ app.textContent = ''; PuveCarga.mostrarEsqueleto(app, 'seguimiento'); }
     api({ accion:'estado', codigo:seguimiento }).then(function(r){
       if(r.status === 404){ LS.del(KEYPED); seguimiento = null; return iniciar(); }
       if(r.status === 429){ timer = setTimeout(verSeguimiento, 20000); return; }
-      if(!r.ok || !r.d){ pintarSeg(null); timer = setTimeout(verSeguimiento, 10000); return; }
-      pintarSeg(r.d); if(r.d.estado !== 'entregado' && r.d.estado !== 'cancelado') timer = setTimeout(function(){ if(!document.hidden) verSeguimiento(); else esperarVisible(); }, 6000);
+      if(!r.ok || !r.d){ pintarSeg(null, r); timer = setTimeout(verSeguimiento, 10000); return; }
+      pintarSeg(r.d); if(r.d.estado !== 'entregado' && r.d.estado !== 'cancelado') timer = setTimeout(function(){ if(!document.hidden) verSeguimiento(); else esperarVisible(); }, DEMO ? 2500 : 6000);
     });
   }
   function esperarVisible(){ var f = function(){ if(!document.hidden){ document.removeEventListener('visibilitychange', f); verSeguimiento(); } }; document.addEventListener('visibilitychange', f); }
-  function pintarSeg(d){
+  function pintarSeg(d, fallo){
     restaurarAc(); document.body.classList.add('v2'); ajustarTema(); app.textContent = '';
     var w = $('div', 'sg'); w.appendChild($('small', '', d && d.alias ? ETQ + ' · ' + d.alias : ETQ));
-    if(!d){ w.appendChild($('div', 'big', 'Actualizando…')); app.appendChild(w); return; }
+    if(!d){
+      var inf = window.PuveCarga && fallo ? PuveCarga.diagnosticar(fallo.err, fallo.status) : null;
+      w.appendChild($('div', 'big', inf ? 'No pudimos actualizar el estado' : 'Actualizando…'));
+      if(inf){ w.appendChild($('div', 'sub', inf.texto + ' Tu pedido sigue en marcha y volvemos a intentarlo solos cada pocos segundos.')); if(inf.pasos && inf.pasos[0]) w.appendChild($('div', 'sub', inf.pasos[0])); }
+      app.appendChild(w); return;
+    }
     var t = TXT[d.estado] || TXT.por_confirmar, paso = t[2], prog = 0, pill = '', icon = IC.reloj, gira = false, sub = t[1] || '';
     w.appendChild($('div', 'big', t[0]));
     if(d.estado === 'por_confirmar'){ prog = .18; gira = true; pill = 'Esperando'; }
@@ -687,6 +712,7 @@
     if(d.estado === 'entregado' || d.estado === 'cancelado'){ var b = $('button', 'btn', 'Hacer otro pedido'); b.type = 'button'; b.style.marginTop = '18px'; b.onclick = function(){ LS.del(KEYPP); seguimiento = null; location.reload(); }; app.appendChild(b); }
   }
 
+  if(DEMO) window.PuveDemo.suscribir(function(){ if(seguimiento) verSeguimiento(); });
   iniciar();
 })();
 </script>

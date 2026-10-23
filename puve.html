@@ -40,6 +40,7 @@
 <link id="icono" rel="icon" href="img/logo_mini.png" type="image/png" sizes="any">
 <script>(function(){ try { if(localStorage.getItem('puve_tema_oscuro') === '1'){ ['icono','iconoApple'].forEach(function(id){ var l = document.getElementById(id); if(l) l.setAttribute('href','img/logo_mini.black.png'); }); } } catch(e){} })();</script>
 <script src="puve-consent.js" data-pagina="app" defer></script>
+<script src="puve-carga.js" data-banner="no"></script>
 <script src="puve-hardware.js"></script>
 <script src="plano-salon.js"></script>
 <script src="puve-insumos.js"></script>
@@ -1088,6 +1089,12 @@
   .rej-producto .campo select{ padding:12px 15px !important; border-radius:14px !important; }
   @media (max-width:700px){ .rej-producto{ grid-template-columns:1fr 1fr; } .rej-producto .c-2{ grid-column:1 / -1; } }
 
+  :root{ --pc-fondo:var(--vid); --pc-borde:var(--borde); --pc-texto:var(--texto); --pc-suave:var(--texto-suave); --pc-acento:var(--acento); --pc-sobre-acento:var(--texto-sobre-acento); }
+  #puveArranque{ position:fixed; inset:0; z-index:2147482000; background:var(--fondo); color:var(--texto); overflow:auto; padding:max(22px,env(safe-area-inset-top)) 20px 24px; }
+  #puveArranque .pc-cuerpo{ width:100%; max-width:560px; margin:0 auto; } #puveArranque .pc-marca{ font-family:var(--serif); font-size:36px; letter-spacing:-.01em; margin:8px 0 22px; }
+  .pc-sk{ display:block; border-radius:12px; background:linear-gradient(90deg,rgba(127,127,127,.14) 25%,rgba(127,127,127,.27) 40%,rgba(127,127,127,.14) 60%); background-size:300% 100%; animation:pc-brillo 1.5s ease-in-out infinite; }
+  @keyframes pc-brillo{ 0%{ background-position:100% 0; } 100%{ background-position:0 0; } } @media (prefers-reduced-motion:reduce){ .pc-sk{ animation:none; } }
+  #puveArranque .pc-frase{ text-align:center; font-size:14px; color:var(--texto-suave); margin:18px auto 0; max-width:420px; min-height:2.8em; }
   /* — PRODUCTOS · formulario en pantalla completa (con cerrar) y lista en tarjetas para el celular — */
   body.modal-producto-abierto{ overflow:hidden; }
   .prod-principal .panel-form.activo{ position:fixed; inset:0; z-index:9400; margin:0; padding:0; border:0; border-radius:0; box-shadow:none; background:var(--fondo); overflow-y:auto; overscroll-behavior:contain; }
@@ -1095,6 +1102,14 @@
   .panel-form-cab h2{ margin:0; font-family:var(--serif); font-weight:400; font-size:27px; letter-spacing:-.01em; }
   .panel-form-cerrar{ width:40px; height:40px; padding:0; flex:none; background:var(--vid2); font-size:16px; }
   .panel-form-cuerpo{ max-width:900px; margin:0 auto; padding:18px 20px 0; }
+  .hor-franjas{ display:flex; flex-wrap:wrap; gap:8px; }
+  .hor-franjas label{ display:inline-flex; align-items:center; gap:8px; margin:0; padding:10px 14px; border:1px solid var(--borde); border-radius:14px; background:var(--vid2); cursor:pointer; font-size:14px; color:var(--texto); }
+  .hor-franjas label small{ color:var(--texto-suave); font-size:11.5px; }
+  .hor-franjas input[type=checkbox]{ width:18px; height:18px; margin:0; padding:0; flex:none; }
+  .hor-fechas{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:12px; } .hor-fechas input[type=date]{ width:auto; min-width:150px; }
+  .hor-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; } .hor-chips span{ display:inline-flex; align-items:center; gap:6px; padding:5px 6px 5px 12px; border:1px solid var(--borde); border-radius:99px; background:var(--vid2); font-size:12.5px; }
+  .hor-chips button{ width:22px; height:22px; padding:0; border-radius:50%; font-size:11px; }
+  .p-horario{ margin-top:2px; font-size:11.5px; font-weight:400; color:var(--texto-suave); }
   .panel-form-pie{ position:sticky; bottom:0; z-index:2; display:flex; gap:10px; margin:18px -20px 0; padding:14px 20px calc(14px + env(safe-area-inset-bottom)); background:var(--fondo); border-top:1px solid var(--borde); }
   @media (max-width:760px){
     #tablaProductos{ background:none; border:0; box-shadow:none; min-width:0 !important; }
@@ -1160,6 +1175,32 @@
 </style>
 </head>
 <body>
+
+<div id="puveArranque" role="status" aria-live="polite">
+  <div class="pc-cuerpo">
+    <div class="pc-marca">PUVE</div>
+    <span class="pc-sk" style="width:55%;height:30px;margin-bottom:18px"></span>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <span class="pc-sk" style="height:110px;border-radius:22px"></span><span class="pc-sk" style="height:110px;border-radius:22px"></span>
+      <span class="pc-sk" style="height:110px;border-radius:22px"></span><span class="pc-sk" style="height:110px;border-radius:22px"></span>
+    </div>
+    <div class="pc-frase">Abriendo PUVE…</div>
+    <noscript><p style="text-align:center">PUVE necesita JavaScript. Actívalo en tu navegador y recarga la página.</p></noscript>
+  </div>
+</div>
+<script>
+(function(){
+  var el = document.getElementById('puveArranque');
+  if(window.PuveCarga) PuveCarga.arranque(el, { requiere: ['supabase'], listoCuando: function(){
+    if(window.__puveListo === true) return true;   // la sesión ya se resolvió; otras entradas (ticket público, embajador…) muestran su propia vista
+    return ['vistaApp', 'vistaSesionActiva', 'vistaBloqueo', 'vistaBaneado', 'vistaPagoPendiente', 'vistaUbicacion', 'vistaEmbajador', 'vistaTicketPublico', 'vistaEscaneoRemoto'].some(function(id){ var v = document.getElementById(id); return v && getComputedStyle(v).display !== 'none'; });
+  } });
+  else setTimeout(function(){   // el módulo de avisos no cargó: igual se explica y se ofrece recargar
+    if(!el.parentNode) return; var c = el.querySelector('.pc-cuerpo'), b = document.createElement('button'); c.querySelector('.pc-frase').textContent = 'Algo impidió que PUVE terminara de cargar. Revisa tu conexión, desactiva la VPN o el bloqueador de anuncios y recarga la página.';
+    b.textContent = 'Recargar la página'; b.style.cssText = 'display:block;margin:14px auto 0;padding:11px 20px;border-radius:99px;border:1px solid currentColor;background:transparent;color:inherit;font:inherit;cursor:pointer'; b.onclick = function(){ location.reload(); }; c.appendChild(b);
+  }, 8000);
+})();
+</script>
 
 <div id="barraSuperiorPuve"></div>
 <div id="contenedorAvisoModal"></div>
@@ -1800,8 +1841,12 @@
             </div>
             <div class="campo oculto c-full" id="campoRecetaProducto">
               <label>Receta del platillo (ingredientes)</label>
-              <div class="nota" style="margin:0 0 8px; font-size:12.5px; color:var(--texto-suave); line-height:1.45;">Lo que lleva una porción. Sirve para el costo, para descontar inventario y para que tu cliente vea los ingredientes en el menú QR.</div>
               <div id="recetaProductoCont"></div>
+            </div>
+            <div class="campo oculto c-full" id="campoHorarioProducto">
+              <label>¿Cuándo aparece en el menú QR?</label>
+              <div class="nota" style="margin:0 0 8px; font-size:12.5px; color:var(--texto-suave); line-height:1.45;">Marca en qué momentos del día se sirve (una, dos o las tres). Si dejas todo marcado y sin fechas, aparece siempre. Si agregas fechas del calendario, solo aparecerá esos días. En la caja puedes venderlo cuando quieras.</div>
+              <div id="horarioProductoCont"></div>
             </div>
           </div>
           <div class="panel-form-pie">
@@ -7283,6 +7328,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       renderizarListaVenta();
       return;
     }
+    if(!productosCache.length && window.PuveCarga) PuveCarga.filasTabla(document.getElementById('cuerpoTabla'), 7, 5);
     const [{ data, error }, { data: cats, error: errCats }] = await Promise.all([
       traerTodoPaginado(() => sb.from('productos').select('*').eq('negocio_id', negocioId).order('nombre', { ascending: true }).order('id', { ascending: true })),
       sb.from('categorias').select('*').eq('negocio_id', negocioId).order('nombre', { ascending: true })
@@ -7383,6 +7429,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   function textoErrorProducto(error){
     const m = String((error && error.message) || error || '');
     if(/productos_impresion_uni/i.test(m)) return 'Ya tienes otro servicio marcado como impresión de ese tipo. Solo puede haber uno en blanco y negro y uno a color.';
+    if(/franjas_menu|fechas_menu/i.test(m)) return 'Para usar los horarios del menú QR primero ejecuta el script SQL 99 en Supabase.';
     if(/row-level security|permission denied|violates row/i.test(m)) return 'Tu usuario no tiene permiso para modificar productos. Solo el encargado puede agregar, editar o eliminar.';
     return m;
   }
@@ -7401,7 +7448,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('resumenInventario').textContent = productosCache.length + ' producto' + (productosCache.length === 1 ? '' : 's') + ' en inventario';
     cuerpo.innerHTML = productosCache.map(p => `
       <tr data-id="${p.id}">
-        <td class="p-nombre">${escapar(p.nombre)}</td>
+        <td class="p-nombre">${escapar(p.nombre)}${textoHorarioMenu(p) ? '<div class="p-horario">Menú QR: ' + escapar(textoHorarioMenu(p)) + '</div>' : ''}</td>
         <td class="p-sku">${escapar(p.sku || '—')}</td>
         <td class="p-dato" data-l="Categoría">${escapar(categoriasCache.find(c => c.id === p.categoria_id)?.nombre || '—')}</td>
         <td class="num p-dato" data-l="Precio">$${Number(p.precio).toFixed(2)}</td>
@@ -7465,6 +7512,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(abrir){
       document.getElementById('tituloFormProducto').textContent = document.getElementById('productoId').value ? 'Editar producto' : 'Nuevo producto';
       panel.scrollTop = 0; prepararRecetaProducto(document.getElementById('productoId').value);
+      cargarHorarioForm(productosCache.find(x => x.id === document.getElementById('productoId').value) || null);
       const cerrarBtn = panel.querySelector('.panel-form-cerrar'); if(cerrarBtn) try { cerrarBtn.focus({ preventScroll: true }); } catch(e){}
     }
     if(!abrir){
@@ -7477,6 +7525,46 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     }
   }
 
+  // Horario del platillo en el menú QR: franjas del día y/o fechas específicas (SQL 99)
+  const FRANJAS_MENU = [['manana', 'Mañana', '5:00 a 11:59'], ['tarde', 'Tarde', '12:00 a 18:59'], ['noche', 'Noche', '19:00 a 4:59']];
+  let horarioForm = { franjas: ['manana', 'tarde', 'noche'], fechas: [] };
+  const fechaCorta = (f) => new Date(f + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+  function textoHorarioMenu(p){
+    const fr = Array.isArray(p.franjas_menu) ? p.franjas_menu : null, fe = Array.isArray(p.fechas_menu) ? p.fechas_menu : [];
+    if(!fr || (fr.length === 3 && !fe.length)) return '';
+    const partes = []; if(fr.length < 3) partes.push(FRANJAS_MENU.filter(f => fr.includes(f[0])).map(f => f[1]).join(' y ')); if(fe.length) partes.push(fe.length === 1 ? 'solo el ' + fechaCorta(fe[0]) : 'solo ' + fe.length + ' fechas');
+    return partes.join(' · ');
+  }
+  function horarioMenuActivo(){ return document.body.classList.contains('giro-restaurante') || document.body.classList.contains('giro-cafeteria'); }
+  function cargarHorarioForm(p){
+    const campo = document.getElementById('campoHorarioProducto'), ver = horarioMenuActivo(); campo.classList.toggle('oculto', !ver);
+    horarioForm = { franjas: (p && Array.isArray(p.franjas_menu) && p.franjas_menu.length) ? p.franjas_menu.slice() : FRANJAS_MENU.map(f => f[0]), fechas: (p && Array.isArray(p.fechas_menu)) ? p.fechas_menu.slice().sort() : [] };
+    if(ver) pintarHorarioForm();
+  }
+  function pintarHorarioForm(){
+    const cont = document.getElementById('horarioProductoCont'); cont.textContent = '';
+    const fr = el('div', 'hor-franjas');
+    FRANJAS_MENU.forEach(([id, nombre, horas]) => {
+      const lb = el('label'), c = el('input'); c.type = 'checkbox'; c.checked = horarioForm.franjas.includes(id);
+      c.onchange = () => { horarioForm.franjas = FRANJAS_MENU.map(f => f[0]).filter(x => x === id ? c.checked : horarioForm.franjas.includes(x)); };
+      lb.appendChild(c); lb.appendChild(document.createTextNode(nombre + ' ')); lb.appendChild(el('small', '', horas)); fr.appendChild(lb);
+    });
+    cont.appendChild(fr);
+    const fe = el('div', 'hor-fechas'), inp = el('input'); inp.type = 'date'; inp.setAttribute('aria-label', 'Fecha específica');
+    const add = el('button', 'texto', 'Agregar fecha'); add.type = 'button'; add.style.width = 'auto';
+    add.onclick = () => {
+      const v = inp.value; if(!/^\d{4}-\d{2}-\d{2}$/.test(v)) return; if(horarioForm.fechas.includes(v)){ inp.value = ''; return; }
+      if(horarioForm.fechas.length >= 60){ alert('Máximo 60 fechas por platillo.'); return; }
+      horarioForm.fechas.push(v); horarioForm.fechas.sort(); inp.value = ''; pintarHorarioForm();
+    };
+    fe.appendChild(el('span', 'nota', 'Solo en fechas específicas (opcional):')); fe.appendChild(inp); fe.appendChild(add); cont.appendChild(fe);
+    if(horarioForm.fechas.length){
+      const ch = el('div', 'hor-chips');
+      horarioForm.fechas.forEach((f) => { const sp = el('span', '', fechaCorta(f)), x = el('button', 'texto', '✕'); x.type = 'button'; x.setAttribute('aria-label', 'Quitar ' + fechaCorta(f)); x.onclick = () => { horarioForm.fechas = horarioForm.fechas.filter(y => y !== f); pintarHorarioForm(); }; sp.appendChild(x); ch.appendChild(sp); });
+      cont.appendChild(ch);
+    }
+  }
+
   // Receta dentro de Editar producto (restaurantes y cafeterías): reutiliza el editor de Inventario → Recetas
   let recetaProductoCtl = null, recetaSeq = 0;
   async function prepararRecetaProducto(id){
@@ -7484,7 +7572,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const ver = document.body.classList.contains('giro-restaurante') || document.body.classList.contains('giro-cafeteria');
     campo.classList.toggle('oculto', !ver); recetaProductoCtl = null; cont.textContent = ''; if(!ver) return;
     const miSeq = ++recetaSeq, prod = id ? productosCache.find(x => x.id === id) : null;
-    const ctl = await PuveInsumos.montarRecetaProducto(cont, prod, () => parseFloat(document.getElementById('pPrecio').value) || 0, null, () => miSeq === recetaSeq);
+    const ctl = await PuveInsumos.montarRecetaProducto(cont, prod, () => parseFloat(document.getElementById('pPrecio').value) || 0, null, () => miSeq === recetaSeq, (v) => { const i = document.getElementById('pPrecio'); i.value = v; i.dispatchEvent(new Event('input', { bubbles: true })); });
     if(miSeq === recetaSeq) recetaProductoCtl = ctl;
   }
   document.getElementById('pPrecio').addEventListener('input', () => { if(recetaProductoCtl && recetaProductoCtl.recalcular) recetaProductoCtl.recalcular(); });
@@ -7525,6 +7613,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const id = document.getElementById('productoId').value;
     const rec = recetaProductoCtl, errRec = rec ? rec.error() : '';
     if(errRec){ btn.disabled = false; mostrarMensaje('mensajeProducto', errRec, 'error'); document.getElementById('campoRecetaProducto').scrollIntoView({ block: 'center', behavior: 'smooth' }); return false; }
+    let horarioReg = null;
+    if(horarioMenuActivo()){
+      if(!horarioForm.franjas.length){ btn.disabled = false; mostrarMensaje('mensajeProducto', 'Marca al menos un momento del día en que aparece en el menú QR.', 'error'); document.getElementById('campoHorarioProducto').scrollIntoView({ block: 'center', behavior: 'smooth' }); return false; }
+      const baseP = id ? productosCache.find(x => x.id === id) : null, yaTieneColumnas = !!(baseP && ('franjas_menu' in baseP)), porDefecto = horarioForm.franjas.length === 3 && !horarioForm.fechas.length;
+      if(!porDefecto || yaTieneColumnas) horarioReg = { franjas_menu: horarioForm.franjas.slice(), fechas_menu: horarioForm.fechas.slice() };   // sin tocar el horario y sin SQL 99, no se manda nada
+    }
     const registro = {
       negocio_id: negocioId,
       nombre: document.getElementById('pNombre').value.trim(),
@@ -7536,6 +7630,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       fecha_caducidad: document.getElementById('pCaducidad').value || null,
     };
     if(document.body.classList.contains('giro-restaurante') || document.body.classList.contains('giro-cafeteria')) registro.foto_path = fotoForm.actual;
+    if(horarioReg) Object.assign(registro, horarioReg);
     if(document.body.classList.contains('giro-servicios')){ registro.tipo = document.getElementById('pTipo').value; if(registro.tipo === 'servicio'){ registro.duracion_min = parseInt(document.getElementById('pDuracion').value, 10) || null; registro.stock = 999999; } else registro.duracion_min = null; }
     if(document.body.classList.contains('giro-ropa')){ const talla = document.getElementById('pTalla').value.trim(), color = document.getElementById('pColor').value.trim(), base = registro.nombre; registro.modelo = base; registro.talla = talla || null; registro.color = color || null; registro.nombre = [base, talla, color].filter(Boolean).join(' '); }
     if(usaUnidades()){ const errPap = valoresFormPap(registro); if(errPap){ btn.disabled = false; mostrarMensaje('mensajeProducto', errPap, 'error'); return false; } }
@@ -13816,7 +13911,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     mostrarMensaje('mensajeReferidos', que === 'enlace' ? 'Enlace copiado.' : 'Código copiado.', 'exito');
   }
 
-  async function iniciar(){
+  async function iniciar(){ try { await iniciarCuerpo(); } finally { window.__puveListo = true; } }
+  async function iniciarCuerpo(){
     const { data } = await sb.auth.getSession();
     if(!data.session){ prepararRegistroReferido(); return; }
     const user = data.session.user;
