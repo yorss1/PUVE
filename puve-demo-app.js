@@ -39,7 +39,7 @@
   for(let d = 14; d >= 0; d--){ const n = 5 + ((d * 7) % 6); for(let k = 0; k < n; k++){
     const p1 = T.productos[(d + k) % 8], p2 = T.productos[(d * 3 + k * 2) % 8], c1 = 1 + (k % 3), c2 = 1 + ((d + k) % 2), id = uid('vta');
     T.ventas.push({ id, negocio_id: NEG, usuario_id: UID, total: p1.precio * c1 + p2.precio * c2, metodo_pago: metodos[(d + k) % 5], monto_efectivo: null, created_at: dia(d, 13 + (k % 6), (k * 11) % 60), folio: 'D' + String(1000 + T.ventas.length), cancelada: false, perfiles: { nombre: 'Tú (demo)', rol: 'admin' } });
-    T.detalle_ventas.push({ id: uid('dv'), venta_id: id, negocio_id: NEG, producto_id: p1.id, nombre: p1.nombre, cantidad: c1, precio: p1.precio, costo: p1.costo, subtotal: p1.precio * c1 }, { id: uid('dv'), venta_id: id, negocio_id: NEG, producto_id: p2.id, nombre: p2.nombre, cantidad: c2, precio: p2.precio, costo: p2.costo, subtotal: p2.precio * c2 }); } }
+    T.detalle_ventas.push({ id: uid('dv'), venta_id: id, negocio_id: NEG, producto_id: p1.id, producto_nombre: p1.nombre, nombre: p1.nombre, cantidad: c1, precio: p1.precio, costo: p1.costo, subtotal: p1.precio * c1 }, { id: uid('dv'), venta_id: id, negocio_id: NEG, producto_id: p2.id, producto_nombre: p2.nombre, nombre: p2.nombre, cantidad: c2, precio: p2.precio, costo: p2.costo, subtotal: p2.precio * c2 }); } }
   T.gastos = [{ id: uid('g'), negocio_id: NEG, concepto: 'Gas', monto: 480, categoria: 'Servicios', created_at: dia(3, 10), fecha: dia(3, 10).slice(0, 10) }, { id: uid('g'), negocio_id: NEG, concepto: 'Renta del local', monto: 6500, categoria: 'Renta', created_at: dia(10, 10), fecha: dia(10, 10).slice(0, 10) }];
   T.proveedores = [{ id: uid('pv'), negocio_id: NEG, nombre: 'Carnes Don Beto', telefono: '5555550101' }];
   ['configuracion_puve', 'pagos_puve', 'dispositivos', 'codigos_cajero', 'solicitudes_cajero_extra', 'reglas_horario', 'reglas_clima', 'empleados', 'avisos_puve', 'solicitudes_pago', 'solicitudes_cambio_plan', 'escaneos_remotos', 'controles_funciones_puve', 'bugs_puve', 'impresiones', 'historial_cobros_puve', 'devoluciones', 'cortes_caja', 'backups_registro', 'auditoria_carrito', 'administradores_puve', 'solicitudes_factura', 'presentaciones_producto', 'preguntas_sin_respuesta', 'precios_volumen', 'pedidos_qr', 'pedidos_prog', 'ordenes_compra', 'movimientos_inventario', 'logs_seguridad', 'grupos_opciones', 'opciones_producto', 'clientes'].forEach((t) => { if(!T[t]) T[t] = []; });
@@ -71,7 +71,8 @@
     single(){ this.uno = 'single'; return this; } maybeSingle(){ this.uno = 'maybe'; return this; } abortSignal(){ return this; } csv(){ return this; }
     then(ok, mal){ return Promise.resolve().then(() => this.correr()).then(ok, mal); }
     correr(){
-      const tabla = T[this.t] || (T[this.t] = []); let filas = tabla.filter((r) => this.f.every((fn) => fn(r))), res;
+      const tabla = T[this.t] || (T[this.t] = []), fuente = (this.op === 'select' && this.sel.indexOf('(') >= 0) ? embeber(this.t, tabla, this.sel) : tabla;   // los filtros como ventas.created_at necesitan la relación ya incluida
+      let filas = fuente.filter((r) => this.f.every((fn) => fn(r))), res;
       if(this.op === 'insert' || this.op === 'upsert'){
         const nuevos = [].concat(this.dat).map((d) => Object.assign({ id: uid(this.t), negocio_id: NEG, created_at: ahora(), creado_en: ahora() }, d));
         nuevos.forEach((n) => { const i = this.op === 'upsert' ? tabla.findIndex((x) => x.id === n.id) : -1; if(i >= 0) Object.assign(tabla[i], n); else tabla.push(n); }); res = nuevos;
@@ -81,7 +82,7 @@
       else res = filas;
       this.ord.slice().reverse().forEach(([c, asc]) => res = res.slice().sort((a, b) => { const x = valor(a, c), y = valor(b, c); return (x > y ? 1 : x < y ? -1 : 0) * (asc ? 1 : -1); }));
       const total = res.length; if(this.rng) res = res.slice(this.rng[0], this.rng[1] + 1); if(this.lim != null) res = res.slice(0, this.lim);
-      res = embeber(this.t, res, this.sel);
+      if(fuente === tabla) res = embeber(this.t, res, this.sel);
       if(this.cabeza) return { data: null, count: total, error: null };
       if(this.uno){ if(res.length === 1 || (this.uno === 'maybe' && res.length <= 1)) return { data: res[0] || null, error: null }; return { data: null, error: this.uno === 'single' ? { code: 'PGRST116', message: 'No se encontró el registro' } : null }; }
       return { data: JSON.parse(JSON.stringify(res)), count: this.cont ? total : undefined, error: null };
@@ -91,13 +92,22 @@
   // ---------------- Funciones del servidor (RPC) ----------------
   const falla = (m) => ({ data: null, error: { message: m } });
   const costoReceta = (pid) => T.recetas_lineas.filter((r) => r.producto_id === pid).reduce((a, r) => a + r.cantidad * T.insumos.find((i) => i.id === r.insumo_id).costo_unitario, 0);
+  let turno = null, sangrias = [];
   const R = {
     es_admin_puve: () => false, es_superadmin_puve: () => false, negocio_al_corriente: () => true, mi_aceptacion_legal_vigente: () => true, aplicar_cambio_plan_pendiente_si_toca: () => null,
-    registrar_dispositivo: () => null, registrar_actividad: () => null, registrar_log_seguridad: () => null, tengo_pin_autorizacion_puve: () => false, mi_turno_caja_abierto: () => null, mis_sangrias_turno_abierto: () => [],
-    obtener_controles_funciones_puve: () => [], obtener_correos_empresa_puve: () => ({}), obtener_config_publica_puve: () => ({}), mi_soporte_humano_sin_leer: () => 0, mi_soporte_humano: () => [], productos_mas_vendidos: () => T.productos.slice(0, 6).map((p) => ({ producto_id: p.id })),
-    aplicar_promos_horario: () => 0, canal_tiempo_real: () => null, mi_descuento_referido: () => 0, obtener_mi_codigo_referido: () => 'DEMO', pap_config: () => ({}),
+    // Turno de caja del cajero (todo en memoria)
+    mi_turno_caja_abierto: () => turno, mis_sangrias_turno_abierto: () => sangrias.slice(),
+    abrir_turno_caja: (a) => { if(turno) return falla('Ya tienes un turno abierto'); const f = Number(a.p_fondo_inicial); if(!(f >= 0)) return falla('El fondo inicial no es válido'); turno = { id: uid('turno'), fondo_inicial: f, abierto_en: ahora() }; sangrias = []; return turno.id; },
+    registrar_sangria_caja: (a) => { if(!turno) return falla('Abre tu turno primero'); const mo = Number(a.p_monto); if(!(mo > 0)) return falla('El monto no es válido'); sangrias.push({ id: uid('sg'), monto: mo, motivo: a.p_motivo || null, creado_en: ahora() }); return null; },
+    registrar_corte_caja: (a) => { const desde = turno ? turno.abierto_en : dia(0, 0); const efec = T.ventas.filter((v) => v.created_at >= desde && v.created_at <= ahora() && (v.metodo_pago === 'efectivo' || v.metodo_pago === 'mixto')).reduce((x, v) => x + Number(v.monto_efectivo || v.total), 0);
+      const ini = turno ? turno.fondo_inicial : Number(a.p_efectivo_inicial || 0), ret = turno ? sangrias.reduce((x, s) => x + s.monto, 0) : Number(a.p_retiros || 0), esperado = ini + efec - ret, dif = Math.round((Number(a.p_efectivo_contado) - esperado) * 100) / 100;
+      const fila = { id: uid('corte'), negocio_id: NEG, desde, hasta: ahora(), efectivo_inicial: ini, retiros: ret, efectivo_contado: a.p_efectivo_contado, efectivo_esperado: esperado, diferencia: dif, creado_en: ahora(), perfiles: { nombre: 'Tú (demo)' } };
+      T.cortes_caja.push(fila); T.cortes_caja_cajero = (T.cortes_caja_cajero || []).concat([fila]); turno = null; sangrias = []; return { diferencia: dif }; },
+    registrar_dispositivo: () => null, registrar_actividad: () => null, registrar_log_seguridad: () => null, tengo_pin_autorizacion_puve: () => false,
+    obtener_controles_funciones_puve: () => [], obtener_correos_empresa_puve: () => ({}), obtener_config_publica_puve: () => ({ precio_mensual_dispositivo: 250, comision_embajador_pesos: 0 }), mi_soporte_humano_sin_leer: () => 0, mi_soporte_humano: () => [], productos_mas_vendidos: () => T.productos.slice(0, 6).map((p) => ({ producto_id: p.id })),
+    aplicar_promos_horario: () => 0, canal_tiempo_real: () => null, mi_descuento_referido: () => 0, obtener_mi_codigo_referido: () => 'TAQUERIA10', mi_resumen_referidos: () => ({ porcentaje: 20, meses_descuento: 3, descuento_anual: 600, dias_recompensa: 30, pendientes: 2, pagados: 1, dias_ganados: 30, gracia_hasta: null }), pap_config: () => ({}),
     registrar_venta: (a) => { const items = a.p_items || []; let total = 0; const id = uid('vta'); const det = [];
-      for(const it of items){ const p = T.productos.find((x) => x.id === it.producto_id || x.id === it.id); if(!p) continue; const c = Number(it.cantidad) || 1; total += p.precio * c; det.push({ id: uid('dv'), venta_id: id, negocio_id: NEG, producto_id: p.id, nombre: p.nombre, cantidad: c, precio: p.precio, costo: p.costo, subtotal: p.precio * c });
+      for(const it of items){ const p = T.productos.find((x) => x.id === it.producto_id || x.id === it.id); if(!p) continue; const c = Number(it.cantidad) || 1; total += p.precio * c; det.push({ id: uid('dv'), venta_id: id, negocio_id: NEG, producto_id: p.id, producto_nombre: p.nombre, nombre: p.nombre, cantidad: c, precio: p.precio, costo: p.costo, subtotal: p.precio * c });
         T.recetas_lineas.filter((r) => r.producto_id === p.id).forEach((r) => { const i = T.insumos.find((x) => x.id === r.insumo_id); i.stock = Math.max(0, Math.round((i.stock - r.cantidad * c) * 1000) / 1000); }); }
       if(!det.length) return falla('El carrito está vacío'); T.ventas.push({ id, negocio_id: NEG, usuario_id: UID, total, metodo_pago: a.p_metodo_pago || 'efectivo', monto_efectivo: a.p_monto_efectivo || null, created_at: ahora(), folio: 'D' + (1000 + T.ventas.length), cancelada: false, perfiles: { nombre: 'Tú (demo)', rol: 'admin' } }); T.detalle_ventas.push(...det); return id; },
     registrar_ventas_lote: (a) => (a.p_ventas || []).map((v) => ({ id: v.id, ok: true })),

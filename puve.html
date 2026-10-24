@@ -4551,7 +4551,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const [rCodigo, rStats] = await Promise.all([sb.rpc('obtener_mi_codigo_embajador'), sb.rpc('mi_estadisticas_embajador')]);
     if(rCodigo.error || rStats.error || !rStats.data){
       document.getElementById('embSaldoHero').textContent = 'Error';
-      document.getElementById('embNotaRetiro').textContent = 'No se pudo cargar tu panel: ' + (rCodigo.error || rStats.error)?.message + ' (¿ya corriste puve_embajadores.sql y puve_embajadores_retiros.sql?)';
+      console.error('Panel de embajador:', (rCodigo.error || rStats.error)?.message); document.getElementById('embNotaRetiro').textContent = 'No pudimos cargar tu panel en este momento. Inténtalo de nuevo en unos minutos.';
       return;
     }
     const codigo = rCodigo.data, r = rStats.data;
@@ -4623,7 +4623,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   async function cargarEstadoCuentaEmbajador(){
     const [rSaldo, rRetiros] = await Promise.all([sb.rpc('mi_saldo_embajador'), sb.rpc('mis_retiros_embajador')]);
     if(rSaldo.error){
-      document.getElementById('embNotaRetiro').textContent = 'No se pudo cargar tu saldo: ' + rSaldo.error.message + ' (¿ya corriste puve_embajadores_retiros.sql?)';
+      console.error('Saldo de embajador:', rSaldo.error.message); document.getElementById('embNotaRetiro').textContent = 'No pudimos cargar tu saldo en este momento. Inténtalo de nuevo en unos minutos.';
       return;
     }
     const saldo = rSaldo.data;
@@ -13869,7 +13869,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const [rCodigo, rResumen] = await Promise.all([sb.rpc('obtener_mi_codigo_referido'), sb.rpc('mi_resumen_referidos'), cargarPrecioPuve()]);
     const r = rResumen.data;
     if(rCodigo.error || rResumen.error || !r){
-      mostrarMensaje('mensajeReferidos', 'No se pudo cargar tu panel de invitaciones: ' + escapar((rCodigo.error || rResumen.error)?.message || 'sin datos') + ' (¿ya corriste puve_referidos.sql?)', 'error');
+      console.error('Panel de invitaciones:', (rCodigo.error || rResumen.error)?.message || 'sin datos'); mostrarMensaje('mensajeReferidos', 'No pudimos cargar tu panel de invitaciones en este momento. Inténtalo de nuevo en unos minutos.', 'error');
       return;
     }
     const codigo = rCodigo.data;

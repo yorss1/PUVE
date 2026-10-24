@@ -102,7 +102,7 @@
     const platillos = enlace.productos().filter((p) => (p.tipo || 'producto') === 'producto').map((p) => ({ id: p.id, nombre: p.nombre, etiquetas: [] })).sort((a, b) => a.nombre.localeCompare(b.nombre));
     // Las etiquetas se leen aparte para no depender de ellas al cargar los productos
     enlace.sb.from('productos').select('id,etiquetas').then(({ data, error }) => {
-      if(error){ estado.textContent = 'No se pudieron leer las etiquetas (¿ya ejecutaste el SQL 96?): ' + error.message; return; }
+      if(error){ console.error('Etiquetas:', error.message); estado.textContent = 'No pudimos leer las etiquetas en este momento. Inténtalo de nuevo en unos minutos.'; return; }
       const m = {}; (data || []).forEach((r) => { m[r.id] = r.etiquetas || []; }); platillos.forEach((p) => { p.etiquetas = m[p.id] || []; }); pintar();
     });
     const pintar = () => {
