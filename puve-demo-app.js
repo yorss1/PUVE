@@ -130,7 +130,7 @@
   const cliente = {
     from: (t) => new Q(t), rpc,
     auth: { getSession: () => Promise.resolve({ data: { session: sesion }, error: null }), getUser: () => Promise.resolve({ data: { user: usuario }, error: null }),
-      signOut: () => { try { location.href = 'index.html'; } catch(e){} return Promise.resolve({ error: null }); }, setSession: () => Promise.resolve({ data: { session: sesion }, error: null }),
+      signOut: () => { try { (window.top || window).location.href = 'index.html'; } catch(e){ location.href = 'index.html'; } return Promise.resolve({ error: null }); }, setSession: () => Promise.resolve({ data: { session: sesion }, error: null }),
       signInWithPassword: () => Promise.resolve({ data: { session: sesion, user: usuario }, error: null }), signUp: () => Promise.resolve({ data: null, error: { message: 'Es una demo: crea tu cuenta real en puve.html.' } }),
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }), refreshSession: () => Promise.resolve({ data: { session: sesion }, error: null }) },
     functions: { invoke: () => Promise.resolve({ data: null, error: { message: 'Esta función no está disponible en la demo.' } }) },
@@ -144,8 +144,10 @@
     const b = document.createElement('div'); b.setAttribute('role', 'status');
     b.style.cssText = 'position:fixed; left:0; right:0; bottom:0; z-index:99999; background:#111; color:#fff; font:600 13px Inter,system-ui,sans-serif; padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px)); display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; text-align:center;';
     const st = document.createElement('style'); st.textContent = '.pcs-fondo{display:none!important}'; document.head.appendChild(st);   // sin aviso de cookies en la demo
-    b.innerHTML = '<span>DEMO · nada se guarda ni se envía</span><a href="puve.html?demo=1' + (CAJERO ? '' : '&rol=cajero') + '" style="color:#fff; text-decoration:underline;">' + (CAJERO ? 'Ver como Encargado' : 'Ver como Cajero (para vender)') + '</a><a href="puve.html#registro" style="color:#111; background:#fff; padding:5px 12px; border-radius:999px; text-decoration:none;">Crear mi cuenta gratis</a>';
-    document.body.appendChild(b); document.body.style.paddingBottom = '48px';
+    b.innerHTML = '<span>DEMO · nada se guarda ni se envía</span><a href="puve.html?demo=1' + (CAJERO ? '' : '&rol=cajero') + '" style="color:#fff; text-decoration:underline;">' + (CAJERO ? 'Ver como Encargado' : 'Ver como Cajero (para vender)') + '</a><a href="puve.html#registro" target="_top" style="color:#111; background:#fff; padding:5px 12px; border-radius:999px; text-decoration:none;">Crear mi cuenta gratis</a>';
+    let enMarco = false; try { enMarco = window.self !== window.top; } catch(e){ enMarco = true; }
+    if(enMarco){ b.innerHTML = '<span>DEMO · nada se guarda ni se envía</span>'; b.style.padding = '6px 10px calc(6px + env(safe-area-inset-bottom,0px))'; b.style.fontSize = '12px'; }   // dentro del celular de la página: los botones ya están afuera
+    document.body.appendChild(b); document.body.style.paddingBottom = enMarco ? '30px' : '48px';
     let intentos = 0; const t = setInterval(() => { intentos++;
       if(window.__usuarioSesionPendiente && typeof window.continuarSesion === 'function'){ clearInterval(t); try { window.continuarSesion(); } catch(e){ console.error(e); } }
       else if(intentos > 80) clearInterval(t); }, 150);
