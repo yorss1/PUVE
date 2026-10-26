@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="robots" content="noindex">
+<meta name="puve-giro" content="cafeteria">
+<title>Cafetería · Juego</title>
+<link rel="stylesheet" href="nucleo/ui/juego.css">
+</head>
+<body>
+<div id="hud"><button id="menu" type="button" aria-label="Menú">☰</button><b id="h1"></b><span id="h2"></span></div>
+<canvas id="c" aria-label="Escena del juego"></canvas>
+<div id="aviso" role="status"></div>
+<div id="pista"></div>
+<div id="ctl"><div id="stick"><i></i></div><button id="act" type="button">E</button></div>
+<div id="tienda" hidden></div>
+<script type="module" src="nucleo/game/main.js"></script>
+</body>
+</html>
