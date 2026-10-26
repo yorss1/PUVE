@@ -1,0 +1,442 @@
+{
+ "version": 1,
+ "base": "sprites",
+ "giros": [
+  "restaurante",
+  "cafeteria"
+ ],
+ "items": [
+  {
+   "n": "suelo_madera",
+   "c": "comun",
+   "w": 16,
+   "h": 16,
+   "cat": "Interior (local)",
+   "d": "Piso del local. Debe poder repetirse en mosaico sin costuras."
+  },
+  {
+   "n": "pared",
+   "c": "comun",
+   "w": 16,
+   "h": 16,
+   "cat": "Interior (local)",
+   "d": "Pared del local (borde y muro)."
+  },
+  {
+   "n": "mesa",
+   "c": "comun",
+   "w": 16,
+   "h": 16,
+   "cat": "Interior (local)",
+   "d": "Mesa. Las mesas bloqueadas por comprar se dibujan con esta misma imagen semitransparente."
+  },
+  {
+   "n": "silla",
+   "c": "comun",
+   "w": 16,
+   "h": 16,
+   "cat": "Interior (local)",
+   "d": "Silla del cliente (vista desde arriba/frente)."
+  },
+  {
+   "n": "caja",
+   "c": "comun",
+   "w": 16,
+   "h": 16,
+   "cat": "Interior (local)",
+   "d": "Caja registradora donde se cobra."
+  },
+  {
+   "n": "refri",
+   "c": "comun",
+   "w": 16,
+   "h": 16,
+   "cat": "Interior (local)",
+   "d": "Refrigerador/almacén donde se surten ingredientes."
+  },
+  {
+   "n": "planta",
+   "c": "comun",
+   "w": 16,
+   "h": 32,
+   "cat": "Interior (local)",
+   "d": "Planta decorativa. Puede medir 16x16 o 16x32 (se alinea con la base de la casilla)."
+  },
+  {
+   "n": "tablero",
+   "c": "comun",
+   "w": 16,
+   "h": 16,
+   "cat": "Interior (local)",
+   "d": "Pizarrón del menú que abre la tienda de mejoras (en la pared)."
+  },
+  {
+   "n": "puerta",
+   "c": "comun",
+   "w": 16,
+   "h": 16,
+   "cat": "Interior (local)",
+   "d": "Puerta de salida del local hacia la ciudad."
+  },
+  {
+   "n": "estacion",
+   "c": "restaurante",
+   "w": 16,
+   "h": 16,
+   "cat": "Interior (local)",
+   "d": "Estufa (restaurante). Si pones otra con el mismo nombre en la carpeta cafeteria, esa se usa en la cafetería."
+  },
+  {
+   "n": "estacion",
+   "c": "cafeteria",
+   "w": 16,
+   "h": 16,
+   "cat": "Interior (local)",
+   "d": "Cafetera (cafetería)."
+  },
+  {
+   "n": "mostrador",
+   "c": "cafeteria",
+   "w": 16,
+   "h": 16,
+   "cat": "Interior (local)",
+   "d": "Mostrador largo de madera (solo cafetería; se repite en fila)."
+  },
+  {
+   "n": "vitrina",
+   "c": "cafeteria",
+   "w": 16,
+   "h": 16,
+   "cat": "Interior (local)",
+   "d": "Vitrina de pastelería (solo cafetería; se repite en fila)."
+  },
+  {
+   "n": "globo_pedido",
+   "c": "comun",
+   "w": 12,
+   "h": 12,
+   "cat": "Interfaz y objetos",
+   "d": "Globo sobre el cliente que quiere pedir (con signo de exclamación)."
+  },
+  {
+   "n": "globo_espera",
+   "c": "comun",
+   "w": 14,
+   "h": 14,
+   "cat": "Interfaz y objetos",
+   "d": "Globo del cliente esperando su plato. El icono del plato se dibuja encima."
+  },
+  {
+   "n": "moneda",
+   "c": "comun",
+   "w": 8,
+   "h": 8,
+   "cat": "Interfaz y objetos",
+   "d": "Moneda que aparece sobre la caja cuando hay algo por cobrar."
+  },
+  {
+   "n": "plato_llevado",
+   "c": "comun",
+   "w": 8,
+   "h": 4,
+   "cat": "Interfaz y objetos",
+   "d": "Plato que carga el jugador o el ayudante (la comida va encima)."
+  },
+  {
+   "n": "plato_tacos",
+   "c": "restaurante",
+   "w": 8,
+   "h": 8,
+   "cat": "Interfaz y objetos",
+   "d": "Icono del platillo «tacos» (restaurante). Se muestra en el globo y en la mano."
+  },
+  {
+   "n": "plato_sopa",
+   "c": "restaurante",
+   "w": 8,
+   "h": 8,
+   "cat": "Interfaz y objetos",
+   "d": "Icono del platillo «sopa» (restaurante). Se muestra en el globo y en la mano."
+  },
+  {
+   "n": "plato_hamb",
+   "c": "restaurante",
+   "w": 8,
+   "h": 8,
+   "cat": "Interfaz y objetos",
+   "d": "Icono del platillo «hamb» (restaurante). Se muestra en el globo y en la mano."
+  },
+  {
+   "n": "plato_pastel",
+   "c": "restaurante",
+   "w": 8,
+   "h": 8,
+   "cat": "Interfaz y objetos",
+   "d": "Icono del platillo «pastel» (restaurante). Se muestra en el globo y en la mano."
+  },
+  {
+   "n": "plato_americano",
+   "c": "cafeteria",
+   "w": 8,
+   "h": 8,
+   "cat": "Interfaz y objetos",
+   "d": "Icono del platillo «americano» (cafeteria). Se muestra en el globo y en la mano."
+  },
+  {
+   "n": "plato_capuchino",
+   "c": "cafeteria",
+   "w": 8,
+   "h": 8,
+   "cat": "Interfaz y objetos",
+   "d": "Icono del platillo «capuchino» (cafeteria). Se muestra en el globo y en la mano."
+  },
+  {
+   "n": "plato_pan",
+   "c": "cafeteria",
+   "w": 8,
+   "h": 8,
+   "cat": "Interfaz y objetos",
+   "d": "Icono del platillo «pan» (cafeteria). Se muestra en el globo y en la mano."
+  },
+  {
+   "n": "plato_pastel",
+   "c": "cafeteria",
+   "w": 8,
+   "h": 8,
+   "cat": "Interfaz y objetos",
+   "d": "Icono del platillo «pastel» (cafeteria). Se muestra en el globo y en la mano."
+  },
+  {
+   "n": "piel_0",
+   "c": "comun",
+   "w": 64,
+   "h": 96,
+   "cat": "Personajes (hojas de animación 64x96)",
+   "d": "Cuerpo completo con piel tono 1: cabeza, brazos, piernas y calzado. Capa base del jugador y de los clientes."
+  },
+  {
+   "n": "piel_1",
+   "c": "comun",
+   "w": 64,
+   "h": 96,
+   "cat": "Personajes (hojas de animación 64x96)",
+   "d": "Cuerpo completo con piel tono 2: cabeza, brazos, piernas y calzado. Capa base del jugador y de los clientes."
+  },
+  {
+   "n": "piel_2",
+   "c": "comun",
+   "w": 64,
+   "h": 96,
+   "cat": "Personajes (hojas de animación 64x96)",
+   "d": "Cuerpo completo con piel tono 3: cabeza, brazos, piernas y calzado. Capa base del jugador y de los clientes."
+  },
+  {
+   "n": "piel_3",
+   "c": "comun",
+   "w": 64,
+   "h": 96,
+   "cat": "Personajes (hojas de animación 64x96)",
+   "d": "Cuerpo completo con piel tono 4: cabeza, brazos, piernas y calzado. Capa base del jugador y de los clientes."
+  },
+  {
+   "n": "ropa_0",
+   "c": "comun",
+   "w": 64,
+   "h": 96,
+   "cat": "Personajes (hojas de animación 64x96)",
+   "d": "Camisa/delantal del jugador, variante 1 (capa sobre la piel)."
+  },
+  {
+   "n": "ropa_1",
+   "c": "comun",
+   "w": 64,
+   "h": 96,
+   "cat": "Personajes (hojas de animación 64x96)",
+   "d": "Camisa/delantal del jugador, variante 2 (capa sobre la piel)."
+  },
+  {
+   "n": "ropa_2",
+   "c": "comun",
+   "w": 64,
+   "h": 96,
+   "cat": "Personajes (hojas de animación 64x96)",
+   "d": "Camisa/delantal del jugador, variante 3 (capa sobre la piel)."
+  },
+  {
+   "n": "ropa_3",
+   "c": "comun",
+   "w": 64,
+   "h": 96,
+   "cat": "Personajes (hojas de animación 64x96)",
+   "d": "Camisa/delantal del jugador, variante 4 (capa sobre la piel)."
+  },
+  {
+   "n": "pelo_0",
+   "c": "comun",
+   "w": 64,
+   "h": 96,
+   "cat": "Personajes (hojas de animación 64x96)",
+   "d": "Cabello, estilo/color 1 (capa sobre la ropa)."
+  },
+  {
+   "n": "pelo_1",
+   "c": "comun",
+   "w": 64,
+   "h": 96,
+   "cat": "Personajes (hojas de animación 64x96)",
+   "d": "Cabello, estilo/color 2 (capa sobre la ropa)."
+  },
+  {
+   "n": "pelo_2",
+   "c": "comun",
+   "w": 64,
+   "h": 96,
+   "cat": "Personajes (hojas de animación 64x96)",
+   "d": "Cabello, estilo/color 3 (capa sobre la ropa)."
+  },
+  {
+   "n": "pelo_3",
+   "c": "comun",
+   "w": 64,
+   "h": 96,
+   "cat": "Personajes (hojas de animación 64x96)",
+   "d": "Cabello, estilo/color 4 (capa sobre la ropa)."
+  },
+  {
+   "n": "gorro_1",
+   "c": "comun",
+   "w": 64,
+   "h": 96,
+   "cat": "Personajes (hojas de animación 64x96)",
+   "d": "Gorra (capa superior). El gorro 0 es «sin gorro» y no lleva archivo."
+  },
+  {
+   "n": "gorro_2",
+   "c": "comun",
+   "w": 64,
+   "h": 96,
+   "cat": "Personajes (hojas de animación 64x96)",
+   "d": "Gorro de chef (capa superior)."
+  },
+  {
+   "n": "cliente_ropa_0",
+   "c": "comun",
+   "w": 64,
+   "h": 96,
+   "cat": "Personajes (hojas de animación 64x96)",
+   "d": "Ropa de cliente, variante 1 (usa piel_N y pelo_N debajo)."
+  },
+  {
+   "n": "cliente_ropa_1",
+   "c": "comun",
+   "w": 64,
+   "h": 96,
+   "cat": "Personajes (hojas de animación 64x96)",
+   "d": "Ropa de cliente, variante 2 (usa piel_N y pelo_N debajo)."
+  },
+  {
+   "n": "cliente_ropa_2",
+   "c": "comun",
+   "w": 64,
+   "h": 96,
+   "cat": "Personajes (hojas de animación 64x96)",
+   "d": "Ropa de cliente, variante 3 (usa piel_N y pelo_N debajo)."
+  },
+  {
+   "n": "cliente_ropa_3",
+   "c": "comun",
+   "w": 64,
+   "h": 96,
+   "cat": "Personajes (hojas de animación 64x96)",
+   "d": "Ropa de cliente, variante 4 (usa piel_N y pelo_N debajo)."
+  },
+  {
+   "n": "empleado_cuerpo",
+   "c": "comun",
+   "w": 64,
+   "h": 96,
+   "cat": "Personajes (hojas de animación 64x96)",
+   "d": "Ayudante completo en una sola hoja (con gorro y delantal). Puedes sobrescribirlo por giro: restaurante/ o cafeteria/."
+  },
+  {
+   "n": "calle",
+   "c": "comun",
+   "w": 16,
+   "h": 16,
+   "cat": "Ciudad",
+   "d": "Asfalto."
+  },
+  {
+   "n": "acera",
+   "c": "comun",
+   "w": 16,
+   "h": 16,
+   "cat": "Ciudad",
+   "d": "Banqueta."
+  },
+  {
+   "n": "pasto",
+   "c": "comun",
+   "w": 16,
+   "h": 16,
+   "cat": "Ciudad",
+   "d": "Pasto."
+  },
+  {
+   "n": "arbol",
+   "c": "comun",
+   "w": 16,
+   "h": 32,
+   "cat": "Ciudad",
+   "d": "Árbol (16x32; se alinea con la base de la casilla). Se dibuja sobre pasto."
+  },
+  {
+   "n": "edificio_techo",
+   "c": "comun",
+   "w": 16,
+   "h": 16,
+   "cat": "Ciudad",
+   "d": "Fila superior de un edificio (techo)."
+  },
+  {
+   "n": "edificio_muro",
+   "c": "comun",
+   "w": 16,
+   "h": 16,
+   "cat": "Ciudad",
+   "d": "Fachada de un edificio (con o sin ventana)."
+  },
+  {
+   "n": "puerta_negocio",
+   "c": "comun",
+   "w": 16,
+   "h": 16,
+   "cat": "Ciudad",
+   "d": "Puerta de TU negocio (debe destacar, p. ej. verde con letrero). Al pisarla entras."
+  },
+  {
+   "n": "puerta_ajena",
+   "c": "comun",
+   "w": 16,
+   "h": 16,
+   "cat": "Ciudad",
+   "d": "Puerta de otros edificios (cerrada)."
+  },
+  {
+   "n": "farola",
+   "c": "comun",
+   "w": 16,
+   "h": 32,
+   "cat": "Ciudad",
+   "d": "Farola (16x32). Se dibuja sobre banqueta."
+  },
+  {
+   "n": "banca",
+   "c": "comun",
+   "w": 16,
+   "h": 16,
+   "cat": "Ciudad",
+   "d": "Banca de parque. Se dibuja sobre pasto."
+  }
+ ]
+}

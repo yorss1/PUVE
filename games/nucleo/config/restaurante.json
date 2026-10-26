@@ -1,0 +1,108 @@
+{
+ "giro": "restaurante",
+ "titulo": "Restaurante",
+ "estacion": "estufa",
+ "ing": 12,
+ "maxStock": 30,
+ "maxEmp": 2,
+ "inicial": {
+  "dinero": 80,
+  "stock": 6
+ },
+ "clientes": {
+  "cada": 8,
+  "paciencia": 50,
+  "come": 5
+ },
+ "platos": [
+  {
+   "id": "tacos",
+   "n": "Tacos",
+   "precio": 60,
+   "t": 5,
+   "xp": 8,
+   "nivel": 1,
+   "c": "#e0a030"
+  },
+  {
+   "id": "sopa",
+   "n": "Sopa",
+   "precio": 45,
+   "t": 4,
+   "xp": 6,
+   "nivel": 1,
+   "c": "#c0452f"
+  },
+  {
+   "id": "hamb",
+   "n": "Hamburguesa",
+   "precio": 95,
+   "t": 7,
+   "xp": 12,
+   "nivel": 2,
+   "c": "#8a5329"
+  },
+  {
+   "id": "pastel",
+   "n": "Pastel",
+   "precio": 120,
+   "t": 8,
+   "xp": 16,
+   "nivel": 3,
+   "c": "#e8a0b8"
+  }
+ ],
+ "mejoras": [
+  {
+   "id": "mesa1",
+   "n": "Mesa extra",
+   "costo": 120,
+   "efecto": "mesa",
+   "nivel": 1
+  },
+  {
+   "id": "mesa2",
+   "n": "Mesa extra",
+   "costo": 200,
+   "efecto": "mesa",
+   "nivel": 2
+  },
+  {
+   "id": "mesa3",
+   "n": "Mesa extra",
+   "costo": 300,
+   "efecto": "mesa",
+   "nivel": 3
+  },
+  {
+   "id": "emp1",
+   "n": "Ayudante de cocina",
+   "costo": 250,
+   "efecto": "empleado",
+   "nivel": 2
+  },
+  {
+   "id": "emp2",
+   "n": "Segundo ayudante",
+   "costo": 450,
+   "efecto": "empleado",
+   "nivel": 3
+  }
+ ],
+ "mapa": [
+  "#########B############",
+  "#p..R.....KKK..F....p#",
+  "#....................#",
+  "#....................#",
+  "#..ctc...ctc...ctc...#",
+  "#....................#",
+  "#.......@............#",
+  "#..ctc...ctc....yxy..#",
+  "#....................#",
+  "#..yxy.......yxy.....#",
+  "#....................#",
+  "#p..................p#",
+  "#....................#",
+  "##########D###########"
+ ]
+}
