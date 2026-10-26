@@ -89,7 +89,7 @@
     }
     if(b.accion === 'estado'){
       var q = s.pedidos.filter(function(x){ return x.codigo === b.codigo; })[0]; if(!q) return R({ error: 'No encontrado' }, 404);
-      return R({ estado: q.estado, alias: q.alias, mesa: q.mesa, minutos: q.minutos, actualizado_en: q.actualizado_en, total: total(q), items: q.items.map(function(i){ return { cantidad: i.cantidad, nombre: i.nombre, precio: i.precio, opciones: i.opciones }; }) });
+      return R({ estado: q.estado, giro: MENU.giro, minijuego: true, alias: q.alias, mesa: q.mesa, minutos: q.minutos, actualizado_en: q.actualizado_en, total: total(q), items: q.items.map(function(i){ return { cantidad: i.cantidad, nombre: i.nombre, precio: i.precio, opciones: i.opciones }; }) });
     }
     return R({ error: 'Acción no válida' }, 400);
   }

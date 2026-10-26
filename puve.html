@@ -2464,6 +2464,12 @@
           <div id="mensajePedidosQrCfg" class="mensaje"></div>
           <p class="nota" id="estadoPedidosQr"></p>
           <button type="button" class="principal" id="btnTogglePedidosQr" onclick="alternarPedidosQr()" style="width:auto;">Activar pedidos por QR</button>
+          <div id="filaMinijuego" class="oculto" style="margin-top:16px;">
+            <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-weight:600;">
+              <input type="checkbox" id="chkMinijuego" onchange="cambiarMinijuegoEspera(this.checked)" style="width:20px; height:20px; margin:2px 0 0; flex:none;">
+              <span>Mostrar un minijuego a mis clientes mientras esperan su pedido<small class="nota" id="textoMinijuego" style="display:block; font-weight:400; margin-top:4px;"></small></span>
+            </label>
+          </div>
           <div id="panelMesasQr" class="oculto" style="margin-top:18px;">
             <div class="campo"><label for="qrCantidadMesas">Número de mesas</label><input id="qrCantidadMesas" type="number" min="1" max="100" value="10"></div>
             <div style="display:flex; flex-wrap:wrap; gap:8px;">
@@ -8380,8 +8386,23 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const esRest = ['restaurante', 'cafeteria'].includes(baseDeGiro(document.getElementById('cfgTipoNegocio').value));
     b.classList.toggle('oculto', !(esRest && miRol === 'admin' && !esAdminActual));
     if(!esRest) return;
-    const { data } = await sb.from('negocios').select('pedidos_qr_activo').eq('id', negocioId).maybeSingle();
-    pintarEstadoPedidosQr(!!(data && data.pedidos_qr_activo));
+    const { data } = await sb.from('negocios').select('pedidos_qr_activo, configuracion').eq('id', negocioId).maybeSingle();
+    pintarEstadoPedidosQr(!!(data && data.pedidos_qr_activo)); pintarMinijuegoEspera(data);
+  }
+  // Minijuego de espera (pedir.html): encendido por defecto; el encargado lo apaga aquí. Va en negocios.configuracion.minijuego_espera
+  function pintarMinijuegoEspera(neg){
+    const fila = document.getElementById('filaMinijuego'), chk = document.getElementById('chkMinijuego'); if(!fila || !chk) return;
+    const cfg = (neg && neg.configuracion) || {}, activo = cfg.minijuego_espera !== false, cafe = baseDeGiro(document.getElementById('cfgTipoNegocio').value) === 'cafeteria';
+    chk.checked = activo; if(typeof configNegocio === 'object' && configNegocio) configNegocio.minijuego_espera = activo;
+    document.getElementById('textoMinijuego').textContent = cafe ? 'Aparece un botón para jugar a atender una cafetería mientras llega su pedido. Es un juego de ejemplo; no afecta tus ventas ni tu inventario.' : 'Aparece un botón para jugar a atender un restaurante mientras llega su pedido. Es un juego de ejemplo; no afecta tus ventas ni tu inventario.';
+    fila.classList.toggle('oculto', !(neg && neg.pedidos_qr_activo));
+  }
+  async function cambiarMinijuegoEspera(activo){
+    ocultarMensaje('mensajePedidosQrCfg');
+    const { error } = await sb.rpc('minijuego_espera_configurar', { p_activo: activo });
+    if(error){ console.error('Minijuego de espera:', error.message); document.getElementById('chkMinijuego').checked = !activo; mostrarMensaje('mensajePedidosQrCfg', 'No se pudo guardar el cambio. Inténtalo de nuevo en unos minutos.', 'error'); return; }
+    if(typeof configNegocio === 'object' && configNegocio) configNegocio.minijuego_espera = activo;
+    mostrarMensaje('mensajePedidosQrCfg', activo ? 'Listo: tus clientes verán el minijuego mientras esperan.' : 'Listo: el minijuego quedó apagado.', 'exito');
   }
   function pintarEstadoPedidosQr(activo){
     document.getElementById('estadoPedidosQr').textContent = activo ? 'Estado: activo. Tus clientes ya pueden pedir con el QR de su mesa.' : 'Estado: desactivado.';

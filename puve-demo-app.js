@@ -18,7 +18,7 @@
 
   // ---------------- Datos de ejemplo ----------------
   const T = {};
-  T.negocios = [{ id: NEG, nombre: 'Taquería La Esquina', dispositivos_permitidos: 3, baneado: false, bloqueado_por_pago: false, pais: 'México', estado: 'Ciudad de México', municipio: 'Cuauhtémoc', codigo_postal: '06700', rfc: '', razon_social: '', regimen_fiscal: '', creado_en: dia(40, 9),
+  T.negocios = [{ id: NEG, nombre: 'Taquería La Esquina', dispositivos_permitidos: 3, pedidos_qr_activo: true, baneado: false, bloqueado_por_pago: false, pais: 'México', estado: 'Ciudad de México', municipio: 'Cuauhtémoc', codigo_postal: '06700', rfc: '', razon_social: '', regimen_fiscal: '', creado_en: dia(40, 9),
     configuracion: { tipo_negocio: 'restaurante', subgiro: 'restaurantes', corte_caja: true, categorias: true, codigo_barras: true, devoluciones: true, clientes: true, recompensas: { activo: true, pesos_por_punto: 10, valor_punto: 0.5 } } }];
   const CAJERO = /[?&]rol=cajero(&|$)/.test(location.search);
   T.perfiles = [{ id: UID, nombre: 'Tú (demo)', rol: CAJERO ? 'vendedor' : 'admin', negocio_id: NEG }];
@@ -103,6 +103,7 @@
       const ini = turno ? turno.fondo_inicial : Number(a.p_efectivo_inicial || 0), ret = turno ? sangrias.reduce((x, s) => x + s.monto, 0) : Number(a.p_retiros || 0), esperado = ini + efec - ret, dif = Math.round((Number(a.p_efectivo_contado) - esperado) * 100) / 100;
       const fila = { id: uid('corte'), negocio_id: NEG, desde, hasta: ahora(), efectivo_inicial: ini, retiros: ret, efectivo_contado: a.p_efectivo_contado, efectivo_esperado: esperado, diferencia: dif, creado_en: ahora(), perfiles: { nombre: 'Tú (demo)' } };
       T.cortes_caja.push(fila); T.cortes_caja_cajero = (T.cortes_caja_cajero || []).concat([fila]); turno = null; sangrias = []; return { diferencia: dif }; },
+    minijuego_espera_configurar: (a) => { T.negocios[0].configuracion.minijuego_espera = !!a.p_activo; return null; }, pedidos_qr_configurar: (a) => { T.negocios[0].pedidos_qr_activo = !!a.p_activo; return null; },
     registrar_dispositivo: () => null, registrar_actividad: () => null, registrar_log_seguridad: () => null, tengo_pin_autorizacion_puve: () => false,
     obtener_controles_funciones_puve: () => [], obtener_correos_empresa_puve: () => ({}), obtener_config_publica_puve: () => ({ precio_mensual_dispositivo: 250, comision_embajador_pesos: 0 }), mi_soporte_humano_sin_leer: () => 0, mi_soporte_humano: () => [], productos_mas_vendidos: () => T.productos.slice(0, 6).map((p) => ({ producto_id: p.id })),
     aplicar_promos_horario: () => 0, canal_tiempo_real: () => null, mi_descuento_referido: () => 0, obtener_mi_codigo_referido: () => 'TAQUERIA10', mi_resumen_referidos: () => ({ porcentaje: 20, meses_descuento: 3, descuento_anual: 600, dias_recompensa: 30, pendientes: 2, pagados: 1, dias_ganados: 30, gracia_hasta: null }), pap_config: () => ({}),

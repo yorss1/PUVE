@@ -29,7 +29,7 @@
 <meta name="apple-mobile-web-app-title" content="Pedidos" id="appTitle">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="theme-color" content="#000000">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://ckzueunptmlqmtypowmg.supabase.co; frame-src https://challenges.cloudflare.com; img-src 'self' data: https://ckzueunptmlqmtypowmg.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://ckzueunptmlqmtypowmg.supabase.co; frame-src 'self' https://challenges.cloudflare.com; img-src 'self' data: https://ckzueunptmlqmtypowmg.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Pedidos</title>
 <link rel="icon" href="img/logo_mini.png" type="image/png" sizes="any" id="favicon">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
@@ -130,6 +130,12 @@
   .sp i{ width:24px; height:24px; border-radius:50%; border:2px solid var(--b); display:grid; place-items:center; } .sp.hecho i{ border:0; background:linear-gradient(135deg,var(--c1,var(--a)),var(--c2,var(--a))); color:var(--ct,var(--as)); } .sp.act i{ border-color:var(--c1,var(--a)); }
   .res{ margin-top:16px; padding:16px 18px 14px; border-radius:28px; text-align:left; background:var(--card); box-shadow:var(--sh); border:1px solid var(--b); background-image:linear-gradient(150deg,var(--cg,transparent),transparent 55%); } .res h3{ font:700 16px 'Inter',sans-serif; text-align:center; margin-bottom:4px; }
   .res .ln:last-of-type{ border-bottom:0; }
+  /* Minijuego mientras esperas (restaurantes y cafeterías) */
+  .mj{ margin-top:16px; padding:14px 16px; border-radius:28px; text-align:left; background:var(--card); box-shadow:var(--sh); border:1px solid var(--b); display:flex; gap:14px; align-items:center; }
+  .mj .vp{ width:92px; height:92px; flex:none; border-radius:22px; background:linear-gradient(150deg,var(--c1,var(--a)),var(--c2,var(--a))); display:grid; grid-template-columns:repeat(2,1fr); place-items:center; padding:8px; gap:4px; overflow:hidden; } .mj .vp img{ width:100%; image-rendering:pixelated; filter:drop-shadow(0 2px 0 rgba(0,0,0,.25)); }
+  .mj h3{ font:700 16px/1.2 'Inter',sans-serif; margin:0 0 4px; } .mj p{ margin:0 0 10px; color:var(--s); font-size:13.5px; line-height:1.4; } .mj .btn{ height:42px; padding:0 18px; font-size:14.5px; }
+  .mjov{ position:fixed; inset:0; z-index:60; display:flex; flex-direction:column; background:#000; } .mjov .bar{ display:flex; gap:10px; align-items:center; padding:calc(8px + env(safe-area-inset-top)) 12px 8px; background:var(--card); color:var(--t); border-bottom:1px solid var(--b); }
+  .mjov .bar .btn{ height:38px; padding:0 14px; font-size:13.5px; flex:none; } .mjov .est{ flex:1; font-weight:600; font-size:13.5px; line-height:1.25; min-width:0; } .mjov.listo .bar{ background:#16a34a; color:#fff; border-color:#16a34a; } .mjov iframe{ flex:1; border:0; width:100%; background:#000; }
   .ings{ margin-top:16px; } .ings .nota{ margin:0 0 8px; } .sinres{ margin-top:2px; min-height:1.3em; font-size:13px; font-weight:600; color:var(--c1,var(--t)); }
   .v2 .chip.ing{ padding-left:14px; } .v2 .chip.ing:not(.out):not(.fijo)::before{ content:'✓'; margin-right:6px; font-weight:700; color:var(--c1,var(--t)); }
   .v2 .chip.ing.out{ text-decoration:line-through; opacity:.55; border-style:dashed; background:transparent; }
@@ -476,6 +482,38 @@
     });
   }
   function esperarVisible(){ var f = function(){ if(!document.hidden){ document.removeEventListener('visibilitychange', f); verSeguimiento(); } }; document.addEventListener('visibilitychange', f); }
+  // ----- Minijuego de espera: solo restaurantes y cafeterías con el juego encendido (lo dice la base en el estado del pedido) -----
+  var JUEGOS = {
+    restaurante:{ url:'games/restaurante.html#espera=1', carpeta:'games/sprites/restaurante/', imgs:['estacion', 'plato_tacos', 'plato_hamb', 'plato_sopa'], titulo:'Mientras llega tu pedido', texto:'Atiende tu propio restaurante en un minijuego. Tu pedido sigue avanzando aquí.' },
+    cafeteria:{ url:'games/cafeteria.html#espera=1', carpeta:'games/sprites/cafeteria/', imgs:['mostrador', 'plato_capuchino', 'plato_pastel', 'plato_pan'], titulo:'Mientras preparan tu pedido', texto:'Sirve cafés y pan en tu propia cafetería. Tu pedido sigue avanzando aquí.' }
+  };
+  var ovMj = null, avisoListoMj = false;
+  function tarjetaJuego(d){
+    var j = JUEGOS[d.giro]; if(!j || d.minijuego !== true || ['por_confirmar', 'preparando', 'listo'].indexOf(d.estado) === -1) return null;
+    var c = $('div', 'mj'), vp = $('div', 'vp'), tx = $('div');
+    j.imgs.forEach(function(n){ var im = document.createElement('img'); im.alt = ''; im.src = j.carpeta + n + '.png'; im.onerror = function(){ im.style.visibility = 'hidden'; }; vp.appendChild(im); });
+    var b = $('button', 'btn', 'Jugar minijuego'); b.type = 'button'; b.onclick = function(){ abrirJuego(j); };
+    $$(tx, [$('h3', '', j.titulo), $('p', '', j.texto), b]); return $$(c, [vp, tx]);
+  }
+  var ESTMJ = { por_confirmar:'Pedido enviado · esperando confirmación', preparando:'Preparando tu pedido', listo:'¡Tu pedido está listo!' };
+  function abrirJuego(j){
+    if(ovMj) return; avisoListoMj = false;
+    var ov = $('div', 'mjov'), bar = $('div', 'bar'), volver = $('button', 'btn', '← Mi pedido'), est = $('div', 'est'), fr = document.createElement('iframe');
+    ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-label', 'Minijuego mientras llega tu pedido'); volver.type = 'button'; volver.onclick = cerrarJuego;
+    fr.title = 'Minijuego'; fr.setAttribute('sandbox', 'allow-scripts allow-same-origin'); fr.setAttribute('referrerpolicy', 'no-referrer'); fr.src = j.url;
+    $$(bar, [volver, est]); $$(ov, [bar, fr]); document.body.appendChild(ov); document.body.style.overflow = 'hidden'; ovMj = { el:ov, est:est, volver:volver };
+    actualizarJuego(window.__estadoPedido); volver.focus();
+  }
+  function cerrarJuego(){ if(!ovMj) return; if(ovMj.el.parentNode) ovMj.el.parentNode.removeChild(ovMj.el); ovMj = null; document.body.style.overflow = ''; }
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') cerrarJuego(); });
+  function actualizarJuego(d){
+    if(!ovMj || !d) return;
+    if(d.estado === 'entregado' || d.estado === 'cancelado') return cerrarJuego();
+    var t = ESTMJ[d.estado] || ESTMJ.por_confirmar;
+    if(d.estado === 'preparando' && d.minutos){ var ela = (Date.now() - new Date(d.actualizado_en).getTime()) / 60000, rest = Math.max(0, Math.ceil(d.minutos - ela)); t += rest > 0 ? ' · ~' + rest + ' min' : ' · ¡casi listo!'; }
+    ovMj.est.textContent = t; ovMj.el.classList.toggle('listo', d.estado === 'listo');
+    if(d.estado === 'listo' && !avisoListoMj){ avisoListoMj = true; try { if(navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch(e){} }
+  }
   function pintarSeg(d, fallo){
     restaurarAc(); document.body.classList.add('v2'); ajustarTema(); app.textContent = '';
     var w = $('div', 'sg'); w.appendChild($('small', '', d && d.alias ? ETQ + ' · ' + d.alias : ETQ));
@@ -507,6 +545,7 @@
     if(d.estado !== 'cancelado'){
       var ps = $('div', 'stps'); ['Enviado', 'Preparando', 'Listo'].forEach(function(n, i){ var hecho = paso > i + 1 || (i === 2 && paso >= 3), actual = paso === i + 1 && !hecho, sp = $('div', 'sp' + (hecho ? ' hecho on' : '') + (actual ? ' act on' : '')), pt = $('i'); if(hecho) pt.appendChild(ico(IC.ok, 14, 3)); sp.appendChild(pt); sp.appendChild($('span', '', n)); ps.appendChild(sp); }); w.appendChild(ps);
     }
+    window.__estadoPedido = d; actualizarJuego(d); var mj = tarjetaJuego(d); if(mj) w.appendChild(mj);
     var res = $('div', 'res'); res.appendChild($('h3', '', 'Resumen del pedido'));
     (d.items || []).forEach(function(it){ var l = $('div', 'ln'), iz = $('div'); iz.appendChild($('div', '', it.cantidad + ' × ' + it.nombre)); var ops = (it.opciones || []).map(function(o){ return o.g === 'Sin' ? 'sin ' + o.o : o.o; }).join(', '); if(ops) iz.appendChild($('small', 'opc', ops));
       $$(l, [iz, $('span', '', money(it.cantidad * Number(it.precio)))]); res.appendChild(l); });

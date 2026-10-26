@@ -1,0 +1,31 @@
+# PUVE - cabeceras de seguridad para Cloudflare (Workers/Pages). Reemplaza al .htaccess (que es solo de Apache).
+# Va en la MISMA carpeta que index.html.
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(self), microphone=(self), geolocation=(self), payment=()
+  Strict-Transport-Security: max-age=31536000
+  Content-Security-Policy: frame-ancestors 'none'
+
+# Demo de index.html: estas dos páginas pueden mostrarse dentro de un marco SOLO de nuestro propio sitio (el resto sigue sin poder).
+/pedir.html
+  ! X-Frame-Options
+  ! Content-Security-Policy
+  X-Frame-Options: SAMEORIGIN
+  Content-Security-Policy: frame-ancestors 'self'
+/games/*
+  ! X-Frame-Options
+  ! Content-Security-Policy
+  X-Frame-Options: SAMEORIGIN
+  Content-Security-Policy: frame-ancestors 'self'
+/puve.html
+  ! X-Frame-Options
+  ! Content-Security-Policy
+  X-Frame-Options: SAMEORIGIN
+  Content-Security-Policy: frame-ancestors 'self'
+/cocina.html
+  ! X-Frame-Options
+  ! Content-Security-Policy
+  X-Frame-Options: SAMEORIGIN
+  Content-Security-Policy: frame-ancestors 'self'
