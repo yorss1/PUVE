@@ -2,6 +2,8 @@
 import { Sim } from './sim.js';
 import { crearAudio } from './audio.js';
 import { crearLocal } from '../persistence/local.js';
+import { crearNube } from '../persistence/nube.js';
+import { NUBE_CFG } from '../../nube-config.js';
 import { crearCuentaSimulada } from '../persistence/cuenta-simulada.js';
 import { migrarLocalACuenta } from '../persistence/migracion.js';
 import { cargarSprites } from './sprites.js';
@@ -9,6 +11,10 @@ import { Chunks, tile, esSolido, NEGOCIO, CH, lotes, loteDe, trafico, LOTE_INICI
 import { Servidor } from '../multiplayer/servidor.js';
 import { precioLote, costoMejora, MAX_FRANQ, RADIO, TURNO_MS } from '../multiplayer/mundo.js';
 import { hostLocal, invitadoLocal } from '../multiplayer/transporte-local.js';
+import { crearCuentaSupabase } from '../persistence/cuenta-supabase.js';
+import { formAcceso, formUsuario } from '../ui/cuenta-ui.js';
+import { hostSB, invitadoSB } from '../multiplayer/transporte-supabase.js';
+import { iniciarAnuncios } from '../ui/anuncio.js';
 import { conectarWS } from '../multiplayer/transporte-ws.js';
 import { qrMatriz } from '../multiplayer/qr.js';
 
@@ -29,7 +35,12 @@ async function iniciar() {
   catch (e) { console.error(e); return fallo('No se pudo cargar el juego. Revisa tu conexión e inténtalo de nuevo.'); }
   if (cfg.giro !== giro) return fallo('La configuración no coincide con el giro de esta página.');
 
-  const store = crearLocal(), cuenta = crearCuentaSimulada();
+  // Jugador público: la partida va al dispositivo y a la base de PUVE (sin cuenta). En la demo (?demo=1) no se toca la base.
+  const QS = new URLSearchParams(location.search), local = crearLocal();
+  const NUBE = (QS.get('demo') !== '1' && NUBE_CFG.url) ? { ...NUBE_CFG, negocio: /^[0-9a-f-]{36}$/i.test(QS.get('n') || '') ? QS.get('n') : null } : null;
+  const store = NUBE ? crearNube(local, NUBE) : local;
+  const cuenta = NUBE ? crearCuentaSupabase() : crearCuentaSimulada();   // cuenta real (Supabase) o simulada solo en la demo
+  iniciarAnuncios({ demo: !NUBE });   // tira de publicidad al fondo; sin anuncios vigentes no se ve
   const perfil = await store.obtenerPerfil();
   let av; try { const r = await fetch('nucleo/config/avatares.json'); av = await r.json(); } catch (e) { console.error(e); av = { piel: [{ id: 0, c: PIEL[0], nv: 1 }], pelo: [{ id: 1, c: PELO[1], nv: 1 }], ropa: [{ id: 0, c: '#fff', nv: 1 }], gorro: [{ id: 0, n: 'Sin gorro', nv: 1 }] }; }
   const sim = new Sim(cfg, await store.cargarPartida(giro));
@@ -45,7 +56,8 @@ async function iniciar() {
   function ajustar() {   // móvil vertical: cámara de 14 casillas de ancho que sigue al jugador y ocupa todo el ancho
     const coarse = matchMedia('(pointer:coarse)').matches, vert = innerHeight > innerWidth;
     cv.width = (coarse && vert ? 14 : sim.W) * T; cv.height = sim.H * T;
-    const S = coarse && vert ? innerWidth / cv.width : Math.max(1, Math.floor(Math.min(innerWidth / cv.width, (innerHeight - 64 - (coarse ? 150 : 0)) / cv.height)));
+    const adh = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--adh')) || 0;   // alto de la tira de publicidad (0 si no hay)
+    const S = coarse && vert ? (adh ? Math.min(innerWidth / cv.width, (innerHeight - 64 - 150 - adh) / cv.height) : innerWidth / cv.width) : Math.max(1, Math.floor(Math.min(innerWidth / cv.width, (innerHeight - 64 - adh - (coarse ? 150 : 0)) / cv.height)));
     cv.style.width = cv.width * S + 'px'; cv.style.height = cv.height * S + 'px';
   }
   addEventListener('resize', ajustar); addEventListener('orientationchange', ajustar); ajustar();
@@ -140,6 +152,7 @@ async function iniciar() {
   // ---------- entrada ----------
   const keys = new Set(); let pend = false, sv = { x: 0, y: 0 }, tiendaAbierta = false, panelActual = '';
   addEventListener('keydown', e => {
+    if (e.code !== 'Escape' && e.target?.closest?.('input,textarea,select,[contenteditable]')) return;   // escribiendo en un formulario (usuario, correo, contraseña): el juego no debe interceptar teclas
     if (e.code.startsWith('Arrow') || e.code === 'Space') e.preventDefault();
     keys.add(e.code); if (!e.repeat && ['KeyE', 'Space', 'Enter'].includes(e.code)) pend = true;
     if (e.code === 'Escape') cerrarTienda();
@@ -180,7 +193,7 @@ async function iniciar() {
     try {
       const s = sim.serializar(); await store.guardarPartida(giro, s);
       // La cuenta solo recibe autoguardados tras vincular este giro con una migración confirmada: nunca pisa una partida remota sin preguntar.
-      if (cuenta.usuario() && perfil.vinculo?.[giro] === cuenta.usuario()) await cuenta.guardarPartida(giro, s);
+      if (cuenta.usuario() && perfil.vinculo?.[giro] === cuenta.usuario()) { try { if (cuenta.autoguardar) cuenta.autoguardar(giro, s); else await cuenta.guardarPartida(giro, s); } catch (e) { console.warn('Cuenta', e.message); } }
       if (sim.nivel > (perfil.nivelMax || 1)) { perfil.nivelMax = sim.nivel; await store.guardarPerfil(perfil); }
       if (net?.modo === 'solo' && net.srv.mundo.v !== net.vGuardada) { localStorage.setItem(KEY_SOLO, JSON.stringify(net.srv.exportar())); net.vGuardada = net.srv.mundo.v; }
       guardadoOk = true;
@@ -267,7 +280,7 @@ async function iniciar() {
 
   // ---------- servidor, salas y economía compartida (Monopoly de franquicias) ----------
   const remotos = new Map(), pendientes = new Map(), ocupa = new Map();
-  let net = null, netId = 0, seqLocal = 0, tRed = 0, mundo = null, estadoRed = '', panelLoteId = null;
+  let net = null, misSalas = null, netId = 0, seqLocal = 0, tRed = 0, mundo = null, estadoRed = '', panelLoteId = null;
   const hex = n => [...crypto.getRandomValues(new Uint8Array(n))].map(b => b.toString(16).padStart(2, '0')).join('');
   const jidWS = () => { let j = localStorage.getItem('puvegame:jid'); if (!/^[0-9a-f]{24}$/.test(j || '')) { j = hex(12); localStorage.setItem('puvegame:jid', j); } return j; };   // secreto: solo viaja al servidor
   const nombreLocal = () => cuenta.usuario() || 'Invitado';
@@ -297,7 +310,7 @@ async function iniciar() {
   function alMensaje(id, m) {
     if (!net || net.id !== id || !m || typeof m.t !== 'string') return;
     if (m.t === 'hola') { net.cid = m.cid; net.alAbrir?.(); }
-    else if (m.t === 'creada') { net.sala = { id: m.id, token: m.token }; net.url = location.origin + location.pathname + `#sala=${m.id}.${m.token}&t=${net.modo === 'ws' ? 'ws' : 'loc'}`; refrescar('Multijugador'); }
+    else if (m.t === 'creada') { net.sala = { id: m.id, token: m.token }; net.url = location.origin + location.pathname + `#sala=${m.id}.${m.token}&t=${net.modo === 'ws' ? 'ws' : net.modo === 'sb' ? 'sb' : 'loc'}`; refrescar('Multijugador'); }
     else if (m.t === 'resp') { if (!m.ok) { aviso(m.msg); if (net.modo !== 'solo') salirRed(); } else if (m.giro !== giro) { aviso('Esa sala es de otro tipo de negocio'); salirRed(); } else if (net.modo !== 'solo') { net.sala = net.sala || { id: m.id }; aviso('Te uniste a la sala'); } refrescar('Multijugador'); }
     else if (m.t === 'snap') net.snap = m.snap;
     else if (m.t === 'mundo') { mundo = m; ocupa.clear(); const col = new Map(m.jugadores.map(j => [j.cid, j.color])); for (const [lid, dueno, nivel, tipo] of m.lotes) ocupa.set(lid, { cid: dueno, color: col.get(dueno) || '#888', nivel, tipo }); refrescar('Franquicias'); refrescar('Lote'); }
@@ -313,17 +326,37 @@ async function iniciar() {
     n.conn.enviar(srv.sala ? { t: 'unir', nombre: nombreLocal() } : { t: 'crear', giro, nombre: nombreLocal() });
   }
   function salirRed(volverSolo = true) { if (!net) return; const modoAnt = net.modo; cerrarConn(); estadoRed = ''; if (volverSolo) { iniciarSolo(); if (modoAnt !== 'solo') aviso('Volviste a tu mundo individual'); } }
+  const sbListo = () => {
+    if (!cuenta.real || !cuenta.listo()) { aviso('Conectando con tu cuenta… intenta de nuevo en un momento'); return false; }
+    if (!cuenta.sesion() || !cuenta.usuario()) { aviso('Inicia sesión en Cuenta y progreso para jugar por internet'); return false; }
+    return true;
+  };
+  const guardarSalaDB = async e => { const { error } = await cuenta.cliente().rpc('juego_sala_guardar', { p_id: e.id, p_giro: giro, p_estado: e }); if (error) throw new Error(error.message); };
+  function abrirMulti() { misSalas = null; panelMulti(); if (cuenta.real && cuenta.listo() && cuenta.usuario()) cargarMisSalas(); }
+  async function cargarMisSalas() { try { const { data } = await cuenta.cliente().rpc('juego_mis_salas'); misSalas = (data || []).filter(x => x.giro === giro); } catch (e) { misSalas = []; } if (tiendaAbierta && panelActual === 'Multijugador') panelMulti(); }
+  async function reanudarSala(id) {   // el anfitrión vuelve a abrir una sala guardada en la base
+    if (!sbListo()) return;
+    const { data, error } = await cuenta.cliente().rpc('juego_sala_cargar', { p_id: id }), srv = new Servidor();
+    if (error || !data || data.hostCid !== cuenta.cid() || !srv.importar(data)) { aviso('No se pudo reanudar esa sala'); return; }
+    const n = nuevaRed({ modo: 'sb', rol: 'host', sala: { id: srv.id, token: srv.token }, cid: cuenta.cid(), srv }), h = hooks(n.id);
+    n.conn = hostSB(cuenta.cliente(), srv, n.cid, h, { alGuardar: guardarSalaDB }); n.conn.enviar({ t: 'invitar' }); panelMulti();
+  }
   function crearSala(tipo) {
+    if (tipo === 'sb' && !sbListo()) return;
     const n = nuevaRed({ modo: tipo, rol: 'host' }), h = hooks(n.id);
     if (tipo === 'loc') { n.cid = hex(8); n.srv = new Servidor(); n.conn = hostLocal(n.srv, n.cid, h); n.conn.enviar({ t: 'crear', giro, nombre: nombreLocal(), look: perfil.look }); }
+    else if (tipo === 'sb') { n.cid = cuenta.cid(); n.srv = new Servidor(); n.conn = hostSB(cuenta.cliente(), n.srv, n.cid, h, { alGuardar: guardarSalaDB }); n.conn.enviar({ t: 'crear', giro, nombre: nombreLocal(), look: perfil.look }); }
     else { n.alAbrir = () => n.conn.enviar(n.sala ? { t: 'unir', sala: n.sala.id, nombre: nombreLocal() } : { t: 'crear', giro, nombre: nombreLocal() }); n.modo = 'ws'; n.conn = conectarWS((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws', jidWS(), h); }
     panelMulti();
   }
   function unirse(texto) {
-    const m = String(texto).match(/sala=([0-9a-f]{12})\.([0-9a-f]{32})(?:&t=(ws|loc))?/);
+    const m = String(texto).match(/sala=([0-9a-f]{12})\.([0-9a-f]{32})(?:&t=(ws|loc|sb))?/);
     if (!m) { aviso('Enlace de invitación inválido'); return false; }
-    const tipo = m[3] === 'ws' ? 'ws' : 'loc', n = nuevaRed({ modo: tipo, rol: 'invitado', sala: { id: m[1], token: m[2] } }), h = hooks(n.id);
+    const tipo = m[3] === 'ws' ? 'ws' : m[3] === 'sb' ? 'sb' : 'loc';
+    if (tipo === 'sb') { if (cuenta.real && !cuenta.listo()) { cuenta.iniciar().then(() => unirse(texto)).catch(() => aviso('No se pudo conectar con tu cuenta')); return true; } if (!sbListo()) return false; }
+    const n = nuevaRed({ modo: tipo, rol: 'invitado', sala: { id: m[1], token: m[2] } }), h = hooks(n.id);
     if (tipo === 'loc') { n.cid = hex(8); n.conn = invitadoLocal(m[1], n.cid, h); n.conn.enviar({ t: 'unir', token: m[2], nombre: nombreLocal() }); }
+    else if (tipo === 'sb') { n.cid = cuenta.cid(); n.conn = invitadoSB(cuenta.cliente(), m[1], n.cid, h); n.conn.enviar({ t: 'unir', token: m[2], nombre: nombreLocal() }); }
     else { n.alAbrir = () => n.conn.enviar({ t: 'unir', sala: m[1], token: m[2], nombre: nombreLocal() }); n.conn = conectarWS((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws', jidWS(), h); }
     return true;
   }
@@ -374,19 +407,24 @@ async function iniciar() {
     if (estadoRed) filas.push(txt('Estado: ' + estadoRed));
     if (!net || net.modo === 'solo') {
       const web = location.protocol.startsWith('http'), i = document.createElement('input'); i.placeholder = 'Pega aquí el enlace de invitación'; i.style.cssText = 'width:100%;padding:10px;margin:6px 0;font:inherit';
-      filas.push(btn('Crear sala en el servidor (internet)', () => crearSala('ws'), !web), txt(web ? 'Requiere abrir el juego desde el servidor: node nucleo/herramientas/servidor_nodo.mjs' : 'Abre el juego desde un servidor (http/https) para jugar por internet.'), btn('Crear sala de prueba (solo este navegador)', () => crearSala('loc')), i, btn('Unirme', () => { if (unirse(i.value)) msg.textContent = 'Conectando…'; }));
+      const real = !!cuenta.real, ok = real && cuenta.sesion() && cuenta.usuario();
+      if (real) {
+        filas.push(btn('Crear sala por internet', () => crearSala('sb'), !ok), txt(ok ? 'Tus amigos entran con el enlace o el QR; también necesitan su cuenta.' : 'Para jugar por internet inicia sesión en Cuenta y progreso.'));
+        for (const x of (misSalas || [])) filas.push(btn('Reanudar mi sala ' + x.id.slice(0, 4) + '…', () => reanudarSala(x.id)));
+      } else filas.push(btn('Crear sala en el servidor (internet)', () => crearSala('ws'), !web), txt(web ? 'Requiere abrir el juego desde el servidor: node nucleo/herramientas/servidor_nodo.mjs' : 'Abre el juego desde un servidor (http/https) para jugar por internet.'));
+      filas.push(btn('Crear sala de prueba (solo este navegador)', () => crearSala('loc')), i, btn('Unirme', () => { if (unirse(i.value)) msg.textContent = 'Conectando…'; }));
     } else {
       const nombres = net.snap.map(m => m.nombre + (m.cid === net.cid ? ' (tú)' : '')).join(', ');
-      filas.push(txt((net.rol === 'host' ? 'Sala creada' : 'Sala unida') + (net.modo === 'ws' ? ' (internet)' : ' (solo este navegador)') + ' · jugadores: ' + (nombres || '…')));
+      filas.push(txt((net.rol === 'host' ? 'Sala creada' : 'Sala unida') + (net.modo === 'ws' || net.modo === 'sb' ? ' (internet)' : ' (solo este navegador)') + ' · jugadores: ' + (nombres || '…')));
       if (net.rol === 'host' && net.url) {
         const c = document.createElement('canvas'), mx = qrMatriz(net.url), q = 4, z = 4; c.width = c.height = (mx.length + 2 * q) * z; c.id = 'qr';
         c.style.cssText = 'display:block;margin:8px auto;width:min(240px,100%);image-rendering:pixelated;background:#fff';
         const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.fillStyle = '#000'; mx.forEach((f, y) => f.forEach((v, x) => { if (v) g.fillRect((x + q) * z, (y + q) * z, z, z); }));
         filas.push(c, txt('Escanéalo o comparte el enlace (vale 10 min y 3 usos):'), txt(net.url),
           btn('Copiar enlace', async () => { try { await navigator.clipboard.writeText(net.url); msg.textContent = 'Enlace copiado'; } catch (e) { console.warn(e); msg.textContent = 'No se pudo copiar: selecciónalo a mano'; } }),
-          btn('Nueva invitación (revoca la anterior)', () => net.conn.enviar({ t: 'invitar' })), btn('Cerrar sala para todos', () => { net.conn.enviar({ t: 'salir' }); salirRed(); panelMulti(); }));
+          btn('Nueva invitación (revoca la anterior)', () => net.conn.enviar({ t: 'invitar' })), btn('Cerrar sala para todos', () => { const id = net.sala?.id, m = net.modo; net.conn.enviar({ t: 'salir' }); salirRed(); if (m === 'sb' && id) cuenta.cliente().rpc('juego_sala_cerrar', { p_id: id }); panelMulti(); }));
       }
-      filas.push(btn(net.rol === 'host' ? 'Salir (la sala sigue abierta en el servidor)' : 'Salir de la sala', () => { if (net.rol !== 'host') net.conn.enviar({ t: 'salir' }); salirRed(); panelMulti(); }));
+      filas.push(btn(net.rol === 'host' ? (net.modo === 'sb' ? 'Salir (podrás reanudar la sala desde Multijugador)' : 'Salir (la sala sigue abierta en el servidor)') : 'Salir de la sala', () => { if (net.rol !== 'host') net.conn.enviar({ t: 'salir' }); salirRed(); panelMulti(); }));
     }
     filas.push(btn('Volver', menu), msg); abrir('Multijugador', filas);
   }
@@ -409,9 +447,13 @@ async function iniciar() {
   const txt = t => { const p = document.createElement('p'); p.textContent = t; return p; };
   function menu() {
     audio.activar();
-    abrir('Menú', [btn('Personaje', personaje), btn('Franquicias', panelFranq), btn('Multijugador', panelMulti), btn('Cuenta y progreso', panelCuenta), btn(audio.on() ? 'Sonido: sí' : 'Sonido: no', () => { audio.alternar(); perfil.mute = !audio.on(); store.guardarPerfil(perfil); menu(); }), btn('Repetir tutorial', () => { paso = 0; perfil.tutorial = false; store.guardarPerfil(perfil); cerrarTienda(); }), btn('Cerrar', cerrarTienda)]);
+    abrir('Menú', [btn('Personaje', personaje), btn('Franquicias', panelFranq), btn('Multijugador', abrirMulti), btn('Cuenta y progreso', panelCuenta), btn(audio.on() ? 'Sonido: sí' : 'Sonido: no', () => { audio.alternar(); perfil.mute = !audio.on(); store.guardarPerfil(perfil); menu(); }), btn('Repetir tutorial', () => { paso = 0; perfil.tutorial = false; store.guardarPerfil(perfil); cerrarTienda(); }), btn('Cerrar', cerrarTienda)]);
   }
   $('menu').onclick = () => (tiendaAbierta ? cerrarTienda() : menu());
+  // Cuenta real: se conecta al abrir el juego (también procesa el regreso de Google) y refresca el panel abierto cuando cambia la sesión.
+  const refrescarCuenta = () => { if (tiendaAbierta && panelActual === 'Cuenta y progreso') panelCuenta(); else if (tiendaAbierta && panelActual === 'Multijugador') panelMulti(); };
+  cuenta.onCambio?.(refrescarCuenta);
+  cuenta.iniciar?.().then(() => { if (cuenta.pendienteUsername()) { menu(); panelCuenta(); } }).catch(e => console.warn('Cuentas no disponibles', e.message));
   function personaje() {
     const prev = document.createElement('canvas'); prev.width = prev.height = 32; prev.style.cssText = 'width:128px;height:128px;image-rendering:pixelated;display:block;margin:0 auto 8px';
     const g0 = ctx; ctx = prev.getContext('2d'); persona({ x: 1, y: 1.6, dir: 1 }, { ...jug(), mov: false }); ctx = g0;
@@ -423,8 +465,16 @@ async function iniciar() {
     }
     filas.push(btn('Volver', menu)); abrir('Personaje · Nv ' + nv, filas);
   }
-  async function panelCuenta() {
-    const u = cuenta.usuario(), msg = txt(''), filas = [txt('Puedes jugar sin cuenta. Para conservar tu progreso de forma recuperable entre dispositivos, crea una cuenta.'), txt('Cuenta SIMULADA: solo vive en este navegador. La real llegará con la integración autorizada.')];
+  function panelCuenta() {
+    if (!cuenta.real) return panelCuentaSesion();
+    if (!cuenta.listo()) { abrir('Cuenta y progreso', [txt('Conectando con tu cuenta…'), btn('Volver', menu)]); return; }
+    if (cuenta.usuario()) return panelCuentaSesion();
+    const enMarco = (() => { try { return self !== top; } catch (e) { return true; } })(), o = { txt, btn, refrescar: panelCuenta, enMarco };
+    const filas = cuenta.sesion() ? [txt('Sesión: ' + (cuenta.email() || 'Google')), ...formUsuario(cuenta, o), btn('Salir de la sesión', () => cuenta.salir())] : formAcceso(cuenta, o);
+    filas.push(btn('Volver', menu)); abrir('Cuenta y progreso', filas);
+  }
+  async function panelCuentaSesion() {
+    const u = cuenta.usuario(), msg = txt(''), filas = [txt('Puedes jugar sin cuenta. Para conservar tu progreso de forma recuperable entre dispositivos, crea una cuenta.'), txt(cuenta.real ? 'Tu progreso se guarda en tu cuenta de PUVE y lo recuperas en cualquier dispositivo.' + (cuenta.conflicto?.() ? ' ⚠ Tu cuenta tiene un guardado más nuevo hecho desde otro dispositivo: usa «Cargar la partida de la cuenta».' : '') : 'Cuenta SIMULADA: solo vive en este navegador. La real llegará con la integración autorizada.')];
     if (!u) {
       const i = document.createElement('input'); i.maxLength = 16; i.placeholder = 'Nombre de usuario'; i.autocomplete = 'off'; i.style.cssText = 'width:100%;padding:10px;margin:6px 0;font:inherit';
       const fin = r => { if (r.ok) panelCuenta(); else msg.textContent = r.msg; };
@@ -457,7 +507,7 @@ async function iniciar() {
   }
   document.addEventListener('visibilitychange', () => { if (document.hidden) guardar(); else last = performance.now(); });
   addEventListener('pagehide', () => { guardar(); salirRed(false); });
-  const mh = location.hash.match(/sala=[0-9a-f]{12}\.[0-9a-f]{32}(?:&t=(?:ws|loc))?/);
+  const mh = location.hash.match(/sala=[0-9a-f]{12}\.[0-9a-f]{32}(?:&t=(?:ws|loc|sb))?/);
   iniciarSolo();
   if (mh) { history.replaceState(null, '', location.pathname + location.search); unirse(mh[0]); }   // el token sale de la barra de direcciones
   requestAnimationFrame(frame);

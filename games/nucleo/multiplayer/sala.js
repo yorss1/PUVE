@@ -1,6 +1,6 @@
 // Lógica de sala AUTORITATIVA y pura (sin red ni DOM): sirve igual en el navegador, en Node o dentro de un Durable Object.
 const hex = n => { const a = new Uint8Array(n); crypto.getRandomValues(a); return [...a].map(b => b.toString(16).padStart(2, '0')).join(''); };
-export const limpiarNombre = n => String(n ?? '').normalize('NFKC').replace(/[^A-Za-z0-9_ ]/g, '').slice(0, 16).trim() || 'Invitado';
+export const limpiarNombre = n => String(n ?? '').normalize('NFKC').replace(/[^A-Za-z0-9_. ]/g, '').slice(0, 16).trim() || 'Invitado';
 const MODOS = ['interior', 'ciudad'];
 const ent = (v, a, b) => (Number.isInteger(v) && v >= a && v <= b ? v : 0);
 
