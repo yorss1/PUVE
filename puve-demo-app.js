@@ -103,6 +103,7 @@
       const ini = turno ? turno.fondo_inicial : Number(a.p_efectivo_inicial || 0), ret = turno ? sangrias.reduce((x, s) => x + s.monto, 0) : Number(a.p_retiros || 0), esperado = ini + efec - ret, dif = Math.round((Number(a.p_efectivo_contado) - esperado) * 100) / 100;
       const fila = { id: uid('corte'), negocio_id: NEG, desde, hasta: ahora(), efectivo_inicial: ini, retiros: ret, efectivo_contado: a.p_efectivo_contado, efectivo_esperado: esperado, diferencia: dif, creado_en: ahora(), perfiles: { nombre: 'Tú (demo)' } };
       T.cortes_caja.push(fila); T.cortes_caja_cajero = (T.cortes_caja_cajero || []).concat([fila]); turno = null; sangrias = []; return { diferencia: dif }; },
+    minijuego_resumen: () => ({ pedidos: 112, jugaron: 38, segundos_promedio: 410 }),
     minijuego_espera_configurar: (a) => { T.negocios[0].configuracion.minijuego_espera = !!a.p_activo; return null; }, pedidos_qr_configurar: (a) => { T.negocios[0].pedidos_qr_activo = !!a.p_activo; return null; },
     registrar_dispositivo: () => null, registrar_actividad: () => null, registrar_log_seguridad: () => null, tengo_pin_autorizacion_puve: () => false,
     obtener_controles_funciones_puve: () => [], obtener_correos_empresa_puve: () => ({}), obtener_config_publica_puve: () => ({ precio_mensual_dispositivo: 250, comision_embajador_pesos: 0 }), mi_soporte_humano_sin_leer: () => 0, mi_soporte_humano: () => [], productos_mas_vendidos: () => T.productos.slice(0, 6).map((p) => ({ producto_id: p.id })),

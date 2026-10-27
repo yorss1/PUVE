@@ -1,0 +1,16 @@
+# Cloudflare publica TODO lo que haya en la carpeta. Esto evita que se suban archivos que no son del sitio.
+.htaccess
+.assetsignore
+*.sql
+*.ts
+*.md
+*.py
+*.zip
+*.txt
+# Juego de espera: solo se publica lo que el navegador necesita (no pruebas, documentos, migraciones ni herramientas)
+games/nucleo/tests/
+games/nucleo/docs/
+games/nucleo/migrations/
+games/nucleo/workers/
+games/nucleo/herramientas/
+games/nucleo/adapters/

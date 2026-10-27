@@ -484,8 +484,8 @@
   function esperarVisible(){ var f = function(){ if(!document.hidden){ document.removeEventListener('visibilitychange', f); verSeguimiento(); } }; document.addEventListener('visibilitychange', f); }
   // ----- Minijuego de espera: solo restaurantes y cafeterías con el juego encendido (lo dice la base en el estado del pedido) -----
   var JUEGOS = {
-    restaurante:{ url:'games/restaurante.html#espera=1', carpeta:'games/sprites/restaurante/', imgs:['estacion', 'plato_tacos', 'plato_hamb', 'plato_sopa'], titulo:'Mientras llega tu pedido', texto:'Atiende tu propio restaurante en un minijuego. Tu pedido sigue avanzando aquí.' },
-    cafeteria:{ url:'games/cafeteria.html#espera=1', carpeta:'games/sprites/cafeteria/', imgs:['mostrador', 'plato_capuchino', 'plato_pastel', 'plato_pan'], titulo:'Mientras preparan tu pedido', texto:'Sirve cafés y pan en tu propia cafetería. Tu pedido sigue avanzando aquí.' }
+    restaurante:{ url:'games/restaurante.html', carpeta:'games/sprites/restaurante/', imgs:['estacion', 'plato_tacos', 'plato_hamb', 'plato_sopa'], titulo:'Mientras llega tu pedido', texto:'Atiende tu propio restaurante en un minijuego. Tu pedido sigue avanzando aquí.' },
+    cafeteria:{ url:'games/cafeteria.html', carpeta:'games/sprites/cafeteria/', imgs:['mostrador', 'plato_capuchino', 'plato_pastel', 'plato_pan'], titulo:'Mientras preparan tu pedido', texto:'Sirve cafés y pan en tu propia cafetería. Tu pedido sigue avanzando aquí.' }
   };
   var ovMj = null, avisoListoMj = false;
   function tarjetaJuego(d){
@@ -496,11 +496,12 @@
     $$(tx, [$('h3', '', j.titulo), $('p', '', j.texto), b]); return $$(c, [vp, tx]);
   }
   var ESTMJ = { por_confirmar:'Pedido enviado · esperando confirmación', preparando:'Preparando tu pedido', listo:'¡Tu pedido está listo!' };
+  // El juego es público y guarda su propio progreso; aquí solo se abre dentro de la página del pedido y se le dice de qué negocio viene (para las estadísticas del negocio).
   function abrirJuego(j){
     if(ovMj) return; avisoListoMj = false;
     var ov = $('div', 'mjov'), bar = $('div', 'bar'), volver = $('button', 'btn', '← Mi pedido'), est = $('div', 'est'), fr = document.createElement('iframe');
     ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-label', 'Minijuego mientras llega tu pedido'); volver.type = 'button'; volver.onclick = cerrarJuego;
-    fr.title = 'Minijuego'; fr.setAttribute('sandbox', 'allow-scripts allow-same-origin'); fr.setAttribute('referrerpolicy', 'no-referrer'); fr.src = j.url;
+    fr.title = 'Minijuego'; fr.setAttribute('sandbox', 'allow-scripts allow-same-origin'); fr.setAttribute('referrerpolicy', 'no-referrer'); fr.src = j.url + '?n=' + encodeURIComponent(NEG) + (DEMO ? '&demo=1' : '');
     $$(bar, [volver, est]); $$(ov, [bar, fr]); document.body.appendChild(ov); document.body.style.overflow = 'hidden'; ovMj = { el:ov, est:est, volver:volver };
     actualizarJuego(window.__estadoPedido); volver.focus();
   }

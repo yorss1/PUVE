@@ -35,7 +35,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="theme-color" content="#000000">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://cdn.jsdelivr.net https://unpkg.com; worker-src 'self' blob:; connect-src 'self' https://ckzueunptmlqmtypowmg.supabase.co https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; img-src 'self' data: https://ckzueunptmlqmtypowmg.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; base-uri 'self'; form-action 'self'; object-src 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://cdn.jsdelivr.net https://unpkg.com; worker-src 'self' blob:; connect-src 'self' https://ckzueunptmlqmtypowmg.supabase.co https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; img-src 'self' data: https://ckzueunptmlqmtypowmg.supabase.co; media-src 'self' https://ckzueunptmlqmtypowmg.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; base-uri 'self'; form-action 'self'; object-src 'none';">
 <title>PUVE</title>
 <link id="icono" rel="icon" href="img/logo_mini.png" type="image/png" sizes="any">
 <script>(function(){ try { if(localStorage.getItem('puve_tema_oscuro') === '1'){ ['icono','iconoApple'].forEach(function(id){ var l = document.getElementById(id); if(l) l.setAttribute('href','img/logo_mini.black.png'); }); } } catch(e){} })();</script>
@@ -2469,6 +2469,7 @@
               <input type="checkbox" id="chkMinijuego" onchange="cambiarMinijuegoEspera(this.checked)" style="width:20px; height:20px; margin:2px 0 0; flex:none;">
               <span>Mostrar un minijuego a mis clientes mientras esperan su pedido<small class="nota" id="textoMinijuego" style="display:block; font-weight:400; margin-top:4px;"></small></span>
             </label>
+            <p class="nota oculto" id="resumenMinijuego" style="margin:8px 0 0 30px;"></p>
           </div>
           <div id="panelMesasQr" class="oculto" style="margin-top:18px;">
             <div class="campo"><label for="qrCantidadMesas">Número de mesas</label><input id="qrCantidadMesas" type="number" min="1" max="100" value="10"></div>
@@ -2819,6 +2820,7 @@
           <button data-vista="finanzas" onclick="cambiarVistaAdmin('finanzas')">Finanzas</button>
           <button data-vista="metricas" id="tabMetricasAdmin" class="oculto" onclick="cambiarVistaAdmin('metricas')">Métricas</button>
           <button data-vista="avisos" id="tabAvisosAdmin" class="oculto" onclick="cambiarVistaAdmin('avisos')">Avisos</button>
+          <button data-vista="publicidad" id="tabPublicidadAdmin" class="oculto" onclick="cambiarVistaAdmin('publicidad')">Publicidad</button>
           <button data-vista="embajadores" id="tabEmbajadoresAdmin" class="oculto" onclick="cambiarVistaAdmin('embajadores')">Embajadores</button>
           <button data-vista="seguridad" onclick="cambiarVistaAdmin('seguridad')">Seguridad</button>
           <button data-vista="backups" onclick="cambiarVistaAdmin('backups')">Backups</button>
@@ -3099,6 +3101,45 @@
             <thead><tr><th>Embajador</th><th>Monto</th><th>Datos</th><th>Estado</th><th>Fecha</th></tr></thead>
             <tbody id="cuerpoAdminRetirosResueltos"><tr><td colspan="5" class="nota">Cargando...</td></tr></tbody>
           </table></div>
+        </div>
+      </div>
+
+      <div id="vistaAdminPublicidad" style="display:none;">
+        <div class="bloque-analitica" style="margin-bottom:20px;">
+          <h3 style="margin-bottom:4px;">Publicidad en los minijuegos</h3>
+          <p class="nota" style="margin:0 0 14px;">Una tira al fondo del juego, al 100% del ancho. Si no hay ningún anuncio programado para este momento, el espacio no aparece. Imagen ideal: 1920×120 px con lo importante al centro (en celular se recortan los lados). Video: MP4 o WebM corto, se reproduce sin sonido. Máximo 10 MB.</p>
+          <div id="mensajeAnuncio" class="mensaje"></div>
+          <form onsubmit="return guardarAnuncioJuego(event)">
+            <input type="hidden" id="anId">
+            <div class="rejilla" style="grid-template-columns:1fr 1fr;">
+              <div class="campo"><label for="anTitulo">Título (solo para ti)</label><input id="anTitulo" type="text" maxlength="80" required placeholder="Campaña Refrescos Sol"></div>
+              <div class="campo"><label for="anAnunciante">Marca o anunciante (opcional)</label><input id="anAnunciante" type="text" maxlength="80" placeholder="Refrescos Sol"></div>
+            </div>
+            <div class="campo"><label for="anArchivo" id="anArchivoEtiqueta">Imagen o video</label><input id="anArchivo" type="file" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm"><small class="nota" id="anArchivoActual" style="display:block;"></small></div>
+            <div class="campo"><label for="anEnlace">Enlace al tocarlo (opcional, https)</label><input id="anEnlace" type="url" maxlength="500" placeholder="https://marca.com/promo"></div>
+            <div class="rejilla" style="grid-template-columns:1fr 1fr 1fr;">
+              <div class="campo"><label for="anDesde">Desde el día</label><input id="anDesde" type="date" required></div>
+              <div class="campo"><label for="anHasta">Hasta el día</label><input id="anHasta" type="date" required></div>
+              <div class="campo"><label for="anDuracion">Segundos en pantalla</label><input id="anDuracion" type="number" min="3" max="300" value="10" required></div>
+            </div>
+            <div class="campo"><label>Días de la semana</label>
+              <div id="anDias" style="display:flex; flex-wrap:wrap; gap:6px 14px; margin:4px 0;"></div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;"><button type="button" class="texto" onclick="anFijarDias([0,1,2,3,4,5,6])">Los 7 días</button><button type="button" class="texto" onclick="anFijarDias([1,2,3,4,5])">Lunes a viernes</button><button type="button" class="texto" onclick="anFijarDias([0,6])">Fin de semana</button></div></div>
+            <div class="campo"><label>Horario</label>
+              <label style="display:flex; gap:8px; align-items:center; font-weight:400; cursor:pointer;"><input type="checkbox" id="anTodoDia" checked onchange="anAlternarHoras()" style="width:18px; height:18px; margin:0;"> Las 24 horas</label>
+              <div id="anHoras" class="oculto" style="display:flex; gap:10px; align-items:center; margin-top:6px;"><input id="anHoraIni" type="time" value="08:00"> <span>a</span> <input id="anHoraFin" type="time" value="22:00"></div>
+              <small class="nota">Para llegar hasta medianoche usa 23:59. Un horario que cruza la medianoche se programa como dos anuncios.</small></div>
+            <div class="rejilla" style="grid-template-columns:1fr 1fr;">
+              <div class="campo"><label for="anZona">Zona horaria del horario</label><select id="anZona"></select></div>
+              <div class="campo"><label for="anOrden">Orden cuando hay varios</label><input id="anOrden" type="number" min="0" max="999" value="0"></div>
+            </div>
+            <label style="display:flex; gap:8px; align-items:center; font-weight:400; cursor:pointer; margin:6px 0 12px;"><input type="checkbox" id="anActivo" checked style="width:18px; height:18px; margin:0;"> Activo (si lo apagas no se muestra aunque esté en horario)</label>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;"><button class="principal" type="submit" id="btnGuardarAnuncio" style="width:auto;">Guardar anuncio</button><button class="texto" type="button" id="btnCancelarAnuncio" onclick="anLimpiarFormulario()" style="display:none;">Cancelar edición</button></div>
+          </form>
+        </div>
+        <div class="bloque-analitica">
+          <h3 style="margin-bottom:10px;">Anuncios programados</h3>
+          <div id="listaAnunciosJuego"><p class="nota">Cargando...</p></div>
         </div>
       </div>
 
@@ -5045,7 +5086,19 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     mostrarMensaje('mensajePinAutorizacion', 'PIN quitado. Las acciones sensibles del cajero ya no piden nada.', 'exito');
   }
 
+  // Las cuentas de jugadores de los minijuegos viven en el mismo Supabase Auth pero NO son negocios PUVE: no deben entrar a la app.
+  async function rechazarCuentaDeJuego(user){
+    const soloJuego = user?.user_metadata?.tipo_cuenta === 'jugador' || (user?.app_metadata?.provider && user.app_metadata.provider !== 'email');
+    if(!soloJuego) return false;
+    const { data: pf } = await sb.from('perfiles').select('id').eq('id', user.id).maybeSingle();
+    if(pf) return false;
+    await sb.auth.signOut(); window.__usuarioSesionPendiente = null;
+    document.getElementById('vistaSesionActiva').style.display = 'none'; document.getElementById('vistaAuth').style.display = '';
+    mostrarMensaje('mensajeAuth', 'Esa cuenta es de jugador de los minijuegos, no de un negocio. Para usar PUVE crea una cuenta de negocio.', 'error');
+    return true;
+  }
   async function entrarApp(user){
+    if(await rechazarCuentaDeJuego(user)) return;
     if(!(await asegurarAceptacionLegal())) return;
     cargarCorreosPuveGlobal();
     cargarControlesFuncionesPuve();
@@ -7288,21 +7341,116 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(cual === 'admin'){ aplicarVisibilidadPanelAdmin(); cargarAdminNegocios(); cargarListaAdmins(); cambiarVistaAdmin('negocios'); }
   }
 
+
+  // ===== Publicidad en los minijuegos (superadmin) =====
+  const AN_ZONAS = [['America/Mexico_City', 'Ciudad de México'], ['America/Tijuana', 'Tijuana'], ['America/Bogota', 'Bogotá'], ['America/Lima', 'Lima'], ['America/Santiago', 'Santiago'], ['America/Argentina/Buenos_Aires', 'Buenos Aires'], ['America/Sao_Paulo', 'São Paulo'], ['America/New_York', 'Nueva York'], ['America/Chicago', 'Chicago'], ['America/Denver', 'Denver'], ['America/Los_Angeles', 'Los Ángeles'], ['Europe/Madrid', 'Madrid'], ['UTC', 'UTC']];
+  const AN_DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'], AN_BUCKET = 'anuncios-juego', AN_EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif', 'video/mp4': 'mp4', 'video/webm': 'webm' };
+  let anLista = [], anEditando = null;
+  const anMin = (v) => { const [h, m] = String(v || '0:0').split(':').map(Number); return (h || 0) * 60 + (m || 0); };
+  const anHora = (n) => String(Math.floor(n / 60)).padStart(2, '0') + ':' + String(n % 60).padStart(2, '0');
+  function anPintarControles(){
+    const cont = document.getElementById('anDias'); if(cont.childElementCount) return;
+    AN_DIAS.forEach((d, i) => { const lb = document.createElement('label'); lb.style.cssText = 'display:inline-flex; gap:5px; align-items:center; font-weight:400; cursor:pointer;'; const c = document.createElement('input'); c.type = 'checkbox'; c.value = i; c.checked = true; c.style.cssText = 'width:18px; height:18px; margin:0;'; lb.append(c, document.createTextNode(d)); cont.appendChild(lb); });
+    const z = document.getElementById('anZona'); AN_ZONAS.forEach(([v, t]) => { const o = document.createElement('option'); o.value = v; o.textContent = t; z.appendChild(o); });
+  }
+  function anFijarDias(lista){ document.querySelectorAll('#anDias input').forEach((c) => { c.checked = lista.includes(Number(c.value)); }); }
+  function anAlternarHoras(){ document.getElementById('anHoras').classList.toggle('oculto', document.getElementById('anTodoDia').checked); }
+  function anLimpiarFormulario(){
+    anEditando = null; ['anId', 'anTitulo', 'anAnunciante', 'anEnlace'].forEach((id) => { document.getElementById(id).value = ''; }); document.getElementById('anArchivo').value = '';
+    const hoy = new Date(), fin = new Date(Date.now() + 30 * 86400000), f = (d) => d.toISOString().slice(0, 10);
+    document.getElementById('anDesde').value = f(hoy); document.getElementById('anHasta').value = f(fin); document.getElementById('anDuracion').value = 10; document.getElementById('anOrden').value = 0;
+    document.getElementById('anTodoDia').checked = true; anAlternarHoras(); document.getElementById('anHoraIni').value = '08:00'; document.getElementById('anHoraFin').value = '22:00';
+    document.getElementById('anZona').value = 'America/Mexico_City'; document.getElementById('anActivo').checked = true; anFijarDias([0, 1, 2, 3, 4, 5, 6]);
+    document.getElementById('anArchivoEtiqueta').textContent = 'Imagen o video'; document.getElementById('anArchivoActual').textContent = ''; document.getElementById('btnGuardarAnuncio').textContent = 'Guardar anuncio'; document.getElementById('btnCancelarAnuncio').style.display = 'none';
+  }
+  function anVigenteAhora(a){   // misma regla que usa la base (juego_anuncios_activos), para marcar "En vivo ahora"
+    try {
+      const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: a.zona, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', weekday: 'short', hourCycle: 'h23' }).formatToParts(new Date()).map((x) => [x.type, x.value]));
+      const fecha = p.year + '-' + p.month + '-' + p.day, dow = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[p.weekday], min = Number(p.hour) * 60 + Number(p.minute);
+      return a.activo && fecha >= a.fecha_inicio && fecha <= a.fecha_fin && a.dias.includes(dow) && min >= a.minuto_inicio && min < a.minuto_fin;
+    } catch(e){ return false; }
+  }
+  function anResumenDias(d){ const o = [...d].sort(); if(o.length === 7) return 'Los 7 días'; if(o.join() === '1,2,3,4,5') return 'Lunes a viernes'; if(o.join() === '0,6') return 'Fin de semana'; return o.map((i) => AN_DIAS[i]).join(', '); }
+  async function cargarPublicidadJuego(){
+    anPintarControles(); if(!document.getElementById('anDesde').value) anLimpiarFormulario();
+    const caja = document.getElementById('listaAnunciosJuego');
+    const desde = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    const [r1, r2] = await Promise.all([sb.from('juego_anuncios').select('*').order('orden').order('creado_en', { ascending: false }), sb.from('juego_anuncio_metricas').select('anuncio_id,vistas,clics').gte('dia', desde)]);
+    if(r1.error){ console.error('Anuncios del juego:', r1.error.message); caja.textContent = ''; caja.appendChild(Object.assign(document.createElement('p'), { className: 'nota', textContent: 'No se pudieron cargar los anuncios. Inténtalo de nuevo en unos minutos.' })); return; }
+    anLista = r1.data || []; const met = {}; (r2.data || []).forEach((m) => { const x = met[m.anuncio_id] = met[m.anuncio_id] || { v: 0, c: 0 }; x.v += m.vistas; x.c += m.clics; });
+    caja.textContent = '';
+    if(!anLista.length){ caja.appendChild(Object.assign(document.createElement('p'), { className: 'nota', textContent: 'Aún no hay anuncios. Sin anuncios, el juego no muestra ninguna tira.' })); return; }
+    anLista.forEach((a) => {
+      const vivo = anVigenteAhora(a), url = sb.storage.from(AN_BUCKET).getPublicUrl(a.archivo).data.publicUrl, m = met[a.id] || { v: 0, c: 0 };
+      const fila = document.createElement('div'); fila.style.cssText = 'display:flex; gap:12px; align-items:flex-start; padding:12px 0; border-bottom:1px solid var(--borde); flex-wrap:wrap;';
+      const prev = document.createElement(a.tipo === 'video' ? 'video' : 'img'); prev.src = url; prev.style.cssText = 'width:160px; height:40px; object-fit:cover; border-radius:6px; background:#000; flex:none;'; if(a.tipo === 'video'){ prev.muted = true; prev.preload = 'metadata'; } else prev.alt = '';
+      const txt = document.createElement('div'); txt.style.cssText = 'flex:1; min-width:200px; font-size:13.5px; line-height:1.5;';
+      const t = document.createElement('b'); t.textContent = a.titulo + (a.anunciante ? ' · ' + a.anunciante : '');
+      const est = document.createElement('span'); est.textContent = vivo ? ' ● En vivo ahora' : (a.activo ? ' ○ Programado' : ' ⏸ Pausado'); est.style.cssText = 'font-weight:600; color:' + (vivo ? '#16a34a' : 'var(--texto-suave)');
+      const l2 = document.createElement('div'); l2.className = 'nota'; l2.textContent = a.fecha_inicio + ' al ' + a.fecha_fin + ' · ' + anResumenDias(a.dias) + ' · ' + (a.minuto_inicio === 0 && a.minuto_fin === 1440 ? '24 horas' : anHora(a.minuto_inicio) + '–' + anHora(a.minuto_fin)) + ' · ' + a.duracion_seg + ' s · ' + (AN_ZONAS.find((z) => z[0] === a.zona) || [0, a.zona])[1];
+      const l3 = document.createElement('div'); l3.className = 'nota'; l3.textContent = 'Últimos 30 días: ' + m.v + ' vistas' + (a.enlace ? ' · ' + m.c + ' clics' : '');
+      const acc = document.createElement('div'); acc.style.cssText = 'display:flex; gap:8px; flex-wrap:wrap; margin-top:4px;';
+      const b = (txtb, fn, cls) => { const x = document.createElement('button'); x.type = 'button'; x.className = cls || 'texto'; x.textContent = txtb; x.style.cssText = 'width:auto;'; x.onclick = fn; return x; };
+      acc.append(b(a.activo ? 'Pausar' : 'Activar', () => anAlternarActivo(a)), b('Editar', () => anEditar(a)), b('Eliminar', () => anEliminar(a), 'texto peligro'));
+      txt.append(t, est, l2, l3, acc); fila.append(prev, txt); caja.appendChild(fila);
+    });
+  }
+  function anEditar(a){
+    anEditando = a; document.getElementById('anId').value = a.id; document.getElementById('anTitulo').value = a.titulo; document.getElementById('anAnunciante').value = a.anunciante || ''; document.getElementById('anEnlace').value = a.enlace || '';
+    document.getElementById('anDesde').value = a.fecha_inicio; document.getElementById('anHasta').value = a.fecha_fin; document.getElementById('anDuracion').value = a.duracion_seg; document.getElementById('anOrden').value = a.orden; document.getElementById('anZona').value = a.zona; document.getElementById('anActivo').checked = a.activo;
+    anFijarDias(a.dias); const todo = a.minuto_inicio === 0 && a.minuto_fin === 1440; document.getElementById('anTodoDia').checked = todo; anAlternarHoras(); if(!todo){ document.getElementById('anHoraIni').value = anHora(a.minuto_inicio); document.getElementById('anHoraFin').value = anHora(a.minuto_fin); }
+    document.getElementById('anArchivo').value = ''; document.getElementById('anArchivoEtiqueta').textContent = 'Cambiar imagen o video (opcional)'; document.getElementById('anArchivoActual').textContent = 'Archivo actual: ' + a.tipo; document.getElementById('btnGuardarAnuncio').textContent = 'Guardar cambios'; document.getElementById('btnCancelarAnuncio').style.display = '';
+    document.getElementById('vistaAdminPublicidad').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  async function anAlternarActivo(a){ const { error } = await sb.from('juego_anuncios').update({ activo: !a.activo }).eq('id', a.id); if(error){ console.error(error.message); mostrarMensaje('mensajeAnuncio', 'No se pudo cambiar el estado. Inténtalo de nuevo.', 'error'); return; } cargarPublicidadJuego(); }
+  async function anEliminar(a){
+    if(!confirm('¿Eliminar el anuncio “' + a.titulo + '”? Dejará de mostrarse en el juego.')) return;
+    const { error } = await sb.from('juego_anuncios').delete().eq('id', a.id); if(error){ console.error(error.message); mostrarMensaje('mensajeAnuncio', 'No se pudo eliminar. Inténtalo de nuevo.', 'error'); return; }
+    await sb.storage.from(AN_BUCKET).remove([a.archivo]); if(anEditando && anEditando.id === a.id) anLimpiarFormulario(); cargarPublicidadJuego();
+  }
+  async function guardarAnuncioJuego(ev){
+    ev.preventDefault(); ocultarMensaje('mensajeAnuncio');
+    const dias = [...document.querySelectorAll('#anDias input:checked')].map((c) => Number(c.value)), todo = document.getElementById('anTodoDia').checked;
+    const ini = todo ? 0 : anMin(document.getElementById('anHoraIni').value), fin = todo ? 1440 : anMin(document.getElementById('anHoraFin').value);
+    const desde = document.getElementById('anDesde').value, hasta = document.getElementById('anHasta').value, dur = Number(document.getElementById('anDuracion').value), enlace = document.getElementById('anEnlace').value.trim();
+    const arch = document.getElementById('anArchivo').files[0], err = (m) => { mostrarMensaje('mensajeAnuncio', m, 'error'); return false; };
+    if(!dias.length) return err('Elige al menos un día de la semana.');
+    if(hasta < desde) return err('La fecha final no puede ser antes que la inicial.');
+    if(fin <= ini) return err('La hora final debe ser después de la inicial (para llegar a medianoche usa 23:59).');
+    if(!(dur >= 3 && dur <= 300)) return err('Los segundos en pantalla deben ser entre 3 y 300.');
+    if(enlace && !/^https:\/\//.test(enlace)) return err('El enlace debe empezar con https://');
+    if(!anEditando && !arch) return err('Elige la imagen o el video del anuncio.');
+    if(arch){ const ext = AN_EXT[arch.type]; if(!ext) return err('Formato no permitido. Usa PNG, JPG, WebP, GIF, MP4 o WebM.'); if(arch.size > 10 * 1024 * 1024) return err('El archivo pesa más de 10 MB.'); }
+    const btn = document.getElementById('btnGuardarAnuncio'); btn.disabled = true;
+    try {
+      let archivo = anEditando ? anEditando.archivo : null, tipo = anEditando ? anEditando.tipo : null, viejo = null;
+      if(arch){ const ext = AN_EXT[arch.type], nuevo = crypto.randomUUID() + '.' + ext, r = await sb.storage.from(AN_BUCKET).upload(nuevo, arch, { contentType: arch.type, upsert: false }); if(r.error) throw r.error; viejo = archivo; archivo = nuevo; tipo = arch.type.startsWith('video') ? 'video' : 'imagen'; }
+      const fila = { titulo: document.getElementById('anTitulo').value.trim(), anunciante: document.getElementById('anAnunciante').value.trim() || null, tipo, archivo, enlace: enlace || null, activo: document.getElementById('anActivo').checked, duracion_seg: dur, fecha_inicio: desde, fecha_fin: hasta, dias, minuto_inicio: ini, minuto_fin: fin, zona: document.getElementById('anZona').value, orden: Number(document.getElementById('anOrden').value) || 0 };
+      const r2 = anEditando ? await sb.from('juego_anuncios').update(fila).eq('id', anEditando.id) : await sb.from('juego_anuncios').insert(fila);
+      if(r2.error){ if(arch) await sb.storage.from(AN_BUCKET).remove([archivo]); throw r2.error; }
+      if(viejo) await sb.storage.from(AN_BUCKET).remove([viejo]);
+      mostrarMensaje('mensajeAnuncio', anEditando ? 'Anuncio actualizado.' : 'Anuncio guardado. Se mostrará en el juego dentro de su horario.', 'exito'); anLimpiarFormulario(); cargarPublicidadJuego();
+    } catch(e){ console.error('Anuncio del juego:', e.message || e); mostrarMensaje('mensajeAnuncio', 'No se pudo guardar el anuncio. Revisa el archivo e inténtalo de nuevo.', 'error'); }
+    finally { btn.disabled = false; }
+    return false;
+  }
+
   function aplicarVisibilidadPanelAdmin(){
     const soloLectura = !esSuperadminActual;
     document.getElementById('tabMetricasAdmin').classList.toggle('oculto', soloLectura);
     document.getElementById('tabAvisosAdmin').classList.toggle('oculto', soloLectura);
+    document.getElementById('tabPublicidadAdmin').classList.toggle('oculto', soloLectura);
     document.getElementById('tabEmbajadoresAdmin').classList.toggle('oculto', soloLectura);
     document.querySelector('[data-vista="seguridad"]').classList.toggle('oculto', soloLectura);
     document.querySelector('[data-vista="backups"]').classList.toggle('oculto', soloLectura);
     document.querySelector('[data-vista="bugs"]').classList.toggle('oculto', soloLectura);
     document.querySelector('[data-vista="controles"]').classList.toggle('oculto', soloLectura);
-    document.querySelector('[data-vista="soporte-humano"]').classList.toggle('oculto', !soloSuperadmin);
+    document.querySelector('[data-vista="soporte-humano"]').classList.toggle('oculto', soloLectura);   // (antes usaba una variable inexistente y cortaba esta función)
     document.getElementById('btnAbrirCrearNegocio').classList.toggle('oculto', soloLectura);
   }
 
   function cambiarVistaAdmin(vista){
-    if(!esSuperadminActual && ['equipo','metricas','avisos','embajadores','seguridad','backups','bugs','controles'].includes(vista)){ vista = 'negocios'; }
+    if(!esSuperadminActual && ['equipo','metricas','avisos','publicidad','embajadores','seguridad','backups','bugs','controles'].includes(vista)){ vista = 'negocios'; }
     document.querySelectorAll('#seccionAdmin .periodo-selector button[data-vista]').forEach(b => {
       b.classList.toggle('activo', b.dataset.vista === vista);
     });
@@ -7311,6 +7459,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('vistaAdminFinanzas').style.display = vista === 'finanzas' ? 'block' : 'none';
     document.getElementById('vistaAdminMetricas').style.display = vista === 'metricas' ? 'block' : 'none';
     document.getElementById('vistaAdminAvisos').style.display = vista === 'avisos' ? 'block' : 'none';
+    document.getElementById('vistaAdminPublicidad').style.display = vista === 'publicidad' ? 'block' : 'none';
     document.getElementById('vistaAdminEmbajadores').style.display = vista === 'embajadores' ? 'block' : 'none';
     document.getElementById('vistaAdminSeguridad').style.display = vista === 'seguridad' ? 'block' : 'none';
     document.getElementById('vistaAdminBackups').style.display = vista === 'backups' ? 'block' : 'none';
@@ -7320,6 +7469,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(vista === 'finanzas') cargarFinanzas();
     if(vista === 'metricas') cargarMetricasSaas();
     if(vista === 'avisos') cargarAvisosAdmin();
+    if(vista === 'publicidad') cargarPublicidadJuego();
     if(vista === 'embajadores') cargarAdminEmbajadores();
     if(vista === 'seguridad') cargarSeguridad();
     if(vista === 'backups') cargarBackups();
@@ -8396,6 +8546,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     chk.checked = activo; if(typeof configNegocio === 'object' && configNegocio) configNegocio.minijuego_espera = activo;
     document.getElementById('textoMinijuego').textContent = cafe ? 'Aparece un botón para jugar a atender una cafetería mientras llega su pedido. Es un juego de ejemplo; no afecta tus ventas ni tu inventario.' : 'Aparece un botón para jugar a atender un restaurante mientras llega su pedido. Es un juego de ejemplo; no afecta tus ventas ni tu inventario.';
     fila.classList.toggle('oculto', !(neg && neg.pedidos_qr_activo));
+    const res = document.getElementById('resumenMinijuego'); res.classList.add('oculto');
+    if(neg && neg.pedidos_qr_activo) sb.rpc('minijuego_resumen').then(({ data, error }) => {   // si aún no está el SQL 102, simplemente no se muestra
+      if(error || !data || !(Number(data.pedidos) > 0)) return;
+      const min = Math.max(1, Math.round(Number(data.segundos_promedio) / 60));
+      res.textContent = 'Últimos 30 días: ' + data.jugaron + ' personas jugaron desde tu negocio (' + data.pedidos + ' pedidos por QR en el mes)' + (Number(data.jugaron) > 0 ? ', unos ' + min + ' min en promedio.' : '.'); res.classList.remove('oculto');
+    });
   }
   async function cambiarMinijuegoEspera(activo){
     ocultarMensaje('mensajePedidosQrCfg');
@@ -13938,6 +14094,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const { data } = await sb.auth.getSession();
     if(!data.session){ prepararRegistroReferido(); return; }
     const user = data.session.user;
+    if(await rechazarCuentaDeJuego(user)) return;
     window.__usuarioSesionPendiente = user;
 
     const { data: perfil } = await sb.from('perfiles').select('nombre, rol, negocios(nombre)').eq('id', user.id).maybeSingle();

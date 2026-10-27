@@ -1,0 +1,10 @@
+// EJEMPLO. No reemplaza tu wrangler.jsonc: compara solo las partes de "assets".
+// Cloudflare lee _headers, _redirects y .assetsignore desde la carpeta que pongas en assets.directory (aquí: sitio, la misma donde está index.html).
+// Si tu wrangler.jsonc ya apunta a esa carpeta, la carpeta nueva sitio/games se publica sola y no hay que cambiar nada.
+{
+  "name": "puve",                       // pon el nombre de TU proyecto
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./sitio"
+  }
+}
