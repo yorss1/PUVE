@@ -418,7 +418,7 @@ footer{ padding:64px 0 40px; } .pie{ display:grid; grid-template-columns:1.4fr 1
   // ---- arte 3D (se carga al final; si falla, se queda la ilustración)
   var host = document.getElementById('arte'), lienzo = document.getElementById('lienzo'), reducir = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   function cargar3D(){
-    import('./hero3d.js').then(function(m){ return Promise.all([import('three'), import('three/addons/geometries/RoundedBoxGeometry.js'), import('three/addons/environments/RoomEnvironment.js')]).then(function(a){
+    import('./JS/hero3d.js').then(function(m){ return Promise.all([import('three'), import('three/addons/geometries/RoundedBoxGeometry.js'), import('three/addons/environments/RoomEnvironment.js')]).then(function(a){
       window.__hero = m.construirEscena(a[0], a[1].RoundedBoxGeometry, a[2].RoomEnvironment, host, lienzo, { dpr: window.devicePixelRatio || 1, sinMovimiento: reducir });
       window.__hero.tema(raiz.classList.contains('tema-oscuro')); host.classList.add('listo'); }); }).catch(function(){ host.classList.add('sin-webgl'); });
   }
@@ -426,9 +426,9 @@ footer{ padding:64px 0 40px; } .pie{ display:grid; grid-template-columns:1.4fr 1
   setTimeout(function(){ if(!host.classList.contains('listo')) host.classList.add('sin-webgl'); }, 9000);   // si el 3D tarda o falla, se queda la ilustración (nunca un hueco)
 })();
 </script>
-<script src="puve-consent.js" data-pagina="landing" data-auto="landing" defer></script>
+<script src="JS/puve-consent.js" data-pagina="landing" data-auto="landing" defer></script>
 
-<script src="puve-carga.js" defer></script>
+<script src="JS/puve-carga.js" defer></script>
 <script>
 (function(){
   'use strict';
