@@ -29,11 +29,12 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;background:#000}
 #tienda input{background:#fff;color:#000;border:2px solid var(--o)}
 #h1,#h2{white-space:nowrap}
 @media (max-width:480px){#hud{font-size:12px;gap:6px;padding:6px}}
-/* Tira de publicidad: pegada al borde inferior, 100% del ancho; el contenido del juego se acomoda arriba (--adh) para no estorbar los controles. */
-#puvead{position:fixed;left:0;right:0;bottom:0;z-index:5;background:#000;height:64px;padding-bottom:env(safe-area-inset-bottom);overflow:hidden;touch-action:manipulation}
+/* Tira de publicidad: pegada al borde inferior, 100% del ancho; el contenido del juego se acomoda arriba (--adh) para no estorbar los controles.
+   Alto: 100 px en celular y 120 px en pantallas grandes (con 64 px el mensaje no se alcanzaba a leer). */
+#puvead{--adalto:100px;position:fixed;left:0;right:0;bottom:0;z-index:5;background:#000;height:var(--adalto);padding-bottom:env(safe-area-inset-bottom);overflow:hidden;touch-action:manipulation}
 #puvead[hidden]{display:none}
-#puvead a{display:block;height:64px}
-#puvead img,#puvead video{display:block;width:100%;height:64px;object-fit:cover}
+#puvead a{display:block;height:var(--adalto)}
+#puvead img,#puvead video{display:block;width:100%;height:var(--adalto);object-fit:cover;object-position:center}
 #puvead small{position:absolute;top:2px;left:4px;font:10px/1 ui-sans-serif,system-ui,sans-serif;color:#fff;background:#0009;padding:2px 5px;border-radius:3px;pointer-events:none}
-@media (min-width:768px){#puvead,#puvead a,#puvead img,#puvead video{height:80px}}
+@media (min-width:768px){#puvead{--adalto:120px}}
 body{padding-bottom:max(env(safe-area-inset-bottom),var(--adh,0px))}
