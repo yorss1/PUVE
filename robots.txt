@@ -4,4 +4,20 @@ Disallow: /pedir.html
 Disallow: /cocina.html
 Disallow: /games/
 
+# Redes sociales y mensajería: necesitan leer la página para armar la vista previa (título, descripción e imagen) cuando alguien comparte un enlace de los juegos.
+User-agent: facebookexternalhit
+User-agent: facebookcatalog
+User-agent: meta-externalagent
+User-agent: Twitterbot
+User-agent: WhatsApp
+User-agent: LinkedInBot
+User-agent: Slackbot
+User-agent: TelegramBot
+User-agent: Discordbot
+User-agent: Pinterestbot
+Allow: /
+Disallow: /pedir.html
+Disallow: /cocina.html
+
 Sitemap: https://puve.yorss01.workers.dev/sitemap.xml
+
