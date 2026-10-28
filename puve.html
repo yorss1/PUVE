@@ -3107,7 +3107,7 @@
       <div id="vistaAdminPublicidad" style="display:none;">
         <div class="bloque-analitica" style="margin-bottom:20px;">
           <h3 style="margin-bottom:4px;">Publicidad en los minijuegos</h3>
-          <p class="nota" style="margin:0 0 14px;">Una tira al fondo del juego, al 100% del ancho. Si no hay ningún anuncio programado para este momento, el espacio no aparece. Imagen ideal: 1920×120 px con lo importante al centro (en celular se recortan los lados). Video: MP4 o WebM corto, se reproduce sin sonido. Máximo 10 MB.</p>
+          <p class="nota" style="margin:0 0 14px;">Una tira al fondo del juego, al 100% del ancho. Si no hay ningún anuncio programado para este momento, el espacio no aparece. La tira mide 120 px de alto en computadora y 100 px en celular. Computadora: imagen de 1920×120 px. Celular: sube aparte una versión de 780×200 px (así el texto se lee grande); si no la subes, se usa la de computadora recortada de los lados. Video: MP4 o WebM corto, sin sonido. Máximo 10 MB por archivo.</p>
           <div id="mensajeAnuncio" class="mensaje"></div>
           <form onsubmit="return guardarAnuncioJuego(event)">
             <input type="hidden" id="anId">
@@ -3115,7 +3115,9 @@
               <div class="campo"><label for="anTitulo">Título (solo para ti)</label><input id="anTitulo" type="text" maxlength="80" required placeholder="Campaña Refrescos Sol"></div>
               <div class="campo"><label for="anAnunciante">Marca o anunciante (opcional)</label><input id="anAnunciante" type="text" maxlength="80" placeholder="Refrescos Sol"></div>
             </div>
-            <div class="campo"><label for="anArchivo" id="anArchivoEtiqueta">Imagen o video</label><input id="anArchivo" type="file" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm"><small class="nota" id="anArchivoActual" style="display:block;"></small></div>
+            <div class="campo"><label for="anArchivo" id="anArchivoEtiqueta">Imagen o video (computadora)</label><input id="anArchivo" type="file" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm"><small class="nota" id="anArchivoActual" style="display:block;"></small></div>
+            <div class="campo"><label for="anArchivoMovil">Versión para celular (opcional, 780×200 px)</label><input id="anArchivoMovil" type="file" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm"><small class="nota" id="anMovilActual" style="display:block;"></small>
+              <label id="anQuitarMovilFila" class="oculto" style="gap:8px; align-items:center; font-weight:400; cursor:pointer; margin-top:4px;"><input type="checkbox" id="anQuitarMovil" style="width:18px; height:18px; margin:0;"> Quitar la versión para celular</label></div>
             <div class="campo"><label for="anEnlace">Enlace al tocarlo (opcional, https)</label><input id="anEnlace" type="url" maxlength="500" placeholder="https://marca.com/promo"></div>
             <div class="rejilla" style="grid-template-columns:1fr 1fr 1fr;">
               <div class="campo"><label for="anDesde">Desde el día</label><input id="anDesde" type="date" required></div>
@@ -7361,7 +7363,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('anDesde').value = f(hoy); document.getElementById('anHasta').value = f(fin); document.getElementById('anDuracion').value = 10; document.getElementById('anOrden').value = 0;
     document.getElementById('anTodoDia').checked = true; anAlternarHoras(); document.getElementById('anHoraIni').value = '08:00'; document.getElementById('anHoraFin').value = '22:00';
     document.getElementById('anZona').value = 'America/Mexico_City'; document.getElementById('anActivo').checked = true; anFijarDias([0, 1, 2, 3, 4, 5, 6]);
-    document.getElementById('anArchivoEtiqueta').textContent = 'Imagen o video'; document.getElementById('anArchivoActual').textContent = ''; document.getElementById('btnGuardarAnuncio').textContent = 'Guardar anuncio'; document.getElementById('btnCancelarAnuncio').style.display = 'none';
+    document.getElementById('anArchivoEtiqueta').textContent = 'Imagen o video (computadora)'; document.getElementById('anArchivoActual').textContent = ''; document.getElementById('anArchivoMovil').value = ''; document.getElementById('anMovilActual').textContent = ''; document.getElementById('anQuitarMovil').checked = false; document.getElementById('anQuitarMovilFila').classList.add('oculto'); document.getElementById('btnGuardarAnuncio').textContent = 'Guardar anuncio'; document.getElementById('btnCancelarAnuncio').style.display = 'none';
   }
   function anVigenteAhora(a){   // misma regla que usa la base (juego_anuncios_activos), para marcar "En vivo ahora"
     try {
@@ -7399,38 +7401,57 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     anEditando = a; document.getElementById('anId').value = a.id; document.getElementById('anTitulo').value = a.titulo; document.getElementById('anAnunciante').value = a.anunciante || ''; document.getElementById('anEnlace').value = a.enlace || '';
     document.getElementById('anDesde').value = a.fecha_inicio; document.getElementById('anHasta').value = a.fecha_fin; document.getElementById('anDuracion').value = a.duracion_seg; document.getElementById('anOrden').value = a.orden; document.getElementById('anZona').value = a.zona; document.getElementById('anActivo').checked = a.activo;
     anFijarDias(a.dias); const todo = a.minuto_inicio === 0 && a.minuto_fin === 1440; document.getElementById('anTodoDia').checked = todo; anAlternarHoras(); if(!todo){ document.getElementById('anHoraIni').value = anHora(a.minuto_inicio); document.getElementById('anHoraFin').value = anHora(a.minuto_fin); }
-    document.getElementById('anArchivo').value = ''; document.getElementById('anArchivoEtiqueta').textContent = 'Cambiar imagen o video (opcional)'; document.getElementById('anArchivoActual').textContent = 'Archivo actual: ' + a.tipo; document.getElementById('btnGuardarAnuncio').textContent = 'Guardar cambios'; document.getElementById('btnCancelarAnuncio').style.display = '';
+    document.getElementById('anArchivo').value = ''; document.getElementById('anArchivoEtiqueta').textContent = 'Cambiar imagen o video de computadora (opcional)'; document.getElementById('anArchivoActual').textContent = 'Archivo actual: ' + a.tipo; document.getElementById('anArchivoMovil').value = ''; document.getElementById('anQuitarMovil').checked = false; document.getElementById('anMovilActual').textContent = a.archivo_movil ? 'Ya tiene versión para celular; sube otra para cambiarla.' : 'Sin versión para celular.'; document.getElementById('anQuitarMovilFila').classList.toggle('oculto', !a.archivo_movil); if(a.archivo_movil) document.getElementById('anQuitarMovilFila').style.display = 'flex'; document.getElementById('btnGuardarAnuncio').textContent = 'Guardar cambios'; document.getElementById('btnCancelarAnuncio').style.display = '';
     document.getElementById('vistaAdminPublicidad').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   async function anAlternarActivo(a){ const { error } = await sb.from('juego_anuncios').update({ activo: !a.activo }).eq('id', a.id); if(error){ console.error(error.message); mostrarMensaje('mensajeAnuncio', 'No se pudo cambiar el estado. Inténtalo de nuevo.', 'error'); return; } cargarPublicidadJuego(); }
   async function anEliminar(a){
     if(!confirm('¿Eliminar el anuncio “' + a.titulo + '”? Dejará de mostrarse en el juego.')) return;
     const { error } = await sb.from('juego_anuncios').delete().eq('id', a.id); if(error){ console.error(error.message); mostrarMensaje('mensajeAnuncio', 'No se pudo eliminar. Inténtalo de nuevo.', 'error'); return; }
-    await sb.storage.from(AN_BUCKET).remove([a.archivo]); if(anEditando && anEditando.id === a.id) anLimpiarFormulario(); cargarPublicidadJuego();
+    await sb.storage.from(AN_BUCKET).remove([a.archivo, a.archivo_movil].filter(Boolean)); if(anEditando && anEditando.id === a.id) anLimpiarFormulario(); cargarPublicidadJuego();
+  }
+  function anCausa(e){   // este panel es solo del superadmin: aquí sí conviene decir la causa real
+    const m = String((e && (e.message || e.error_description)) || e || '');
+    if(/bucket not found/i.test(m)) return 'No existe el bucket «anuncios-juego»: falta ejecutar el SQL 103 en Supabase.';
+    if(/archivo_movil|PGRST204/i.test(m)) return 'Falta actualizar el SQL 103 en Supabase (columna nueva para la versión de celular). Vuelve a ejecutarlo.';
+    if(/juego_anuncios|PGRST205|schema cache|does not exist/i.test(m)) return 'Falta la tabla de anuncios: ejecuta el SQL 103 en Supabase.';
+    if(/row-level security|violates row-level|not authorized|permission denied|new row violates/i.test(m)) return 'Supabase rechazó el permiso: tu usuario no es superadmin o falta ejecutar el SQL 103.';
+    if(/mime|not supported|invalid_mime/i.test(m)) return 'Supabase no aceptó ese tipo de archivo (usa PNG, JPG, WebP, GIF, MP4 o WebM).';
+    if(/exceeded|too large|payload|size/i.test(m)) return 'El archivo es demasiado pesado para Supabase (máximo 10 MB).';
+    if(/check constraint/i.test(m)) return 'Algún dato no es válido (revisa fechas, horas, días y el enlace).';
+    if(/failed to fetch|network|load failed/i.test(m)) return 'No hay conexión con Supabase. Revisa tu internet.';
+    return 'Detalle técnico: ' + m.slice(0, 180);
   }
   async function guardarAnuncioJuego(ev){
     ev.preventDefault(); ocultarMensaje('mensajeAnuncio');
     const dias = [...document.querySelectorAll('#anDias input:checked')].map((c) => Number(c.value)), todo = document.getElementById('anTodoDia').checked;
     const ini = todo ? 0 : anMin(document.getElementById('anHoraIni').value), fin = todo ? 1440 : anMin(document.getElementById('anHoraFin').value);
     const desde = document.getElementById('anDesde').value, hasta = document.getElementById('anHasta').value, dur = Number(document.getElementById('anDuracion').value), enlace = document.getElementById('anEnlace').value.trim();
-    const arch = document.getElementById('anArchivo').files[0], err = (m) => { mostrarMensaje('mensajeAnuncio', m, 'error'); return false; };
+    const arch = document.getElementById('anArchivo').files[0], movil = document.getElementById('anArchivoMovil').files[0], err = (m) => { mostrarMensaje('mensajeAnuncio', m, 'error'); return false; };
     if(!dias.length) return err('Elige al menos un día de la semana.');
     if(hasta < desde) return err('La fecha final no puede ser antes que la inicial.');
     if(fin <= ini) return err('La hora final debe ser después de la inicial (para llegar a medianoche usa 23:59).');
     if(!(dur >= 3 && dur <= 300)) return err('Los segundos en pantalla deben ser entre 3 y 300.');
     if(enlace && !/^https:\/\//.test(enlace)) return err('El enlace debe empezar con https://');
-    if(!anEditando && !arch) return err('Elige la imagen o el video del anuncio.');
-    if(arch){ const ext = AN_EXT[arch.type]; if(!ext) return err('Formato no permitido. Usa PNG, JPG, WebP, GIF, MP4 o WebM.'); if(arch.size > 10 * 1024 * 1024) return err('El archivo pesa más de 10 MB.'); }
-    const btn = document.getElementById('btnGuardarAnuncio'); btn.disabled = true;
+    if(!anEditando && !arch) return err('Elige la imagen o el video del anuncio (versión de computadora).');
+    for(const f of [arch, movil]){ if(!f) continue; if(!AN_EXT[f.type]) return err('Formato no permitido en «' + f.name + '». Usa PNG, JPG, WebP, GIF, MP4 o WebM.'); if(f.size > 10 * 1024 * 1024) return err('«' + f.name + '» pesa más de 10 MB.'); }
+    const btn = document.getElementById('btnGuardarAnuncio'); btn.disabled = true; const subidos = [];
     try {
-      let archivo = anEditando ? anEditando.archivo : null, tipo = anEditando ? anEditando.tipo : null, viejo = null;
-      if(arch){ const ext = AN_EXT[arch.type], nuevo = crypto.randomUUID() + '.' + ext, r = await sb.storage.from(AN_BUCKET).upload(nuevo, arch, { contentType: arch.type, upsert: false }); if(r.error) throw r.error; viejo = archivo; archivo = nuevo; tipo = arch.type.startsWith('video') ? 'video' : 'imagen'; }
-      const fila = { titulo: document.getElementById('anTitulo').value.trim(), anunciante: document.getElementById('anAnunciante').value.trim() || null, tipo, archivo, enlace: enlace || null, activo: document.getElementById('anActivo').checked, duracion_seg: dur, fecha_inicio: desde, fecha_fin: hasta, dias, minuto_inicio: ini, minuto_fin: fin, zona: document.getElementById('anZona').value, orden: Number(document.getElementById('anOrden').value) || 0 };
+      let archivo = anEditando ? anEditando.archivo : null, tipo = anEditando ? anEditando.tipo : null, archivoMovil = anEditando ? (anEditando.archivo_movil || null) : null; const borrar = [];
+      const subir = async (f) => { const n = crypto.randomUUID() + '.' + AN_EXT[f.type], r = await sb.storage.from(AN_BUCKET).upload(n, f, { contentType: f.type, upsert: false }); if(r.error) throw r.error; subidos.push(n); return n; };
+      if(arch){ const n = await subir(arch); if(archivo) borrar.push(archivo); archivo = n; tipo = arch.type.startsWith('video') ? 'video' : 'imagen'; }
+      if(movil){ const n = await subir(movil); if(archivoMovil) borrar.push(archivoMovil); archivoMovil = n; }
+      else if(document.getElementById('anQuitarMovil').checked && archivoMovil){ borrar.push(archivoMovil); archivoMovil = null; }
+      const fila = { titulo: document.getElementById('anTitulo').value.trim(), anunciante: document.getElementById('anAnunciante').value.trim() || null, tipo, archivo, archivo_movil: archivoMovil, enlace: enlace || null, activo: document.getElementById('anActivo').checked, duracion_seg: dur, fecha_inicio: desde, fecha_fin: hasta, dias, minuto_inicio: ini, minuto_fin: fin, zona: document.getElementById('anZona').value, orden: Number(document.getElementById('anOrden').value) || 0 };
       const r2 = anEditando ? await sb.from('juego_anuncios').update(fila).eq('id', anEditando.id) : await sb.from('juego_anuncios').insert(fila);
-      if(r2.error){ if(arch) await sb.storage.from(AN_BUCKET).remove([archivo]); throw r2.error; }
-      if(viejo) await sb.storage.from(AN_BUCKET).remove([viejo]);
+      if(r2.error) throw r2.error;
+      subidos.length = 0; if(borrar.length) await sb.storage.from(AN_BUCKET).remove(borrar);
       mostrarMensaje('mensajeAnuncio', anEditando ? 'Anuncio actualizado.' : 'Anuncio guardado. Se mostrará en el juego dentro de su horario.', 'exito'); anLimpiarFormulario(); cargarPublicidadJuego();
-    } catch(e){ console.error('Anuncio del juego:', e.message || e); mostrarMensaje('mensajeAnuncio', 'No se pudo guardar el anuncio. Revisa el archivo e inténtalo de nuevo.', 'error'); }
+    } catch(e){
+      console.error('Anuncio del juego:', e);
+      if(subidos.length) await sb.storage.from(AN_BUCKET).remove(subidos);   // no dejar archivos huérfanos
+      mostrarMensaje('mensajeAnuncio', 'No se pudo guardar el anuncio. ' + anCausa(e), 'error');
+    }
     finally { btn.disabled = false; }
     return false;
   }
