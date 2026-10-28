@@ -2,22 +2,8 @@ User-agent: *
 Allow: /
 Disallow: /pedir.html
 Disallow: /cocina.html
-Disallow: /games/
 
-# Redes sociales y mensajería: necesitan leer la página para armar la vista previa (título, descripción e imagen) cuando alguien comparte un enlace de los juegos.
-User-agent: facebookexternalhit
-User-agent: facebookcatalog
-User-agent: meta-externalagent
-User-agent: Twitterbot
-User-agent: WhatsApp
-User-agent: LinkedInBot
-User-agent: Slackbot
-User-agent: TelegramBot
-User-agent: Discordbot
-User-agent: Pinterestbot
-Allow: /
-Disallow: /pedir.html
-Disallow: /cocina.html
+# /games/ ya NO se bloquea aquí: las redes sociales (Facebook, WhatsApp, X…) necesitan leer la página para armar la vista previa al compartir el enlace.
+# Los juegos no salen en buscadores porque cada página lleva <meta name="robots" content="noindex">.
 
 Sitemap: https://puve.yorss01.workers.dev/sitemap.xml
-
