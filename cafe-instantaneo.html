@@ -2,8 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Café Instantáneo · El juego de tu cafetería</title>
 <meta name="description" content="Prepara cafés, atiende a tus clientes y haz crecer tu propia cafetería en este juego gratis de PUVE. Juega solo o con amigos.">
 <meta name="theme-color" content="#2a1d18">
@@ -26,10 +25,62 @@
 <meta name="twitter:image:alt" content="Café Instantáneo — el juego de cafetería de PUVE">
 <link rel="icon" href="img/logo_mini-juegos.png" type="image/png" sizes="any">
 <link rel="apple-touch-icon" href="img/logo_mini-juegos.png">
-<meta http-equiv="refresh" content="0;url=games/cafeteria.html">
-<script>location.replace('games/cafeteria.html' + location.search + location.hash);</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--d:#2a1d18;--d0:#1a110e;--p:#3b2a22;--c:#f2dfb8;--o:#d9822b;--o2:#f0a24a;--t:#2f6b5f;--u:3px;color-scheme:dark}
+@media(min-width:700px){:root{--u:4px}}
+*{box-sizing:border-box}
+html{background:var(--d0)}
+body{margin:0;min-height:100vh;min-height:100dvh;color:var(--c);font:700 15px/1.45 ui-monospace,Menlo,Consolas,"DejaVu Sans Mono",monospace;
+ background:radial-gradient(90% 45% at 50% -5%,#2f6b5f66,transparent 70%),radial-gradient(110% 55% at 50% 108%,#d9822bd0,#d9822b00 72%),linear-gradient(#1a110e,#2a1d18 70%)}
+.wrap{max-width:980px;margin:0 auto;padding:18px 18px 28px;display:flex;flex-direction:column;align-items:center}
+.marca{display:flex;align-items:center;gap:10px;align-self:flex-start;font-family:Silkscreen,ui-monospace,monospace;letter-spacing:.06em;font-size:14px}
+.marca img{width:30px;height:30px;image-rendering:auto}.marca span{opacity:.75;font-size:11px}
+.marco{margin:20px 0 4px;padding:calc(var(--u)*2);background:#1a110e;border:3px solid var(--o);box-shadow:0 0 0 3px #1a110e,0 0 0 6px var(--t),0 18px 60px #d9822b55,0 0 90px #2f6b5f55;position:relative}
+.marco:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,#0000001c 0 2px,transparent 2px 4px);pointer-events:none;z-index:20}
+.escena{position:relative;width:calc(var(--u)*112);height:calc(var(--u)*96);overflow:hidden;image-rendering:pixelated;
+ background:url(games/sprites/comun/suelo_madera.png) 0 0/calc(var(--u)*16) calc(var(--u)*16)}
+.s,.av b{position:absolute;image-rendering:pixelated;background-repeat:no-repeat;background-size:100% 100%}
+.s{display:block}
+.av{position:absolute;width:calc(var(--u)*16);height:calc(var(--u)*24)}
+.av b{inset:0;background-size:calc(var(--u)*64) calc(var(--u)*96);background-position:0 calc(var(--u)*-24)}
+.bob{animation:bob 1.2s steps(1) infinite}.bob2{animation:bob 1.2s steps(1) .6s infinite}
+@keyframes bob{50%{transform:translateY(calc(var(--u)*-1))}}
+.globo{animation:blink 1.4s steps(1) infinite}
+@keyframes blink{60%{opacity:0}}
+.moneda{animation:sube 1.8s steps(6) infinite}.m2{animation-delay:.9s}
+@keyframes sube{0%{transform:translateY(0);opacity:1}100%{transform:translateY(calc(var(--u)*-10));opacity:0}}
+h1{margin:22px 0 0;text-align:center;font:400 clamp(30px,8.4vw,54px)/1.05 Silkscreen,ui-monospace,monospace;text-transform:uppercase;letter-spacing:.02em;color:var(--c);
+ text-shadow:0 3px 0 var(--o),0 6px 0 #1a110e,0 0 30px #d9822b88}
+.sub{margin:10px 0 0;font-size:clamp(16px,4.4vw,20px);color:var(--o2);text-align:center}
+.cartas{list-style:none;margin:26px -18px 0;padding:4px 18px 10px;display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;width:calc(100% + 36px);scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.cartas::-webkit-scrollbar{display:none}
+.carta{flex:0 0 min(72vw,260px);scroll-snap-align:center;background:linear-gradient(160deg,#4a342a,#3b2a22 55%,#2f6b5f55);border:3px solid #d9822b88;border-radius:6px;padding:16px;min-height:178px;display:flex;flex-direction:column;box-shadow:0 8px 0 #1a110e88}
+.carta .ico{height:48px;display:flex;align-items:flex-end;margin-bottom:12px}
+.carta .ico i{display:block;background-size:100% 100%;image-rendering:pixelated;background-repeat:no-repeat}
+.carta h2{margin:0 0 6px;font:400 15px/1.2 Silkscreen,ui-monospace,monospace;text-transform:uppercase;color:var(--c)}
+.carta p{margin:0;font-weight:600;font-size:13.5px;color:#f2dfb8cc}
+@media(min-width:760px){.cartas{margin:30px 0 0;width:100%;padding:4px 0 10px;overflow:visible;display:grid;grid-template-columns:repeat(4,1fr)}.carta{flex:none}}
+.jugar{margin-top:20px;display:inline-flex;align-items:center;justify-content:center;gap:12px;width:100%;max-width:420px;min-height:60px;padding:14px 22px;background:var(--c);color:#2a1d18;text-decoration:none;
+ font:400 20px/1 Silkscreen,ui-monospace,monospace;text-transform:uppercase;letter-spacing:.04em;border:3px solid #1a110e;border-radius:6px;box-shadow:0 6px 0 var(--o),0 6px 0 3px #1a110e,0 14px 40px #d9822baa;transition:transform .08s,box-shadow .08s}
+.jugar:hover{background:#fff4d8}.jugar:active{transform:translateY(5px);box-shadow:0 1px 0 var(--o),0 1px 0 3px #1a110e}
+.jugar:focus-visible{outline:3px solid var(--o2);outline-offset:4px}
+.jugar svg{width:15px;height:20px;flex:none;image-rendering:pixelated}
+.pie{margin:20px 0 0;text-align:center;font-size:12.5px;color:#f2dfb8b0}
+@media(prefers-reduced-motion:reduce){.bob,.bob2,.globo,.moneda{animation:none}}
+</style>
 </head>
-<body style="background:#2a1d18;color:#f2dfb8;font-family:sans-serif;text-align:center;padding:40px">
-<p>Abriendo el juego… <a style="color:#d9822b" href="games/cafeteria.html">Toca aquí si no abre solo</a></p>
+<body>
+<main class="wrap">
+  <div class="marca"><img src="img/logo_mini-juegos.png" alt="" width="30" height="30">PUVE <span>JUEGOS</span></div>
+  <div class="marco"><div class="escena" role="img" aria-label="Escena del juego Café Instantáneo: clientes esperando su pedido en un local de pixeles"><i class="s " style="left:calc(var(--u)*0);top:calc(var(--u)*0);width:calc(var(--u)*16);height:calc(var(--u)*16);background-image:url(games/sprites/comun/pared.png);z-index:1"></i><i class="s " style="left:calc(var(--u)*16);top:calc(var(--u)*0);width:calc(var(--u)*16);height:calc(var(--u)*16);background-image:url(games/sprites/comun/pared.png);z-index:1"></i><i class="s " style="left:calc(var(--u)*32);top:calc(var(--u)*0);width:calc(var(--u)*16);height:calc(var(--u)*16);background-image:url(games/sprites/comun/pared.png);z-index:1"></i><i class="s " style="left:calc(var(--u)*48);top:calc(var(--u)*0);width:calc(var(--u)*16);height:calc(var(--u)*16);background-image:url(games/sprites/comun/pared.png);z-index:1"></i><i class="s " style="left:calc(var(--u)*64);top:calc(var(--u)*0);width:calc(var(--u)*16);height:calc(var(--u)*16);background-image:url(games/sprites/comun/pared.png);z-index:1"></i><i class="s " style="left:calc(var(--u)*80);top:calc(var(--u)*0);width:calc(var(--u)*16);height:calc(var(--u)*16);background-image:url(games/sprites/comun/pared.png);z-index:1"></i><i class="s " style="left:calc(var(--u)*96);top:calc(var(--u)*0);width:calc(var(--u)*16);height:calc(var(--u)*16);background-image:url(games/sprites/comun/pared.png);z-index:1"></i><i class="s " style="left:calc(var(--u)*16);top:calc(var(--u)*0);width:calc(var(--u)*16);height:calc(var(--u)*16);background-image:url(games/sprites/comun/tablero.png);z-index:2"></i><i class="s " style="left:calc(var(--u)*96);top:calc(var(--u)*0);width:calc(var(--u)*16);height:calc(var(--u)*16);background-image:url(games/sprites/comun/refri.png);z-index:2"></i><i class="s " style="left:calc(var(--u)*0);top:calc(var(--u)*0);width:calc(var(--u)*16);height:calc(var(--u)*32);background-image:url(games/sprites/comun/planta.png);z-index:3"></i><i class="s " style="left:calc(var(--u)*48);top:calc(var(--u)*16);width:calc(var(--u)*16);height:calc(var(--u)*16);background-image:url(games/sprites/cafeteria/estacion.png);z-index:2"></i><i class="s " style="left:calc(var(--u)*64);top:calc(var(--u)*16);width:calc(var(--u)*16);height:calc(var(--u)*16);background-image:url(games/sprites/cafeteria/vitrina.png);z-index:2"></i><i class="s " style="left:calc(var(--u)*80);top:calc(var(--u)*16);width:calc(var(--u)*16);height:calc(var(--u)*16);background-image:url(games/sprites/cafeteria/mostrador.png);z-index:2"></i><i class="s " style="left:calc(var(--u)*16);top:calc(var(--u)*48);width:calc(var(--u)*16);height:calc(var(--u)*16);background-image:url(games/sprites/comun/mesa.png);z-index:3"></i><i class="s " style="left:calc(var(--u)*0);top:calc(var(--u)*48);width:calc(var(--u)*16);height:calc(var(--u)*16);background-image:url(games/sprites/comun/silla.png);z-index:3"></i><i class="s " style="left:calc(var(--u)*32);top:calc(var(--u)*48);width:calc(var(--u)*16);height:calc(var(--u)*16);background-image:url(games/sprites/comun/silla.png);z-index:3"></i><i class="s plato" style="left:calc(var(--u)*20);top:calc(var(--u)*50);width:calc(var(--u)*8);height:calc(var(--u)*8);background-image:url(games/sprites/cafeteria/plato_capuchino.png);z-index:6"></i><i class="s " style="left:calc(var(--u)*80);top:calc(var(--u)*64);width:calc(var(--u)*16);height:calc(var(--u)*16);background-image:url(games/sprites/comun/mesa.png);z-index:3"></i><i class="s " style="left:calc(var(--u)*64);top:calc(var(--u)*64);width:calc(var(--u)*16);height:calc(var(--u)*16);background-image:url(games/sprites/comun/silla.png);z-index:3"></i><i class="s " style="left:calc(var(--u)*96);top:calc(var(--u)*64);width:calc(var(--u)*16);height:calc(var(--u)*16);background-image:url(games/sprites/comun/silla.png);z-index:3"></i><i class="s plato" style="left:calc(var(--u)*84);top:calc(var(--u)*66);width:calc(var(--u)*8);height:calc(var(--u)*8);background-image:url(games/sprites/cafeteria/plato_pastel.png);z-index:6"></i><i class="s " style="left:calc(var(--u)*96);top:calc(var(--u)*32);width:calc(var(--u)*16);height:calc(var(--u)*16);background-image:url(games/sprites/comun/caja.png);z-index:2"></i><div class="av bob" style="left:calc(var(--u)*54);top:calc(var(--u)*36);z-index:5"><b style="background-image:url(games/sprites/comun/piel_2.png)"></b><b style="background-image:url(games/sprites/comun/empleado_cuerpo.png)"></b><b style="background-image:url(games/sprites/comun/pelo_1.png)"></b></div><div class="av bob2" style="left:calc(var(--u)*0);top:calc(var(--u)*38);z-index:5"><b style="background-image:url(games/sprites/comun/piel_0.png)"></b><b style="background-image:url(games/sprites/comun/cliente_ropa_1.png)"></b><b style="background-image:url(games/sprites/comun/pelo_2.png)"></b></div><i class="s globo" style="left:calc(var(--u)*2);top:calc(var(--u)*30);width:calc(var(--u)*12);height:calc(var(--u)*12);background-image:url(games/sprites/comun/globo_pedido.png);z-index:7"></i><div class="av bob" style="left:calc(var(--u)*34);top:calc(var(--u)*38);z-index:5"><b style="background-image:url(games/sprites/comun/piel_3.png)"></b><b style="background-image:url(games/sprites/comun/cliente_ropa_2.png)"></b><b style="background-image:url(games/sprites/comun/pelo_1.png)"></b></div><div class="av bob2" style="left:calc(var(--u)*64);top:calc(var(--u)*60);z-index:5"><b style="background-image:url(games/sprites/comun/piel_2.png)"></b><b style="background-image:url(games/sprites/comun/cliente_ropa_0.png)"></b><b style="background-image:url(games/sprites/comun/pelo_3.png)"></b></div><div class="av bob" style="left:calc(var(--u)*34);top:calc(var(--u)*70);z-index:6"><b style="background-image:url(games/sprites/comun/piel_0.png)"></b><b style="background-image:url(games/sprites/comun/ropa_3.png)"></b><b style="background-image:url(games/sprites/comun/pelo_0.png)"></b></div><i class="s moneda" style="left:calc(var(--u)*100);top:calc(var(--u)*24);width:calc(var(--u)*8);height:calc(var(--u)*8);background-image:url(games/sprites/comun/moneda.png);z-index:7"></i><i class="s moneda m2" style="left:calc(var(--u)*104);top:calc(var(--u)*28);width:calc(var(--u)*8);height:calc(var(--u)*8);background-image:url(games/sprites/comun/moneda.png);z-index:7"></i></div></div>
+  <h1>Café Instantáneo</h1>
+  <p class="sub">Comienza tu aventura cafetera</p>
+  <ul class="cartas"><li class="carta"><div class="ico"><i style="width:48px;height:48px;background-image:url(games/sprites/comun/globo_pedido.png)"></i></div><h2>Atiende clientes</h2><p>Recibe a tus clientes, toma su pedido y sírveselo antes de que se enfríe la paciencia.</p></li><li class="carta"><div class="ico"><i style="width:32px;height:32px;background-image:url(games/sprites/cafeteria/plato_capuchino.png)"></i></div><h2>Prepara cafés</h2><p>Americano, capuchino, pan dulce y pastel. Cada uno te deja más experiencia.</p></li><li class="carta"><div class="ico"><i style="width:32px;height:32px;background-image:url(games/sprites/comun/moneda.png)"></i></div><h2>Haz crecer tu negocio</h2><p>Compra mesas y contrata baristas con lo que ganes.</p></li><li class="carta"><div class="ico"><i style="width:48px;height:48px;background-image:url(games/sprites/comun/silla.png)"></i></div><h2>Juega con amigos</h2><p>Crea una sala y administren juntos la misma cafetería.</p></li></ul>
+  <a class="jugar" href="games/cafeteria.html"><svg viewBox="0 0 6 8" aria-hidden="true" shape-rendering="crispEdges"><path fill="#2a1d18" d="M0 0h1v8H0zM1 1h1v6H1zM2 2h1v4H2zM3 3h1v2H3z"/></svg>¡Juega ahora!</a>
+  <p class="pie">Gratis · Sin descargar · Celular y PC</p>
+</main>
 </body>
 </html>
+
