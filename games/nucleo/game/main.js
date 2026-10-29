@@ -352,15 +352,15 @@ async function iniciar() {
       if (fijasVer !== sim.ver) { fijas = []; for (let y = 0; y < sim.H; y++) for (let x = 0; x < sim.W; x++) { const ch = sim.g[y][x]; if ('tRFvmcpB'.includes(ch)) fijas.push({ ch, x, y }); } fijasVer = sim.ver; }
       for (const f of fijas) {
         const sx = f.x * T - camX, sy = f.y * T - camY; if (sx < -48 || sx > W + 48) continue;
-        const fl = 1 + .045 * Math.sin(ahora / 230 + f.x * 3.1 + f.y);
-        if (f.ch === 't') push({ x: sx + 8, y: sy + 8, r: 2.7 * T * fl, c: [255, 160, 70], a: 1, lamp: true });
+        const fl = 1 + .012 * Math.sin(ahora / 2600 + f.x * 3.1 + f.y) + .008 * Math.sin(ahora / 1300 + f.x);
+        if (f.ch === 't') push({ x: sx + 8, y: sy + 8, r: 2.7 * T, fl, c: [255, 160, 70], a: 1, lamp: true });
         else if (f.ch === 'R') push({ x: sx + 8, y: sy + 6, r: 1.9 * T, c: [120, 255, 190], a: .5 });
         else if (f.ch === 'F') push({ x: sx + 8, y: sy + 8, r: 1.8 * T, c: [140, 200, 255], a: .42 });
         else if (f.ch === 'v') push({ x: sx + 8, y: sy + 8, r: 2.2 * T, c: [255, 120, 190], a: .5 });
         else if (f.ch === 'B') push({ x: sx + 8, y: sy + 8, r: 1.5 * T, c: [255, 215, 140], a: .3 });
         if (ALTO[f.ch]) P2.push({ ch: f.ch, x: sx, y: sy, own: f.ch === 't' });
       }
-      for (const e of sim.est) { const t = e.tk && sim.tk(e.tk), cocina = t && t.estado === 'cocinando', fl = 1 + .14 * Math.sin(ahora / 85 + e.x * 7) + .06 * Math.sin(ahora / 37 + e.x); push({ x: e.x * T + 8 - camX, y: e.y * T + 8 - camY, r: (cocina ? 3.6 : 2) * T * fl, c: cocina ? [255, 128, 36] : [255, 200, 120], a: cocina ? 1.05 : .45 }); P2.push({ ch: 'm', x: e.x * T - camX, y: e.y * T - camY, own: true }); }
+      for (const e of sim.est) { const t = e.tk && sim.tk(e.tk), cocina = t && t.estado === 'cocinando', fl = 1 + .035 * Math.sin(ahora / 900 + e.x * 7) + .015 * Math.sin(ahora / 410 + e.x); push({ x: e.x * T + 8 - camX, y: e.y * T + 8 - camY, r: (cocina ? 3.6 : 2) * T, fl, c: cocina ? [255, 128, 36] : [255, 200, 120], a: cocina ? 1.05 : .45 }); P2.push({ ch: 'm', x: e.x * T - camX, y: e.y * T - camY, own: true }); }
       for (const x of posVentanas()) { const px = x * T - camX; if (sol < .45) push({ x: px + 8, y: T + 10, r: 3.6 * T, c: sol > .05 ? c.slice(0, 3) : [110, 150, 255], a: (sol > .05 ? .5 : .62) * Math.min(1, osc / .25 + .2), win: true }); }
       const fp = (x, y) => pies.push([x * T - camX, y * T - camY]);
       fp(sim.p.x, sim.p.y); sim.clientes.forEach(q => fp(q.x, q.y)); sim.emps.forEach(q => fp(q.x, q.y));
@@ -372,7 +372,7 @@ async function iniciar() {
     if (luzC.width !== W || luzC.height !== H) { luzC.width = luzD.width = luzS.width = luzA.width = W; luzC.height = luzD.height = luzS.height = luzA.height = H; }
     // 1) luz directa
     luzDG.globalCompositeOperation = 'source-over'; luzDG.fillStyle = '#000'; luzDG.fillRect(0, 0, W, H); luzDG.globalCompositeOperation = 'lighter';
-    for (const l of L) luzSuave(luzDG, l.x, l.y, l.r, l.c, Math.min(1, l.a * l.k));
+    for (const l of L) luzSuave(luzDG, l.x, l.y, l.r * (l.fl || 1), l.c, Math.min(1, l.a * l.k));
     // 2) sombras que bloquean la luz directa (más largas cuanto más lejos de la fuente; más oscuras cerca de ella)
     luzSG.clearRect(0, 0, W, H);
     const fuentes = L.filter(l => !l.win || true);
@@ -404,19 +404,19 @@ async function iniciar() {
         const dx = (h - 12.5) * 5, a = sol * .12;
         for (const x of posVentanas()) { const px = x * T + 2 - camX; for (const [k, aa] of [[1, a], [.55, a * .8]]) { ctx.fillStyle = `rgba(255,232,170,${aa})`; ctx.beginPath(); const m = 6 - 6 * k; ctx.moveTo(px + m, T); ctx.lineTo(px + 12 - m, T); ctx.lineTo(px + 12 - m + dx + 8, T + 66); ctx.lineTo(px + m + dx - 4, T + 66); ctx.fill(); }
           luzSuave(ctx, px + 6 + dx * 1.2 + 6, T + 62, 3.2 * T, [255, 226, 160], sol * .16);
-          for (let i = 0; i < 6; i++) { const t = ahora / 4200 + i * 1.7 + x, yy = T + 6 + ((t * 9 + i * 11) % 56), xx = px + 6 + dx * (yy - T) / 66 + Math.sin(t * 2.1 + i) * 4; ctx.fillStyle = `rgba(255,246,210,${.25 + .25 * Math.sin(t * 3 + i)})`; ctx.fillRect(Math.round(xx), Math.round(yy), 1, 1); } }
+          for (let i = 0; i < 6; i++) { const t = ahora / 11000 + i * 1.7 + x, yy = T + 6 + ((t * 9 + i * 11) % 56), xx = px + 6 + dx * (yy - T) / 66 + Math.sin(t * 2.1 + i) * 4; ctx.fillStyle = `rgba(255,246,210,${.25 + .25 * Math.sin(t * 3 + i)})`; ctx.fillRect(Math.round(xx), Math.round(yy), 1, 1); } }
       }
-      const pulso = (x, p) => .5 + .5 * Math.sin(ahora / 700 + x * 2.3 + p), lit = .45 + .55 * Math.max(lampF, sol);
+      const pulso = (x, p) => .5 + .5 * Math.sin(ahora / 2600 + x * 2.3 + p), lit = .45 + .55 * Math.max(lampF, sol);
       for (const f of fijas) {
         const sx = f.x * T - camX, sy = f.y * T - camY; if (sx < -16 || sx > W) continue;
         if (f.ch === 't') { ctx.fillStyle = `rgba(255,238,190,${(.2 + .12 * pulso(f.x, f.y)) * lit})`; ctx.fillRect(sx + 3, sy + 4, 7, 1); ctx.fillRect(sx + 3, sy + 5, 2, 1); ctx.fillStyle = `rgba(255,214,150,${.12 * lit})`; ctx.fillRect(sx + 6, sy + 14, 4, 1); ctx.fillRect(sx + 7, sy + 15, 2, 1); }
-        else if (f.ch === 'm') { ctx.fillStyle = `rgba(255,238,190,${.24 * lit})`; ctx.fillRect(sx, sy + 3, T, 1); ctx.fillStyle = `rgba(255,255,255,${.08 * lit})`; ctx.fillRect(sx + 2 + (Math.floor(ahora / 400 + f.x) % 3) * 4, sy + 4, 2, 1); }
+        else if (f.ch === 'm') { ctx.fillStyle = `rgba(255,238,190,${.24 * lit})`; ctx.fillRect(sx, sy + 3, T, 1); ctx.fillStyle = `rgba(255,255,255,${.08 * lit})`; ctx.fillRect(sx + 2 + (Math.floor(ahora / 1800 + f.x) % 3) * 4, sy + 4, 2, 1); }
         else if (f.ch === 'F') { ctx.fillStyle = `rgba(200,230,255,${.26 * lit})`; ctx.fillRect(sx + 3, sy + 2, 1, 10); ctx.fillRect(sx + 12, sy + 2, 1, 4); }
         else if (f.ch === 'v') { const q = ((ahora / 1000 + f.x) % 4) < .5 ? .75 : .26; ctx.fillStyle = `rgba(255,255,255,${q * lit})`; ctx.fillRect(sx + 3, sy + 4, 1, 1); ctx.fillRect(sx + 4, sy + 5, 1, 1); ctx.fillRect(sx + 5, sy + 6, 1, 1); ctx.fillRect(sx + 9, sy + 4, 1, 1); ctx.fillStyle = `rgba(255,140,200,${.14 * lit})`; ctx.fillRect(sx + 1, sy + 11, 14, 1); }
         else if (f.ch === 'R') { ctx.fillStyle = `rgba(150,255,210,${.22 + .08 * pulso(f.x, 1)})`; ctx.fillRect(sx + 5, sy + 2, 6, 3); }
         else if (f.ch === 'c') { ctx.fillStyle = `rgba(255,220,170,${.14 * lit})`; ctx.fillRect(sx + 4, sy + 6, 8, 1); }
       }
-      for (const e of sim.est) { const t = e.tk && sim.tk(e.tk); if (t && t.estado === 'cocinando') { const sx = e.x * T - camX, sy = e.y * T - camY; ctx.fillStyle = `rgba(255,150,50,${.3 + .2 * Math.sin(ahora / 80 + e.x)})`; ctx.fillRect(sx + 4, sy + 4, 8, 5); for (let i = 0; i < 3; i++) { const q = ((ahora / 600 + i * .37 + e.x) % 1); ctx.fillStyle = `rgba(255,${180 - i * 30},70,${1 - q})`; ctx.fillRect(Math.round(sx + 5 + i * 3 + Math.sin(q * 9 + i) * 2), Math.round(sy + 3 - q * 9), 1, 1); } } }
+      for (const e of sim.est) { const t = e.tk && sim.tk(e.tk); if (t && t.estado === 'cocinando') { const sx = e.x * T - camX, sy = e.y * T - camY; ctx.fillStyle = `rgba(255,150,50,${.3 + .1 * Math.sin(ahora / 520 + e.x)})`; ctx.fillRect(sx + 4, sy + 4, 8, 5); for (let i = 0; i < 3; i++) { const q = ((ahora / 1800 + i * .37 + e.x) % 1); ctx.fillStyle = `rgba(255,${180 - i * 30},70,${1 - q})`; ctx.fillRect(Math.round(sx + 5 + i * 3 + Math.sin(q * 9 + i) * 2), Math.round(sy + 3 - q * 9), 1, 1); } } }
     } else if (osc > .12) {   // ventanas encendidas de los edificios por la noche
       const gx0 = Math.floor(camX / T) - 1, gy0 = Math.floor(camY / T) - 1;
       for (let gy = gy0; gy <= gy0 + Math.ceil(H / T) + 2; gy++) for (let gx = gx0; gx <= gx0 + Math.ceil(W / T) + 2; gx++) { if (chunks.tile(gx, gy) === 'H' && (gx + gy) % 2 && 'HPp'.includes(chunks.tile(gx, gy - 1))) { const px = gx * T - camX, py = gy * T - camY, tv = (gx * 7 + gy * 3) % 5 === 0; ctx.fillStyle = tv ? `rgba(130,190,255,${.55 * lampF})` : `rgba(255,205,100,${.55 * lampF})`; ctx.fillRect(px + 3, py + 4, 4, 5); ctx.fillRect(px + 9, py + 4, 4, 5); luzSuave(ctx, px + 8, py + 7, 1.5 * T, tv ? [110,170,255] : [255, 190, 90], .1 * lampF); } }
