@@ -303,7 +303,7 @@ async function iniciar() {
   // (3) se multiplica sobre la escena (la sombra toma el tono del ambiente, no negro), (4) brillo/bloom y reflejos, (5) viñeta.
   const AMB = [[0, 54, 62, 132], [5, 62, 70, 142], [6.5, 205, 150, 165], [8, 255, 226, 196], [10, 255, 250, 240], [15, 255, 250, 240], [17.5, 255, 228, 196], [19, 196, 150, 158], [20.5, 74, 72, 140], [24, 54, 62, 132]];
   function ambiente(h) { for (let i = 1; i < AMB.length; i++) if (h <= AMB[i][0]) { const a = AMB[i - 1], b = AMB[i], k = (h - a[0]) / (b[0] - a[0] || 1); return [1, 2, 3].map(j => a[j] + (b[j] - a[j]) * k); } return AMB[0].slice(1); }
-  const luzC = document.createElement('canvas'), luzG = luzC.getContext('2d'), luzD = document.createElement('canvas'), luzDG = luzD.getContext('2d');
+  const luzC = document.createElement('canvas'), luzG = luzC.getContext('2d'), luzD = document.createElement('canvas'), luzDG = luzD.getContext('2d'), luzS = document.createElement('canvas'), luzSG = luzS.getContext('2d'), luzA = document.createElement('canvas'), luzAG = luzA.getContext('2d');   // luzS: sombras de luz directa · luzA: oclusión de contacto y sombras del sol
   let camX = 0, camY = 0, fijas = [], fijasVer = -1;
   const ALTO = { t: 8, c: 9, R: 9, F: 15, v: 12, m: 9, p: 11, B: 6, T: 18, l: 15, b: 6 };   // altura aproximada de cada objeto (largo de su sombra)
   const BASE = { t: [1, 15, 9, 15], c: [4, 12, 10, 15], R: [0, 16, 11, 16], F: [1, 15, 11, 16], v: [0, 16, 11, 16], m: [0, 16, 11, 16], p: [3, 13, 11, 15], B: [1, 15, 9, 14], T: [4, 12, 11, 16], l: [6, 10, 13, 16], b: [2, 14, 9, 13] };   // pie del objeto dentro de su casilla [x0,x1,y0,y1]
@@ -315,11 +315,32 @@ async function iniciar() {
     poli(g, casco([[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0 + ox, y0 + oy], [x1 + ox, y0 + oy], [x1 + ox, y1 + oy], [x0 + ox, y1 + oy]]));
   }
   function posVentanas() { const xs = [], g0 = sim.g[0]; for (const f of [.17, .56, .84]) { const x = Math.round(sim.W * f); if (g0[x] === '#' && g0[x - 1] === '#' && g0[x + 1] === '#') xs.push(x); } return xs; }
-  function ventanas() {   // ventanas del muro de arriba: el cielo cambia con la hora
+  // Cielo detrás de las ventanas: se desplaza según dónde estás (paralaje): el cielo se mueve poco, la ciudad lejana un poco más.
+  const CIELO_W = 56, estrella = i => ((i * 37 + 11) % CIELO_W), nube = [[6, 2, 12], [24, 4, 9], [41, 1, 14]];
+  const mod = (a, n) => ((a % n) + n) % n;
+  const hsh = n => { n = Math.imul(n ^ (n >>> 15), 2246822507); n = Math.imul(n ^ (n >>> 13), 3266489909); return (n ^ (n >>> 16)) >>> 0; };
+  function cieloVentana(px, c, cristal) {   // lo que se ve por la ventana: cielo, astros, nubes y ciudad lejana; se desplaza al moverte (paralaje)
+    const sol = c[4], noche = sol < .1, desp = Math.round(-sim.p.x * T * .45 + px * .6), dy = Math.max(-2, Math.min(2, Math.round(-(sim.p.y - sim.H / 2) * T * .05)));
+    const x0 = px + 3, y0 = 2, w = 10, hh = 9, tope = cristal, base = mezcla(cristal, sol > .05 && sol < .8 ? [255, 190, 130] : noche ? [60, 70, 130] : [200, 230, 250], .45);
+    ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, w, hh); ctx.clip();
+    R('rgb(' + tope + ')', x0, y0, w, hh); R('rgb(' + mezcla(tope, base, .5) + ')', x0, y0 + 4, w, 3); R('rgb(' + base + ')', x0, y0 + 7, w, 2);
+    const mod = n => ((n % 48) + 48) % 48;
+    for (let i = 0; i < w; i++) {
+      const sx = mod(desp + i);
+      if (noche) { const q = hsh(sx * 31 + 7); if (q % 6 === 0) R('#fff', x0 + i, y0 + 1 + (q >> 5) % 5 + dy, 1, 1); }
+      const col = Math.floor(sx / 3), hb = hsh(col * 17 + 3), alto = 1 + hb % 4;   // ciudad lejana
+      R(noche ? '#252d6e' : 'rgba(40,60,90,.55)', x0 + i, y0 + hh - alto + dy, 1, alto + 2);
+      if (noche && alto > 2 && (hb >> 4) % 2 === 0 && sx % 3 === 1) R('#ffd070', x0 + i, y0 + hh - alto + 1 + dy, 1, 1);
+    }
+    const astro = mod(20 - desp);   // sol de día / luna de noche: aparece al desplazarte
+    if (astro < w + 3) { R(noche ? '#f4f0d0' : '#fff2b0', x0 + astro - 1, y0 + 2 + dy, 3, 3); R(noche ? '#d8d4a8' : '#ffe27a', x0 + astro, y0 + 3 + dy, 1, 1); }
+    if (!noche) for (const cx of [8, 32]) { const nx = mod(cx - desp); if (nx < w + 5) { R('#ffffffcc', x0 + nx - 2, y0 + 3 + dy, 5, 1); R('#ffffffcc', x0 + nx - 1, y0 + 2 + dy, 3, 1); } }
+    ctx.restore();
+  }
+  function ventanas() {   // ventanas del muro de arriba: el cielo cambia con la hora y con tu posición
     const c = cielo(horaActual()), cristal = mezcla([18, 24, 58], mezcla([150, 205, 235], c.slice(0, 3), 1 - c[4]), Math.min(1, c[4] * 1.6));
     for (const x of posVentanas()) {
-      const px = x * T; R(P.wd, px + 2, 1, 12, 11); R('rgb(' + cristal + ')', px + 3, 2, 10, 9);
-      if (c[4] < .1) { R('#fff', px + 5, 4, 1, 1); R('#fff', px + 10, 3, 1, 1); R('#fff', px + 9, 8, 1, 1); } else R('#ffffff55', px + 4, 3, 3, 1);
+      const px = x * T; R(P.wd, px + 2, 1, 12, 11); cieloVentana(px, c, cristal);
       R(P.wd, px + 7, 2, 1, 9); R(P.wd, px + 3, 6, 10, 1); R(P.wl, px + 1, 11, 14, 2); R('#0003', px + 1, 13, 14, 1);
     }
   }
@@ -348,27 +369,31 @@ async function iniciar() {
       for (let gy = gy0; gy <= gy1; gy++) for (let gx = gx0; gx <= gx1; gx++) { const ch = chunks.tile(gx, gy), sx = gx * T - camX, sy = gy * T - camY; if (ch === 'l') push({ x: sx + 8, y: sy + 3, r: 4.6 * T, c: [255, 190, 100], a: .95, lamp: true }); if (ALTO[ch]) P2.push({ ch, x: sx, y: sy, own: ch === 'l' }); }
       pies.push([cp.x * T - camX, cp.y * T - camY]); for (const r of remotosVisibles()) pies.push([r.x * T - camX, r.y * T - camY]);
     }
-    if (luzC.width !== W || luzC.height !== H) { luzC.width = luzD.width = W; luzC.height = luzD.height = H; }
+    if (luzC.width !== W || luzC.height !== H) { luzC.width = luzD.width = luzS.width = luzA.width = W; luzC.height = luzD.height = luzS.height = luzA.height = H; }
     // 1) luz directa
     luzDG.globalCompositeOperation = 'source-over'; luzDG.fillStyle = '#000'; luzDG.fillRect(0, 0, W, H); luzDG.globalCompositeOperation = 'lighter';
     for (const l of L) luzSuave(luzDG, l.x, l.y, l.r, l.c, Math.min(1, l.a * l.k));
     // 2) sombras que bloquean la luz directa (más largas cuanto más lejos de la fuente; más oscuras cerca de ella)
-    luzDG.globalCompositeOperation = 'source-over';
+    luzSG.clearRect(0, 0, W, H);
     const fuentes = L.filter(l => !l.win || true);
-    const sombrear = (x0, y0, x1, y1, alto, own, cx, cy) => { for (const l of fuentes) { const dx = cx - l.x, dy = cy - l.y, d = Math.hypot(dx, dy); if (d > l.r * .95 || d < 3 || (own && d < 9)) continue; const f = 1 - d / l.r, len = Math.min(alto * 1.7, alto * d / (1.1 * T)); proyectar(luzDG, x0, y0, x1, y1, alto, dx / d * len, dy / d * len * .85, .95 * Math.pow(f, .45) * Math.min(1, l.a * l.k)); } };
+    const sombrear = (x0, y0, x1, y1, alto, own, cx, cy) => { for (const l of fuentes) { const dx = cx - l.x, dy = cy - l.y, d = Math.hypot(dx, dy); if (d > l.r * .95 || d < 3 || (own && d < 9)) continue; const f = 1 - d / l.r, len = Math.min(alto * 1.7, alto * d / (1.1 * T)); proyectar(luzSG, x0, y0, x1, y1, alto, dx / d * len, dy / d * len * .85, .95 * Math.pow(f, .45) * Math.min(1, l.a * l.k)); } };
     for (const o of P2) { const b = BASE[o.ch], x0 = o.x + b[0], x1 = o.x + b[1], y0 = o.y + b[2], y1 = o.y + b[3]; sombrear(x0, y0, x1, y1, ALTO[o.ch], o.own, (x0 + x1) / 2, (y0 + y1) / 2); }
     for (const p of pies) sombrear(p[0] - 3, p[1] - 2, p[0] + 3, p[1], 14, false, p[0], p[1]);
+    // las sombras solo caen sobre el suelo: se recortan donde hay un objeto o una persona (la sombra sale por detrás/adelante, nunca lo atraviesa)
+    const recortar = g => { g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000'; for (const o of P2) { const b = BASE[o.ch], ancho = 'tRFvmB'.includes(o.ch); g.fillRect(ancho ? o.x : o.x + b[0] - 1, o.y, ancho ? T : b[1] - b[0] + 2, T); } for (const p of pies) g.fillRect(p[0] - 5, p[1] - 20, 10, 20); g.globalCompositeOperation = 'source-over'; };
+    recortar(luzSG); luzDG.globalCompositeOperation = 'source-over'; luzDG.drawImage(luzS, 0, 0);
     // 3) mapa de luz final = ambiente + luz directa + oclusión de contacto
     luzG.globalCompositeOperation = 'source-over'; luzG.fillStyle = `rgb(${amb.map(Math.round)})`; luzG.fillRect(0, 0, W, H);
     luzG.globalCompositeOperation = 'lighter'; luzG.drawImage(luzD, 0, 0);
-    luzG.globalCompositeOperation = 'source-over'; luzG.fillStyle = 'rgba(10,6,24,.3)';
-    for (const o of P2) { const b = BASE[o.ch]; luzG.fillRect(o.x + b[0] - 1, o.y + b[3] - 2, b[1] - b[0] + 2, 3); }
-    for (const p of pies) { luzG.fillRect(p[0] - 4, p[1] - 1, 8, 2); luzG.fillRect(p[0] - 3, p[1] - 2, 6, 1); luzG.fillRect(p[0] - 3, p[1] + 1, 6, 1); }
+    luzAG.clearRect(0, 0, W, H); luzAG.globalCompositeOperation = 'source-over'; luzAG.fillStyle = 'rgba(10,6,24,.3)';
+    for (const o of P2) { const b = BASE[o.ch]; luzAG.fillRect(o.x + b[0] - 1, o.y + T, b[1] - b[0] + 2, 2); }
+    for (const p of pies) { luzAG.fillRect(p[0] - 4, p[1], 8, 2); luzAG.fillRect(p[0] - 3, p[1] + 2, 6, 1); }
     if (!interior && sol > .02) {   // sol: sombras largas hacia un lado según la hora
-      const sx = Math.max(-1.4, Math.min(1.4, (h - 12.5) * .32)), sl = (1.1 + Math.abs(sx)) * .7; luzG.fillStyle = `rgba(20,16,60,${.34 * Math.min(1, sol * 1.3)})`;
-      for (const o of P2) { const b = BASE[o.ch], al = ALTO[o.ch]; poli(luzG, casco([[o.x + b[0], o.y + b[2]], [o.x + b[1], o.y + b[2]], [o.x + b[1], o.y + b[3]], [o.x + b[0], o.y + b[3]], [o.x + b[0] + sx * al * sl, o.y + b[2] + al * .5 * sl], [o.x + b[1] + sx * al * sl, o.y + b[2] + al * .5 * sl], [o.x + b[1] + sx * al * sl, o.y + b[3] + al * .5 * sl], [o.x + b[0] + sx * al * sl, o.y + b[3] + al * .5 * sl]])); }
-      for (const p of pies) luzG.fillRect(p[0] - 3 + sx * 5, p[1] - 1, 8, 2);
+      const sx = Math.max(-1.4, Math.min(1.4, (h - 12.5) * .32)), sl = (1.1 + Math.abs(sx)) * .7; luzAG.fillStyle = `rgba(20,16,60,${.34 * Math.min(1, sol * 1.3)})`;
+      for (const o of P2) { const b = BASE[o.ch], al = ALTO[o.ch]; poli(luzAG, casco([[o.x + b[0], o.y + b[2]], [o.x + b[1], o.y + b[2]], [o.x + b[1], o.y + b[3]], [o.x + b[0], o.y + b[3]], [o.x + b[0] + sx * al * sl, o.y + b[2] + al * .5 * sl], [o.x + b[1] + sx * al * sl, o.y + b[2] + al * .5 * sl], [o.x + b[1] + sx * al * sl, o.y + b[3] + al * .5 * sl], [o.x + b[0] + sx * al * sl, o.y + b[3] + al * .5 * sl]])); }
+      for (const p of pies) luzAG.fillRect(p[0] - 3 + sx * 5, p[1], 8, 2);
     }
+    recortar(luzAG); luzG.globalCompositeOperation = 'source-over'; luzG.drawImage(luzA, 0, 0);
     ctx.save();
     ctx.globalCompositeOperation = 'multiply'; ctx.drawImage(luzC, 0, 0);
     // 4) bloom: las zonas iluminadas brillan; reflejos y destellos
