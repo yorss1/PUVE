@@ -299,9 +299,21 @@ async function iniciar() {
   const CIELO = [[0, 16, 20, 56, .6, 0], [5, 22, 26, 66, .56, 0], [6.5, 140, 80, 90, .3, .15], [8, 255, 190, 120, .1, .6], [10, 255, 245, 225, 0, .9], [15, 255, 245, 225, 0, .9], [17.5, 255, 190, 110, .12, .6], [19, 210, 90, 70, .34, .2], [20.5, 30, 28, 72, .5, 0], [24, 16, 20, 56, .6, 0]];
   function cielo(h) { for (let i = 1; i < CIELO.length; i++) if (h <= CIELO[i][0]) { const a = CIELO[i - 1], b = CIELO[i], k = (h - a[0]) / (b[0] - a[0] || 1); return [1, 2, 3, 4, 5].map(j => a[j] + (b[j] - a[j]) * k); } return CIELO[0].slice(1); }
   const mezcla = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
-  const luzC = document.createElement('canvas'), luzG = luzC.getContext('2d');
+  // Iluminación por capas: (1) mapa de luz = color ambiente + luces suaves, (2) sombras proyectadas que le quitan luz directa,
+  // (3) se multiplica sobre la escena (la sombra toma el tono del ambiente, no negro), (4) brillo/bloom y reflejos, (5) viñeta.
+  const AMB = [[0, 54, 62, 132], [5, 62, 70, 142], [6.5, 205, 150, 165], [8, 255, 226, 196], [10, 255, 250, 240], [15, 255, 250, 240], [17.5, 255, 228, 196], [19, 196, 150, 158], [20.5, 74, 72, 140], [24, 54, 62, 132]];
+  function ambiente(h) { for (let i = 1; i < AMB.length; i++) if (h <= AMB[i][0]) { const a = AMB[i - 1], b = AMB[i], k = (h - a[0]) / (b[0] - a[0] || 1); return [1, 2, 3].map(j => a[j] + (b[j] - a[j]) * k); } return AMB[0].slice(1); }
+  const luzC = document.createElement('canvas'), luzG = luzC.getContext('2d'), luzD = document.createElement('canvas'), luzDG = luzD.getContext('2d');
   let camX = 0, camY = 0, fijas = [], fijasVer = -1;
-  const escalones = (g, x, y, r, n = 4) => { for (let i = 0; i < n; i++) { g.beginPath(); g.arc(x, y, r * (1 - i / n), 0, 6.3); g.fill(); } };   // la luz cae en escalones: se ve como pixel art
+  const ALTO = { t: 8, c: 9, R: 9, F: 15, v: 12, m: 9, p: 11, B: 6, T: 18, l: 15, b: 6 };   // altura aproximada de cada objeto (largo de su sombra)
+  const BASE = { t: [1, 15, 9, 15], c: [4, 12, 10, 15], R: [0, 16, 11, 16], F: [1, 15, 11, 16], v: [0, 16, 11, 16], m: [0, 16, 11, 16], p: [3, 13, 11, 15], B: [1, 15, 9, 14], T: [4, 12, 11, 16], l: [6, 10, 13, 16], b: [2, 14, 9, 13] };   // pie del objeto dentro de su casilla [x0,x1,y0,y1]
+  const luzSuave = (g, x, y, r, c, a) => { const q = g.createRadialGradient(x, y, 0, x, y, r), rgb = c.map(Math.round).join(','); q.addColorStop(0, `rgba(${rgb},${a})`); q.addColorStop(.22, `rgba(${rgb},${a * .78})`); q.addColorStop(.5, `rgba(${rgb},${a * .36})`); q.addColorStop(.78, `rgba(${rgb},${a * .09})`); q.addColorStop(1, `rgba(${rgb},0)`); g.fillStyle = q; g.fillRect(x - r, y - r, r * 2, r * 2); };
+  const casco = pts => { pts.sort((a, b) => a[0] - b[0] || a[1] - b[1]); const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]), lo = [], up = []; for (const p of pts) { while (lo.length > 1 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); } for (let i = pts.length - 1; i >= 0; i--) { const p = pts[i]; while (up.length > 1 && cr(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); } up.pop(); lo.pop(); return lo.concat(up); };
+  function poli(g, pts) { g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath(); g.fill(); }
+  function proyectar(g, x0, y0, x1, y1, alto, ox, oy, a) {   // sombra del objeto: su pie arrastrado en la dirección (ox,oy)
+    if (a < .02) return; g.fillStyle = `rgba(0,0,0,${Math.min(.85, a)})`;
+    poli(g, casco([[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0 + ox, y0 + oy], [x1 + ox, y0 + oy], [x1 + ox, y1 + oy], [x0 + ox, y1 + oy]]));
+  }
   function posVentanas() { const xs = [], g0 = sim.g[0]; for (const f of [.17, .56, .84]) { const x = Math.round(sim.W * f); if (g0[x] === '#' && g0[x - 1] === '#' && g0[x + 1] === '#') xs.push(x); } return xs; }
   function ventanas() {   // ventanas del muro de arriba: el cielo cambia con la hora
     const c = cielo(horaActual()), cristal = mezcla([18, 24, 58], mezcla([150, 205, 235], c.slice(0, 3), 1 - c[4]), Math.min(1, c[4] * 1.6));
@@ -312,57 +324,82 @@ async function iniciar() {
     }
   }
   function iluminar() {
-    const W = cv.width, H = cv.height, h = horaActual(), c = cielo(h), osc = Math.min(.66, c[3] * 1.12), sol = c[4], ahora = performance.now(), interior = modo !== 'ciudad';
-    const lampF = Math.max(0, Math.min(1, (osc - .04) / .3)), L = [];   // lampF: qué tan encendidas están las lámparas
+    const W = cv.width, H = cv.height, h = horaActual(), c = cielo(h), osc = c[3], sol = c[4], ahora = performance.now(), interior = modo !== 'ciudad', amb = ambiente(h);
+    const lampF = Math.max(0, Math.min(1, (osc - .1) / .42)), L = [], P2 = [], pies = [];   // lampF: qué tan encendidas están las lámparas · P2: objetos que dan sombra · pies: personas
+    const push = l => { l.k = l.lamp ? (interior ? .3 + .7 * lampF : lampF) : (.3 + .7 * Math.min(1, osc / .3)); if (l.k > .01) L.push(l); };
     if (interior) {
-      if (fijasVer !== sim.ver) { fijas = []; for (let y = 0; y < sim.H; y++) for (let x = 0; x < sim.W; x++) { const ch = sim.g[y][x]; if ('tRFvm'.includes(ch)) fijas.push({ ch, x, y }); } fijasVer = sim.ver; }
+      if (fijasVer !== sim.ver) { fijas = []; for (let y = 0; y < sim.H; y++) for (let x = 0; x < sim.W; x++) { const ch = sim.g[y][x]; if ('tRFvmcpB'.includes(ch)) fijas.push({ ch, x, y }); } fijasVer = sim.ver; }
       for (const f of fijas) {
         const sx = f.x * T - camX, sy = f.y * T - camY; if (sx < -48 || sx > W + 48) continue;
-        if (f.ch === 't') L.push({ x: sx + 8, y: sy + 8, r: 3.1 * T, c: [255, 176, 80], a: 1, lamp: true });
-        else if (f.ch === 'R') L.push({ x: sx + 8, y: sy + 6, r: 1.8 * T, c: [190, 255, 200], a: .55 });
-        else if (f.ch === 'F') L.push({ x: sx + 8, y: sy + 8, r: 1.7 * T, c: [170, 210, 255], a: .4 });
-        else if (f.ch === 'v') L.push({ x: sx + 8, y: sy + 8, r: 1.9 * T, c: [255, 225, 160], a: .55 });
+        const fl = 1 + .045 * Math.sin(ahora / 230 + f.x * 3.1 + f.y);
+        if (f.ch === 't') push({ x: sx + 8, y: sy + 8, r: 2.7 * T * fl, c: [255, 160, 70], a: 1, lamp: true });
+        else if (f.ch === 'R') push({ x: sx + 8, y: sy + 6, r: 1.9 * T, c: [120, 255, 190], a: .5 });
+        else if (f.ch === 'F') push({ x: sx + 8, y: sy + 8, r: 1.8 * T, c: [140, 200, 255], a: .42 });
+        else if (f.ch === 'v') push({ x: sx + 8, y: sy + 8, r: 2.2 * T, c: [255, 120, 190], a: .5 });
+        else if (f.ch === 'B') push({ x: sx + 8, y: sy + 8, r: 1.5 * T, c: [255, 215, 140], a: .3 });
+        if (ALTO[f.ch]) P2.push({ ch: f.ch, x: sx, y: sy, own: f.ch === 't' });
       }
-      for (const e of sim.est) { const t = e.tk && sim.tk(e.tk), cocina = t && t.estado === 'cocinando', fl = 1 + .12 * Math.sin(ahora / 90 + e.x * 7); L.push({ x: e.x * T + 8 - camX, y: e.y * T + 8 - camY, r: (cocina ? 3.3 : 1.9) * T * fl, c: cocina ? [255, 140, 40] : [255, 205, 130], a: cocina ? 1.1 : .5 }); }
+      for (const e of sim.est) { const t = e.tk && sim.tk(e.tk), cocina = t && t.estado === 'cocinando', fl = 1 + .14 * Math.sin(ahora / 85 + e.x * 7) + .06 * Math.sin(ahora / 37 + e.x); push({ x: e.x * T + 8 - camX, y: e.y * T + 8 - camY, r: (cocina ? 3.6 : 2) * T * fl, c: cocina ? [255, 128, 36] : [255, 200, 120], a: cocina ? 1.05 : .45 }); P2.push({ ch: 'm', x: e.x * T - camX, y: e.y * T - camY, own: true }); }
+      for (const x of posVentanas()) { const px = x * T - camX; if (sol < .45) push({ x: px + 8, y: T + 10, r: 3.6 * T, c: sol > .05 ? c.slice(0, 3) : [110, 150, 255], a: (sol > .05 ? .5 : .62) * Math.min(1, osc / .25 + .2), win: true }); }
+      const fp = (x, y) => pies.push([x * T - camX, y * T - camY]);
+      fp(sim.p.x, sim.p.y); sim.clientes.forEach(q => fp(q.x, q.y)); sim.emps.forEach(q => fp(q.x, q.y));
     } else {
       const gx0 = Math.floor(camX / T) - 1, gy0 = Math.floor(camY / T) - 1, gx1 = gx0 + Math.ceil(W / T) + 2, gy1 = gy0 + Math.ceil(H / T) + 2;
-      for (let gy = gy0; gy <= gy1; gy++) for (let gx = gx0; gx <= gx1; gx++) { if (chunks.tile(gx, gy) === 'l') L.push({ x: gx * T + 8 - camX, y: gy * T + 3 - camY, r: 4.4 * T, c: [255, 200, 110], a: 1, lamp: true }); }
+      for (let gy = gy0; gy <= gy1; gy++) for (let gx = gx0; gx <= gx1; gx++) { const ch = chunks.tile(gx, gy), sx = gx * T - camX, sy = gy * T - camY; if (ch === 'l') push({ x: sx + 8, y: sy + 3, r: 4.6 * T, c: [255, 190, 100], a: .95, lamp: true }); if (ALTO[ch]) P2.push({ ch, x: sx, y: sy, own: ch === 'l' }); }
+      pies.push([cp.x * T - camX, cp.y * T - camY]); for (const r of remotosVisibles()) pies.push([r.x * T - camX, r.y * T - camY]);
+    }
+    if (luzC.width !== W || luzC.height !== H) { luzC.width = luzD.width = W; luzC.height = luzD.height = H; }
+    // 1) luz directa
+    luzDG.globalCompositeOperation = 'source-over'; luzDG.fillStyle = '#000'; luzDG.fillRect(0, 0, W, H); luzDG.globalCompositeOperation = 'lighter';
+    for (const l of L) luzSuave(luzDG, l.x, l.y, l.r, l.c, Math.min(1, l.a * l.k));
+    // 2) sombras que bloquean la luz directa (más largas cuanto más lejos de la fuente; más oscuras cerca de ella)
+    luzDG.globalCompositeOperation = 'source-over';
+    const fuentes = L.filter(l => !l.win || true);
+    const sombrear = (x0, y0, x1, y1, alto, own, cx, cy) => { for (const l of fuentes) { const dx = cx - l.x, dy = cy - l.y, d = Math.hypot(dx, dy); if (d > l.r * .95 || d < 3 || (own && d < 9)) continue; const f = 1 - d / l.r, len = Math.min(alto * 1.7, alto * d / (1.1 * T)); proyectar(luzDG, x0, y0, x1, y1, alto, dx / d * len, dy / d * len * .85, .95 * Math.pow(f, .45) * Math.min(1, l.a * l.k)); } };
+    for (const o of P2) { const b = BASE[o.ch], x0 = o.x + b[0], x1 = o.x + b[1], y0 = o.y + b[2], y1 = o.y + b[3]; sombrear(x0, y0, x1, y1, ALTO[o.ch], o.own, (x0 + x1) / 2, (y0 + y1) / 2); }
+    for (const p of pies) sombrear(p[0] - 3, p[1] - 2, p[0] + 3, p[1], 14, false, p[0], p[1]);
+    // 3) mapa de luz final = ambiente + luz directa + oclusión de contacto
+    luzG.globalCompositeOperation = 'source-over'; luzG.fillStyle = `rgb(${amb.map(Math.round)})`; luzG.fillRect(0, 0, W, H);
+    luzG.globalCompositeOperation = 'lighter'; luzG.drawImage(luzD, 0, 0);
+    luzG.globalCompositeOperation = 'source-over'; luzG.fillStyle = 'rgba(10,6,24,.3)';
+    for (const o of P2) { const b = BASE[o.ch]; luzG.fillRect(o.x + b[0] - 1, o.y + b[3] - 2, b[1] - b[0] + 2, 3); }
+    for (const p of pies) { luzG.fillRect(p[0] - 4, p[1] - 1, 8, 2); luzG.fillRect(p[0] - 3, p[1] - 2, 6, 1); luzG.fillRect(p[0] - 3, p[1] + 1, 6, 1); }
+    if (!interior && sol > .02) {   // sol: sombras largas hacia un lado según la hora
+      const sx = Math.max(-1.4, Math.min(1.4, (h - 12.5) * .32)), sl = (1.1 + Math.abs(sx)) * .7; luzG.fillStyle = `rgba(20,16,60,${.34 * Math.min(1, sol * 1.3)})`;
+      for (const o of P2) { const b = BASE[o.ch], al = ALTO[o.ch]; poli(luzG, casco([[o.x + b[0], o.y + b[2]], [o.x + b[1], o.y + b[2]], [o.x + b[1], o.y + b[3]], [o.x + b[0], o.y + b[3]], [o.x + b[0] + sx * al * sl, o.y + b[2] + al * .5 * sl], [o.x + b[1] + sx * al * sl, o.y + b[2] + al * .5 * sl], [o.x + b[1] + sx * al * sl, o.y + b[3] + al * .5 * sl], [o.x + b[0] + sx * al * sl, o.y + b[3] + al * .5 * sl]])); }
+      for (const p of pies) luzG.fillRect(p[0] - 3 + sx * 5, p[1] - 1, 8, 2);
     }
     ctx.save();
-    // 1) reflejos y rayos de sol (suman luz antes de oscurecer)
+    ctx.globalCompositeOperation = 'multiply'; ctx.drawImage(luzC, 0, 0);
+    // 4) bloom: las zonas iluminadas brillan; reflejos y destellos
     ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = .26 * (.35 + .65 * Math.min(1, osc / .25)); ctx.drawImage(luzD, 0, 0); ctx.globalAlpha = 1;
     if (interior) {
-      if (sol > .05) { const dx = (h - 12.5) * 5, a = sol * .11; for (const x of posVentanas()) { const px = x * T + 2 - camX; for (const [k, aa] of [[1, a], [.55, a * .8]]) { ctx.fillStyle = `rgba(255,236,170,${aa})`; ctx.beginPath(); const m = 6 - 6 * k + 0; ctx.moveTo(px + m, T); ctx.lineTo(px + 12 - m, T); ctx.lineTo(px + 12 - m + dx + 8, T + 66); ctx.lineTo(px + m + dx - 4, T + 66); ctx.fill(); } } }
-      const pulso = (x, p) => .5 + .5 * Math.sin(ahora / 700 + x * 2.3 + p);
+      if (sol > .05) {   // rayos de sol por las ventanas, con polvo flotando
+        const dx = (h - 12.5) * 5, a = sol * .12;
+        for (const x of posVentanas()) { const px = x * T + 2 - camX; for (const [k, aa] of [[1, a], [.55, a * .8]]) { ctx.fillStyle = `rgba(255,232,170,${aa})`; ctx.beginPath(); const m = 6 - 6 * k; ctx.moveTo(px + m, T); ctx.lineTo(px + 12 - m, T); ctx.lineTo(px + 12 - m + dx + 8, T + 66); ctx.lineTo(px + m + dx - 4, T + 66); ctx.fill(); }
+          luzSuave(ctx, px + 6 + dx * 1.2 + 6, T + 62, 3.2 * T, [255, 226, 160], sol * .16);
+          for (let i = 0; i < 6; i++) { const t = ahora / 4200 + i * 1.7 + x, yy = T + 6 + ((t * 9 + i * 11) % 56), xx = px + 6 + dx * (yy - T) / 66 + Math.sin(t * 2.1 + i) * 4; ctx.fillStyle = `rgba(255,246,210,${.25 + .25 * Math.sin(t * 3 + i)})`; ctx.fillRect(Math.round(xx), Math.round(yy), 1, 1); } }
+      }
+      const pulso = (x, p) => .5 + .5 * Math.sin(ahora / 700 + x * 2.3 + p), lit = .45 + .55 * Math.max(lampF, sol);
       for (const f of fijas) {
         const sx = f.x * T - camX, sy = f.y * T - camY; if (sx < -16 || sx > W) continue;
-        if (f.ch === 't') { ctx.fillStyle = `rgba(255,238,190,${.16 + .1 * pulso(f.x, f.y)})`; ctx.fillRect(sx + 3, sy + 4, 7, 1); ctx.fillRect(sx + 3, sy + 5, 2, 1); }
-        else if (f.ch === 'm') { ctx.fillStyle = 'rgba(255,238,190,.2)'; ctx.fillRect(sx, sy + 3, T, 1); }
-        else if (f.ch === 'F') { ctx.fillStyle = 'rgba(255,255,255,.22)'; ctx.fillRect(sx + 3, sy + 2, 1, 10); }
-        else if (f.ch === 'v') { const q = ((ahora / 1000 + f.x) % 4) < .5 ? .65 : .22; ctx.fillStyle = `rgba(255,255,255,${q})`; ctx.fillRect(sx + 3, sy + 4, 1, 1); ctx.fillRect(sx + 4, sy + 5, 1, 1); ctx.fillRect(sx + 5, sy + 6, 1, 1); ctx.fillRect(sx + 9, sy + 4, 1, 1); }
+        if (f.ch === 't') { ctx.fillStyle = `rgba(255,238,190,${(.2 + .12 * pulso(f.x, f.y)) * lit})`; ctx.fillRect(sx + 3, sy + 4, 7, 1); ctx.fillRect(sx + 3, sy + 5, 2, 1); ctx.fillStyle = `rgba(255,214,150,${.12 * lit})`; ctx.fillRect(sx + 6, sy + 14, 4, 1); ctx.fillRect(sx + 7, sy + 15, 2, 1); }
+        else if (f.ch === 'm') { ctx.fillStyle = `rgba(255,238,190,${.24 * lit})`; ctx.fillRect(sx, sy + 3, T, 1); ctx.fillStyle = `rgba(255,255,255,${.08 * lit})`; ctx.fillRect(sx + 2 + (Math.floor(ahora / 400 + f.x) % 3) * 4, sy + 4, 2, 1); }
+        else if (f.ch === 'F') { ctx.fillStyle = `rgba(200,230,255,${.26 * lit})`; ctx.fillRect(sx + 3, sy + 2, 1, 10); ctx.fillRect(sx + 12, sy + 2, 1, 4); }
+        else if (f.ch === 'v') { const q = ((ahora / 1000 + f.x) % 4) < .5 ? .75 : .26; ctx.fillStyle = `rgba(255,255,255,${q * lit})`; ctx.fillRect(sx + 3, sy + 4, 1, 1); ctx.fillRect(sx + 4, sy + 5, 1, 1); ctx.fillRect(sx + 5, sy + 6, 1, 1); ctx.fillRect(sx + 9, sy + 4, 1, 1); ctx.fillStyle = `rgba(255,140,200,${.14 * lit})`; ctx.fillRect(sx + 1, sy + 11, 14, 1); }
+        else if (f.ch === 'R') { ctx.fillStyle = `rgba(150,255,210,${.22 + .08 * pulso(f.x, 1)})`; ctx.fillRect(sx + 5, sy + 2, 6, 3); }
+        else if (f.ch === 'c') { ctx.fillStyle = `rgba(255,220,170,${.14 * lit})`; ctx.fillRect(sx + 4, sy + 6, 8, 1); }
       }
-      for (const e of sim.est) { const t = e.tk && sim.tk(e.tk); if (t && t.estado === 'cocinando') { ctx.fillStyle = `rgba(255,150,50,${.3 + .2 * Math.sin(ahora / 80 + e.x)})`; ctx.fillRect(e.x * T + 4 - camX, e.y * T + 4 - camY, 8, 5); } }
+      for (const e of sim.est) { const t = e.tk && sim.tk(e.tk); if (t && t.estado === 'cocinando') { const sx = e.x * T - camX, sy = e.y * T - camY; ctx.fillStyle = `rgba(255,150,50,${.3 + .2 * Math.sin(ahora / 80 + e.x)})`; ctx.fillRect(sx + 4, sy + 4, 8, 5); for (let i = 0; i < 3; i++) { const q = ((ahora / 600 + i * .37 + e.x) % 1); ctx.fillStyle = `rgba(255,${180 - i * 30},70,${1 - q})`; ctx.fillRect(Math.round(sx + 5 + i * 3 + Math.sin(q * 9 + i) * 2), Math.round(sy + 3 - q * 9), 1, 1); } } }
     } else if (osc > .12) {   // ventanas encendidas de los edificios por la noche
       const gx0 = Math.floor(camX / T) - 1, gy0 = Math.floor(camY / T) - 1;
-      ctx.fillStyle = `rgba(255,205,100,${.5 * lampF})`;
-      for (let gy = gy0; gy <= gy0 + Math.ceil(H / T) + 2; gy++) for (let gx = gx0; gx <= gx0 + Math.ceil(W / T) + 2; gx++) { if (chunks.tile(gx, gy) === 'H' && (gx + gy) % 2 && 'HPp'.includes(chunks.tile(gx, gy - 1))) { const px = gx * T - camX, py = gy * T - camY; ctx.fillRect(px + 3, py + 4, 4, 5); ctx.fillRect(px + 9, py + 4, 4, 5); } }
+      for (let gy = gy0; gy <= gy0 + Math.ceil(H / T) + 2; gy++) for (let gx = gx0; gx <= gx0 + Math.ceil(W / T) + 2; gx++) { if (chunks.tile(gx, gy) === 'H' && (gx + gy) % 2 && 'HPp'.includes(chunks.tile(gx, gy - 1))) { const px = gx * T - camX, py = gy * T - camY, tv = (gx * 7 + gy * 3) % 5 === 0; ctx.fillStyle = tv ? `rgba(130,190,255,${.55 * lampF})` : `rgba(255,205,100,${.55 * lampF})`; ctx.fillRect(px + 3, py + 4, 4, 5); ctx.fillRect(px + 9, py + 4, 4, 5); luzSuave(ctx, px + 8, py + 7, 1.5 * T, tv ? [110,170,255] : [255, 190, 90], .1 * lampF); } }
     }
-    // 2) oscuridad del ambiente, con huecos donde hay luz
+    // 5) calidez general y viñeta (más fuerte de noche, tono frío)
     ctx.globalCompositeOperation = 'source-over';
-    if (osc > .015) {
-      if (luzC.width !== W || luzC.height !== H) { luzC.width = W; luzC.height = H; }
-      luzG.globalCompositeOperation = 'source-over'; luzG.clearRect(0, 0, W, H); luzG.fillStyle = `rgba(${Math.round(c[0] * .35)},${Math.round(c[1] * .35)},${Math.round(c[2] * .5)},${osc})`; luzG.fillRect(0, 0, W, H);
-      luzG.globalCompositeOperation = 'destination-out';
-      for (const l of L) { const k = l.lamp ? lampF : 1; if (k <= .01) continue; luzG.fillStyle = `rgba(0,0,0,${Math.min(.34, .22 * l.a * k)})`; escalones(luzG, l.x, l.y, l.r); }
-      ctx.drawImage(luzC, 0, 0);
-    }
-    // 3) brillo cálido de las luces
-    ctx.globalCompositeOperation = 'lighter';
-    for (const l of L) { const k = l.lamp ? lampF : (.35 + .65 * Math.min(1, osc / .3)); if (k <= .01) continue; ctx.fillStyle = `rgba(${l.c[0]},${l.c[1]},${l.c[2]},${.042 * l.a * k})`; escalones(ctx, l.x, l.y, l.r); }
-    ctx.globalCompositeOperation = 'source-over';
-    // 4) calidez general y viñeta
-    ctx.fillStyle = 'rgba(255,170,90,.05)'; ctx.fillRect(0, 0, W, H);
-    const v = ctx.createRadialGradient(W / 2, H / 2, H * .3, W / 2, H / 2, Math.hypot(W, H) * .55); v.addColorStop(0, 'rgba(18,8,4,0)'); v.addColorStop(1, `rgba(18,8,4,${.34 + osc * .25})`); ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = `rgba(255,170,90,${.04 * (1 - osc)})`; ctx.fillRect(0, 0, W, H);
+    const v = ctx.createRadialGradient(W / 2, H / 2, H * .28, W / 2, H / 2, Math.hypot(W, H) * .56); v.addColorStop(0, 'rgba(10,6,20,0)'); v.addColorStop(1, `rgba(10,6,22,${.26 + osc * .3})`); ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
     ctx.restore();
   }
   function dibujar() { if (modo === 'ciudad') dibujarCiudad(); else dibujarInterior(); iluminar(); }
