@@ -9,6 +9,7 @@ import { migrarLocalACuenta } from '../persistence/migracion.js';
 import { cargarSprites } from './sprites.js';
 import { Chunks, tile, esSolido, NEGOCIO, CH, lotes, loteDe, trafico, LOTE_INICIAL } from '../world/ciudad.js';
 import { Servidor } from '../multiplayer/servidor.js';
+import { crearPaneles } from './paneles.js';
 import { precioLote, costoMejora, MAX_FRANQ, RADIO, TURNO_MS } from '../multiplayer/mundo.js';
 import { hostLocal, invitadoLocal } from '../multiplayer/transporte-local.js';
 import { crearCuentaSupabase } from '../persistence/cuenta-supabase.js';
@@ -177,7 +178,9 @@ async function iniciar() {
   // ---------- HUD, avisos, tienda y guardado ----------
   let tAviso = 0;
   function aviso(t) { if (!t) return; const a = $('aviso'); a.textContent = t; a.classList.add('on'); clearTimeout(tAviso); tAviso = setTimeout(() => a.classList.remove('on'), 1600); }
+  let tLogro = 0;
   function hud() {
+    if (sim.avisos.length) aviso(sim.avisos.shift()); if (++tLogro > 15) { tLogro = 0; try { P.revisar(); } catch (e) { /* aún sin mundo */ } }
     $('h1').textContent = `${cfg.titulo} · Nv ${sim.nivel}`;
     $('h2').textContent = `$${sim.d.dinero}${mundo?.mio ? ' · F$' + mundo.mio.dinero : ''} · Stock ${sim.d.stock} · ${'★'.repeat(Math.round(sim.d.rep / 2))}${'☆'.repeat(5 - Math.round(sim.d.rep / 2))}${guardadoOk ? '' : ' · ¡sin guardar!'}`;
     $('pista').textContent = modo === 'ciudad' ? textoCiudad() : sim.pista() || (paso < 99 ? TXT[paso] : sim.llevando ? 'Lleva el plato al cliente' : objetivo());
@@ -445,7 +448,7 @@ async function iniciar() {
   const jidWS = () => { let j = localStorage.getItem('puvegame:jid'); if (!/^[0-9a-f]{24}$/.test(j || '')) { j = hex(12); localStorage.setItem('puvegame:jid', j); } return j; };   // secreto: solo viaja al servidor
   const nombreLocal = () => cuenta.usuario() || 'Invitado';
   const remotosVisibles = () => [...remotos.values()].filter(r => r.modo === modo);
-  const refrescar = nombre => { if (tiendaAbierta && panelActual === nombre) (nombre === 'Multijugador' ? panelMulti : nombre === 'Franquicias' ? panelFranq : () => panelLote(panelLoteId))(); };
+  const refrescar = nombre => { if (tiendaAbierta && panelActual === nombre) (nombre === 'Multijugador' ? panelMulti : nombre === 'Franquicias' ? panelFranq : nombre === 'Gestion' ? () => P.panelGestion(panelLoteId) : nombre === 'Mercado' ? P.panelMercado : () => panelLote(panelLoteId))(); };
   function dibRemoto(r) {
     const k = r.look || {};
     persona(r, { capas: capasJug(k), piel: col('piel', k.piel) || PIEL[0], pelo: col('pelo', k.pelo) || PELO[0], ropa: col('ropa', k.ropa) || '#fff', del: P.or, gorro: k.gorro, mov: r.mov });
@@ -467,13 +470,19 @@ async function iniciar() {
     if (tRed <= 0) { tRed = .1; const p = modo === 'ciudad' ? cp : sim.p; net.conn.enviar({ t: 'mover', seq: ++seqLocal, modo, x: p.x, y: p.y, dir: p.dir, look: perfil.look }); aplicarSnap(net.snap); }
     for (const r of remotos.values()) { const dx = r.tx - r.x, dy = r.ty - r.y, k = Math.min(1, dt * 12); r.mov = Math.hypot(dx, dy) > .05; r.x += dx * k; r.y += dy * k; }
   }
+  let noticiaVista = -1, informeAbierto = false;
+  function alMundo(m) {                          // lo que el mundo compartido le dice al local: demanda, noticias e informe de regreso
+    if (m.mio?.demanda) sim.mercado = { dem: m.mio.demanda.dem, ing: m.mio.demanda.ing };
+    const nuevas = m.noticias.filter(n => n.id > noticiaVista); if (m.noticias.length) { if (noticiaVista >= 0 && nuevas.length) aviso(nuevas[nuevas.length - 1].txt); noticiaVista = Math.max(noticiaVista, ...m.noticias.map(n => n.id)); }
+    if (m.mio?.informe && !informeAbierto && !tiendaAbierta) { informeAbierto = true; setTimeout(() => { P.panelInforme(); }, 500); } else if (!m.mio?.informe) informeAbierto = false;
+  }
   function alMensaje(id, m) {
     if (!net || net.id !== id || !m || typeof m.t !== 'string') return;
     if (m.t === 'hola') { net.cid = m.cid; net.alAbrir?.(); }
     else if (m.t === 'creada') { net.sala = { id: m.id, token: m.token }; net.url = location.origin + location.pathname + `#sala=${m.id}.${m.token}&t=${net.modo === 'ws' ? 'ws' : net.modo === 'sb' ? 'sb' : 'loc'}`; refrescar('Multijugador'); }
     else if (m.t === 'resp') { if (!m.ok) { aviso(m.msg); if (net.modo !== 'solo') salirRed(); } else if (m.giro !== giro) { aviso('Esa sala es de otro tipo de negocio'); salirRed(); } else if (net.modo !== 'solo') { net.sala = net.sala || { id: m.id }; aviso('Te uniste a la sala'); } refrescar('Multijugador'); }
     else if (m.t === 'snap') net.snap = m.snap;
-    else if (m.t === 'mundo') { mundo = m; ocupa.clear(); const col = new Map(m.jugadores.map(j => [j.cid, j.color])); for (const [lid, dueno, nivel, tipo] of m.lotes) ocupa.set(lid, { cid: dueno, color: col.get(dueno) || '#888', nivel, tipo }); refrescar('Franquicias'); refrescar('Lote'); }
+    else if (m.t === 'mundo') { mundo = m; ocupa.clear(); const col = new Map(m.jugadores.map(j => [j.cid, j.color])); for (const [lid, dueno, nivel, tipo] of m.lotes) ocupa.set(lid, { cid: dueno, color: col.get(dueno) || '#888', nivel, tipo }); refrescar('Franquicias'); refrescar('Lote'); refrescar('Gestion'); refrescar('Mercado'); alMundo(m); }
     else if (m.t === 'res') { const f = pendientes.get(m.id); if (f) { pendientes.delete(m.id); f(m); } }
     else if (m.t === 'cerrada') { aviso('La sala se cerró'); salirRed(); }
   }
@@ -481,7 +490,7 @@ async function iniciar() {
   function nuevaRed(extra) { cerrarConn(); mundo = null; remotos.clear(); ocupa.clear(); net = { id: ++netId, snap: [], ...extra }; return net; }
   function cerrarConn() { if (net) { net.conn?.cerrar(); net = null; } }
   function iniciarSolo() {
-    const srv = new Servidor(); try { const g = localStorage.getItem(KEY_SOLO); if (g) srv.importar(JSON.parse(g)); } catch (e) { console.warn('Mundo solo ilegible; se crea uno nuevo', e); }
+    const srv = new Servidor({ rivales: 3 }); try { const g = localStorage.getItem(KEY_SOLO); if (g) srv.importar(JSON.parse(g)); } catch (e) { console.warn('Mundo solo ilegible; se crea uno nuevo', e); }
     const n = nuevaRed({ modo: 'solo', cid: 'solo', srv, vGuardada: -1 }); n.conn = hostLocal(srv, 'solo', hooks(n.id), { bc: false });
     n.conn.enviar(srv.sala ? { t: 'unir', nombre: nombreLocal() } : { t: 'crear', giro, nombre: nombreLocal() });
   }
@@ -546,8 +555,14 @@ async function iniciar() {
     const acc = [];
     if (!o) acc.push(txt(`Este lote está libre. Cuesta $${precioLote(l)}.`), btn(`Abrir franquicia ($${precioLote(l)})`, hacer('comprar'), mundo.mio.dinero < precioLote(l), 'primario'));
     else if (o.tipo === 'h') acc.push(txt(mio ? 'Este es tu restaurante. Se juega por dentro y no se puede vender.' : `Restaurante de ${dueno()}. Compite contigo por los clientes de la zona.`));
+<<<<<<< HEAD
     else if (mio) { const c = costoMejora(l, o.nivel), g = Math.round(.7 * (precioLote(l) + inv)); acc.push(stat('Nivel', `${o.nivel}/5`), stat(`Ingreso cada turno (${TURNO_MS / 1000} s)`, `$${mundo.mio.ingresos[l.id] ?? '…'}`), btn(o.nivel >= 5 ? 'Nivel máximo' : `Mejorar a nivel ${o.nivel + 1} ($${c})`, hacer('mejorar'), o.nivel >= 5 || mundo.mio.dinero < c, 'primario'), btn(`Vender (recibes $${g})`, hacer('vender', cerrarTienda), false, 'peligro')); }
     else acc.push(txt(`Franquicia de ${dueno()} · nivel ${o.nivel}. Todavía no se puede comprar a otro jugador.`));
+=======
+    else if (mio) { const c = costoMejora(l, o.nivel), g = Math.round(.7 * (precioLote(l) + inv)); acc.push(stat('Nivel', `${o.nivel}/5`), stat(`Ingreso cada turno (${TURNO_MS / 1000} s)`, `$${mundo.mio.ingresos[l.id] ?? '…'}`), btn(o.nivel >= 5 ? 'Nivel máximo' : `Mejorar a nivel ${o.nivel + 1} ($${c})`, hacer('mejorar'), o.nivel >= 5 || mundo.mio.dinero < c, 'primario'), btn('Gestionar: precio, especialidad, gerente…', () => P.panelGestion(l.id), false, 'suave'), btn(`Vender ya (recibes $${g})`, hacer('vender', cerrarTienda), false, 'peligro')); }
+    else if (info?.[8] != null) acc.push(txt(`Franquicia de ${dueno()} · nivel ${o.nivel} · reputación ${info[7]}. ¡Está en venta!`), btn(`Comprar por $${info[8]}`, hacer('comprar'), mundo.mio.dinero < info[8], 'primario'));
+    else acc.push(txt(`Franquicia de ${dueno()} · nivel ${o.nivel} · reputación ${info?.[7] ?? '?'}. No está en venta.`));
+>>>>>>> 403f8d9 (Agregar juegos dentro de games)
     abrir('Lote ' + l.id, [sec('Datos del lote', stat('Clientes que pasan', `${trafico(l)}/10`), stat('Competidores cerca', String(comp)), stat('Tu cuenta de franquicias', `$${mundo.mio.dinero}`)), sec(!o ? 'Disponible' : mio ? 'Tu franquicia' : 'Ocupado', ...acc), msg], { atras: null, clave: 'Lote' });
   }
   function panelFranq() {
@@ -557,9 +572,16 @@ async function iniciar() {
       const ir = x => async () => { const r = await invertir(x); msg.textContent = r.msg; audio.tono(r.ok ? 'moneda' : 'error'); if (r.ok) panelFranq(); };
       filas.push(sec('Tu dinero', stat('Dinero de tu negocio', `$${sim.d.dinero}`), stat('Cuenta de franquicias', `$${m.dinero}`), stat('Cupo para invertir', `$${m.cupo}`)),
         sec('Invertir', txt('Pasa dinero de tu negocio a tu cuenta de franquicias para comprar lotes en la ciudad.'), (() => { const f = el('div', 'fila'); f.append(btn('$100', ir(100), false, 'primario'), btn('$500', ir(500), false, 'primario'), btn('Todo', ir(1e9), false, 'primario')); return f; })()),
+<<<<<<< HEAD
         sec('Ranking', ...mundo.jugadores.map((j, i) => stat(`${i + 1}. ${j.nombre}${j.cid === net.cid ? ' (tú)' : ''}`, `$${j.patrimonio} · ${j.franq}/${MAX_FRANQ}`)), txt('Se ordena por patrimonio. A la derecha: dinero y franquicias abiertas.')));
       const mias = mundo.lotes.filter(l => l[1] === net.cid && l[3] === 'f');
       filas.push(sec('Tus franquicias', ...(mias.length ? mias.map(l => stat(`Lote ${l[0]} · nivel ${l[2]}`, `$${m.ingresos[l[0]] ?? '…'}/turno`)) : [txt('Aún no tienes. Sal a la ciudad y pulsa E frente a un lote libre (rótulo amarillo).')])));
+=======
+        sec('Ranking', ...mundo.jugadores.map((j, i) => stat(`${i + 1}. ${j.nombre}${j.cid === net.cid ? ' (tú)' : j.npc ? ' · rival' : ''}`, `$${j.patrimonio} · ${j.franq}/${MAX_FRANQ}`)), txt('Se ordena por patrimonio. A la derecha: dinero y franquicias abiertas.')));
+      const mias = mundo.lotes.filter(l => l[1] === net.cid && l[3] === 'f');
+      filas.push(sec('Tus franquicias', ...(mias.length ? mias.map(l => stat(`Lote ${l[0]} · nivel ${l[2]}`, `$${m.ingresos[l[0]] ?? '…'}/turno`)) : [txt('Aún no tienes. Sal a la ciudad y pulsa E frente a un lote libre (rótulo amarillo).')])));
+      filas.push(...P.seccionFinanzas(panelFranq));
+>>>>>>> 403f8d9 (Agregar juegos dentro de games)
       if (m.eventos.length) filas.push(sec('Últimos eventos', ...m.eventos.map(e => txt(e))));
       filas.push(txt(`Cada ${TURNO_MS / 1000} s hay un turno y se reparten las ganancias (turno ${mundo.turno}).`));
     }
@@ -610,12 +632,24 @@ async function iniciar() {
     if (paso === 0 && /^Pedido/.test(m)) paso = 1; else if (paso === 1 && m === 'Preparando…') paso = 2; else if (paso === 2 && m === 'Llévalo al cliente') paso = 3; else if (paso === 3 && m === 'Servido') paso = 4;
     else if (paso === 4 && r.fx === 'moneda') { paso = 99; perfil.tutorial = true; store.guardarPerfil(perfil); aviso('¡Tutorial completo!'); }
   }
+<<<<<<< HEAD
+=======
+  const P = crearPaneles({ el, txt, btn, sec, stat, chip, icono, abrir, aviso, audio, eco, sim, perfil, store, guardar, mundo: () => mundo, net: () => net, volver: () => menu(), loteDe: id => loteDe(chunks.seed, id), panelLote: id => panelLote(id), cerrarTienda: () => cerrarTienda() });
+>>>>>>> 403f8d9 (Agregar juegos dentro de games)
   function menu() {
     audio.activar();
     const it = (ic, t, d, f) => { const b = el('button', 'b mi'); b.type = 'button'; b.onclick = f; b.append(ic, el('span', 'mt', t), el('span', 'md', d)); return b; };
     abrir('Menú', [
       it(icono(capasJug(perfil.look)), 'Personaje', 'Cambia tu piel, cabello, camisa y gorro', personaje),
       it(icono('moneda'), 'Franquicias', 'Invierte y abre negocios en la ciudad', panelFranq),
+<<<<<<< HEAD
+=======
+      it(icono('moneda'), 'Empresa', 'Campaña, misiones y logros', () => P.panelEmpresa()),
+      it(icono('globo_espera'), 'Mercado y rivales', 'Tu barrio, eventos, noticias y competidores', P.panelMercado),
+      it(icono('mesa'), 'Personal', 'Tu equipo: habilidad, ánimo y sueldos', () => P.panelPersonal()),
+      it(icono('refri'), 'Proveedores', 'Costos, calidad y contratos', () => P.panelProveedores()),
+      it(icono('tablero'), 'Desarrollo', 'Mejoras con ventajas y desventajas', () => P.panelDesarrollo()),
+>>>>>>> 403f8d9 (Agregar juegos dentro de games)
       it(icono('globo_espera'), 'Multijugador', 'Juega con amigos por internet', abrirMulti),
       it(icono('tablero'), 'Cuenta y progreso', 'Guarda tu partida y sigue desde cualquier lugar', panelCuenta),
       it(icono(null, audio.on() ? '♪' : 'x'), 'Sonido: ' + (audio.on() ? 'activado' : 'apagado'), 'Toca para ' + (audio.on() ? 'apagarlo' : 'encenderlo'), () => { audio.alternar(); perfil.mute = !audio.on(); store.guardarPerfil(perfil); menu(); }),

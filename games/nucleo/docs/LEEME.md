@@ -10,7 +10,7 @@ Lo específico de cada giro vive solo en `nucleo/config/<giro>.json` (mapa, plat
 
 ## Pruebas
 Desde la carpeta `games/`:
-- `node nucleo/tests/sim.test.mjs` (13) · `persistencia.test.mjs` (7) · `ciudad.test.mjs` (7) · `sala.test.mjs` (7) · `mundo.test.mjs` (11, incluye fuzz de 4000 operaciones) · `servidor.test.mjs` (8) · `ws.test.mjs` (5: servidor real con clientes WebSocket reales).
+- `node nucleo/tests/sim.test.mjs` (13) · `persistencia.test.mjs` (7) · `ciudad.test.mjs` (7) · `sala.test.mjs` (7) · `mundo.test.mjs` (11, incluye fuzz de 4000 operaciones) · `servidor.test.mjs` (8) · `ws.test.mjs` (5: servidor real con clientes WebSocket reales) · `economia.test.mjs` (12) · `rivales.test.mjs` (10) · `fase2.test.mjs` (13, incluye equilibrio de giros) · `paneles.test.mjs` (5: interfaz con DOM simulado, pulsa todos los botones). Todo junto: `for t in sim persistencia ciudad sala mundo servidor ws economia rivales fase2 paneles; do node nucleo/tests/$t.test.mjs | tail -1; done`.
 - Probado además en Chromium (PC y móvil vertical): tutorial, avatares, cuenta y migración, sprites con y sin archivos, ciudad, dos jugadores en navegadores independientes contra el servidor real (sala por QR, inversión, compra de lotes, competencia, rechazo de trampas, reconexión tras reiniciar el servidor) y salas de prueba entre pestañas. No se probó en teléfonos reales ni con Internet real (solo localhost).
 
 ## Sprites (arte)
@@ -37,6 +37,21 @@ Sirve el juego y las salas (WebSocket en `/ws`) y guarda cada sala en `datos/` (
 
 **Modo individual:** también usa el mismo motor de franquicias con un servidor local (se guarda en este navegador), así que puedes jugar solo contra el "ritmo" de la ciudad y luego pasar a una sala.
 
+## Fases 1 y 2: mercado vivo, rivales, personal, proveedores y progresión
+Módulos nuevos en `nucleo/economia/` (puros, sin DOM ni red, probados con node) y `nucleo/game/paneles.js` (solo presentación).
+- **`mercado.js`**: barrios de 2×2 chunks con mezcla de clientela (estudiantes, familias, oficinistas, turistas, exigentes), tendencia lenta por barrio, 8 tipos de evento (festival, obras, partido, lluvias, vacaciones, inflación, escasez, moda) **avisados 6 turnos antes**, especialidades, precios, proveedores y reputación. Todo sale de `(seed, turno)`: recargar nunca cambia el resultado.
+- **`rivales.js`**: 4 personalidades (agresivo, estratega, tradicionalista, oportunista) que son jugadores normales del mismo mundo y usan las **mismas operaciones** (`mundo._exec`). Tienen capital propio, deuda con límite, memoria (quién abrió cerca, quién les compró), ritmo (enfriamiento entre compras), reacción de precios/promociones, venta en crisis, retiro y un único regreso con socios (máx. 2). No reciben dinero de la nada: solo capital inicial y el regreso; retiran utilidades para no acumular caja sin límite.
+- **`ramas.js`**: 6 ramas × 2 mejoras; cada una tiene ventaja y desventaja, y algunas son incompatibles. Las `local` se pagan con el dinero del negocio (las aplica `sim.js`); las `cadena` con la cuenta de franquicias (las valida el servidor).
+- **`progresion.js`**: campaña de 5 etapas, 15 misiones (inmediatas, de sesión y largo plazo) y 15 logros. Las etapas desbloquean funciones **en la interfaz** (especialidades, proveedores, contratos, gerentes, ramas de cadena); el servidor acepta todo, así que no depende de ellas.
+- **`mundo.js`** ahora lleva un **libro de dinero** por jugador (`p.c`): todo movimiento pasa por `_mov` y siempre se cumple `dinero == suma del libro` (hay pruebas con fuzz). Nuevas operaciones validadas: `prestamo`, `abonar`, `proveedor` (con contrato), `rama`, `ajustar` (precio/especialidad/recortes), `promocion`, `gerente`, `listar`/`retirar` (poner en venta) y `comprar` un local en venta, `informe`.
+- **Ausencias**: al importar un mundo guardado se simulan hasta `MAX_OFFLINE` = 360 turnos (1 h); tus franquicias rinden 30% menos sin supervisión, **nunca cierran ni se endeudan por inactividad**, los rivales compran como máximo 2 veces por rival y al volver aparece el panel «Mientras no estabas».
+- **`sim.js`**: estadísticas (servidos, racha, semanas sin apuros), proveedor del local, empleados con habilidad, experiencia, ánimo y sueldo (renuncian si los pagas mal), capacitar, ascender a gerente (toma pedidos y cobra por ti mientras estás dentro), ramas locales, y `sim.mercado` (demanda e insumos que llegan del mundo).
+- **Equilibrio**: `node nucleo/herramientas/equilibrio.mjs` juega ambos giros con un bot; la cafetería quedó a ±4% del restaurante (se ajustaron sus precios y XP en `config/cafeteria.json`). Lo protege una prueba.
+- **Ajustes rápidos**: número de rivales del modo solo → `iniciarSolo()` en `main.js` (`new Servidor({ rivales: 3 })`, 0 = sin rivales); ritmo y capital → `PERFILES` en `rivales.js`; constantes económicas → inicio de `mundo.js`.
+- Una sala con amigos **no** trae rivales por defecto (`new Servidor()`); se activan con `new Servidor({ rivales: n })`. Un mundo guardado antes de esta versión recibe sus rivales una sola vez al abrirlo (si el servidor se creó con `rivales > 0`).
+- Compatibilidad: todos los campos nuevos son opcionales y se validan al cargar; una partida o mundo anterior sigue cargando (hay pruebas con formato viejo y con datos corruptos).
+- **Service worker**: cada módulo nuevo debe estar en la lista de `sw.js` (ya añadidos; caché `puvegame-v9`).
+
 ## Reglas de datos importantes
 - La cuenta solo recibe autoguardados tras una migración confirmada (vínculo por giro). Antes, nada se escribe en ella.
 - La cuenta SIMULADA vive en este navegador y no tiene contraseña. No es seguridad real.
@@ -44,7 +59,13 @@ Sirve el juego y las salas (WebSocket en `/ws`) y guarda cada sala en `datos/` (
 - `migrations/PROPUESTA_001_juego.sql` y `adapters/supabase/` NO están activos ni conectados.
 - El QR reutiliza el generador propio de PUVE (`PUVE/pruebas/qr.js`), sin dependencias externas.
 
-## Pendiente
+## Pendiente (fuera de las fases 1 y 2)
+- El restaurante propio sigue simulándose en el navegador: dinero y XP del local no los valida el servidor (el servidor sí valida todo lo de franquicias). Validarlo es la Fase 4 del plan.
+- No incluido todavía: contratos de catering con plazo y penalización, subastas, sociedades, fusiones entre rivales, rivales humanos vs. bots en salas con rivales por defecto, chat, sprites propios para rivales (se ven como lotes de otro color) y el panel para elegir cuántos rivales jugar.
+- El gerente del local solo actúa mientras estás dentro del local (la simulación interior se pausa al salir a la ciudad); en las franquicias sí trabaja siempre.
+- Las etapas de la campaña solo bloquean funciones en la interfaz.
+
+## Pendiente (anterior)
 Hoja de sprites real (ver lista); accesibilidad y localización completas; NPC y negocios ajenos en la ciudad; rendimiento en móviles reales.
 
 ## Parches propuestos para PUVE (NO aplicados)

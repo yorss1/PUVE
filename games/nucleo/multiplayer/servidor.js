@@ -4,7 +4,7 @@ import { Sala } from './sala.js';
 import { Mundo } from './mundo.js';
 const GIROS = ['restaurante', 'cafeteria'];
 export class Servidor {
-  constructor({ ahora = Date.now, rnd } = {}) { this.ahora = ahora; this.rnd = rnd; this.sala = null; this.mundo = new Mundo({ ahora }); this.enviado = new Map(); this.token = null; }
+  constructor({ ahora = Date.now, rnd, rivales = 0 } = {}) { this.ahora = ahora; this.rnd = rnd; this.nRivales = Math.max(0, Math.min(8, Math.floor(rivales) || 0)); this.sala = null; this.mundo = new Mundo({ ahora }); this.enviado = new Map(); this.token = null; }
   get id() { return this.sala?.id ?? null; }
   _a(cid, msg) { return [{ para: cid, msg }]; }
   manejar(cid, m) {
@@ -15,7 +15,7 @@ export class Servidor {
         if (s) return this._a(cid, { t: 'resp', ok: false, msg: 'La sala ya existe' });
         if (!GIROS.includes(m.giro)) return this._a(cid, { t: 'resp', ok: false, msg: 'Giro inválido' });
         this.sala = new Sala({ giro: m.giro, hostCid: cid, nombreHost: m.nombre, ahora: this.ahora, rnd: this.rnd });
-        this.mundo.alta(cid, this.sala.miembros.get(cid).nombre); this.token = this.sala.invitar();
+        this.mundo.alta(cid, this.sala.miembros.get(cid).nombre); this.mundo.giro = m.giro; this.mundo.sembrar(this.nRivales); this.token = this.sala.invitar();
         return this._a(cid, { t: 'creada', id: this.sala.id, token: this.token, giro: m.giro });
       }
       case 'unir': {
@@ -44,13 +44,17 @@ export class Servidor {
     }
     return out;
   }
-  exportar() { const s = this.sala; return s ? { id: s.id, giro: s.giro, hostCid: s.hostCid, miembros: [...s.miembros.values()].map(m => ({ cid: m.cid, nombre: m.nombre, look: m.look })), token: this.token, mundo: this.mundo.serializar() } : null; }
+  exportar() { const s = this.sala; return s ? { id: s.id, giro: s.giro, hostCid: s.hostCid, miembros: [...s.miembros.values()].map(m => ({ cid: m.cid, nombre: m.nombre, look: m.look })), token: this.token, ts: this.ahora(), rivales: this.nRivales, mundo: this.mundo.serializar() } : null; }
   importar(d) {
     if (!d || !/^[0-9a-f]{12}$/.test(d.id) || !GIROS.includes(d.giro) || typeof d.hostCid !== 'string') return false;
     const s = new Sala({ giro: d.giro, hostCid: d.hostCid, nombreHost: 'x', ahora: this.ahora, rnd: this.rnd }); s.id = d.id; s.miembros.clear();
     for (const m of d.miembros || []) if (typeof m.cid === 'string') { s._alta(m.cid, m.nombre); s.miembros.get(m.cid).look = m.look && typeof m.look === 'object' ? m.look : {}; }
     if (!s.miembros.has(d.hostCid)) return false;
     this.sala = s; if (typeof d.token === 'string') { s.inv.set(d.token, { exp: this.ahora() + 600000, usos: 3 }); this.token = d.token; }
-    return this.mundo.restaurar(d.mundo);
+    if (!this.mundo.restaurar(d.mundo)) return false;
+    this.mundo.giro = d.giro; if (Number.isFinite(d.rivales)) this.nRivales = Math.max(0, Math.min(8, Math.floor(d.rivales)));
+    else if (this.nRivales > 0) this.mundo.sembrar(this.nRivales);   // mundo guardado antes de existir los rivales: se incorporan una sola vez
+    if (Number.isFinite(d.ts) && this.ahora() - d.ts > 0) this.mundo.ausencia(this.ahora() - d.ts);   // tiempo fuera: se simula con límites y se deja un informe
+    return true;
   }
 }

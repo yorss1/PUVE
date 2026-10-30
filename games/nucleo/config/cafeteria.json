@@ -18,36 +18,36 @@
   {
    "id": "americano",
    "n": "Americano",
-   "precio": 35,
+   "precio": 41,
    "t": 3,
-   "xp": 5,
+   "xp": 6,
    "nivel": 1,
    "c": "#6b3f23"
   },
   {
    "id": "capuchino",
    "n": "Capuchino",
-   "precio": 55,
+   "precio": 64,
    "t": 4,
-   "xp": 7,
+   "xp": 8,
    "nivel": 1,
    "c": "#d9b38c"
   },
   {
    "id": "pan",
    "n": "Pan dulce",
-   "precio": 30,
+   "precio": 35,
    "t": 2,
-   "xp": 4,
+   "xp": 5,
    "nivel": 1,
    "c": "#e0a030"
   },
   {
    "id": "pastel",
    "n": "Pastel",
-   "precio": 75,
+   "precio": 88,
    "t": 4,
-   "xp": 10,
+   "xp": 11,
    "nivel": 2,
    "c": "#e8a0b8"
   }
