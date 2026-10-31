@@ -10,7 +10,7 @@ Lo específico de cada giro vive solo en `nucleo/config/<giro>.json` (mapa, plat
 
 ## Pruebas
 Desde la carpeta `games/`:
-- `node nucleo/tests/sim.test.mjs` (13) · `persistencia.test.mjs` (7) · `ciudad.test.mjs` (7) · `sala.test.mjs` (7) · `mundo.test.mjs` (11, incluye fuzz de 4000 operaciones) · `servidor.test.mjs` (8) · `ws.test.mjs` (5: servidor real con clientes WebSocket reales) · `economia.test.mjs` (12) · `rivales.test.mjs` (10) · `fase2.test.mjs` (13, incluye equilibrio de giros) · `paneles.test.mjs` (5: interfaz con DOM simulado, pulsa todos los botones). Todo junto: `for t in sim persistencia ciudad sala mundo servidor ws economia rivales fase2 paneles; do node nucleo/tests/$t.test.mjs | tail -1; done`.
+- `node nucleo/tests/sim.test.mjs` (13) · `persistencia.test.mjs` (7) · `ciudad.test.mjs` (7) · `sala.test.mjs` (7) · `mundo.test.mjs` (11, incluye fuzz de 4000 operaciones) · `servidor.test.mjs` (8) · `ws.test.mjs` (6: servidor real con clientes WebSocket reales, incluye chat y sociedad) · `economia.test.mjs` (12) · `rivales.test.mjs` (10) · `fase2.test.mjs` (13, incluye equilibrio de giros) · `fase3.test.mjs` (13, incluye un fuzz de 3500 operaciones mezcladas) · `paneles.test.mjs` (6: interfaz con DOM simulado, pulsa todos los botones). Todo junto: `for t in sim persistencia ciudad sala mundo servidor ws economia rivales fase2 fase3 paneles; do node nucleo/tests/$t.test.mjs | tail -1; done`.
 - Probado además en Chromium (PC y móvil vertical): tutorial, avatares, cuenta y migración, sprites con y sin archivos, ciudad, dos jugadores en navegadores independientes contra el servidor real (sala por QR, inversión, compra de lotes, competencia, rechazo de trampas, reconexión tras reiniciar el servidor) y salas de prueba entre pestañas. No se probó en teléfonos reales ni con Internet real (solo localhost).
 
 ## Sprites (arte)
@@ -52,6 +52,20 @@ Módulos nuevos en `nucleo/economia/` (puros, sin DOM ni red, probados con node)
 - Compatibilidad: todos los campos nuevos son opcionales y se validan al cargar; una partida o mundo anterior sigue cargando (hay pruebas con formato viejo y con datos corruptos).
 - **Service worker**: cada módulo nuevo debe estar en la lista de `sw.js` (ya añadidos; caché `puvegame-v9`).
 
+## Fase 3: competir y cooperar (validación, contratos, subastas, sociedades, chat)
+Módulos del servidor en `nucleo/multiplayer/` (puros, probados con node; los usa `mundo.js`) y la lógica de rivales en `economia/rivales.js`.
+- **`validacion.js`** (validación del restaurante propio). El restaurante se simula en el navegador y no se puede reproducir en el servidor; lo que sí se hace es **acotarlo**: el cliente reporta cada 10 s totales acumulados (`ganado`, `xp`, `servidos`, `tiempo`, `semanas`) con la operación `local`, y el servidor solo acepta lo verosímil para el tiempo REAL transcurrido (`TASA_DINERO` 30 $/s, `TASA_XP` 6/s, `TASA_SERV` 1.5/s; un jugador ideal logra ~10 $/s). `invertir` solo puede sacar dinero de las ganancias aceptadas (`credito`; hay 1,500 de partida). Lo que excede se descarta y suma una «sospecha». **No es antitrampa total** (alguien podría jugar «perfecto» al máximo ritmo permitido), pero acota el daño a un ritmo fijo. Se activa con `new Mundo({ estricto: true })`; el `Servidor` lo activa por defecto.
+- **Etapas en el servidor**: con `estricto`, las funciones avanzadas (especialidades, proveedores, contratos con proveedor, gerentes, ramas de cadena) exigen la etapa de campaña calculada **solo con datos que el servidor conoce o ha acotado**. La interfaz muestra la etapa del servidor.
+- **`contratos.js`** (catering): cada 40 turnos salen 3 ofertas iguales para todos (quien llega primero se la queda). Pagan por turno y piden **capacidad**; el contrato reserva cocina antes que los clientes habituales, así que uno grande puede saturar el local. Hay depósito (se devuelve si cumples ≥90%), multa por lo no entregado, bono al terminar y −1 de reputación si fallas. Los rivales también los toman según su perfil.
+- **`subastas.js`**: un jugador puede subastar una franquicia; la ciudad subasta cada 50 turnos el lote libre con mejor relación tránsito/competencia. La puja se retiene (no se puede gastar dos veces), hay puja mínima (+5%), antisniping (+2 turnos, máx. 3 veces) y todo el mundo ve líder y cierre. Los rivales pujan si el negocio les sale rentable.
+- **`sociedades.js`**: empresa con hasta 4 socios, caja compartida, franquicias, deuda y ramas propias (es un «jugador» más con cid `soc:N`). Roles (fundador, gerente, socio) y permisos (`operar`, `mejorar`, `comprar`, `vender`, `finanzas`) ajustables por el fundador. **Votación por mayoría** para préstamos, compras, ventas, repartos y disolución; historial de decisiones. Salir o disolver reparte en proporción a lo aportado. Se actúa en nombre de la sociedad añadiendo `soc: 'soc:N'` a la operación.
+- **Rivales** (`rivales.js`): **fusiones** (un rival sólido absorbe a otro en apuros: negocios, caja y deuda), **rescate** (`rescatar`: pagas parte de la deuda de un rival en apuros; no competirá contra ti y te devuelve el favor +15% cuando se recupere) y número ajustable en caliente (`ajustarRivales`, 0–8; la sala y el modo solo lo ofrecen de 0 a 4).
+- **Chat** (`servidor.js`): texto plano (200 caracteres, sin etiquetas), un mensaje cada 1.2 s, historial de 30 mensajes al entrar, el anfitrión puede silenciar o apagar el chat y cada jugador puede ocultar mensajes de alguien. **No hay filtro automático de palabras**: la moderación es del anfitrión. El historial viaja en `exportar()`.
+- **Salas con rivales**: `crear` acepta `rivales` (0–4); `{ t: 'rivales', n }` lo cambia (solo anfitrión).
+- **Ausencia del local** (`Sim.ausencia`): si tienes **gerente y personal**, tu local sigue abierto mientras estás en la calle o fuera del juego: el gerente toma pedidos, cobra y surte y el equipo cocina. Máximo 15 minutos, **la mitad de la ganancia** (`EFIC_AUSENCIA`) y la reputación no cae más de 1 punto. Sin gerente simplemente cierra.
+- **Interfaz**: emblemas propios en el rótulo de cada lote (▲ agresivo, ◆ estratega, ■ tradicionalista, ● oportunista, ⚭ sociedad), marca verde en lotes en venta y destello amarillo en lotes en subasta; paneles de Contratos, Subastas, Sociedad, Chat y selector de rivales.
+- **Mensajes nuevos al servidor**: `local`, `contrato`, `pujar`, `subastar`, `retirarSubasta`, `rescatar`, `soc_*`, `votar` (por `eco`), y `chat`, `chat_config`, `rivales` (directos). Las respuestas de moderación usan `t: 'aviso'`, no `resp` (un `resp` con error saca de la sala).
+
 ## Reglas de datos importantes
 - La cuenta solo recibe autoguardados tras una migración confirmada (vínculo por giro). Antes, nada se escribe en ella.
 - La cuenta SIMULADA vive en este navegador y no tiene contraseña. No es seguridad real.
@@ -59,11 +73,15 @@ Módulos nuevos en `nucleo/economia/` (puros, sin DOM ni red, probados con node)
 - `migrations/PROPUESTA_001_juego.sql` y `adapters/supabase/` NO están activos ni conectados.
 - El QR reutiliza el generador propio de PUVE (`PUVE/pruebas/qr.js`), sin dependencias externas.
 
-## Pendiente (fuera de las fases 1 y 2)
-- El restaurante propio sigue simulándose en el navegador: dinero y XP del local no los valida el servidor (el servidor sí valida todo lo de franquicias). Validarlo es la Fase 4 del plan.
-- No incluido todavía: contratos de catering con plazo y penalización, subastas, sociedades, fusiones entre rivales, rivales humanos vs. bots en salas con rivales por defecto, chat, sprites propios para rivales (se ven como lotes de otro color) y el panel para elegir cuántos rivales jugar.
-- El gerente del local solo actúa mientras estás dentro del local (la simulación interior se pausa al salir a la ciudad); en las franquicias sí trabaja siempre.
-- Las etapas de la campaña solo bloquean funciones en la interfaz.
+## Pendiente
+- **Fase 4 del plan**: nuevas ciudades, eventos especiales de temporada, desafíos, prestigio/reinicio y clasificaciones públicas. No se tocó.
+- **Antitrampa total**: la validación del restaurante es por verosimilitud (ver arriba). Reproducir la simulación en el servidor sería lo único que lo cierra del todo.
+- **Arte**: los emblemas son procedurales (píxeles dibujados por código), no una hoja de sprites. Los rivales no tienen personaje que camine por la ciudad.
+- **Sociedades**: máximo 4 socios y una sociedad por persona; no se puede pujar «en nombre de la sociedad» desde la interfaz (la operación sí lo admite con `soc`); un rival de la computadora no puede ser socio (el rescate es un trato, no una sociedad).
+- **Chat**: sin filtro automático de palabras ni reportes.
+- **Gerente del local**: la ausencia se simula como máximo 15 minutos y a la mitad de rendimiento a propósito.
+- **Sin probar en dispositivos reales**: rendimiento en móviles de gama baja, táctil real y WebSocket por internet (solo se probó en Chromium de escritorio con viewport de teléfono y con el servidor Node local).
+- Localización y accesibilidad completas.
 
 ## Pendiente (anterior)
 Hoja de sprites real (ver lista); accesibilidad y localización completas; NPC y negocios ajenos en la ciudad; rendimiento en móviles reales.

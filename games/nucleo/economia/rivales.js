@@ -2,6 +2,8 @@
 // (m._exec), con su propio capital. No reciben dinero de la nada: solo capital inicial y, tras retirarse, un único regreso con socios.
 // Todas sus decisiones son deterministas (semilla + turno + id): recargar o simular offline no cambia el resultado.
 import { lotes, trafico, distLotes, LOTE_INICIAL } from '../world/ciudad.js';
+import { capacidad, ofertasAbiertas } from '../multiplayer/contratos.js';
+import { minimaPuja } from '../multiplayer/subastas.js';
 import { existe, azar, hash, efectoLote, eventosEntre, perfilBarrio, barrioDeLote, ESPECIALIDADES } from './mercado.js';
 
 export const PERFILES = {
@@ -13,12 +15,13 @@ export const PERFILES = {
 const ORDEN = ['agresivo', 'estratega', 'tradicionalista', 'oportunista'];
 const CAJA = 800, REGRESO = 900, MAX_REGRESOS = 2, DIAS_RETIRO = 90;
 const humano = (m, cid) => { const p = m.j.get(cid); return !!p && !p.npc; };
-const nuevoNpc = (perfil, prox) => ({ perfil, estado: 'activo', prox, mem: [], rencor: {}, retiradoT: 0, regresos: 0, vistos: [], ult: 0 });
+const nuevoNpc = (perfil, prox) => ({ perfil, estado: 'activo', prox, mem: [], rencor: {}, retiradoT: 0, regresos: 0, vistos: [], ult: 0, aliados: {}, deben: {}, ultFusion: 0, ultRescate: 0 });
 export function limpiarNpc(n) {
   if (!n || !existe(PERFILES, n.perfil)) return null; const e = x => (Number.isFinite(x) ? Math.max(0, Math.min(1e9, Math.floor(x))) : 0);
-  const r = nuevoNpc(n.perfil, e(n.prox)); r.estado = n.estado === 'retirado' ? 'retirado' : 'activo'; r.retiradoT = e(n.retiradoT); r.ult = e(n.ult); r.regresos = Math.min(MAX_REGRESOS, e(n.regresos));
+  const r = nuevoNpc(n.perfil, e(n.prox)); r.estado = ['retirado', 'fusionado'].includes(n.estado) ? n.estado : 'activo'; r.ultFusion = e(n.ultFusion); r.ultRescate = e(n.ultRescate); r.retiradoT = e(n.retiradoT); r.ult = e(n.ult); r.regresos = Math.min(MAX_REGRESOS, e(n.regresos));
   r.mem = (Array.isArray(n.mem) ? n.mem : []).slice(-12).filter(x => x && typeof x.k === 'string').map(x => ({ t: e(x.t), k: x.k.slice(0, 16), cid: typeof x.cid === 'string' ? x.cid.slice(0, 40) : undefined }));
   if (n.rencor && typeof n.rencor === 'object') for (const k of Object.keys(n.rencor).slice(0, 8)) r.rencor[k.slice(0, 40)] = Math.min(99, e(n.rencor[k]));
+  for (const k of ['aliados', 'deben']) if (n[k] && typeof n[k] === 'object') for (const c of Object.keys(n[k]).slice(0, 8)) r[k][c.slice(0, 40)] = Math.min(1e7, e(n[k][c]));
   r.vistos = (Array.isArray(n.vistos) ? n.vistos : []).slice(-60).filter(x => typeof x === 'string').map(x => x.slice(0, 12)); return r;
 }
 const giroRival = (m, p) => { const g = m.giro, o = g === 'restaurante' ? 'cafeteria' : 'restaurante'; const pf = p.npc.perfil;
@@ -46,6 +49,7 @@ export function sembrarRivales(m, n) {
 export function turnoRivales(m) {
   for (const p of m.j.values()) {
     const n = p.npc; if (!n) continue;
+    if (n.estado === 'fusionado') continue;
     if (n.estado === 'retirado') { if (n.regresos < MAX_REGRESOS && m.turno - n.retiradoT >= DIAS_RETIRO && azar(m.seed, m.turno, hash(p.cid), 7) < .1) regresar(m, p); continue; }
     if (m.turno < n.prox) continue;
     n.prox = m.turno + PERFILES[n.perfil].intervalo + hash(m.seed, m.turno, hash(p.cid)) % 3; decidir(m, p);
@@ -61,25 +65,26 @@ const propias = (m, p) => { const r = []; for (const [id, o] of m.o) if (o.dueno
 function observar(m, p) {                       // memoria: quién abre cerca de mí
   const n = p.npc, mias = propias(m, p); if (!mias.length) return;
   for (const [id, o] of m.o) {
-    if (o.dueno === p.cid || !humano(m, o.dueno) || n.vistos.includes(id)) continue;
+    if (o.dueno === p.cid || !humano(m, o.dueno) || n.vistos.includes(id) || n.aliados[o.dueno]) continue;
     if (mias.some(([mid]) => distLotes(m.lote(id), m.lote(mid)) <= 12)) { n.vistos.push(id); if (n.vistos.length > 60) n.vistos.shift(); n.rencor[o.dueno] = (n.rencor[o.dueno] || 0) + 1; n.mem.push({ t: m.turno, k: 'cerca', cid: o.dueno }); if (n.mem.length > 12) n.mem.shift(); }
   }
 }
-function puntuar(m, p, c, ctx) {
+export function puntuar(m, p, c, ctx) {
   const n = p.npc, P = PERFILES[n.perfil], l = c.lote, id = barrioDeLote(l); let efl = ctx.efl.get(id); if (!efl) { efl = efectoLote(m.seed, l, m.turno, ctx.evs); ctx.efl.set(id, efl); }
-  let comp = 0, cercaJ = 0, propiasCerca = 0;
-  for (const [oid, o] of m.o) { if (oid === l.id) continue; const d = distLotes(l, m.lote(oid)); if (d <= 40) comp += o.tipo === 'hogar' ? 1.25 : 1 + .35 * (o.nivel - 1); if (o.dueno === p.cid) { if (d <= 28) propiasCerca++; } else if (humano(m, o.dueno) && d <= 16) cercaJ += 1 + (n.rencor[o.dueno] || 0) * .5; }
+  let comp = 0, cercaJ = 0, propiasCerca = 0, aliadoCerca = false;
+  for (const [oid, o] of m.o) { if (oid === l.id) continue; const d = distLotes(l, m.lote(oid)); if (d <= 40) comp += o.tipo === 'hogar' ? 1.25 : 1 + .35 * (o.nivel - 1); if (o.dueno === p.cid) { if (d <= 28) propiasCerca++; } else if (humano(m, o.dueno) && d <= 16) { if (n.aliados[o.dueno]) aliadoCerca = true; else cercaJ += 1 + (n.rencor[o.dueno] || 0) * .5; } }
   const nivel = c.o ? c.o.nivel : 1, roi = 100 * trafico(l) * 16 * efl.dem / (1 + comp) * (1 + .5 * (nivel - 1)) / c.precio;
   let s = roi + azar(m.seed, m.turno, hash(p.cid), l.cx * 7 + l.cy) * .4;
   if (n.perfil === 'agresivo') s += 2.5 * Math.min(cercaJ, 3);
   else if (n.perfil === 'estratega') { if (comp === 0) s *= 1.4; if (efl.dem > 1.05) s *= 1.15; s *= cercaJ ? .7 : 1; }
   else if (n.perfil === 'tradicionalista') { if (propiasCerca) s *= 1.3; else if (mioCount(m, p)) s *= .5; }
   else s *= c.venta ? 1.6 : .65;
+  if (aliadoCerca) s *= .4;                       // no compite contra quien lo rescató
   const minimo = n.perfil === 'oportunista' ? (c.venta ? P.minRoi * .7 : 8) : P.minRoi;
   return roi >= minimo ? s : -1;
 }
 const mioCount = (m, p) => propias(m, p).length;
-function candidatos(m, p, ctx) {
+export function candidatos(m, p, ctx) {
   const r = [];
   for (const [id, o] of m.o) if (o.enVenta != null && o.tipo === 'franquicia' && o.dueno !== p.cid) r.push({ lote: m.lote(id), precio: o.enVenta, venta: true, o });
   const libres = lotesLibres(m, 3);
@@ -103,10 +108,10 @@ function decidir(m, p) {
   // 2) pagar deuda con el excedente
   if (p.deuda > 0 && p.dinero > minCaja * 1.5) m._exec(p, { op: 'abonar', monto: Math.min(p.deuda, p.dinero - minCaja) });
   // 3) políticas de precio, promoción y especialidad
-  const hum = [...m.j.values()].filter(q => !q.npc), top = hum.sort((a, b) => m.patrimonio(b) - m.patrimonio(a))[0];
+  const hum = [...m.j.values()].filter(q => !q.npc && !n.aliados[q.cid]), top = hum.sort((a, b) => m.patrimonio(b) - m.patrimonio(a))[0];
   for (const [id, o] of mias) {
     const l = m.lote(id); let cercaH = false, rivalesCerca = 0;
-    for (const [oid, q] of m.o) { if (oid === id || q.dueno === p.cid) continue; const d = distLotes(l, m.lote(oid)); if (d <= 20) { rivalesCerca++; if (humano(m, q.dueno)) cercaH = true; } }
+    for (const [oid, q] of m.o) { if (oid === id || q.dueno === p.cid) continue; const d = distLotes(l, m.lote(oid)); if (d <= 20) { rivalesCerca++; if (humano(m, q.dueno) && !n.aliados[q.dueno]) cercaH = true; } }
     if (n.perfil === 'agresivo') {
       if (cercaH && top && m.patrimonio(top) > m.patrimonio(p) * 1.15 && flujo > 0) { if (o.p > 1) m._exec(p, { op: 'ajustar', lote: id, precio: 1 }); if (p.dinero > minCaja * 1.5 && !(o.promo > T) && promoVale(m, p, id)) m._exec(p, { op: 'promocion', lote: id }); }
       else if (flujo < 0 && o.p < 2) m._exec(p, { op: 'ajustar', lote: id, precio: 2 });
@@ -115,8 +120,28 @@ function decidir(m, p) {
       if (ESPECIALIDADES[esp]) m._exec(p, { op: 'ajustar', lote: id, esp });
     } else if (n.perfil === 'oportunista' && rivalesCerca >= 2 && !(o.promo > T) && p.dinero > minCaja * 1.5 + 100 && promoVale(m, p, id)) m._exec(p, { op: 'promocion', lote: id });
   }
+  // devuelve el favor a quien lo rescató (una sola vez, con 15% de interés)
+  for (const [cid, monto] of Object.entries(n.deben)) {
+    const q = m.j.get(cid), pago = Math.round(monto * 1.15); if (!q) { delete n.deben[cid]; continue; }
+    if (p.dinero >= minCaja * 2 + pago && p.deuda === 0) { m._mov(p, 'rescate', -pago); m._mov(q, 'rescate', pago); delete n.deben[cid]; m._noticia('rival', `${p.nombre} devolvió el favor a ${q.nombre} con intereses: la alianza sigue en pie.`); m._ev(q, `${p.nombre} te devolvió $${pago} por tu rescate`); }
+  }
+  fusionar(m, p, flujo, minCaja);
   // retiro de utilidades: los dueños no acumulan caja sin límite (sale del libro como 'retiro')
   const exceso = p.dinero - (minCaja * 3 + 1500); if (exceso > 100 && p.deuda === 0) m._mov(p, 'retiro', -Math.floor(exceso * .5));
+  // contratos de catering: solo los que su cocina puede cumplir (cada perfil exige un margen distinto de capacidad)
+  const margen = { agresivo: 1, estratega: 1.25, tradicionalista: 1.3, oportunista: 1.1 }[n.perfil];
+  for (const [id, o] of mias) {
+    if (m.cont.has(id)) continue; const cap = capacidad(o, ef), of = ofertasAbiertas(m).filter(x => cap >= x.req * margen && p.dinero >= x.deposito + minCaja).sort((a, b) => b.pago * b.plazo - a.pago * a.plazo)[0];
+    if (of && m._exec(p, { op: 'contrato', oferta: of.id, lote: id }).ok) break;
+  }
+  // subastas abiertas: puja mientras el negocio siga rindiendo lo mínimo que exige su personalidad
+  if (!hizo() && mias.length < m.maxFranq(p)) {
+    const ctx = { evs: eventosEntre(m.seed, T), efl: new Map() };
+    for (const sb of m.sub.values()) {
+      if (sb.vendedor === p.cid || sb.mejor?.cid === p.cid) continue; const puja = minimaPuja(sb); if (p.dinero - puja < minCaja) continue;
+      const o = m.o.get(sb.lote); if (puntuar(m, p, { lote: m.lote(sb.lote), precio: puja, venta: !!o, o: o || null }, ctx) > 0 && m._exec(p, { op: 'pujar', lote: sb.lote, monto: puja }).ok) { n.mem.push({ t: T, k: 'puja' }); break; }
+    }
+  }
   if (hizo()) return;
   // 4) expansión: el mejor lote o local en venta según la personalidad
   if (mias.length < m.maxFranq(p) && T - n.ult >= P.enfria) {
@@ -142,4 +167,44 @@ function aviso(m, p, c) {
   const l = c.lote, b = perfilBarrio(m.seed, barrioDeLote(l)).nombre, g = m.o.get(l.id)?.giro;
   m._noticia('rival', c.venta ? `${p.nombre} aprovechó una oferta y compró una franquicia en ${b}.` : `${p.nombre} abrió ${articulo(g)} en ${b}.`);
   for (const q of m.j.values()) if (!q.npc) { let cerca = null; for (const [id, o] of m.o) if (o.dueno === q.cid && distLotes(l, m.lote(id)) <= 10) { cerca = o.tipo === 'hogar' ? 'tu local' : 'una de tus franquicias'; break; } if (cerca) m._noticia('rival', `¡${p.nombre} abrió ${articulo(g)} justo al lado de ${cerca}!`, q.cid); }
+}
+
+// ---------- fusiones: un rival sólido absorbe a otro en apuros (negocios, caja y deuda) ----------
+const FUSIONAN = ['estratega', 'tradicionalista', 'agresivo'];
+function fusionar(m, p, flujo, minCaja) {
+  const n = p.npc; if (!FUSIONAN.includes(n.perfil) || m._offline || m.turno - n.ultFusion < 80 || flujo <= 0 || p.dinero < minCaja * 3) return;
+  if (azar(m.seed, m.turno, hash(p.cid), 11) > .3) return;
+  const mias = propias(m, p); let mejor = null;
+  for (const v of m.j.values()) {
+    if (!v.npc || v === p || v.npc.estado !== 'activo') continue; const sus = propias(m, v); if (!sus.length || mias.length + sus.length > m.maxFranq(p)) continue;
+    const fl = sus.reduce((a, [id]) => a + (v.ingresos[id] ?? 0), 0), lim = m.limiteDeuda(v), crisis = fl <= 0 || (lim > 0 && v.deuda / lim > .5); if (!crisis) continue;
+    if (p.deuda + v.deuda > .8 * m.limiteDeuda(p)) continue; const valor = sus.reduce((a, [id, o]) => a + m.valor(id, o), 0); if (!mejor || valor > mejor.valor) mejor = { v, valor, sus };
+  }
+  if (!mejor) return;
+  const { v, sus } = mejor; for (const [id, o] of sus) { o.dueno = p.cid; o.enVenta = null; const c = m.cont.get(id); if (c) c.cid = p.cid; }
+  const d = v.dinero; if (d) { m._mov(v, 'fusion', -d); m._mov(p, 'fusion', d); } p.deuda += v.deuda; v.deuda = 0; v.ingresos = {};
+  v.npc.estado = 'fusionado'; v.npc.regresos = MAX_REGRESOS; n.ultFusion = m.turno; n.mem.push({ t: m.turno, k: 'fusion', cid: v.cid });
+  m._noticia('rival', `${p.nombre} absorbió a ${v.nombre} (${sus.length} franquicia${sus.length > 1 ? 's' : ''}) y asumió sus deudas.`);
+}
+
+// ---------- rescate: una persona ayuda a un rival en apuros y gana un aliado que luego le devuelve el favor ----------
+export function opRescatar(m, p, msg) {
+  const fail = t => ({ ok: false, msg: t }), v = typeof msg.rival === 'string' ? m.j.get(msg.rival) : null; if (!v?.npc || v.npc.estado !== 'activo') return fail('Ese rival no puede ser rescatado');
+  const x = msg.monto; if (!Number.isSafeInteger(x) || x <= 0) return fail('Monto inválido'); const sus = propias(m, v), fl = sus.reduce((a, [id]) => a + (v.ingresos[id] ?? 0), 0), lim = m.limiteDeuda(v);
+  if (v.deuda <= 0 || !(fl < 0 || (lim > 0 && v.deuda / lim > .5))) return fail(`${v.nombre} no está en apuros`); if (x > v.deuda) return fail(`Solo debe $${v.deuda}`); if (x > p.dinero) return fail('No te alcanza en tu cuenta de franquicias');
+  if (v.npc.ultRescate > 0 && m.turno - v.npc.ultRescate < 30) return fail('Ya recibió ayuda hace poco');
+  m._mov(p, 'rescate', -x); m._mov(v, 'rescate', x); m._mov(v, 'abono', -x); v.deuda -= x; const n = v.npc; n.ultRescate = Math.max(1, m.turno); n.aliados[p.cid] = (n.aliados[p.cid] || 0) + 1; n.deben[p.cid] = (n.deben[p.cid] || 0) + x; delete n.rencor[p.cid]; n.mem.push({ t: m.turno, k: 'rescate', cid: p.cid });
+  m._noticia('rival', `${p.nombre} rescató a ${v.nombre} pagando $${x} de su deuda. ¿Nace una alianza?`); return { ok: true, msg: `${v.nombre} te lo agradece: no competirá contra ti y te devolverá el favor con intereses cuando se recupere.` };
+}
+
+// ---------- cuántos rivales hay ----------
+const indice = cid => Number(String(cid).split(':')[2]);
+export function quitarRival(m, p) {
+  for (const [id, o] of [...m.o]) if (o.dueno === p.cid) { m.o.delete(id); m.cont.delete(id); }
+  m._noticia('rival', `${p.nombre} cierra todos sus negocios y deja la ciudad.`); m.j.delete(p.cid);
+}
+export function ajustarRivales(m, n) {
+  n = Math.max(0, Math.min(8, Math.floor(n) || 0)); sembrarRivales(m, n);
+  for (const p of [...m.j.values()]) if (p.npc && indice(p.cid) >= n) quitarRival(m, p);
+  return [...m.j.values()].filter(p => p.npc).length;
 }

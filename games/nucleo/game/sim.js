@@ -7,7 +7,8 @@ const SOL = new Set('#tKRFxmvBp');
 const D4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 const num = (v, a, b, d) => (Number.isFinite(v) ? Math.min(b, Math.max(a, v)) : d);
 const NOMBRES_EMP = ['Lalo', 'Mari', 'Beto', 'Ana', 'Chuy', 'Rosa', 'Nico', 'Tere'];
-export const ST0 = () => ({ servidos: 0, perdidos: 0, racha: 0, mejor: 0, tiempo: 0, semana: 0, semanas: 0, apuros: 0 });
+export const EFIC_AUSENCIA = .5;
+export const ST0 = () => ({ ganado: 0, servidos: 0, perdidos: 0, racha: 0, mejor: 0, tiempo: 0, semana: 0, semanas: 0, apuros: 0 });
 export const espera = hab => 6 + 3 * hab;                 // sueldo por minuto que un empleado considera justo
 
 export class Sim {
@@ -16,7 +17,7 @@ export class Sim {
     this.g = cfg.mapa.map(r => r.split(''));
     this.H = this.g.length; this.W = this.g[0].length;
     this.d = { dinero: cfg.inicial.dinero, xp: 0, rep: 5, stock: cfg.inicial.stock, comp: [], st: ST0(), prov: 'mercado', ramas: [] };
-    this.ef = efectos([]); this.mercado = { dem: 1, ing: 1 }; this.avisos = []; this._min = 0; this._seg = 0; this._tc = 0; this._apuro = 0;
+    this.ef = efectos([]); this.mercado = { dem: 1, ing: 1 }; this.avisos = []; this._min = 0; this._seg = 0; this._tc = 0; this._ts = 0; this._apuro = 0;
     this.tickets = []; this.clientes = []; this.emps = []; this.cuentas = []; this.libro = [];
     this.est = []; this.cajas = []; this.refris = []; this.tableros = [];
     this.llevando = null; this.spawn = 2; this.p = { x: 1.5, y: 1.5, dir: 1 }; this.puerta = null;
@@ -141,7 +142,7 @@ export class Sim {
   _cobrar() {
     const lst = this.cuentas; this.cuentas = []; let m = 0, x = 0; const n0 = this.nivel;
     for (const c of lst) { m += c.monto; x += c.xp; }
-    this.d.dinero += m; this.d.xp += x; this.d.rep = Math.min(10, this.d.rep + Math.max(.02, .1 + this.ef.repServ + (this.prov.cal - 1) * .5) * lst.length); this._log('cobro', m);
+    this.d.dinero += m; this.d.st.ganado += m; this.d.xp += x; this.d.rep = Math.min(10, this.d.rep + Math.max(.02, .1 + this.ef.repServ + (this.prov.cal - 1) * .5) * lst.length); this._log('cobro', m);
     return { msg: `+$${m}` + (this.nivel > n0 ? ` · ¡Nivel ${this.nivel}!` : ''), fx: 'moneda' };
   }
 
@@ -175,7 +176,7 @@ export class Sim {
       const costo = this.costoSurtir();
       if (this.d.stock + 5 > this.cfg.maxStock) return { msg: 'Almacén lleno' };
       if (this.d.dinero < costo) return { msg: `Surtir cuesta $${costo}` };
-      return { msg: `Surtir +5 ($${costo})`, run: () => { this.d.dinero -= costo; this.d.stock += 5; this._log('surtir', -costo); return { msg: '+5 ingredientes' }; } };
+      return { msg: `Surtir +5 ($${costo})`, run: () => this._surtir() };
     }
     if (this.tableros.some(cerca)) return { msg: 'Mejoras', run: () => ({ tienda: true }) };
     return null;
@@ -262,6 +263,7 @@ export class Sim {
     e.tarea = null; e.ruta = []; this._exp(e);
   }
 
+  _surtir() { const costo = this.costoSurtir(); this.d.dinero -= costo; this.d.stock += 5; this._log('surtir', -costo); return { msg: '+5 ingredientes' }; }
   // ---- Fase 2: mercado, personal, proveedores y ramas del local ----
   _aviso(t) { this.avisos.push(t); if (this.avisos.length > 20) this.avisos.shift(); }
   _perfilEmp(mid) {                     // atributos de un empleado nuevo: deterministas (no tocan this.rnd)
@@ -284,6 +286,7 @@ export class Sim {
     if (g) {                           // el gerente toma pedidos y cobra por ti (en abstracto: no camina)
       for (const c of this.clientes) if (c.st === 'pide' && c.max - c.pac > 2.5) { const t = { id: this.nid++, c: c.id, plato: c.plato, estado: 'cola', res: null }; this.tickets.push(t); c.tk = t.id; c.st = 'espera'; }
       if (this.cuentas.length && this.t - this._tc > 6) { this._tc = this.t; this._cobrar(); }
+      if (this.d.stock < 2 && this.d.stock + 5 <= this.cfg.maxStock && this.d.dinero >= this.costoSurtir() && this.t - this._ts > 5) { this._ts = this.t; this._surtir(); }   // el gerente también hace las compras
     }
   }
   _nomina() {
@@ -320,5 +323,18 @@ export class Sim {
     this.d.dinero -= n.costo; this._log('rama:' + id, -n.costo); this.d.ramas.push(id); this.ef = efectos(this.d.ramas);
     if (n.ef.hab) for (const x of this.emps) x.hab = Math.min(5, x.hab + n.ef.hab);
     return { ok: true, msg: `${n.n}: ${n.pro}` };
+  }
+
+  // Mientras no estás, el local SOLO sigue abierto si hay gerente y equipo: el gerente toma pedidos, cobra y surta; el equipo cocina y sirve.
+  // Sin gerente simplemente cierra (no pierdes reputación por no estar). Se simula como máximo `max` segundos para que una ausencia larga no dispare nada.
+  ausencia(seg, { max = 900 } = {}) {
+    if (!this.gerente || !this.emps.length || !(seg >= 20)) return null; seg = Math.min(max, seg);
+    const a = { dinero: this.d.dinero, xp: this.d.xp, serv: this.d.st.servidos, perd: this.d.st.perdidos, rep: this.d.rep }, px = this.p.x, py = this.p.y;
+    const g0 = this.d.st.ganado; for (let t = 0; t < seg; t += .1) this.tick(.1); this.p.x = px; this.p.y = py;
+    // límites razonables: sin supervisión se aprovecha solo la mitad de lo ganado y la reputación no cae más de 1 punto
+    const dd = this.d.dinero - a.dinero, dx = this.d.xp - a.xp;
+    if (dd > 0) { this.d.dinero = a.dinero + Math.round(dd * EFIC_AUSENCIA); this.d.st.ganado = g0 + Math.round((this.d.st.ganado - g0) * EFIC_AUSENCIA); }
+    if (dx > 0) this.d.xp = a.xp + Math.round(dx * EFIC_AUSENCIA); this.d.rep = Math.max(this.d.rep, a.rep - 1);
+    return { seg: Math.round(seg), dinero: this.d.dinero - a.dinero, xp: this.d.xp - a.xp, servidos: this.d.st.servidos - a.serv, perdidos: this.d.st.perdidos - a.perd, rep: Math.round((this.d.rep - a.rep) * 10) / 10 };
   }
 }

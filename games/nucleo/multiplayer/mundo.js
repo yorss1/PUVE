@@ -3,7 +3,11 @@
 import { lotes, loteDe, trafico, distLotes, LOTE_INICIAL } from '../world/ciudad.js';
 import { existe, PRECIOS, ESPECIALIDADES, PROVEEDORES, GIROS_F, TIPOS_EVENTO, ADELANTO, CONTRATO_TURNOS, eventosEntre, efectoLote, costoInsumos, rasgos, encaje, valorPercibido, perfilBarrio, barrioDeLote, textoEvento } from '../economia/mercado.js';
 import { efectos, nodo, puedeNodo } from '../economia/ramas.js';
-import { turnoRivales, sembrarRivales, limpiarNpc } from '../economia/rivales.js';
+import { turnoRivales, sembrarRivales, limpiarNpc, opRescatar, ajustarRivales } from '../economia/rivales.js';
+import * as CT from './contratos.js';
+import * as SB from './subastas.js';
+import * as SO from './sociedades.js';
+import { reportarLocal, puerta, etapaServidor, nuevoLoc, limpiarLoc } from './validacion.js';
 export const TURNO_MS = 10000, MAX_TURNOS = 30, MAX_FRANQ = 6, RADIO = 40, CUPO_MAX = 1500, MEJORA_MAX = 5;
 export const MAX_OFFLINE = 360, INTERES = .012, PROMO_TURNOS = 6, PROMO_COSTO = .1, PROMO_BONO = .25, OFFLINE_ING = .7, SUELDO_GER = hab => 6 + 4 * hab;
 const COLORES = ['#d9822b', '#2f6b5f', '#b8402f', '#8a6bb0', '#4a7fb0', '#d9b38c'];
@@ -15,10 +19,12 @@ const lim = (x, a, b) => Math.min(b, Math.max(a, x));
 const entero = (x, a, b, d) => (Number.isFinite(x) ? Math.floor(lim(x, a, b)) : d);
 
 export class Mundo {
-  constructor({ seed = 7, ahora = Date.now } = {}) {
-    Object.assign(this, { seed, ahora }); this.j = new Map(); this.o = new Map(); this.v = 0; this.turno = 0; this.t0 = ahora();
-    this.noticias = []; this.nn = 1; this.giro = null; this._lc = new Map(); this._offline = false; this._compras = new Map();
+  constructor({ seed = 7, ahora = Date.now, estricto = false } = {}) {
+    Object.assign(this, { seed, ahora, estricto });          // estricto: el restaurante se valida por verosimilitud y las etapas bloquean funciones
+ this.j = new Map(); this.o = new Map(); this.v = 0; this.turno = 0; this.t0 = ahora();
+    this.noticias = []; this.nn = 1; this.giro = null; this._lc = new Map(); this._offline = false; this._compras = new Map(); this.cont = new Map(); this.hechas = []; this.sub = new Map(); this.nsoc = 1;
   }
+  valor(id, o) { return valorVenta(this.lote(id), o); }
   lote(id) { let l = this._lc.get(id); if (l === undefined) { l = loteDe(this.seed, id); this._lc.set(id, l); } return l; }
   precio(l) { return precioLote(l); }
   costoMejora(l, nivel) { return costoMejora(l, nivel); }
@@ -31,11 +37,12 @@ export class Mundo {
   _mov(p, tipo, x) { x = Math.round(x); p.dinero += x; p.c[tipo] = (p.c[tipo] || 0) + x; return x; }   // ÚNICA forma de mover dinero
   _nuevo(cid, nombre, hogar) {
     const p = { cid, nombre, color: COLORES[this.j.size % COLORES.length], dinero: 0, cupo: CUPO_MAX, cupoT: this.ahora(), hogar, eventos: [], ingresos: {}, vistos: new Map(),
-      deuda: 0, prov: 'mercado', contrato: null, ramas: [], st: { quiebras: 0, compradasVenta: 0, prestamos: 0, pagados: 0, contratos: 0 }, c: {}, informe: null, npc: null };
+      deuda: 0, prov: 'mercado', contrato: null, ramas: [], loc: nuevoLoc(), st: { quiebras: 0, compradasVenta: 0, prestamos: 0, pagados: 0, contratos: 0 }, c: {}, informe: null, npc: null, soc: null };
     this.j.set(cid, p); return p;
   }
   alta(cid, nombre) {
     if (this.j.has(cid)) return this.j.get(cid);
+    if (/^(soc|npc):/.test(String(cid))) return null;                     // esos prefijos son de la sociedad y de los rivales: nadie puede suplantarlos
     let hogar = null;
     const libre = l => l && !this.o.has(l.id);
     if (libre(this.lote(LOTE_INICIAL))) hogar = this.lote(LOTE_INICIAL);
@@ -44,6 +51,7 @@ export class Mundo {
     if (!hogar) return null;
     const p = this._nuevo(cid, nombre, hogar.id); this.o.set(hogar.id, { dueno: cid, nivel: 1, tipo: 'hogar', invertido: 0 }); this.v++; return p;
   }
+  ajustarRivales(n) { const r = ajustarRivales(this, n); this.v++; return r; }
   sembrar(n) { if (!(n > 0) || !this.j.size) return; sembrarRivales(this, n); this.v++; }   // rivales autónomos: se siembran tras el primer jugador
   _franquicia(giro) { return { dueno: null, nivel: 1, tipo: 'franquicia', invertido: 0, p: 2, esp: null, rep: 5, giro: existe(GIROS_F, giro) ? giro : null, recorte: false, ger: null, enVenta: null, promo: 0 }; }
   op(cid, m) {                                  // intención del cliente: idempotente por id, validada y atómica
@@ -51,17 +59,26 @@ export class Mundo {
     const id = String(m.id ?? ''); if (!id || id.length > 40) return fail('Operación inválida');
     if (p.vistos.has(id)) return p.vistos.get(id);
     this.avanzar();
-    const r = this._exec(p, m); p.vistos.set(id, r); if (p.vistos.size > 200) p.vistos.delete(p.vistos.keys().next().value);
+    const r = typeof m.op === 'string' && (m.soc !== undefined || SO.esOpSoc(m.op)) ? SO.exec(this, p, m) : this._exec(p, m); p.vistos.set(id, r); if (p.vistos.size > 200) p.vistos.delete(p.vistos.keys().next().value);
     if (r.ok) this.v++; return r;
   }
   limiteDeuda(p) { return Math.round((300 + .5 * Math.max(0, this.activos(p))) * this.ef(p).prestamo); }
   _exec(p, m) {
     const ef = this.ef(p);
+    if (this.estricto) { const g = puerta(this, p, m); if (g) return g; }
     switch (m.op) {
+      case 'contrato': return CT.opContrato(this, p, m);
+      case 'rescatar': return opRescatar(this, p, m);
+      case 'pujar': return SB.opPujar(this, p, m);
+      case 'subastar': return SB.opSubastar(this, p, m);
+      case 'retirarSubasta': return SB.opRetirarSubasta(this, p, m);
+      case 'local': return p.npc || p.soc ? fail('Operación inválida') : reportarLocal(this, p, m);
       case 'invertir': {
         this._cupo(p); const x = m.monto;
         if (!Number.isSafeInteger(x) || x <= 0) return fail('Monto inválido');
         if (x > p.cupo) return { ok: false, msg: `Por ahora solo puedes invertir $${Math.floor(p.cupo)}`, max: Math.floor(p.cupo) };
+        if (this.estricto && x > p.loc.credito) return { ok: false, msg: `Solo puedes invertir lo que tu restaurante ya ganó: $${p.loc.credito} disponibles`, max: p.loc.credito };
+        if (this.estricto) p.loc.credito -= x;
         p.cupo -= x; this._mov(p, 'aporte', x); return { ok: true, msg: `Invertiste $${x}`, monto: x };
       }
       case 'prestamo': {
@@ -92,6 +109,7 @@ export class Mundo {
     }
     const l = typeof m.lote === 'string' ? this.lote(m.lote) : null; if (!l) return fail('Lote inexistente');
     const o = this.o.get(l.id), pr = precioLote(l);
+    if (this.sub.has(l.id) && ['comprar', 'vender', 'listar'].includes(m.op)) return fail('Ese lote está en subasta: puja por él');
     if (m.op === 'comprar') {
       if (this._franq(p.cid) >= this.maxFranq(p)) return fail(`Máximo ${this.maxFranq(p)} franquicias`);
       if (o) {                                    // un local puesto en venta por su dueño
@@ -157,7 +175,7 @@ export class Mundo {
     const o = b.o, prov = existe(PROVEEDORES, p.prov) ? PROVEEDORES[p.prov] : PROVEEDORES.mercado, contrato = !!(p.contrato && p.contrato.hasta > this.turno), hab = o.ger?.hab ?? 0;
     let suma = 0; for (const c of todos) if (distLotes(b.l, c.l) <= RADIO) suma += this._atr(c.o, efl.seg);
     const share = this._atr(o, efl.seg) / suma, pen = efl.escasez && !contrato ? 1 - prov.exp : 0;
-    const cap = (1.35 + .3 * (o.nivel - 1) + ef.capF + .05 * hab) * (1 - .2 * pen), demanda = Math.min(efl.dem, cap), pm = PRECIOS[o.p ?? 2] ?? 1;
+    const cap = CT.capacidad(o, ef, hab) * (1 - .2 * pen), rs = CT.reservar(this, b.id, cap), demanda = Math.min(efl.dem, cap - rs.take), pm = PRECIOS[o.p ?? 2] ?? 1;
     let ing = trafico(b.l) * 16 * demanda * share * (1 + .5 * (o.nivel - 1)) * pm * ef.ingF * (1 + .07 * hab);
     if (this._offline && !p.npc) ing *= OFFLINE_ING;
     ing = Math.round(ing);
@@ -165,21 +183,24 @@ export class Mundo {
     const ins = Math.round(ing * .3 * (costoInsumos(p.prov, efl.ing, contrato) * ef.insumos - 1)), ger = o.ger ? o.ger.sueldo : 0;
     // reputación: objetivo según valor percibido, personal, reputación de marca y problemas de abastecimiento
     const objetivo = lim(5 + .35 * (o.nivel - 1) + lim((valorPercibido(o, prov) - 1) * 3, -2, 2) + .15 * hab + ef.repF - (o.recorte ? 1.5 : 0) - pen, 0, 10);
-    return { ing, mant, ins, ger, neto: ing - mant - ins - ger, objetivo };
+    let pagoC = 0, multaC = 0; if (rs.c) { pagoC = Math.round(rs.c.pago * rs.f); multaC = this._offline && !p.npc ? 0 : Math.round(rs.c.penal * (1 - rs.f)); }
+    return { ing, mant, ins, ger, pagoC, multaC, f: this._offline && !p.npc && rs.c ? 1 : rs.f, neto: ing - mant - ins - ger + pagoC - multaC, objetivo };
   }
   _turno() {
     this.turno++; const T = this.turno, evs = eventosEntre(this.seed, T), todos = [...this.o].map(([id, o]) => ({ id, o, l: this.lote(id) })), efl = new Map(), efs = new Map();
     for (const e of evs) { if (e.estado === 'proximo' && e.inicia === ADELANTO) this._noticia('mercado', 'Se acerca: ' + textoEvento(this.seed, e)); else if (e.estado === 'activo' && e.desde === T) this._noticia('mercado', textoEvento(this.seed, e)); }
+    const resultC = new Map();
     for (const b of todos) {
       if (b.o.tipo !== 'franquicia') continue; const p = this.j.get(b.o.dueno); if (!p) continue;
       const ef = efs.get(p.cid) || efs.set(p.cid, this.ef(p)).get(p.cid), bid = barrioDeLote(b.l); let el = efl.get(bid); if (!el) { el = efectoLote(this.seed, b.l, T, evs); efl.set(bid, el); }
       const r = this._calcular(b, todos, p, ef, el), protegido = this._offline && !p.npc;
       if (p.dinero + r.neto < 0 && !protegido) { this.o.delete(b.id); delete p.ingresos[b.id]; p.st.quiebras++; this._ev(p, `Quiebra: se cerró la franquicia ${b.id}`); this._noticia('economia', `${p.nombre} cierra una franquicia en ${perfilBarrio(this.seed, bid).nombre}: no cubrió sus gastos.`, p.npc ? null : p.cid); continue; }
       let neto = r.neto; if (p.dinero + neto < 0) neto = -p.dinero;   // ausencia: se paga solo lo que alcanza, nunca se cierra ni se endeuda por inactividad
-      this._mov(p, 'ingreso', r.ing); this._mov(p, 'mant', -r.mant); if (r.ins) this._mov(p, 'insumos', -r.ins); if (r.ger) this._mov(p, 'sueldo', -r.ger);
+      this._mov(p, 'ingreso', r.ing); this._mov(p, 'mant', -r.mant); if (r.pagoC) this._mov(p, 'contrato', r.pagoC); if (r.multaC) this._mov(p, 'multa', -r.multaC); if (r.ins) this._mov(p, 'insumos', -r.ins); if (r.ger) this._mov(p, 'sueldo', -r.ger);
       if (neto !== r.neto) this._mov(p, 'ajuste', neto - r.neto);   // el ajuste solo devuelve lo que no se pudo pagar
-      p.ingresos[b.id] = neto; b.o.rep = lim((b.o.rep ?? 5) + (r.objetivo - (b.o.rep ?? 5)) * .08, 0, 10);
+      if (this.cont.has(b.id)) resultC.set(b.id, { f: r.f }); p.ingresos[b.id] = neto; b.o.rep = lim((b.o.rep ?? 5) + (r.objetivo - (b.o.rep ?? 5)) * .08, 0, 10);
     }
+    CT.liquidar(this, resultC); SB.turno(this); SO.turno(this);
     for (const p of this.j.values()) {            // intereses y embargo
       if (p.contrato && p.contrato.hasta <= T) p.contrato = null;
       if (p.deuda <= 0) continue; const ef = efs.get(p.cid) || this.ef(p), i = Math.ceil(p.deuda * INTERES * ef.interes);
@@ -198,7 +219,7 @@ export class Mundo {
   ausencia(ms) {
     const dt = Math.max(0, this.ahora() - this.t0), total = Math.max(0, ms) + (this.t0 > this.ahora() ? 0 : dt), n = Math.min(MAX_OFFLINE, Math.floor(total / TURNO_MS));
     if (n < 6) return null;
-    const humanos = [...this.j.values()].filter(p => !p.npc), base = new Map(humanos.map(p => [p.cid, { dinero: p.dinero, pat: this.patrimonio(p), deuda: p.deuda }])), t0 = this.turno;
+    const humanos = [...this.j.values()].filter(p => !p.npc && !p.soc), base = new Map(humanos.map(p => [p.cid, { dinero: p.dinero, pat: this.patrimonio(p), deuda: p.deuda }])), t0 = this.turno;
     this._offline = true; this._compras = new Map(); try { for (let i = 0; i < n; i++) this._turno(); } finally { this._offline = false; }
     this.t0 = n >= MAX_OFFLINE ? this.ahora() : this.ahora() - (total - n * TURNO_MS);
     const evs = eventosEntre(this.seed, this.turno).filter(e => e.estado === 'activo').map(e => TIPOS_EVENTO[e.tipo].n);
@@ -218,22 +239,22 @@ export class Mundo {
     if (p) {
       const el = efectoLote(this.seed, this.lote(p.hogar), T), ef = this.ef(p);
       mio = { dinero: p.dinero, cupo: Math.floor(p.cupo), hogar: p.hogar, eventos: p.eventos.slice(-8), ingresos: p.ingresos, deuda: p.deuda, limite: this.limiteDeuda(p), prov: p.prov, contrato: p.contrato && p.contrato.hasta > T ? { ...p.contrato } : null,
-        ramas: [...p.ramas], ef, maxF: this.maxFranq(p), st: { ...p.st }, c: { ...p.c }, informe: p.informe,
+        ramas: [...p.ramas], ef, maxF: this.maxFranq(p), st: { ...p.st }, c: { ...p.c }, informe: p.informe, etapa: etapaServidor(this, p), credito: p.loc.credito, sospechas: p.loc.sospechas, estricto: this.estricto,
         demanda: { dem: el.dem, ing: el.ing, escasez: el.escasez, barrio: { nombre: el.barrio.nombre, seg: el.barrio.seg, dom: el.barrio.dom } } };
     }
     return { v: this.v, turno: T, msTurno: Math.max(0, TURNO_MS - (this.ahora() - this.t0)),
-      jugadores: [...this.j.values()].map(q => ({ cid: q.cid, nombre: q.nombre, color: q.color, patrimonio: this.patrimonio(q), franq: this._franq(q.cid), npc: !!q.npc, perfil: q.npc?.perfil || null, retirado: q.npc?.estado === 'retirado' })).sort((a, b) => b.patrimonio - a.patrimonio),
+      jugadores: [...this.j.values()].map(q => ({ cid: q.cid, nombre: q.nombre, color: q.color, patrimonio: this.patrimonio(q), franq: this._franq(q.cid), npc: !!q.npc, soc: !!q.soc, miembros: q.soc ? Object.keys(q.soc.socios).map(c => this.j.get(c)?.nombre || '?') : undefined, perfil: q.npc?.perfil || null, apuros: q.npc?.estado === 'activo' && q.deuda > 0 && (this.limiteDeuda(q) > 0 && q.deuda / this.limiteDeuda(q) > .5 || Object.values(q.ingresos).reduce((x, y) => x + y, 0) < 0), deuda: q.npc ? q.deuda : undefined, aliado: !!q.npc?.aliados[cid], retirado: q.npc?.estado === 'retirado' || q.npc?.estado === 'fusionado' })).sort((a, b) => b.patrimonio - a.patrimonio),
       lotes: [...this.o].map(([id, o]) => [id, o.dueno, o.nivel, o.tipo === 'hogar' ? 'h' : 'f', o.invertido, o.p ?? 2, o.esp ?? null, Math.round((o.rep ?? 5) * 10) / 10, o.enVenta ?? null, o.giro ?? null, o.promo > T ? 1 : 0, o.ger ? o.ger.hab : 0, o.recorte ? 1 : 0]),
-      mercado: { eventos: evs }, noticias: this.noticias.filter(x => !x.para || x.para === cid).slice(-12), mio };
+      mercado: { eventos: evs }, contratos: p ? CT.vistaC(this, cid) : null, sociedad: p && !p.soc ? SO.vistaSoc(this, cid) : null, subastas: SB.vistaS(this, cid), noticias: this.noticias.filter(x => !x.para || x.para === cid).slice(-12), mio };
   }
   serializar() {
-    return { seed: this.seed, v: this.v, turno: this.turno, dt: this.ahora() - this.t0, nn: this.nn, noticias: this.noticias.slice(-40),
+    return { seed: this.seed, estricto: this.estricto, v: this.v, turno: this.turno, dt: this.ahora() - this.t0, nn: this.nn, noticias: this.noticias.slice(-40), ...CT.serializar(this), ...SB.serializar(this), nsoc: this.nsoc,
       j: [...this.j.values()].map(({ vistos, ...p }) => p), o: [...this.o] };
   }
   restaurar(d) {
     const n = (x, a, b, def) => (Number.isFinite(x) ? Math.min(b, Math.max(a, x)) : def);
     if (!d || d.seed !== this.seed) return false;
-    this.v = n(d.v, 0, 1e12, 0); this.turno = n(d.turno, 0, 1e9, 0); this.t0 = this.ahora() - n(d.dt, 0, 1e12, 0); this.nn = n(d.nn, 1, 1e12, 1);
+    this.estricto = d.estricto === true || this.estricto; this.v = n(d.v, 0, 1e12, 0); this.turno = n(d.turno, 0, 1e9, 0); this.t0 = this.ahora() - n(d.dt, 0, 1e12, 0); this.nn = n(d.nn, 1, 1e12, 1);
     this.noticias = (Array.isArray(d.noticias) ? d.noticias : []).slice(-40).filter(x => x && typeof x.txt === 'string').map(x => ({ id: n(x.id, 0, 1e12, 0), t: n(x.t, 0, 1e9, 0), k: String(x.k).slice(0, 12), txt: x.txt.slice(0, 200), para: typeof x.para === 'string' ? x.para : null }));
     for (const p of d.j || []) if (typeof p.cid === 'string' && loteDe(this.seed, p.hogar)) {
       const q = this._nuevo(p.cid, String(p.nombre).slice(0, 16), p.hogar); q.color = COLORES.includes(p.color) ? p.color : COLORES[0];
@@ -244,13 +265,16 @@ export class Mundo {
       if (!p.c) q.c = { inicial: q.dinero };   // partida anterior al libro: se parte del saldo actual
       for (const k of Object.keys(p.ingresos || {})) if (loteDe(this.seed, k)) q.ingresos[k] = Math.round(n(p.ingresos[k], -1e9, 1e9, 0));
       q.informe = p.informe && typeof p.informe === 'object' ? { turnos: n(p.informe.turnos, 0, 1e5, 0), minutos: n(p.informe.minutos, 0, 1e5, 0), dDinero: n(p.informe.dDinero, -1e12, 1e12, 0), dPatrimonio: n(p.informe.dPatrimonio, -1e12, 1e12, 0), dDeuda: n(p.informe.dDeuda, -1e12, 1e12, 0), noticias: (Array.isArray(p.informe.noticias) ? p.informe.noticias : []).slice(0, 10).map(x => String(x).slice(0, 200)), eventos: (Array.isArray(p.informe.eventos) ? p.informe.eventos : []).slice(0, 6).map(x => String(x).slice(0, 40)), enVenta: n(p.informe.enVenta, 0, 1e5, 0), limitado: !!p.informe.limitado } : null;
-      q.npc = limpiarNpc(p.npc);
+      q.npc = limpiarNpc(p.npc); q.loc = limpiarLoc(p.loc); q.soc = p.soc ? SO.limpiar(p.soc) : null; if (p.soc && !q.soc) this.j.delete(q.cid);
     }
     for (const [id, o] of d.o || []) if (loteDe(this.seed, id) && this.j.has(o.dueno)) {
       const f = o.tipo === 'hogar' ? null : this._franquicia(o.giro);
       this.o.set(id, { dueno: o.dueno, nivel: Math.floor(n(o.nivel, 1, MEJORA_MAX, 1)), tipo: o.tipo === 'hogar' ? 'hogar' : 'franquicia', invertido: Math.floor(n(o.invertido, 0, 1e9, 0)),
         ...(f ? { p: entero(o.p, 0, PRECIOS.length - 1, 2), esp: existe(ESPECIALIDADES, o.esp) ? o.esp : null, rep: n(o.rep, 0, 10, 5), giro: f.giro, recorte: o.recorte === true, ger: o.ger && [2, 3, 4].includes(o.ger.hab) ? { hab: o.ger.hab, sueldo: SUELDO_GER(o.ger.hab) } : null, enVenta: Number.isFinite(o.enVenta) && o.enVenta >= 0 ? Math.floor(o.enVenta) : null, promo: Math.floor(n(o.promo, 0, 1e9, 0)) } : {}) });
     }
+    this.nsoc = Math.max(1, Math.floor(n(d.nsoc, 1, 1e9, 1)));
+    for (const p of [...this.j.values()]) if (p.soc) { for (const c of Object.keys(p.soc.socios)) if (!this.j.has(c) || this.j.get(c).npc || this.j.get(c).soc) delete p.soc.socios[c]; if (!Object.keys(p.soc.socios).length) this.j.delete(p.cid); else if (!p.soc.socios[p.soc.fundador]) { p.soc.fundador = Object.keys(p.soc.socios)[0]; p.soc.socios[p.soc.fundador].rol = 'fundador'; } }
+    CT.restaurar(this, d); SB.restaurar(this, d);
     return true;
   }
 }

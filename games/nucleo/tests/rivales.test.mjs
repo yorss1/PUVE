@@ -18,13 +18,13 @@ ok('siembra: cuatro personalidades distintas, cada una con un negocio real en un
   assert.equal(mundo(0).j.size, 1, 'sin rivales por defecto no cambia nada'); assert.equal(op(m, r[0].cid, { op: 'invertir', monto: 100 }).ok, false, 'un cliente no puede manejar a un rival');
 });
 ok('invariantes en 600 turnos: sin dinero de la nada, sin negativos, sin lotes dobles, límites respetados', () => {
-  const m = mundo(); op(m, 'H', { op: 'invertir', monto: 1500 }); const cap0 = new Map(rivales(m).map(p => [p.cid, p.c.aporte]));
+  const m = mundo(); const tipos = {}; const nn = m._noticia.bind(m); m._noticia = (k, t, p) => { tipos[k] = (tipos[k] || 0) + 1; return nn(k, t, p); }; op(m, 'H', { op: 'invertir', monto: 1500 }); const cap0 = new Map(rivales(m).map(p => [p.cid, p.c.aporte]));
   for (let i = 0; i < 600; i++) {
     avanza(m, 1); if (i % 25 === 0) op(m, 'H', { op: 'invertir', monto: 600 });
     for (const p of m.j.values()) { assert.ok(p.dinero >= 0 && Number.isFinite(p.dinero) && p.deuda >= 0, `${p.nombre} t${m.turno}`); assert.equal(libro(p), p.dinero, `libro ${p.nombre}`); assert.ok(m._franq(p.cid) <= m.maxFranq(p)); }
   }
   for (const p of rivales(m)) { const aportes = p.c.aporte; assert.ok(aportes === cap0.get(p.cid) + 900 * p.npc.regresos, `${p.nombre}: solo capital inicial y regresos (${aportes})`); assert.ok(p.c.retiro <= 0 || p.c.retiro === undefined); }
-  assert.ok(rivales(m).some(p => m._franq(p.cid) >= 2), 'los rivales crecen'); assert.ok(m.noticias.some(x => x.k === 'rival'), 'hay noticias de rivales');
+  assert.ok(rivales(m).some(p => m._franq(p.cid) >= 2), 'los rivales crecen'); assert.ok(tipos.rival > 3, 'hay noticias de rivales: ' + JSON.stringify(tipos));
 });
 ok('determinismo: dos mundos iguales evolucionan igual, y guardar/recargar a mitad no cambia el resultado', () => {
   const a = mundo(), b = mundo(); for (const m of [a, b]) op(m, 'H', { op: 'invertir', monto: 1500 });
@@ -52,11 +52,10 @@ ok('crisis: un rival en apuros pone en venta; una persona compra, el dinero se c
   assert.equal(op(s, 'H', { op: 'comprar', lote: id }).ok, true); assert.equal(tot(), t1, 'se conserva el dinero'); assert.equal(s.o.get(id).dueno, 'H'); assert.ok(ag.npc.mem.some(x => x.k === 'vendi' && x.cid === 'H'));
   assert.equal(libro(ag), ag.dinero); assert.equal(libro(h), h.dinero);
 });
-ok('oportunista: compra un local que una persona pone muy por debajo de su valor; los demás perfiles no lo necesitan', () => {
-  const m = mundo(4); m._mov(m.j.get('H'), 'aporte', 1500); assert.equal(op(m, 'H', { op: 'comprar', lote: '1,0,00' }).ok, true);
-  assert.equal(op(m, 'H', { op: 'listar', lote: '1,0,00', precio: Math.round(.5 * (300 + 120 * 8)) }).ok, true); const compras = {};
-  const ex = m._exec.bind(m); m._exec = (p, x) => { const r = ex(p, x); if (p.npc && r.ok && x.op === 'comprar') compras[p.npc.perfil] = (compras[p.npc.perfil] || 0) + 1; return r; };
-  avanza(m, 400); assert.equal(m.o.get('1,0,00').dueno, 'npc:oportunista:3', 'lo compró el oportunista'); assert.ok(m.noticias.some(x => /aprovechó una oferta/.test(x.txt)));
+ok('oportunista: compra un local periférico que una persona pone muy por debajo de su valor', () => {
+  const m = mundo(4); m._mov(m.j.get('H'), 'aporte', 1500); assert.equal(op(m, 'H', { op: 'comprar', lote: '3,0,00' }).ok, true);
+  assert.equal(op(m, 'H', { op: 'listar', lote: '3,0,00', precio: Math.round(.5 * (300 + 120 * 4)) }).ok, true);
+  avanza(m, 200); assert.equal(m.o.get('3,0,00').dueno, 'npc:oportunista:3', 'lo compró el oportunista'); assert.ok(m.noticias.some(x => /aprovechó una oferta/.test(x.txt)));
 });
 ok('retiro y regreso: sin negocios ni capital se retira; después vuelve una vez con socios (límite de regresos)', () => {
   const m = mundo(1); const r = rivales(m)[0]; for (const [id, o] of [...m.o]) if (o.dueno === r.cid) m.o.delete(id); r.dinero = 100; r.c = { inicial: 100 }; r.npc.prox = m.turno;

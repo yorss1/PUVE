@@ -3,12 +3,15 @@
 import { precioLote, SUELDO_GER, PROMO_COSTO, PROMO_TURNOS, TURNO_MS } from '../multiplayer/mundo.js';
 import { NOMBRE_SEG, SEGMENTOS, PROVEEDORES, ESPECIALIDADES, PRECIOS, NOMBRE_PRECIO, CONTRATO_TURNOS } from '../economia/mercado.js';
 import { PERFILES } from '../economia/rivales.js';
+import { capacidad } from '../multiplayer/contratos.js';
+import { PERMISOS } from '../multiplayer/sociedades.js';
 import { RAMAS, NODOS, puedeNodo } from '../economia/ramas.js';
 import { ETAPAS, etapaActual, desbloqueado, DESBLOQUEOS, misionesActivas, reclamar, evaluarLogros, limpiarProg, LOGROS } from '../economia/progresion.js';
 import { espera } from './sim.js';
 
+export const EMBLEMA = { agresivo: '▲', estratega: '◆', tradicionalista: '■', oportunista: '●', soc: '⚭' };
 export function crearPaneles(c) {
-  const { el, txt, btn, sec, stat, chip, icono, abrir, aviso, audio, eco, sim, perfil, store, guardar, mundo, net, volver } = c;
+  const { el, txt, btn, sec, stat, chip, icono, abrir, aviso, audio, eco, sim, perfil, store, guardar, mundo, net, volver, enviar, chat } = c;
   const fila = (...h) => { const f = el('div', 'fila'); h.forEach(x => f.appendChild(x)); return f; };
   const barra = (v, max = 1, col = '#d9822b') => { const b = el('div'); b.style.cssText = 'height:6px;border-radius:3px;background:rgba(128,128,128,.25);overflow:hidden;margin:2px 0 6px'; const i = el('div'); i.style.cssText = `height:100%;width:${Math.round(Math.max(0, Math.min(1, v / max)) * 100)}%;background:${col}`; b.appendChild(i); return b; };
   const dinero = n => (n < 0 ? '−$' : '$') + Math.abs(Math.round(n)).toLocaleString('es');
@@ -21,7 +24,10 @@ export function crearPaneles(c) {
       franq: yo?.franq ?? 0, patrimonio: yo?.patrimonio ?? 0, puesto: idx + 1, jugadores: m ? m.jugadores.filter(j => !j.retirado).length : 1, ramasCadena: mio?.ramas.length ?? 0,
       gerentesF: m ? m.lotes.filter(l => l[1] === n?.cid && l[11] > 0).length : 0, deuda: mio?.deuda ?? 0, prestamosPagados: mio?.st.pagados ?? 0, compradasVenta: mio?.st.compradasVenta ?? 0, quiebras: mio?.st.quiebras ?? 0, contratos: mio?.st.contratos ?? 0 };
   }
-  const etapa = () => etapaActual(stats()).n;
+  const etapa = () => mundo()?.mio?.etapa ?? etapaActual(stats()).n;          // la etapa que cuenta es la del servidor
+  const miSoc = () => mundo()?.sociedad?.mia || null, cidMio = () => net()?.cid;
+  const esMia = d => d === cidMio() || (!!miSoc() && d === miSoc().id);
+  const extra = d => (miSoc() && d === miSoc().id ? { soc: d } : {});
   const cerrojo = id => (desbloqueado(etapa(), id) ? '' : ` · Etapa ${DESBLOQUEOS[id]}`);
   function revisar() {                          // llamar de vez en cuando: otorga logros nuevos
     const r = evaluarLogros(stats(), perfil.prog); if (!r.nuevos.length) return;
@@ -30,7 +36,7 @@ export function crearPaneles(c) {
 
   // ---------- Empresa: campaña, misiones y logros ----------
   function panelEmpresa(m = '') {
-    const s = stats(), e = etapaActual(s), prog = limpiarProg(perfil.prog), msg = txt(m, 'msg'), filas = [];
+    const s = stats(), srv = mundo()?.mio?.etapa, e = srv ? ETAPAS[srv - 1] : etapaActual(s), prog = limpiarProg(perfil.prog), msg = txt(m, 'msg'), filas = [];
     filas.push(sec(`Etapa ${e.n} de ${ETAPAS.length}: ${e.t}`, txt(e.d), fila(...ETAPAS.map(x => chip(String(x.n), x.n < e.n ? 'ok' : x.n === e.n ? '' : 'mute'))), prog.titulo ? stat('Título', prog.titulo) : null));
     const ms = misionesActivas(s, prog), H = { inmediato: 'Ahora', sesion: 'Esta sesión', largo: 'Largo plazo' };
     for (const h of ['inmediato', 'sesion', 'largo']) {
@@ -53,7 +59,9 @@ export function crearPaneles(c) {
       ...SEGMENTOS.map(sg => [stat(NOMBRE_SEG[sg], `${Math.round(b.seg[sg] * 100)}%`), barra(b.seg[sg], .5)]).flat(), txt('Cada tipo de cliente valora cosas distintas: unos buscan precio, otros rapidez, calidad o ambiente.')));
     const ev = m.mercado.eventos; filas.push(sec('Eventos', ...(ev.length ? ev.map(e => [stat(`${e.estado === 'proximo' ? '⏳ ' : '● '}${e.n}${e.barrio ? ' · ' + e.barrio : ''}`, e.estado === 'proximo' ? `en ${cuando(e.inicia)}` : `quedan ${cuando(e.quedan)}`), txt(e.txt)]).flat() : [txt('Sin eventos por ahora. Se avisan unos turnos antes de empezar.')])));
     const riv = m.jugadores.filter(j => j.npc);
-    if (riv.length) filas.push(sec('Rivales', ...riv.map(j => { const P = PERFILES[j.perfil]; return [stat(`${j.nombre}${j.retirado ? ' (retirado)' : ''}`, `${dinero(j.patrimonio)} · ${j.franq} fr.`), txt(P ? `${P.n}: ${P.d}` : '')]; }).flat()));
+    filas.push(sec('Rivales', ...(riv.length ? riv.map(j => { const P = PERFILES[j.perfil], r = txt('', 'msg'); return [stat(`${EMBLEMA[j.perfil] || ''} ${j.nombre}${j.retirado ? ' (fuera)' : ''}${j.aliado ? ' · aliado' : ''}`, `${dinero(j.patrimonio)} · ${j.franq} fr.`), txt(P ? `${P.n}: ${P.d}` : ''),
+      j.apuros && !j.retirado ? btn(`Rescatar (debe ${dinero(j.deuda)}): pagar $${Math.min(200, j.deuda)}`, async () => { const x = await eco('rescatar', { rival: j.cid, monto: Math.min(200, j.deuda) }); r.textContent = x.msg; audio.tono(x.ok ? 'moneda' : 'error'); }, false, 'suave') : null, r]; }).flat() : [txt('No hay rivales controlados por la computadora.')]),
+      txt('Los rivales en apuros pueden ser rescatados: te lo devuelven con intereses y dejan de competir contra ti.'), fila(...[0, 1, 2, 3, 4].map(n => btn(String(n), () => { enviar({ t: 'rivales', n }); aviso(n ? `Rivales: ${n}` : 'Sin rivales'); }, false, riv.filter(j => !j.retirado).length === n ? 'primario' : 'suave'))), txt('Cantidad de rivales (la decide el anfitrión).')));
     filas.push(sec('Noticias', ...(m.noticias.length ? [...m.noticias].reverse().map(n => txt(`T${n.t} · ${n.txt}`)) : [txt('Todavía no hay noticias.')])));
     abrir('Mercado', filas, { atras: volver });
   }
@@ -116,19 +124,75 @@ export function crearPaneles(c) {
 
   // ---------- Gestión de una franquicia propia ----------
   function panelGestion(id) {
-    const mu = mundo(), info = mu?.lotes.find(l => l[0] === id); if (!info || info[1] !== net()?.cid || info[3] !== 'f') return;
+    const mu = mundo(), info = mu?.lotes.find(l => l[0] === id); if (!info || !esMia(info[1]) || info[3] !== 'f') return; gestionId = id; const ex = extra(info[1]);
     const [, , nivel, , inv, p, esp, rep, venta, , promo, gh, rec] = info, pr = precioLote(c.loteDe(id)), mio = mu.mio, msg = txt('', 'msg'), okE = desbloqueado(etapa(), 'especialidad'), okG = desbloqueado(etapa(), 'gerente');
-    const op = (o, x = {}) => async () => { const r = await eco(o, { lote: id, ...x }); msg.textContent = r.msg; audio.tono(r.ok ? 'moneda' : 'error'); };
+    const op = (o, x = {}) => async () => { const r = await eco(o, { lote: id, ...x, ...ex }); msg.textContent = r.msg; audio.tono(r.ok ? 'moneda' : 'error'); };
     const filas = [sec('Estado', stat('Reputación', `${rep}/10`), barra(rep, 10, rep < 4 ? '#b8402f' : '#2f6b5f'), stat('Ingreso por turno', `$${mio.ingresos[id] ?? '…'}`), txt('La reputación sube con calidad y buen precio; baja con precios abusivos, recortes y escasez sin contrato.'))];
     filas.push(sec('Precio', stat('Actual', NOMBRE_PRECIO[p]), fila(...PRECIOS.map((x, i) => btn(`${Math.round((x - 1) * 100) >= 0 ? '+' : ''}${Math.round((x - 1) * 100)}%`, op('ajustar', { precio: i }), i === p, i === p ? 'primario' : 'suave'))), txt('Más barato atrae más clientes (sobre todo estudiantes); más caro deja más por cliente y atrae a los exigentes si hay calidad.')));
     filas.push(sec('Especialidad', stat('Actual', esp ? ESPECIALIDADES[esp].n : 'Ninguna'), ...Object.entries(ESPECIALIDADES).flatMap(([k, e]) => [btn(`${e.n}${esp === k ? ' ✓' : ` ($${Math.round(pr * .15)})${cerrojo('especialidad')}`}`, op('ajustar', { esp: k }), esp === k || !okE, 'suave'), txt(e.d)]), esp ? btn('Quitar especialidad', op('ajustar', { esp: null }), false, 'suave') : null));
     filas.push(sec('Operación', btn(promo ? 'Promoción activa' : `Promoción ($${Math.round(pr * PROMO_COSTO)}, ${PROMO_TURNOS} turnos)`, op('promocion'), !!promo, 'suave'), txt('Atrae 25% más clientes mientras dura. Solo vale la pena si el local ya rinde.'),
       btn(rec ? 'Recortes activos: volver a la normalidad' : 'Recortar gastos (−25% mantenimiento)', op('ajustar', { recorte: !rec }), false, rec ? 'primario' : 'suave'), txt('Ahorra hoy, pero la reputación se resiente poco a poco.')));
     filas.push(sec('Gerente', gh ? stat('Gerente', `Habilidad ${gh} · $${SUELDO_GER(gh)}/turno`) : txt(`Sin gerente${cerrojo('gerente')}. Mejora ingresos, reputación y capacidad, pero cobra cada turno.`), gh ? btn('Despedir gerente', op('gerente', { accion: 'despedir' }), false, 'peligro') : fila(...[2, 3, 4].map(h => btn(`Hab. ${h} · $${3 * SUELDO_GER(h)}`, op('gerente', { hab: h }), !okG, 'suave')))));
+    const sub = (mu.subastas || []).find(x => x.lote === id);
+    filas.push(sec('Subasta', sub ? stat('En subasta', sub.mejor ? `$${sub.mejor.monto} (${sub.mejor.nombre})` : `desde $${sub.base}`) : txt(`Subastar deja que varios compitan por tu local: se queda con la mejor puja. Sugerido desde $${Math.round(.6 * (pr + inv))}.`), sub ? (sub.mejor ? txt('Ya hay pujas: no se puede retirar.') : btn('Retirar subasta', op('retirarSubasta'), false, 'suave')) : btn('Subastar (12 turnos)', op('subastar'), venta != null, 'primario'), btn('Contratos de catering…', () => panelContratos(), false, 'suave')));
     filas.push(sec('Venta', venta != null ? stat('En venta por', dinero(venta)) : txt(`Si la pones en venta otro empresario puede comprarla. Valor sugerido: ${dinero(Math.round(.85 * (pr + inv)))}.`), btn(venta != null ? 'Retirar de la venta' : 'Poner en venta', op(venta != null ? 'retirar' : 'listar'), false, 'suave')));
     abrir('Gestión ' + id, [...filas, msg], { atras: () => c.panelLote(id), clave: 'Gestion' });
   }
 
+  let gestionId = null;
+  // ---------- Contratos de catering ----------
+  function panelContratos(m = '') {
+    const mu = mundo(), C = mu?.contratos, mio = mu?.mio, msg = txt(m, 'msg'); if (!C || !mio) return abrir('Contratos', [txt('Conectando con el servidor…')], { atras: volver, clave: 'Contratos' });
+    const cids = [cidMio(), miSoc()?.id].filter(Boolean), libres = mu.lotes.filter(l => cids.includes(l[1]) && l[3] === 'f' && !C.mios.some(c => c.lote === l[0]));
+    const filas = [txt('Un contrato reserva capacidad de cocina antes que los clientes habituales: si es muy grande, tu local puede saturarse y perderás clientes. Si no cumples pierdes el depósito.')];
+    filas.push(sec('Tus contratos', ...(C.mios.length ? C.mios.flatMap(c => [stat(`${c.cliente} · lote ${c.lote}`, `quedan ${c.quedan} turnos`), stat('Entrega promedio', c.prom == null ? 'aún sin datos' : `${Math.round(c.prom * 100)}%`), txt(`Paga $${c.pago}/turno · multa $${c.penal}/turno por lo no entregado · hay que llegar al 90%.`), barra(c.prom ?? 0, 1, (c.prom ?? 1) < .9 ? '#b8402f' : '#2f6b5f')]) : [txt('No tienes contratos activos.')])));
+    filas.push(sec(`Ofertas (cambian en ${C.cierraEn} turnos)`, ...(C.ofertas.length ? C.ofertas.flatMap(o => [stat(o.cliente, `$${o.pago}/turno × ${o.plazo}`), txt(`Exige ${Math.round(o.req * 100)}% de capacidad · depósito $${o.deposito} (se devuelve) · bono $${o.bono}`),
+      ...(libres.length ? libres.map(l => { const cap = capacidad({ nivel: l[2] }, mio.ef, l[11]); return btn(`Aceptar en ${l[0]} (capacidad ${Math.round(cap * 100)}%${cap < o.req ? ' ⚠' : ''})`, async () => { const r = await eco('contrato', { oferta: o.id, lote: l[0], ...extra(l[1]) }); audio.tono(r.ok ? 'moneda' : 'error'); panelContratos(r.msg); }, mio.dinero < o.deposito, cap < o.req ? 'suave' : 'primario'); }) : [txt('Necesitas una franquicia sin contrato.')])]) : [txt('No quedan ofertas por ahora.')])));
+    abrir('Contratos', [...filas, msg], { atras: volver, clave: 'Contratos' });
+  }
+  // ---------- Subastas ----------
+  function panelSubastas(m = '') {
+    const mu = mundo(), msg = txt(m, 'msg'); if (!mu?.mio) return abrir('Subastas', [txt('Conectando con el servidor…')], { atras: volver, clave: 'Subastas' });
+    const L = mu.subastas || [], filas = [txt('La puja se retiene al momento de pujar y se te devuelve si te superan. Una puja en los últimos 2 turnos extiende el cierre.')];
+    if (!L.length) filas.push(txt('No hay subastas abiertas. La ciudad subasta un lote de alto tránsito cada cierto tiempo y los jugadores pueden subastar sus franquicias.'));
+    for (const s of L) filas.push(sec(`Lote ${s.lote}${s.ciudad ? ' · Subasta de la ciudad' : ''}`, stat('Vende', s.vendedor), stat('Precio base', dinero(s.base)), stat('Puja líder', s.mejor ? `${s.mejor.nombre} ${dinero(s.mejor.monto)}${s.mejor.tuya ? ' (tú)' : ''}` : 'Sin pujas'), stat('Cierra en', cuando(s.quedan)),
+      s.mio ? (s.mejor ? txt('Ya hay pujas: no se puede retirar.') : btn('Retirar subasta', async () => { const r = await eco('retirarSubasta', { lote: s.lote }); panelSubastas(r.msg); }, false, 'suave'))
+        : fila(...[s.minima, Math.ceil(s.minima * 1.2)].map(x => btn(`Pujar ${dinero(x)}`, async () => { const r = await eco('pujar', { lote: s.lote, monto: x }); audio.tono(r.ok ? 'moneda' : 'error'); panelSubastas(r.msg); }, s.mejor?.tuya || mu.mio.dinero < x, 'primario')))));
+    abrir('Subastas', [...filas, msg], { atras: volver, clave: 'Subastas' });
+  }
+  // ---------- Sociedad ----------
+  function panelSociedad(m = '') {
+    const mu = mundo(), SO = mu?.sociedad, msg = txt(m, 'msg'); if (!SO) return abrir('Sociedad', [txt('Conectando con el servidor…')], { atras: volver, clave: 'Sociedad' });
+    const a = (op, x = {}, ok) => async () => { const r = await eco(op, x); audio.tono(r.ok ? 'moneda' : 'error'); panelSociedad(r.msg); if (r.ok && ok) ok(); }, filas = [], s = SO.mia, otros = mu.jugadores.filter(j => !j.npc && !j.soc && j.cid !== cidMio());
+    for (const i of SO.invitaciones) filas.push(sec(`Invitación a «${i.nombre}»`, txt(`${i.de} te invita a su sociedad. Vence en ${i.quedan} turnos.`), fila(btn('Aceptar', a('soc_aceptar', { soc: i.soc }), false, 'primario'), btn('Rechazar', a('soc_rechazar', { soc: i.soc }), false, 'suave'))));
+    if (!s) {
+      const i = el('input', 'in'); i.placeholder = 'Nombre de la sociedad'; i.maxLength = 16; i.autocomplete = 'off';
+      filas.push(sec('Sociedades', txt('Una sociedad es una empresa con varios dueños: caja compartida, franquicias comunes y decisiones por votación. Hace falta jugar con amigos en una sala.'), otros.length ? txt(`Amigos en la sala: ${otros.map(j => j.nombre).join(', ')}`) : txt('Ahora estás solo en tu mundo: crea una sala para invitar amigos.'), i, btn('Fundar sociedad', () => a('soc_crear', { nombre: i.value })(), false, 'primario')));
+    } else {
+      const esF = s.fundador === cidMio(), yo = s.socios.find(x => x.cid === cidMio());
+      filas.push(sec(`${EMBLEMA.soc} ${s.nombre}`, stat('Tu papel', yo.rol), stat('Caja compartida', dinero(s.dinero)), stat('Deuda', dinero(s.deuda)), stat('Tu aporte', dinero(yo.aporte)),
+        fila(btn('Aportar $200', a('soc_aportar', { monto: 200 }), (mu.mio.dinero < 200), 'primario'), btn('Aportar $1000', a('soc_aportar', { monto: 1000 }), mu.mio.dinero < 1000, 'primario')), txt('Compras, vende y opera en nombre de la sociedad desde el lote de cada franquicia (tu cuenta o la de la sociedad).')));
+      filas.push(sec('Socios', ...s.socios.flatMap(x => [stat(`${x.nombre}${x.cid === cidMio() ? ' (tú)' : ''}`, `${x.rol} · aportó ${dinero(x.aporte)}`), txt('Puede: ' + (PERMISOS.filter(k => x.perm[k]).join(', ') || 'nada')),
+        ...(esF && x.cid !== cidMio() ? [fila(btn(x.rol === 'gerente' ? 'Pasar a socio' : 'Hacer gerente', a('soc_permisos', { cid: x.cid, rol: x.rol === 'gerente' ? 'socio' : 'gerente' }), false, 'suave'), ...['comprar', 'vender', 'finanzas'].map(k => btn(`${x.perm[k] ? '✓' : '✗'} ${k}`, a('soc_permisos', { cid: x.cid, perm: { [k]: !x.perm[k] } }), false, 'suave')), btn('Ceder mando', a('soc_ceder', { cid: x.cid }), false, 'suave'))] : [])]),
+        ...s.invitados.map(n => txt(`Invitado: ${n} (pendiente)`)), ...(esF ? otros.filter(j => !s.socios.some(x => x.cid === j.cid)).map(j => btn(`Invitar a ${j.nombre}`, a('soc_invitar', { cid: j.cid }), s.socios.length >= 4, 'suave')) : [])));
+      filas.push(sec('Votaciones', ...(s.props.length ? s.props.flatMap(p => [stat(p.txt, `${p.si} sí · ${p.no} no`), txt(`Propuesta de ${p.autor}. Cierra en ${p.quedan} turnos.`), p.yoVote == null ? fila(btn('A favor', a('votar', { soc: s.id, propuesta: p.id, voto: true }), false, 'primario'), btn('En contra', a('votar', { soc: s.id, propuesta: p.id, voto: false }), false, 'peligro')) : txt(`Votaste ${p.yoVote ? 'a favor' : 'en contra'}.`)]) : [txt('No hay propuestas. Préstamos, compras, ventas, repartos y la disolución se votan (mayoría simple).')])));
+      filas.push(sec('Historial', ...(s.hist.length ? s.hist.map(h => txt(`T${h.t} · ${h.txt}`)) : [txt('Sin movimientos todavía.')])));
+      filas.push(sec('Administrar', ...(esF ? [btn('Repartir $500 de la caja', a('soc_repartir', { soc: s.id, monto: 500 }), s.dinero < 500, 'suave'), btn('Disolver sociedad', a('soc_disolver', { soc: s.id }), false, 'peligro'), txt('Se vende todo, se paga la deuda y lo que quede se reparte según lo aportado.')] : [btn('Salir de la sociedad', a('soc_salir'), false, 'peligro'), txt('Recibes la parte proporcional a lo que aportaste, de la caja.')])));
+    }
+    abrir('Sociedad', [...filas, msg], { atras: volver, clave: 'Sociedad' });
+  }
+  // ---------- Chat de la sala ----------
+  function panelChat(m = '') {
+    const C = chat(), msg = txt(m, 'msg'), lista = el('div'); lista.style.cssText = 'max-height:46vh;overflow:auto;display:flex;flex-direction:column;gap:4px';
+    for (const x of C.msgs.filter(x => !C.mios.has(x.de))) { const f = el('p', 'nota'); f.textContent = `${x.nombre}: ${x.txt}`; lista.appendChild(f); }
+    if (!C.msgs.length) lista.appendChild(txt('Aún no hay mensajes.'));
+    const i = el('input', 'in'); i.placeholder = C.activo ? 'Escribe un mensaje…' : 'El anfitrión desactivó el chat'; i.maxLength = 200; i.autocomplete = 'off'; i.disabled = !C.activo;
+    const enviarTxt = () => { if (i.value.trim()) { enviar({ t: 'chat', txt: i.value }); i.value = ''; } }; i.onkeydown = e => { if (e.key === 'Enter') enviarTxt(); };
+    const filas = [sec('Mensajes', lista), sec('Escribir', i, btn('Enviar', enviarTxt, !C.activo, 'primario'), txt('Solo texto. Sé amable: el anfitrión puede silenciar a quien moleste y tú puedes ocultar mensajes de alguien.'))];
+    if (C.host) filas.push(sec('Moderación', btn(C.activo ? 'Desactivar chat para todos' : 'Activar chat', () => enviar({ t: 'chat_config', activo: !C.activo }), false, 'suave'), ...C.jugadores.filter(p => p.cid !== cidMio()).map(p => btn(`${C.silenciados.includes(p.cid) ? 'Dejar hablar a' : 'Silenciar a'} ${p.nombre}`, () => enviar({ t: 'chat_config', ...(C.silenciados.includes(p.cid) ? { quitar: p.cid } : { silenciar: p.cid }) }), false, 'suave'))));
+    filas.push(sec('Para ti', ...C.jugadores.filter(p => p.cid !== cidMio()).map(p => btn(`${C.mios.has(p.cid) ? 'Mostrar' : 'Ocultar'} mensajes de ${p.nombre}`, () => { C.mios.has(p.cid) ? C.mios.delete(p.cid) : C.mios.add(p.cid); panelChat(); }, false, 'suave'))));
+    abrir('Chat', [...filas, msg], { atras: volver, clave: 'Chat' }); lista.scrollTop = lista.scrollHeight;
+  }
   // ---------- Informe de regreso ----------
   function panelInforme() {
     const inf = mundo()?.mio?.informe; if (!inf) return;
@@ -136,7 +200,9 @@ export function crearPaneles(c) {
     const t = n => (n >= 0 ? '+' : '−') + '$' + Math.abs(Math.round(n)).toLocaleString('es');
     abrir('Mientras no estabas', [sec(`Pasaron unos ${inf.minutos} minutos`, txt(inf.limitado ? 'Fue mucho tiempo: se simuló solo la última hora para que no pierdas todo por una ausencia larga. Tus franquicias no cerraron por inactividad.' : 'Tus franquicias siguieron trabajando (con menos supervisión, rinden 30% menos).'),
       stat('Cuenta de franquicias', t(inf.dDinero)), stat('Patrimonio', t(inf.dPatrimonio)), inf.dDeuda ? stat('Deuda', t(inf.dDeuda)) : null, inf.enVenta ? stat('Locales en venta', String(inf.enVenta)) : null),
-      inf.eventos.length ? sec('Ahora en la ciudad', ...inf.eventos.map(e => txt('● ' + e))) : null, sec('Lo más importante', ...(inf.noticias.length ? inf.noticias.map(n => txt('• ' + n)) : [txt('Fue tranquilo.')])), btn('Entendido', cierra, false, 'primario')], { atras: null, clave: 'Informe' });
+      c.informeLocal ? sec('Tu local sin ti', txt(c.informeLocal)) : null, inf.eventos.length ? sec('Ahora en la ciudad', ...inf.eventos.map(e => txt('● ' + e))) : null, sec('Lo más importante', ...(inf.noticias.length ? inf.noticias.map(n => txt('• ' + n)) : [txt('Fue tranquilo.')])), btn('Entendido', cierra, false, 'primario')], { atras: null, clave: 'Informe' });
   }
-  return { stats, etapa, revisar, panelEmpresa, panelMercado, panelPersonal, panelProveedores, panelDesarrollo, seccionFinanzas, panelGestion, panelInforme, dinero };
+  const rehacer = { Mercado: panelMercado, Contratos: panelContratos, Subastas: panelSubastas, Sociedad: panelSociedad, Chat: panelChat, Gestion: () => gestionId && panelGestion(gestionId) };
+  const informeLocal = t => { c.informeLocal = t; };
+  return { informeLocal, stats, etapa, revisar, rehacer, panelEmpresa, panelMercado, panelPersonal, panelProveedores, panelDesarrollo, seccionFinanzas, panelGestion, panelInforme, panelContratos, panelSubastas, panelSociedad, panelChat, dinero };
 }

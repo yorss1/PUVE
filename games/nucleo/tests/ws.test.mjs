@@ -31,6 +31,22 @@ await ok('dos jugadores por WebSocket real: sala, unirse, invertir, comprar y ve
   B.env({ t: 'eco', id: 'b1', op: 'vender', lote: '1,0,00' }); assert.equal((await B.espera(m => m.t === 'res' && m.id === 'b1')).ok, false);
   const snap = await B.espera(m => m.t === 'snap'); assert.equal(snap.snap.length, 2); A.ws.close(); B.ws.close();
 });
+await ok('por WebSocket real: chat entre dos jugadores, moderación, sociedad con votación y rivales de la sala', async () => {
+  const A = cli(), B = cli(); await Promise.all([A.listo, B.listo]); const hA = await A.espera(m => m.t === 'hola'), hB = await B.espera(m => m.t === 'hola');
+  A.env({ t: 'crear', giro: 'restaurante', nombre: 'Ana', rivales: 2 }); const c = await A.espera(m => m.t === 'creada'); B.env({ t: 'unir', sala: c.id, token: c.token, nombre: 'Beto' });
+  assert.equal((await B.espera(m => m.t === 'resp')).ok, true); assert.equal((await B.espera(m => m.t === 'chat_hist')).msgs.length, 0);
+  const v = await B.espera(m => m.t === 'mundo' && m.jugadores.length === 4); assert.equal(v.jugadores.filter(j => j.npc).length, 2, 'rivales elegidos por el anfitrión');
+  A.env({ t: 'chat', txt: 'Hola <script>alert(1)</script> Beto' }); const m1 = await B.espera(m => m.t === 'chat'); assert.equal(m1.m.nombre, 'Ana'); assert.ok(!m1.m.txt.includes('<'), 'sin etiquetas'); await A.espera(m => m.t === 'chat');
+  B.env({ t: 'chat', txt: 'rápido' }); B.env({ t: 'chat', txt: 'otra vez' }); assert.equal((await B.espera(m => m.t === 'chat_err')).msg, 'Más despacio');
+  B.env({ t: 'rivales', n: 0 }); assert.match((await B.espera(m => m.t === 'aviso')).msg, /anfitrión/); A.env({ t: 'chat_config', silenciar: hB.cid }); await A.espera(m => m.t === 'chat_cfg');
+  await new Promise(r => setTimeout(r, 1300)); B.env({ t: 'chat', txt: 'hola?' }); assert.match((await B.espera(m => m.t === 'chat_err')).msg, /silenciado/);
+  A.env({ t: 'eco', id: 's1', op: 'soc_crear', nombre: 'Dueto' }); const r = await A.espera(m => m.t === 'res' && m.id === 's1'); assert.equal(r.ok, true); const sid = r.soc;
+  A.env({ t: 'eco', id: 's2', op: 'soc_invitar', cid: hB.cid }); assert.equal((await A.espera(m => m.t === 'res' && m.id === 's2')).ok, true); B.env({ t: 'eco', id: 's3', op: 'soc_aceptar', soc: sid }); assert.equal((await B.espera(m => m.t === 'res' && m.id === 's3')).ok, true);
+  A.env({ t: 'eco', id: 's4', op: 'invertir', monto: 1500 }); await A.espera(m => m.t === 'res' && m.id === 's4'); A.env({ t: 'eco', id: 's5', op: 'soc_aportar', monto: 1400 }); assert.equal((await A.espera(m => m.t === 'res' && m.id === 's5')).ok, true);
+  A.env({ t: 'eco', id: 's6', op: 'comprar', soc: sid, lote: '1,0,00' }); const pr = await A.espera(m => m.t === 'res' && m.id === 's6'); assert.ok(pr.propuesta, 'compra por votación');
+  B.env({ t: 'eco', id: 's7', op: 'votar', soc: sid, propuesta: pr.propuesta, voto: true }); const vt = await B.espera(m => m.t === 'res' && m.id === 's7'); assert.equal(vt.aprobada, true);
+  const fin = await B.espera(m => m.t === 'mundo' && m.lotes.some(l => l[0] === '1,0,00' && l[1] === sid)); assert.equal(fin.sociedad.mia.nombre, 'Dueto'); A.ws.close(); B.ws.close();
+});
 await ok('suplantación imposible: el cid lo deriva el servidor; sin "hola" no hay acceso', async () => {
   const X = cli(); await X.listo; await X.espera(m => m.t === 'hola'); X.env({ t: 'crear', giro: 'restaurante', nombre: 'X', cid: 'otro', hostCid: 'otro' });
   const c = await X.espera(m => m.t === 'creada'); const Y = cli(); await Y.listo; await Y.espera(m => m.t === 'hola');

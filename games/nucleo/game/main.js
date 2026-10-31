@@ -44,7 +44,8 @@ async function iniciar() {
   iniciarAnuncios({ demo: !NUBE });   // tira de publicidad al fondo; sin anuncios vigentes no se ve
   const perfil = await store.obtenerPerfil();
   let av; try { const r = await fetch('nucleo/config/avatares.json'); av = await r.json(); } catch (e) { console.error(e); av = { piel: [{ id: 0, c: PIEL[0], nv: 1 }], pelo: [{ id: 1, c: PELO[1], nv: 1 }], ropa: [{ id: 0, c: '#fff', nv: 1 }], gorro: [{ id: 0, n: 'Sin gorro', nv: 1 }] }; }
-  const sim = new Sim(cfg, await store.cargarPartida(giro));
+  const partidaGuardada = await store.cargarPartida(giro), sim = new Sim(cfg, partidaGuardada);
+  const ausLocal0 = sim.ausencia(partidaGuardada?.ts ? (Date.now() - partidaGuardada.ts) / 1000 : 0);   // con gerente, el local trabajó mientras estabas fuera
   const audio = crearAudio(!perfil.mute);
   const S = cargarSprites(giro);   // sprites PNG opcionales: lo que falte se dibuja con el diseño por defecto
   const nivelDisp = () => Math.max(perfil.nivelMax || 1, sim.nivel);
@@ -277,19 +278,28 @@ async function iniciar() {
     chunks.actualizar(cp.x, cp.y); chunks.paso();
     if (performance.now() > enfriar && esMiPuerta(Math.floor(cp.x), Math.floor(cp.y + .35))) entrarNegocio();
   }
-  function entrarNegocio() { enfriar = performance.now() + 800; modo = 'interior'; sim.p.x = sim.puerta.x + .5; sim.p.y = sim.puerta.y - 1; sim.p.dir = 0; audio.tono('ok'); aviso('Entraste a tu ' + cfg.titulo.toLowerCase()); }
-  function revisarPuerta() {   // la casilla de la puerta del local lleva a la calle; el tiempo de la simulación queda en pausa afuera
-    if (performance.now() > enfriar && sim.g[Math.floor(sim.p.y + .35)]?.[Math.floor(sim.p.x)] === 'D') { guardar(); enfriar = performance.now() + 800; modo = 'ciudad'; const h = miHogar(); cp.x = h.frente.x; cp.y = h.frente.y; cp.dir = 1; chunks.forzar(cp.x, cp.y); }
+  let tSalida = 0;
+  function entrarNegocio() {
+    enfriar = performance.now() + 800; modo = 'interior'; sim.p.x = sim.puerta.x + .5; sim.p.y = sim.puerta.y - 1; sim.p.dir = 0; audio.tono('ok');
+    const r = tSalida ? sim.ausencia((performance.now() - tSalida) / 1000) : null; tSalida = 0;      // con gerente el local trabajó solo mientras estabas en la calle
+    aviso(r ? `Tu local trabajó sin ti ${Math.round(r.seg / 60)} min: ${r.dinero >= 0 ? '+' : '−'}$${Math.abs(r.dinero)}, ${r.servidos} pedidos` : 'Entraste a tu ' + cfg.titulo.toLowerCase()); if (r) guardar();
   }
+  function revisarPuerta() {   // la casilla de la puerta del local lleva a la calle; el tiempo de la simulación queda en pausa afuera
+    if (performance.now() > enfriar && sim.g[Math.floor(sim.p.y + .35)]?.[Math.floor(sim.p.x)] === 'D') { guardar(); enfriar = performance.now() + 800; modo = 'ciudad'; tSalida = performance.now(); const h = miHogar(); cp.x = h.frente.x; cp.y = h.frente.y; cp.dir = 1; chunks.forzar(cp.x, cp.y); }
+  }
+  const GLIFOS = { agresivo: ['.X.', 'XXX'], estratega: ['.X.', 'XXX', '.X.'], tradicionalista: ['XXX', 'XXX', 'XXX'], oportunista: ['XXX', 'X.X', 'XXX'], soc: ['XX.XX', 'XXXXX'] };
+  const glifo = (k, x, y) => { const g = GLIFOS[k]; if (!g) return; for (const [col, ex] of [['#000', 1], ['#fff', 0]]) g.forEach((fila, j) => [...fila].forEach((ch, i) => { if (ch === 'X') R(col, x + i * 2 - ex, y + j * 2 - ex, 2 + 2 * ex, 2 + 2 * ex); })); };   // emblema 2× blanco con borde oscuro
   function dibujarCiudad() {
     const cx0 = Math.round(cp.x * T - cv.width / 2), cy0 = Math.round(cp.y * T - cv.height / 2), tam = CH * T; camX = cx0; camY = cy0;
     ctx.save(); ctx.fillStyle = '#1d2b27'; ctx.fillRect(0, 0, cv.width, cv.height); ctx.translate(-cx0, -cy0);
     for (let cy = Math.floor(cy0 / tam); cy <= Math.floor((cy0 + cv.height) / tam); cy++) for (let cx = Math.floor(cx0 / tam); cx <= Math.floor((cx0 + cv.width) / tam); cx++) { const c = chunks.obtener(cx, cy); if (c) { if (!c.img) c.img = pintarChunk(c); ctx.drawImage(c.img, cx * tam, cy * tam); } }
     for (let cy = Math.floor(cy0 / tam); cy <= Math.floor((cy0 + cv.height) / tam); cy++) for (let cx = Math.floor(cx0 / tam); cx <= Math.floor((cx0 + cv.width) / tam); cx++) for (const l of lotesChunk(cx, cy)) {   // rótulos de propiedad
       const o = ocupa.get(l.id), px = l.puerta.x * T, py = l.puerta.y * T;
-      if (!o) { R('#e0c040', px + 3, py, 10, 3); continue; }
+      if (!o) { R('#e0c040', px + 3, py, 10, 3); if (subLotes.has(l.id) && Math.floor(performance.now() / 400) % 2) R('#fff', px + 5, py + 4, 6, 2); continue; }
       R(o.color, px, py, T, 3); R('#0006', px, py + 3, T, 1); if (o.tipo === 'f') { R('#fff', px + 6, py + 5, 4, 1); for (let i = 0; i < o.nivel; i++) R('#fff', px + 2 + i * 3, py + 7, 2, 2); }
-      if (o.cid === net?.cid) R('#fff', px + 1, py + 1, 2, 1);
+      if (o.glifo) glifo(o.glifo, px + 3, py + 10);                                          // emblema propio de cada rival y de las sociedades
+      if (o.venta) R('#2fd05a', px + 9, py + 10, 6, 2); if (subLotes.has(l.id) && Math.floor(performance.now() / 400) % 2) R('#ffd23f', px + 9, py + 13, 6, 2);
+      if (o.cid === net?.cid || o.cid === mundo?.sociedad?.mia?.id) R('#fff', px + 1, py + 1, 2, 1);
     }
     const lista = [[cp.y, () => persona(cp, { ...jug(), mov: cp.mov })]];
     for (const r of remotosVisibles()) lista.push([r.y, () => dibRemoto(r)]);
@@ -442,13 +452,14 @@ async function iniciar() {
   }
 
   // ---------- servidor, salas y economía compartida (Monopoly de franquicias) ----------
-  const remotos = new Map(), pendientes = new Map(), ocupa = new Map();
+  const remotos = new Map(), pendientes = new Map(), ocupa = new Map(); let subLotes = new Set(), rivalesSala = 0;
+  const chatMsgs = [], chatCfg = { activo: true, silenciados: [] }, chatOcultos = new Set();
   let net = null, misSalas = null, netId = 0, seqLocal = 0, tRed = 0, mundo = null, estadoRed = '', panelLoteId = null;
   const hex = n => [...crypto.getRandomValues(new Uint8Array(n))].map(b => b.toString(16).padStart(2, '0')).join('');
   const jidWS = () => { let j = localStorage.getItem('puvegame:jid'); if (!/^[0-9a-f]{24}$/.test(j || '')) { j = hex(12); localStorage.setItem('puvegame:jid', j); } return j; };   // secreto: solo viaja al servidor
   const nombreLocal = () => cuenta.usuario() || 'Invitado';
   const remotosVisibles = () => [...remotos.values()].filter(r => r.modo === modo);
-  const refrescar = nombre => { if (tiendaAbierta && panelActual === nombre) (nombre === 'Multijugador' ? panelMulti : nombre === 'Franquicias' ? panelFranq : nombre === 'Gestion' ? () => P.panelGestion(panelLoteId) : nombre === 'Mercado' ? P.panelMercado : () => panelLote(panelLoteId))(); };
+  const refrescar = nombre => { if (!tiendaAbierta || panelActual !== nombre) return; const f = nombre === 'Multijugador' ? panelMulti : nombre === 'Franquicias' ? panelFranq : nombre === 'Lote' ? () => panelLote(panelLoteId) : P?.rehacer[nombre]; f?.(); };
   function dibRemoto(r) {
     const k = r.look || {};
     persona(r, { capas: capasJug(k), piel: col('piel', k.piel) || PIEL[0], pelo: col('pelo', k.pelo) || PELO[0], ropa: col('ropa', k.ropa) || '#fff', del: P.or, gorro: k.gorro, mov: r.mov });
@@ -482,7 +493,12 @@ async function iniciar() {
     else if (m.t === 'creada') { net.sala = { id: m.id, token: m.token }; net.url = location.origin + location.pathname + `#sala=${m.id}.${m.token}&t=${net.modo === 'ws' ? 'ws' : net.modo === 'sb' ? 'sb' : 'loc'}`; refrescar('Multijugador'); }
     else if (m.t === 'resp') { if (!m.ok) { aviso(m.msg); if (net.modo !== 'solo') salirRed(); } else if (m.giro !== giro) { aviso('Esa sala es de otro tipo de negocio'); salirRed(); } else if (net.modo !== 'solo') { net.sala = net.sala || { id: m.id }; aviso('Te uniste a la sala'); } refrescar('Multijugador'); }
     else if (m.t === 'snap') net.snap = m.snap;
-    else if (m.t === 'mundo') { mundo = m; ocupa.clear(); const col = new Map(m.jugadores.map(j => [j.cid, j.color])); for (const [lid, dueno, nivel, tipo] of m.lotes) ocupa.set(lid, { cid: dueno, color: col.get(dueno) || '#888', nivel, tipo }); refrescar('Franquicias'); refrescar('Lote'); refrescar('Gestion'); refrescar('Mercado'); alMundo(m); }
+    else if (m.t === 'aviso') aviso(m.msg);
+    else if (m.t === 'chat') { chatMsgs.push(m.m); if (chatMsgs.length > 60) chatMsgs.shift(); if (m.m.de !== net.cid && !chatOcultos.has(m.m.de) && !(tiendaAbierta && panelActual === 'Chat')) aviso(`${m.m.nombre}: ${m.m.txt}`.slice(0, 60)); refrescar('Chat'); }
+    else if (m.t === 'chat_hist') { chatMsgs.length = 0; chatMsgs.push(...m.msgs); chatCfg.activo = m.activo !== false; }
+    else if (m.t === 'chat_cfg') { chatCfg.activo = m.activo; chatCfg.silenciados = m.silenciados || []; refrescar('Chat'); }
+    else if (m.t === 'chat_err') aviso(m.msg);
+    else if (m.t === 'mundo') { mundo = m; ocupa.clear(); const col = new Map(m.jugadores.map(j => [j.cid, j.color])); const jug = new Map(m.jugadores.map(j => [j.cid, j])); subLotes = new Set((m.subastas || []).map(x => x.lote)); for (const [lid, dueno, nivel, tipo, , , , , venta] of m.lotes) { const j = jug.get(dueno); ocupa.set(lid, { cid: dueno, color: col.get(dueno) || '#888', nivel, tipo, glifo: j?.npc ? j.perfil : j?.soc ? 'soc' : null, venta: venta != null }); } for (const k of ['Franquicias', 'Lote', 'Gestion', 'Mercado', 'Contratos', 'Subastas', 'Sociedad']) refrescar(k); alMundo(m); }
     else if (m.t === 'res') { const f = pendientes.get(m.id); if (f) { pendientes.delete(m.id); f(m); } }
     else if (m.t === 'cerrada') { aviso('La sala se cerró'); salirRed(); }
   }
@@ -513,9 +529,9 @@ async function iniciar() {
   function crearSala(tipo) {
     if (tipo === 'sb' && !sbListo()) return;
     const n = nuevaRed({ modo: tipo, rol: 'host' }), h = hooks(n.id);
-    if (tipo === 'loc') { n.cid = hex(8); n.srv = new Servidor(); n.conn = hostLocal(n.srv, n.cid, h); n.conn.enviar({ t: 'crear', giro, nombre: nombreLocal(), look: perfil.look }); }
-    else if (tipo === 'sb') { n.cid = cuenta.cid(); n.srv = new Servidor(); n.conn = hostSB(cuenta.cliente(), n.srv, n.cid, h, { alGuardar: guardarSalaDB }); n.conn.enviar({ t: 'crear', giro, nombre: nombreLocal(), look: perfil.look }); }
-    else { n.alAbrir = () => n.conn.enviar(n.sala ? { t: 'unir', sala: n.sala.id, nombre: nombreLocal() } : { t: 'crear', giro, nombre: nombreLocal() }); n.modo = 'ws'; n.conn = conectarWS((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws', jidWS(), h); }
+    if (tipo === 'loc') { n.cid = hex(8); n.srv = new Servidor(); n.conn = hostLocal(n.srv, n.cid, h); n.conn.enviar({ t: 'crear', giro, rivales: rivalesSala, nombre: nombreLocal(), look: perfil.look }); }
+    else if (tipo === 'sb') { n.cid = cuenta.cid(); n.srv = new Servidor(); n.conn = hostSB(cuenta.cliente(), n.srv, n.cid, h, { alGuardar: guardarSalaDB }); n.conn.enviar({ t: 'crear', giro, rivales: rivalesSala, nombre: nombreLocal(), look: perfil.look }); }
+    else { n.alAbrir = () => n.conn.enviar(n.sala ? { t: 'unir', sala: n.sala.id, nombre: nombreLocal() } : { t: 'crear', giro, rivales: rivalesSala, nombre: nombreLocal() }); n.modo = 'ws'; n.conn = conectarWS((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws', jidWS(), h); }
     panelMulti();
   }
   function unirse(texto) {
@@ -540,7 +556,8 @@ async function iniciar() {
     });
   }
   async function invertir(x) {
-    x = Math.floor(Math.min(x, sim.d.dinero, mundo?.mio?.cupo ?? 0)); if (x < 1) return { ok: false, msg: sim.d.dinero < 1 ? 'Tu restaurante no tiene dinero' : 'Cupo de inversión agotado: espera unos segundos' };
+    const cred = mundo?.mio?.estricto ? mundo.mio.credito : Infinity;       // el servidor solo deja invertir lo que tu restaurante ya ganó y él aceptó
+    x = Math.floor(Math.min(x, sim.d.dinero, mundo?.mio?.cupo ?? 0, cred)); if (x < 1) return { ok: false, msg: sim.d.dinero < 1 ? 'Tu restaurante no tiene dinero' : cred < 1 ? 'Tus ganancias recientes aún no están validadas: sigue jugando unos segundos' : 'Cupo de inversión agotado: espera unos segundos' };
     sim.d.dinero -= x; const r = await eco('invertir', { monto: x });            // se reserva primero; solo se devuelve ante rechazo definitivo
     if (!r.ok && !r.sinRespuesta) sim.d.dinero += x; guardar(); return r;
   }
@@ -548,14 +565,16 @@ async function iniciar() {
   function accionCiudad() { const l = loteCerca(); if (!l) return { msg: '' }; if (!mundo) return { msg: 'Conectando con el servidor…' }; panelLote(l); return { msg: '' }; }
   function panelLote(l) {
     if (typeof l === 'string') l = loteDe(chunks.seed, l); if (!l || !mundo) return cerrarTienda(); panelLoteId = l.id;
-    const o = ocupa.get(l.id), mio = o && o.cid === net?.cid, msg = txt('', 'msg'), info = mundo.lotes.find(x => x[0] === l.id), inv = info?.[4] || 0;
+    const o = ocupa.get(l.id), mio = o && (o.cid === net?.cid || o.cid === mundo?.sociedad?.mia?.id), msg = txt('', 'msg'), sub = (mundo.subastas || []).find(x => x.lote === l.id), info = mundo.lotes.find(x => x[0] === l.id), inv = info?.[4] || 0;
     let comp = 0; for (const [id] of ocupa) if (id !== l.id) { const q = loteDe(chunks.seed, id); if (q && Math.hypot(q.puerta.x - l.puerta.x, q.puerta.y - l.puerta.y) <= RADIO) comp++; }
     const dueno = () => mundo.jugadores.find(j => j.cid === o.cid)?.nombre || 'otro jugador';
-    const hacer = (op, ok) => async () => { const r = await eco(op, { lote: l.id }); msg.textContent = r.msg; if (r.ok) { audio.tono('moneda'); if (ok) ok(); } else audio.tono('error'); };
+    const hacer = (op, ok, ex = {}) => async () => { const r = await eco(op, { lote: l.id, ...(o && o.cid === mundo?.sociedad?.mia?.id ? { soc: o.cid } : {}), ...ex }); msg.textContent = r.msg; if (r.ok) { audio.tono('moneda'); if (ok) ok(); } else audio.tono('error'); };
     const acc = [];
-    if (!o) acc.push(txt(`Este lote está libre. Cuesta $${precioLote(l)}.`), btn(`Abrir franquicia ($${precioLote(l)})`, hacer('comprar'), mundo.mio.dinero < precioLote(l), 'primario'));
+    if (sub && !o) acc.push(txt(`Este lote está en subasta (${sub.vendedor}). Base $${sub.base}; puja líder: ${sub.mejor ? `$${sub.mejor.monto} (${sub.mejor.nombre})` : 'ninguna'}. Cierra en ${sub.quedan} turnos.`), btn(`Pujar $${sub.minima}`, hacer('pujar', () => panelLote(l.id), { monto: sub.minima }), mundo.mio.dinero < sub.minima || !!sub.mejor?.tuya, 'primario'), btn('Ver subastas', () => P.panelSubastas(), false, 'suave'));
+    else if (!o) { acc.push(txt(`Este lote está libre. Cuesta $${precioLote(l)}.`), btn(`Abrir franquicia ($${precioLote(l)})`, hacer('comprar'), mundo.mio.dinero < precioLote(l), 'primario')); const sc = mundo.sociedad?.mia; if (sc) acc.push(btn(`Abrir con «${sc.nombre}» ($${precioLote(l)}, se vota)`, hacer('comprar', null, { soc: sc.id }), sc.dinero < precioLote(l), 'suave')); }
     else if (o.tipo === 'h') acc.push(txt(mio ? 'Este es tu restaurante. Se juega por dentro y no se puede vender.' : `Restaurante de ${dueno()}. Compite contigo por los clientes de la zona.`));
     else if (mio) { const c = costoMejora(l, o.nivel), g = Math.round(.7 * (precioLote(l) + inv)); acc.push(stat('Nivel', `${o.nivel}/5`), stat(`Ingreso cada turno (${TURNO_MS / 1000} s)`, `$${mundo.mio.ingresos[l.id] ?? '…'}`), btn(o.nivel >= 5 ? 'Nivel máximo' : `Mejorar a nivel ${o.nivel + 1} ($${c})`, hacer('mejorar'), o.nivel >= 5 || mundo.mio.dinero < c, 'primario'), btn('Gestionar: precio, especialidad, gerente…', () => P.panelGestion(l.id), false, 'suave'), btn(`Vender ya (recibes $${g})`, hacer('vender', cerrarTienda), false, 'peligro')); }
+    else if (sub) acc.push(txt(`Franquicia de ${dueno()} en subasta. Puja líder: ${sub.mejor ? `$${sub.mejor.monto} (${sub.mejor.nombre})` : 'ninguna'}. Cierra en ${sub.quedan} turnos.`), btn(`Pujar $${sub.minima}`, hacer('pujar', () => panelLote(l.id), { monto: sub.minima }), mundo.mio.dinero < sub.minima || !!sub.mejor?.tuya, 'primario'));
     else if (info?.[8] != null) acc.push(txt(`Franquicia de ${dueno()} · nivel ${o.nivel} · reputación ${info[7]}. ¡Está en venta!`), btn(`Comprar por $${info[8]}`, hacer('comprar'), mundo.mio.dinero < info[8], 'primario'));
     else acc.push(txt(`Franquicia de ${dueno()} · nivel ${o.nivel} · reputación ${info?.[7] ?? '?'}. No está en venta.`));
     abrir('Lote ' + l.id, [sec('Datos del lote', stat('Clientes que pasan', `${trafico(l)}/10`), stat('Competidores cerca', String(comp)), stat('Tu cuenta de franquicias', `$${mundo.mio.dinero}`)), sec(!o ? 'Disponible' : mio ? 'Tu franquicia' : 'Ocupado', ...acc), msg], { atras: null, clave: 'Lote' });
@@ -565,7 +584,7 @@ async function iniciar() {
     if (!m) filas.push(txt('Conectando con el servidor…'));
     else {
       const ir = x => async () => { const r = await invertir(x); msg.textContent = r.msg; audio.tono(r.ok ? 'moneda' : 'error'); if (r.ok) panelFranq(); };
-      filas.push(sec('Tu dinero', stat('Dinero de tu negocio', `$${sim.d.dinero}`), stat('Cuenta de franquicias', `$${m.dinero}`), stat('Cupo para invertir', `$${m.cupo}`)),
+      filas.push(sec('Tu dinero', stat('Dinero de tu negocio', `$${sim.d.dinero}`), stat('Cuenta de franquicias', `$${m.dinero}`), stat('Cupo para invertir', `$${m.cupo}`), m.estricto ? stat('Ganancias validadas', `$${m.credito}`) : null),
         sec('Invertir', txt('Pasa dinero de tu negocio a tu cuenta de franquicias para comprar lotes en la ciudad.'), (() => { const f = el('div', 'fila'); f.append(btn('$100', ir(100), false, 'primario'), btn('$500', ir(500), false, 'primario'), btn('Todo', ir(1e9), false, 'primario')); return f; })()),
         sec('Ranking', ...mundo.jugadores.map((j, i) => stat(`${i + 1}. ${j.nombre}${j.cid === net.cid ? ' (tú)' : j.npc ? ' · rival' : ''}`, `$${j.patrimonio} · ${j.franq}/${MAX_FRANQ}`)), txt('Se ordena por patrimonio. A la derecha: dinero y franquicias abiertas.')));
       const mias = mundo.lotes.filter(l => l[1] === net.cid && l[3] === 'f');
@@ -584,6 +603,7 @@ async function iniciar() {
       const web = location.protocol.startsWith('http'), crear = [];
       if (real) crear.push(...(ok ? [txt('Crea una sala y comparte el enlace o el código QR. Tus amigos también necesitan su cuenta.'), btn('Crear sala por internet', () => crearSala('sb'), false, 'primario')] : [txt('Para jugar por internet primero inicia sesión.'), btn('Iniciar sesión', panelCuenta, false, 'primario')]));
       else crear.push(txt(web ? 'Requiere abrir el juego desde el servidor: node nucleo/herramientas/servidor_nodo.mjs' : 'Abre el juego desde un servidor (http/https) para jugar por internet.'), btn('Crear sala en el servidor', () => crearSala('ws'), !web, 'primario'));
+      crear.push(txt('Rivales controlados por la computadora en tu sala:'), (() => { const f = el('div', 'fila'); [0, 1, 2, 3, 4].forEach(n => f.appendChild(btn(String(n), () => { rivalesSala = n; panelMulti(); }, false, rivalesSala === n ? 'primario' : 'suave'))); return f; })());
       filas.push(sec('Crear una sala', ...crear));
       if (real && misSalas?.length) filas.push(sec('Mis salas guardadas', txt('Continúa una sala que creaste antes.'), ...misSalas.map(x => btn('Reanudar sala ' + x.id.slice(0, 4).toUpperCase(), () => reanudarSala(x.id), false, 'suave'))));
       const i = el('input', 'in'); i.placeholder = 'Pega aquí el enlace de invitación'; i.autocomplete = 'off';
@@ -601,6 +621,7 @@ async function iniciar() {
           btn('Copiar enlace', async () => { try { await navigator.clipboard.writeText(net.url); msg.textContent = 'Enlace copiado'; } catch (e) { console.warn(e); enlace.select(); msg.textContent = 'No se pudo copiar solo: ya quedó seleccionado, cópialo a mano'; } }, false, 'primario'),
           btn('Generar enlace nuevo', () => net.conn.enviar({ t: 'invitar' }), false, 'suave'), txt('El enlace anterior deja de funcionar.')));
       }
+      filas.push(sec('Con tus amigos', btn('Chat de la sala', () => P.panelChat(), false, 'primario'), btn('Sociedad', () => P.panelSociedad(), false, 'suave'), btn('Subastas', () => P.panelSubastas(), false, 'suave')));
       const salir = btn('Salir de la sala', () => { if (net.rol !== 'host') net.conn.enviar({ t: 'salir' }); salirRed(); panelMulti(); }, false, 'suave');
       filas.push(sec('Terminar', salir, txt(net.rol !== 'host' ? 'Volverás a jugar solo.' : net.modo === 'sb' ? 'Podrás reanudarla después desde «Mis salas guardadas».' : 'La sala sigue abierta en el servidor.'),
         ...(net.rol === 'host' ? [btn('Cerrar sala para todos', () => { const id = net.sala?.id, m = net.modo; net.conn.enviar({ t: 'salir' }); salirRed(); if (m === 'sb' && id) cuenta.cliente().rpc('juego_sala_cerrar', { p_id: id }); panelMulti(); }, false, 'peligro')] : [])));
@@ -621,7 +642,11 @@ async function iniciar() {
     if (paso === 0 && /^Pedido/.test(m)) paso = 1; else if (paso === 1 && m === 'Preparando…') paso = 2; else if (paso === 2 && m === 'Llévalo al cliente') paso = 3; else if (paso === 3 && m === 'Servido') paso = 4;
     else if (paso === 4 && r.fx === 'moneda') { paso = 99; perfil.tutorial = true; store.guardarPerfil(perfil); aviso('¡Tutorial completo!'); }
   }
-  const P = crearPaneles({ el, txt, btn, sec, stat, chip, icono, abrir, aviso, audio, eco, sim, perfil, store, guardar, mundo: () => mundo, net: () => net, volver: () => menu(), loteDe: id => loteDe(chunks.seed, id), panelLote: id => panelLote(id), cerrarTienda: () => cerrarTienda() });
+  const P = crearPaneles({ el, txt, btn, sec, stat, chip, icono, abrir, aviso, audio, eco, sim, perfil, store, guardar, mundo: () => mundo, net: () => net, volver: () => menu(), loteDe: id => loteDe(chunks.seed, id), panelLote: id => panelLote(id), cerrarTienda: () => cerrarTienda(), enviar: m => net?.conn?.enviar(m),
+    chat: () => ({ msgs: chatMsgs, activo: chatCfg.activo, silenciados: chatCfg.silenciados, host: net?.rol === 'host', jugadores: net?.snap || [], mios: chatOcultos }) });
+  if (ausLocal0) aviso(`Tu local trabajó sin ti: ${ausLocal0.dinero >= 0 ? '+' : '−'}$${Math.abs(ausLocal0.dinero)}`);
+  if (ausLocal0) P.informeLocal(`Mientras no estabas, tu local trabajó ${Math.round(ausLocal0.seg / 60)} minutos con tu gerente: ${ausLocal0.dinero >= 0 ? '+' : '−'}$${Math.abs(ausLocal0.dinero)} (la mitad de lo que habrías ganado jugando), ${ausLocal0.servidos} pedidos, ${ausLocal0.perdidos} perdidos.`);
+  setInterval(() => { const mo = mundo?.mio; if (!net || !mo || document.hidden) return; const st = sim.d.st; eco('local', { ganado: Math.floor(st.ganado), xp: Math.floor(sim.d.xp), servidos: st.servidos, tiempo: Math.floor(st.tiempo), semanas: st.semanas }); }, 10000);   // reporte de ganancias para que el servidor lo valide
   function menu() {
     audio.activar();
     const it = (ic, t, d, f) => { const b = el('button', 'b mi'); b.type = 'button'; b.onclick = f; b.append(ic, el('span', 'mt', t), el('span', 'md', d)); return b; };
@@ -633,6 +658,9 @@ async function iniciar() {
       it(icono('mesa'), 'Personal', 'Tu equipo: habilidad, ánimo y sueldos', () => P.panelPersonal()),
       it(icono('refri'), 'Proveedores', 'Costos, calidad y contratos', () => P.panelProveedores()),
       it(icono('tablero'), 'Desarrollo', 'Mejoras con ventajas y desventajas', () => P.panelDesarrollo()),
+      it(icono('moneda'), 'Contratos', 'Catering con plazo y riesgo', () => P.panelContratos()),
+      it(icono('moneda'), 'Subastas', 'Puja por locales y lotes', () => P.panelSubastas()),
+      it(icono('globo_espera'), 'Sociedad', 'Empresa con amigos: caja y votaciones', () => P.panelSociedad()),
       it(icono('globo_espera'), 'Multijugador', 'Juega con amigos por internet', abrirMulti),
       it(icono('tablero'), 'Cuenta y progreso', 'Guarda tu partida y sigue desde cualquier lugar', panelCuenta),
       it(icono(null, audio.on() ? '♪' : 'x'), 'Sonido: ' + (audio.on() ? 'activado' : 'apagado'), 'Toca para ' + (audio.on() ? 'apagarlo' : 'encenderlo'), () => { audio.alternar(); perfil.mute = !audio.on(); store.guardarPerfil(perfil); menu(); }),
