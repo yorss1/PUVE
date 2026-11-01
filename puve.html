@@ -467,6 +467,8 @@
   #modalVoz .nota, #modalLiquidacion .nota, #modalApariencia .nota{ color:var(--texto-suave); }
   .btn-escanear{ background:none; border:1px solid var(--borde); border-radius:7px; padding:9px 12px; font-family:'Inter'; font-size:13px; font-weight:500; color:var(--texto-suave); cursor:pointer; white-space:nowrap; }
   .btn-escanear:hover{ background:#F4F4F5; color:var(--texto); }
+  .btn-importar{ background:none; border:1px solid var(--borde); border-radius:7px; padding:9px 12px; font-family:'Inter'; font-size:13px; font-weight:500; color:var(--texto-suave); cursor:pointer; white-space:nowrap; }
+  .btn-importar:hover{ background:#F4F4F5; color:var(--texto); }
 
   .fila-config{ display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--borde); gap:16px; }
   .fila-config:last-of-type{ border-bottom:none; }
@@ -613,7 +615,7 @@
 
     
     .buscador input{ min-height:46px; font-size:15px; }
-    .btn-escanear{ min-height:46px; padding:0 16px; }
+    .btn-escanear,.btn-importar{ min-height:46px; padding:0 16px; }
 
     
     .lista-productos{ background:transparent; border:none; gap:12px; }
@@ -769,7 +771,7 @@
   button.principal,.emb-btn-gran,.tarjeta-tutorial-boton,.boton-tipo-acceso.principal,.ticket-exito-nueva-venta{ background:var(--acento); color:var(--texto-sobre-acento); border:none; min-height:48px; padding:0 24px; box-shadow:0 8px 20px rgba(23,22,20,.22); }
   button.principal:hover:not(:disabled),.emb-btn-gran:hover:not(:disabled){ background:var(--acento); opacity:.88; } button.principal:active,.emb-btn-gran:active{ opacity:.78; }
   .emb-btn-gran{ height:56px; font-size:15px; } button.texto{ background:none; border:none; color:var(--texto-suave); padding:8px 14px; } button.texto:hover{ background:var(--sub); color:var(--texto); }
-  .btn-escanear,.emb-acciones button,.metodo-pago-movil button,.boton-tipo-acceso:not(.principal){ background:var(--vid2); border:1px solid var(--borde); color:var(--texto); }
+  .btn-escanear,.btn-importar,.emb-acciones button,.metodo-pago-movil button,.boton-tipo-acceso:not(.principal){ background:var(--vid2); border:1px solid var(--borde); color:var(--texto); }
   .emb-acciones button{ height:48px; } .cant-control button{ width:30px; height:30px; padding:0; } .item-producto-stepper button{ border-radius:14px; background:var(--vid2); color:var(--texto); }
   .disp-item button{ color:var(--error); } .subpagina-boton-atras{ width:40px; height:40px; padding:0; background:var(--vid2); }
   .metodo-pago-movil button{ border-radius:20px; } .metodo-pago-movil button.activo{ background:var(--acento); color:var(--texto-sobre-acento); border-color:var(--acento); }
@@ -1758,7 +1760,7 @@
         <div><h2>Productos</h2><p id="resumenInventario">—</p></div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
           <button class="principal" onclick="alternarFormulario()" id="btnNuevo">Nuevo producto</button>
-          <button class="btn-escanear" id="btnImportar" type="button" onclick="PuveImportar.abrir()">Importar</button>
+          <button class="btn-importar" id="btnImportar" type="button" onclick="PuveImportar.abrir()">Importar</button>
           <button class="btn-escanear" id="btnVoz" onclick="conTutorial('btn-voz', this, iniciarModoVoz)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>Por voz</button>
         </div>
       </div>
