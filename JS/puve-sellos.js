@@ -36,7 +36,31 @@
   async function cargar(){
     try { const d = await rpc('sellos_config_obtener'); if(d) cfg = Object.assign({ activo: false, meta: 8, premio: 'Un producto gratis', minimo: 0, diseno: {}, negocio: '', subgiro: '', giro: '' }, d); }
     catch(e){ cfg.activo = false; }
+    escucharLector();
     return cfg;
+  }
+
+  // ---------- caja: identificar al cliente con el QR de su tarjeta (Google Wallet, pantalla del celular o lector USB) ----------
+  const tokenDe = (txt) => { const m = String(txt || '').match(/(?:[?&#]t=|^)([0-9a-f]{32})(?![0-9a-f])/i); return m ? m[1].toLowerCase() : null; };
+  async function identificarToken(token){
+    let d;
+    try { d = await rpc('sellos_por_token', { p_token: token }); } catch(e){ enlace.aviso(/does not exist|schema cache/i.test(e.message) ? 'Falta ejecutar el script SQL 107 en Supabase.' : e.message); return false; }
+    if(!d){ enlace.aviso('Esta tarjeta no es de tu negocio o ya no está activa.'); return false; }
+    const bloque = document.getElementById('bloqueClienteVenta'); if(bloque) bloque.classList.remove('oculto');
+    const tel = document.getElementById('recompensaTelefono'), nom = document.getElementById('clienteNombreVenta');
+    if(tel) tel.value = d.telefono;
+    if(nom && d.nombre){ nom.classList.remove('oculto'); nom.value = d.nombre; }
+    if(typeof consultarPuntosCliente === 'function') { try { consultarPuntosCliente(); } catch(e){} } else consultar(d.telefono);
+    return true;
+  }
+  function escanear(){
+    if(typeof enlace.escanear !== 'function'){ enlace.aviso('El lector de códigos no está disponible en este dispositivo.'); return; }
+    enlace.escanear((texto) => { const tk = tokenDe(texto); if(!tk){ enlace.aviso('Ese código no es una tarjeta de sellos.'); return; } identificarToken(tk); });
+  }
+  let escuchando = false;
+  function escucharLector(){
+    if(escuchando) return; const tel = document.getElementById('recompensaTelefono'); if(!tel) return; escuchando = true;
+    tel.addEventListener('input', () => { const tk = tokenDe(tel.value); if(tk && /tarjeta|t=/i.test(tel.value) || (tk && tel.value.trim().length === 32)){ tel.value = ''; identificarToken(tk); } });
   }
 
   // ---------- caja: ver la tarjeta del cliente y canjear ----------
@@ -235,7 +259,7 @@
 
   window.PuveSellos = {
     enlazar(o){ enlace = Object.assign(enlace, o || {}); },
-    cargar, activo: () => !!cfg.activo, consultar, trasVenta, montarConfig,
-    _: { tarjetaTexto, telWhatsapp }
+    cargar, activo: () => !!cfg.activo, consultar, trasVenta, montarConfig, escanear, identificarToken,
+    _: { tarjetaTexto, telWhatsapp, tokenDe }
   };
 })();
