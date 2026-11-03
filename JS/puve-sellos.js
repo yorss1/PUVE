@@ -54,7 +54,11 @@
     return true;
   }
   function escanear(){
-    if(typeof enlace.escanear !== 'function'){ enlace.aviso('El lector de códigos no está disponible en este dispositivo.'); return; }
+    if(typeof enlace.escanear !== 'function' || !enlace.escaner || !enlace.escaner()){
+      // Sin cámara: el lector USB escribe el código en el campo del teléfono y el cliente se identifica solo
+      const tel = document.getElementById('recompensaTelefono'); if(tel){ tel.value = ''; tel.focus(); tel.placeholder = 'Lee el QR con tu lector USB…'; }
+      enlace.aviso('Este equipo no tiene lector de cámara. Con un lector USB, apúntalo al QR de la tarjeta (el cursor ya está en el campo). También puedes escribir el teléfono del cliente.'); return;
+    }
     enlace.escanear((texto) => { const tk = tokenDe(texto); if(!tk){ enlace.aviso('Ese código no es una tarjeta de sellos.'); return; } identificarToken(tk); });
   }
   let escuchando = false;
@@ -226,6 +230,7 @@
     }
     if(PT){ caja.appendChild(h('div', null, 'Diseño de la tarjeta', 'font-weight:600; font-size:14px; margin-top:16px;')); caja.appendChild(h('div', 'nota', 'Así la ve tu cliente al abrir su enlace. Ya viene un diseño pensado para tu giro; cámbialo si quieres.', 'margin:2px 0 0;')); caja.appendChild(prev); caja.appendChild(panel); armarPanel(); dibujar(); meta.addEventListener('input', dibujar); premio.addEventListener('input', dibujar); }
 
+    const wal = h('p', 'nota', '', 'margin:10px 0 0;'); caja.appendChild(wal); estadoWallet(wal);
     const msg = h('p', 'nota', '', 'min-height:1.2em; margin:8px 0 0;'), res = h('div');
     const guardar = h('button', 'principal', 'Guardar', 'width:auto; margin-top:8px;'); guardar.type = 'button';
     async function enviar(){
@@ -243,6 +248,15 @@
     chk.onchange = async () => { caja.style.display = chk.checked ? '' : 'none'; await enviar(); };
     caja.append(guardar, msg, res); cont.appendChild(caja); caja.style.display = chk.checked ? '' : 'none';
     if(chk.checked) resumen(res);
+  }
+  // ¿Ya está conectado Google Wallet? Sin eso, el cliente no ve el botón «Agregar a Google Wallet» (la tarjeta, el QR y el enlace funcionan igual)
+  async function estadoWallet(el){
+    el.textContent = '';
+    try {
+      const r = await enlace.sb.functions.invoke('wallet-tarjeta', { body: { accion: 'estado' } });
+      const ok = r && r.data && r.data.configurado === true;
+      el.textContent = ok ? 'Google Wallet: conectado. Tus clientes verán el botón «Agregar a Google Wallet».' : 'Google Wallet: todavía no está conectado, por eso tus clientes no ven ese botón. Su tarjeta, su QR y su enlace ya funcionan sin Wallet. Para conectarlo sigue la GUIA_GOOGLE_WALLET.md.';
+    } catch(e){ el.textContent = 'Google Wallet: todavía no está conectado (la función wallet-tarjeta no está desplegada). La tarjeta, el QR y el enlace funcionan sin Wallet.'; }
   }
   async function resumen(cont){
     cont.textContent = '';
