@@ -8,10 +8,12 @@ import { PERMISOS } from '../multiplayer/sociedades.js';
 import { RAMAS, NODOS, puedeNodo } from '../economia/ramas.js';
 import { ETAPAS, etapaActual, desbloqueado, DESBLOQUEOS, misionesActivas, reclamar, evaluarLogros, limpiarProg, LOGROS } from '../economia/progresion.js';
 import { espera } from './sim.js';
+import { CIUDADES, DISTRITOS } from '../world/ciudades.js';
+import { pista, PREMIO_PASAPORTE, estadoPasaporte } from '../world/vida.js';
 
 export const EMBLEMA = { agresivo: '▲', estratega: '◆', tradicionalista: '■', oportunista: '●', soc: '⚭' };
 export function crearPaneles(c) {
-  const { el, txt, btn, sec, stat, chip, icono, abrir, aviso, audio, eco, sim, perfil, store, guardar, mundo, net, volver, enviar, chat } = c;
+  const { el, txt, btn, sec, stat, chip, icono, abrir, aviso, audio, eco, sim, perfil, store, guardar, mundo, net, volver, enviar, chat, vida } = c;
   const fila = (...h) => { const f = el('div', 'fila'); h.forEach(x => f.appendChild(x)); return f; };
   const barra = (v, max = 1, col = '#d9822b') => { const b = el('div'); b.style.cssText = 'height:6px;border-radius:3px;background:rgba(128,128,128,.25);overflow:hidden;margin:2px 0 6px'; const i = el('div'); i.style.cssText = `height:100%;width:${Math.round(Math.max(0, Math.min(1, v / max)) * 100)}%;background:${col}`; b.appendChild(i); return b; };
   const dinero = n => (n < 0 ? '−$' : '$') + Math.abs(Math.round(n)).toLocaleString('es');
@@ -193,6 +195,47 @@ export function crearPaneles(c) {
     filas.push(sec('Para ti', ...C.jugadores.filter(p => p.cid !== cidMio()).map(p => btn(`${C.mios.has(p.cid) ? 'Mostrar' : 'Ocultar'} mensajes de ${p.nombre}`, () => { C.mios.has(p.cid) ? C.mios.delete(p.cid) : C.mios.add(p.cid); panelChat(); }, false, 'suave'))));
     abrir('Chat', [...filas, msg], { atras: volver, clave: 'Chat' }); lista.scrollTop = lista.scrollHeight;
   }
+  // ---------- Repartos ----------
+  function panelRepartos(m = '') {
+    const msg = txt(m, 'msg'), act = vida.actual(), afuera = vida.modo() === 'ciudad', filas = [];
+    filas.push(sec('Pedidos a domicilio', txt('Sal a la calle con ingredientes en tu stock, elige un pedido y corre a entregarlo antes de que se enfríe. Cada entrega gasta 1 ingrediente; sobrar tiempo da propina y encadenar entregas sube el pago hasta +50%.'), stat('Ingredientes', String(sim.d.stock)), stat('Entregas seguidas', `${vida.racha()} (x${(1 + Math.min(.5, .1 * vida.racha())).toFixed(1)})`)));
+    if (act) filas.push(sec('En camino', stat('Destino', act.of.hito || act.of.distrito), stat('Tiempo', `${Math.max(0, Math.ceil(act.t))} s`), stat('Paga', `$${act.of.pago}+`), btn('Cancelar (pierdes el ingrediente)', () => { vida.cancelar(); panelRepartos('Pedido cancelado'); }, false, 'peligro')));
+    else {
+      const of = vida.ofertas(); filas.push(...(of.length ? of.map(o => sec(`${o.nivel}: ${o.hito ? '★ ' + o.hito : o.distrito}`, stat('Distancia', `${o.dist} casillas`), stat('Tiempo', `${o.limite} s`), stat('Paga', `$${o.pago} + propina`), txt(`Rumbo ${pista(vida.pos(), o.frente)}.`),
+        btn(afuera ? 'Aceptar y salir corriendo' : 'Sal a la calle primero', () => { const r = vida.aceptar(o); if (r.ok) c.cerrarTienda(); else panelRepartos(r.msg); }, !afuera || sim.d.stock < 1 || !!act, 'primario'))) : [txt('No hay pedidos por aquí. Camina a otra zona.')]), txt('Las ofertas cambian cada 45 segundos.'));
+    }
+    abrir('Repartos', [...filas, msg], { atras: volver, clave: 'Repartos' });
+  }
+  // ---------- Pasaporte ----------
+  function panelPasaporte() {
+    const { sellos, hechos } = vida.sellos(), e = estadoPasaporte(sellos, hechos), pos = vida.pos(), filas = [];
+    if (!sellos.length) filas.push(sec('Pasaporte', txt('Esta ciudad no tiene monumentos que descubrir. Empieza un mundo nuevo en otra ciudad desde el menú «Ciudades».')));
+    else {
+      filas.push(sec(`Pasaporte · ${e.ok}/${e.total}`, barra(e.ok, e.total, '#7ae0f0'), txt(e.completo ? `¡Completo! Título: «${perfil.titulo || 'Explorador'}».` : `Visita los monumentos para sellar tu pasaporte. Cada uno da dinero y XP; completarlo da $${PREMIO_PASAPORTE} y un título. Acércate a su puerta para sellarlo.`)));
+      for (const s of sellos) { const ya = hechos.has(s.id); filas.push(sec(`${ya ? '🛂 ' : '? '}${ya ? s.nombre : 'Monumento sin descubrir'}`, stat('Distrito', s.distrito), stat('Premio', `$${s.premio}`), txt(ya ? 'Sellado.' : `Pista: ${pista(pos, s.frente)}. Habla con los peatones o mira el mapa.`))); }
+    }
+    abrir('Pasaporte', filas, { atras: volver, clave: 'Pasaporte' });
+  }
+  // ---------- Mapa ----------
+  function panelMapa() {
+    const cv = el('canvas'); cv.style.cssText = 'width:100%;image-rendering:pixelated;border:2px solid #2a1f1d;background:#222'; const filas = [sec('Tu ciudad', cv, txt('Punto rojo: tú. Cuadros de colores: propiedades. Cruz blanca y dorada: monumentos. Azul: agua. Marcas amarillas: destino de tu reparto.'))];
+    try { vida.mapa(cv, 7); } catch (e) { filas.push(txt('No se pudo dibujar el mapa.')); }
+    const leyenda = Object.entries(DISTRITOS).map(([k, d]) => { const i = el('span'); i.style.cssText = `display:inline-block;width:10px;height:10px;background:${d.color};margin-right:6px;border:1px solid #000`; const f = el('div'); f.appendChild(i); f.appendChild(el('span', '', d.n)); return f; });
+    if (vida.sellos().sellos.length) filas.push(sec('Distritos', ...leyenda));
+    abrir('Mapa', filas, { atras: volver, clave: 'Mapa' });
+  }
+  // ---------- Ciudades ----------
+  let confirmar = null;
+  function panelCiudades(m = '') {
+    const msg = txt(m, 'msg'), filas = [txt('Cada ciudad es distinta: otros distritos, agua, monumentos, clientela y eventos. Empezar un mundo nuevo reinicia tus franquicias y a los rivales; tu restaurante, tu dinero y tu progreso se conservan.')], aqui = vida.seed();
+    const todas = [{ id: 'clasica', nombre: 'Ciudad clásica', seed: 7, desc: 'La ciudad original: una cuadrícula pareja. Sin monumentos ni agua.' }, ...CIUDADES];
+    for (const C of todas) {
+      const cv = el('canvas'); cv.style.cssText = 'width:100%;image-rendering:pixelated;border:2px solid #2a1f1d;background:#222'; try { vida.previa(cv, C.seed); } catch (e) { /* sin canvas */ }
+      const here = C.seed === aqui, sure = confirmar === C.seed;
+      filas.push(sec(C.nombre + (here ? ' · aquí' : ''), cv, txt(C.desc), btn(here ? 'Estás jugando aquí' : sure ? '¿Seguro? Toca otra vez para empezar' : 'Mundo nuevo aquí', () => { if (!vida.esSolo()) return panelCiudades('Solo puedes cambiar de ciudad en tu mundo solo (no dentro de una sala).'); if (!sure) { confirmar = C.seed; return panelCiudades(); } confirmar = null; vida.nuevoMundo(C.seed); }, here, sure ? 'peligro' : 'primario')));
+    }
+    abrir('Ciudades', [...filas, msg], { atras: volver, clave: 'Ciudades' });
+  }
   // ---------- Informe de regreso ----------
   function panelInforme() {
     const inf = mundo()?.mio?.informe; if (!inf) return;
@@ -202,7 +245,7 @@ export function crearPaneles(c) {
       stat('Cuenta de franquicias', t(inf.dDinero)), stat('Patrimonio', t(inf.dPatrimonio)), inf.dDeuda ? stat('Deuda', t(inf.dDeuda)) : null, inf.enVenta ? stat('Locales en venta', String(inf.enVenta)) : null),
       c.informeLocal ? sec('Tu local sin ti', txt(c.informeLocal)) : null, inf.eventos.length ? sec('Ahora en la ciudad', ...inf.eventos.map(e => txt('● ' + e))) : null, sec('Lo más importante', ...(inf.noticias.length ? inf.noticias.map(n => txt('• ' + n)) : [txt('Fue tranquilo.')])), btn('Entendido', cierra, false, 'primario')], { atras: null, clave: 'Informe' });
   }
-  const rehacer = { Mercado: panelMercado, Contratos: panelContratos, Subastas: panelSubastas, Sociedad: panelSociedad, Chat: panelChat, Gestion: () => gestionId && panelGestion(gestionId) };
+  const rehacer = { Repartos: panelRepartos, Mercado: panelMercado, Contratos: panelContratos, Subastas: panelSubastas, Sociedad: panelSociedad, Chat: panelChat, Gestion: () => gestionId && panelGestion(gestionId) };
   const informeLocal = t => { c.informeLocal = t; };
-  return { informeLocal, stats, etapa, revisar, rehacer, panelEmpresa, panelMercado, panelPersonal, panelProveedores, panelDesarrollo, seccionFinanzas, panelGestion, panelInforme, panelContratos, panelSubastas, panelSociedad, panelChat, dinero };
+  return { informeLocal, stats, etapa, revisar, rehacer, panelEmpresa, panelMercado, panelPersonal, panelProveedores, panelDesarrollo, seccionFinanzas, panelGestion, panelInforme, panelContratos, panelSubastas, panelSociedad, panelChat, panelRepartos, panelPasaporte, panelMapa, panelCiudades, dinero };
 }

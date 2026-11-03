@@ -1,5 +1,6 @@
 // Mercado vivo, PURO y determinista (sin red ni reloj): barrios con su mezcla de clientela, tendencias lentas,
 // eventos con aviso previo, especialidades y proveedores. Todo sale de (seed, turno): recargar nunca cambia el resultado.
+import { esNueva, distritoChunk, DISTRITOS, hitosCerca, CH } from '../world/ciudades.js';
 const mez = (...n) => { let h = 2166136261; for (const v of n) { h = Math.imul(h ^ (v | 0), 16777619); h ^= h >>> 13; } return h >>> 0; };
 export const azar = (...n) => mez(...n) / 4294967296;      // 0..1 determinista
 export const hash = mez;
@@ -24,8 +25,18 @@ export const barrioId = (cx, cy) => `${Math.floor(cx / BARRIO_CH)},${Math.floor(
 export const barrioDeLote = l => barrioId(l.cx, l.cy);
 const NOMBRES = ['Jardines', 'Alameda', 'Mirador', 'Reforma', 'Estación', 'Universitaria', 'Portales', 'Lomas', 'Costera', 'Mercado', 'Fábricas', 'Bosque'];
 const cache = new Map();
+const SUFIJOS = ['Norte', 'Sur', 'Viejo', 'Nuevo', 'Alto', 'Bajo', 'del Sol', 'de la Luna', 'Real', 'Verde'];
+function barrioNuevo(seed, id) {                                // en las ciudades nuevas el barrio hereda el carácter de sus distritos
+  const [a, b] = id.split(',').map(Number), cnt = {}; for (let dy = 0; dy < BARRIO_CH; dy++) for (let dx = 0; dx < BARRIO_CH; dx++) { const t = distritoChunk(seed, a * BARRIO_CH + dx, b * BARRIO_CH + dy).tipo; cnt[t] = (cnt[t] || 0) + 1; }
+  const tipo = Object.keys(cnt).sort((x, y) => cnt[y] - cnt[x] || (x < y ? -1 : 1))[0], base = DISTRITOS[tipo].seg;
+  const w = SEGMENTOS.map((sg, i) => (base[sg] || .05) * (.8 + .4 * azar(seed, a, b, 100 + i))), t = w.reduce((x, y) => x + y, 0), seg = {}; SEGMENTOS.forEach((sg, i) => { seg[sg] = w[i] / t; });
+  const dom = SEGMENTOS.reduce((m, sg) => (seg[sg] > seg[m] ? sg : m), SEGMENTOS[0]); let hito = null; for (const h of hitosCerca(seed, a * BARRIO_CH, b * BARRIO_CH)) if (Math.floor(h.cx / BARRIO_CH) === a && Math.floor(h.cy / BARRIO_CH) === b) { hito = h; break; }
+  const nombre = a === 0 && b === 0 ? 'Centro' : hito ? `Zona del ${hito.nombre}`.replace('del Faro', 'del Faro').replace(/^Zona del (La|El|Las|Los) /, 'Zona de $1 ') : `${DISTRITOS[tipo].n} ${SUFIJOS[mez(seed, a, b, 1) % SUFIJOS.length]}`;
+  return { id, nombre, seg, dom, distrito: tipo, hito: hito?.nombre || null, periodo: 360 + mez(seed, a, b, 2) % 480, fase: azar(seed, a, b, 3) };
+}
 export function perfilBarrio(seed, id) {
   const k = seed + '|' + id; if (cache.has(k)) return cache.get(k);
+  if (esNueva(seed)) { const r = barrioNuevo(seed, id); if (cache.size > 4000) cache.clear(); cache.set(k, r); return r; }
   const [a, b] = id.split(',').map(Number), centro = a === 0 && b === 0;
   const w = SEGMENTOS.map((s, i) => .25 + azar(seed, a, b, 100 + i));
   if (centro) { w[2] *= 1.8; w[3] *= 1.5; }
@@ -48,16 +59,22 @@ export const TIPOS_EVENTO = {
   vacaciones: { n: 'Vacaciones', ambito: 'global', dem: 1, seg: { estudiantes: .4, turistas: 1.7, trabajadores: .8 }, ing: 1, dur: [20, 40], txt: () => 'Vacaciones: menos estudiantes y oficinistas, más turistas.' },
   inflacion: { n: 'Inflación', ambito: 'global', dem: .95, seg: {}, ing: 1.12, dur: [30, 55], txt: () => 'Inflación: los insumos cuestan más y la gente gasta un poco menos.' },
   escasez: { n: 'Escasez de insumos', ambito: 'global', dem: 1, seg: {}, ing: 1.35, dur: [8, 20], txt: () => 'Escasez de insumos: sube su precio y a quien no tenga contrato le faltará producto.', protegible: true },
+  regata: { n: 'Regata', ambito: 'barrio', distritos: ['costa', 'puerto'], dem: 1.7, seg: { turistas: 1.6, familias: 1.3 }, ing: 1, dur: [10, 20], txt: b => `Regata en ${b}: el malecón se llena de visitantes.` },
+  feria_libro: { n: 'Feria del libro', ambito: 'barrio', distritos: ['campus'], dem: 1.55, seg: { estudiantes: 1.7, premium: 1.2 }, ing: 1, dur: [10, 22], txt: b => `Feria del libro en ${b}: estudiantes por todas partes.` },
+  tianguis: { n: 'Gran tianguis', ambito: 'barrio', distritos: ['mercado', 'historico'], dem: 1.6, seg: { familias: 1.4, turistas: 1.3 }, ing: 1, dur: [10, 24], txt: b => `Gran tianguis en ${b}: el barrio rebosa de compradores.` },
+  desfile: { n: 'Desfile', ambito: 'barrio', distritos: ['historico', 'centro'], dem: 1.75, seg: { turistas: 1.5, familias: 1.3 }, ing: 1, dur: [8, 14], txt: b => `Desfile en ${b}: calles cerradas y multitudes.` },
+  concierto: { n: 'Concierto al aire libre', ambito: 'barrio', distritos: ['parque', 'campus'], dem: 1.6, seg: { estudiantes: 1.4, familias: 1.3 }, ing: 1, dur: [8, 16], txt: b => `Concierto en ${b}: llega mucha gente joven.` },
   tendencia: { n: 'Moda gastronómica', ambito: 'global', dem: 1.05, seg: { premium: 1.5, turistas: 1.2 }, ing: 1, dur: [14, 30], txt: () => 'Moda gastronómica: la clientela exigente busca calidad y ambiente.' },
 };
-const TIPOS = Object.keys(TIPOS_EVENTO);
+const TIPOS = Object.keys(TIPOS_EVENTO).filter(k => !TIPOS_EVENTO[k].distritos), TIPOS_NUEVA = Object.keys(TIPOS_EVENTO);   // los eventos de distrito solo existen en las ciudades nuevas
 function eventosVentana(seed, w) {
   const r = [];
   for (let k = 0; k < 2; k++) {
     if (azar(seed, w, k, 1) > (k ? .25 : .65)) continue;
-    const tipo = TIPOS[mez(seed, w, k, 2) % TIPOS.length], T = TIPOS_EVENTO[tipo];
+    const lista = esNueva(seed) ? TIPOS_NUEVA : TIPOS, tipo = lista[mez(seed, w, k, 2) % lista.length], T = TIPOS_EVENTO[tipo];
     const dur = T.dur[0] + mez(seed, w, k, 3) % (T.dur[1] - T.dur[0] + 1), desde = w * VENTANA + 8 + mez(seed, w, k, 4) % (VENTANA - 16);
-    const barrio = T.ambito === 'barrio' ? (azar(seed, w, k, 5) < .3 ? '0,0' : `${mez(seed, w, k, 6) % 3 - 1},${mez(seed, w, k, 7) % 3 - 1}`) : null;
+    let barrio = T.ambito === 'barrio' ? (azar(seed, w, k, 5) < .3 ? '0,0' : `${mez(seed, w, k, 6) % 3 - 1},${mez(seed, w, k, 7) % 3 - 1}`) : null;
+    if (T.distritos) { const c = []; for (let b = -3; b <= 3; b++) for (let a = -3; a <= 3; a++) if (T.distritos.includes(perfilBarrio(seed, `${a},${b}`).distrito)) c.push(`${a},${b}`); if (!c.length) continue; barrio = c[mez(seed, w, k, 8) % c.length]; }
     r.push({ id: `${w}.${k}`, tipo, desde, hasta: desde + dur, barrio });
   }
   return r;

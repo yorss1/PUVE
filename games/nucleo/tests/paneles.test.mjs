@@ -14,15 +14,19 @@ const el = (tag, cls, t) => { const e = new N(tag); if (tag === 'input') e.value
 const texto = x => (x ? x.textContent + ' ' + x.hijos.map(texto).join(' ') : '');
 const botones = (x, r = []) => { if (x.tag === 'button') r.push(x); x.hijos.forEach(h => botones(h, r)); return r; };
 
+import { sellosDe, ofertasReparto } from '../world/vida.js';
+let VIDA = null;
 async function montar(giro = 'restaurante', existente = null) {
   let T = 1e6; const clk = { t: () => T }; const srv = existente || new Servidor({ ahora: clk.t, rivales: 3 }); if (!existente) srv.manejar('solo', { t: 'crear', giro, nombre: 'Ana' });
   const cfg = JSON.parse(readFileSync(new URL(`../config/${giro}.json`, import.meta.url))); const sim = new Sim(cfg, null, () => .5); sim.d.dinero = 3000; sim.d.xp = 600; sim.comprar('emp1'); sim.d.stock = 20;
   let k = 0, ultimo = null, cerrado = 0; const mundo = () => ({ ...srv.mundo.vista('solo') });
   const eco = async (op, extra = {}) => srv.manejar('solo', { t: 'eco', id: 'e' + k++, op, ...extra })[0].msg;
+  const hechos = new Set(), sellos = sellosDe(7).length ? sellosDe(7) : sellosDe(1000); let reparto = null, racha = 0;
+  VIDA = { ofertas: () => ofertasReparto(1000, 5, { x: 8, y: 22 }), aceptar: of => { reparto = { of, t: of.limite }; return { ok: true, msg: 'ok' }; }, actual: () => reparto, cancelar: () => { reparto = null; }, racha: () => racha, sellos: () => ({ sellos, hechos }), pos: () => ({ x: 8, y: 22 }), modo: () => 'ciudad', seed: () => 1000, esSolo: () => true, mapa: () => {}, previa: () => {}, nuevoMundo: seed => { VIDA.nuevo = seed; } };
   const perfil = {}, ctx = { el, txt: (t, cls) => el('p', 'nota ' + (cls || ''), t), btn: (t, f, dis) => { const b = el('button', 'b', t); b.disabled = !!dis; b.onclick = f; return b; },
     sec: (t, ...h) => { const s = el('section'); if (t) s.appendChild(el('h3', '', t)); h.forEach(x => x && s.appendChild(x)); return s; }, stat: (l, v) => { const f = el('div'); f.append(el('span', '', l), el('b', '', v)); return f; }, chip: t => el('span', 'chip', t), icono: () => el('span'),
     abrir: (titulo, filas, o = {}) => { ultimo = { titulo, raiz: Object.assign(el('div'), { hijos: filas.filter(Boolean) }), o }; }, aviso() {}, audio: { tono() {} }, eco, sim, perfil, store: { guardarPerfil() {} }, guardar() {}, mundo, net: () => ({ cid: 'solo' }),
-    volver() {}, loteDe: id => loteDe(7, id), panelLote() {}, cerrarTienda: () => { cerrado++; }, enviar: m => srv.manejar('solo', m), chat: () => ({ msgs: [{ id: 1, de: 'x', nombre: 'Beto', txt: 'hola <b>', ts: 1 }], activo: true, silenciados: [], host: true, jugadores: [{ cid: 'solo', nombre: 'Ana' }, { cid: 'x', nombre: 'Beto' }], mios: new Set() }) };
+    volver() {}, loteDe: id => loteDe(7, id), panelLote() {}, cerrarTienda: () => { cerrado++; }, enviar: m => srv.manejar('solo', m), vida: VIDA, chat: () => ({ msgs: [{ id: 1, de: 'x', nombre: 'Beto', txt: 'hola <b>', ts: 1 }], activo: true, silenciados: [], host: true, jugadores: [{ cid: 'solo', nombre: 'Ana' }, { cid: 'x', nombre: 'Beto' }], mios: new Set() }) };
   const P = crearPaneles(ctx); return { P, srv, sim, perfil, avanza: t => { T += t; srv.difundir(); }, panel: () => ultimo, cerrado: () => cerrado, eco };
 }
 const libro = p => Object.values(p.c).reduce((a, b) => a + b, 0);
@@ -39,7 +43,7 @@ await ok('monkey: pulsar todos los botones habilitados de todos los paneles no r
   const { P, srv, sim, avanza, panel } = await montar(); await srv.manejar('solo', { t: 'eco', id: 'i', op: 'invertir', monto: 1500 }); avanza(TURNO_MS * 3);
   const lote = [...srv.mundo.o].find(([, o]) => o.dueno === 'solo' && o.tipo === 'hogar')[0]; void lote;
   const m = srv.mundo; const libre = '1,0,00'; assert.equal(m.op('solo', { id: 'c1', op: 'comprar', lote: libre }).ok, true);
-  const abrirTodos = [() => P.panelEmpresa(), () => P.panelMercado(), () => P.panelPersonal(), () => P.panelProveedores(), () => P.panelDesarrollo(), () => P.panelGestion(libre), () => P.panelContratos(), () => P.panelSubastas(), () => P.panelSociedad(), () => P.panelChat()];
+  const abrirTodos = [() => P.panelEmpresa(), () => P.panelMercado(), () => P.panelPersonal(), () => P.panelProveedores(), () => P.panelDesarrollo(), () => P.panelGestion(libre), () => P.panelContratos(), () => P.panelSubastas(), () => P.panelSociedad(), () => P.panelChat(), () => P.panelRepartos(), () => P.panelPasaporte(), () => P.panelMapa(), () => P.panelCiudades()];
   for (let ronda = 0; ronda < 3; ronda++) for (const abre of abrirTodos) {
     abre(); const bs = botones(panel().raiz).filter(b => !b.disabled); for (const b of bs) { try { await b.onclick(); } catch (e) { assert.fail(`${panel().titulo} / "${b.textContent}": ${e.stack}`); } abre(); }
     avanza(TURNO_MS * 2); sim.d.dinero = Math.max(sim.d.dinero, 1000);
@@ -55,6 +59,13 @@ await ok('contratos, subastas, sociedad y chat: se abren, muestran lo esencial y
   assert.ok([...m.j.keys()].some(k => k.startsWith('soc:'))); avanza(TURNO_MS); P.panelSociedad(); assert.match(texto(panel().raiz), /Mi Sociedad/); assert.match(texto(panel().raiz), /Caja compartida/);
   P.panelChat(); assert.match(texto(panel().raiz), /Beto: hola <b>/); assert.match(texto(panel().raiz), /Moderación/);
   P.panelMercado(); const rb = botones(panel().raiz).filter(b => /^[0-4]$/.test(b.textContent)); assert.equal(rb.length, 5); await rb[1].onclick(); assert.equal([...m.j.values()].filter(p => p.npc).length, 1, 'el selector cambia los rivales');
+});
+await ok('repartos, pasaporte, mapa y ciudades: los paneles muestran ofertas reales, aceptan pedidos y piden confirmar antes de cambiar de mundo', async () => {
+  const { P, panel } = await montar(); P.panelRepartos(); assert.match(texto(panel().raiz), /Pedidos a domicilio/); assert.match(texto(panel().raiz), /Cerquita/); const ac = botones(panel().raiz).filter(b => /Aceptar y salir/.test(b.textContent)); assert.ok(ac.length >= 2); assert.equal(ac[0].disabled, false, 'con ingredientes y en la calle se puede'); await ac[0].onclick();
+  assert.equal(VIDA.actual().of.id.startsWith('r5.'), true); P.panelRepartos(); assert.match(texto(panel().raiz), /En camino/); assert.ok(botones(panel().raiz).some(b => /Cancelar/.test(b.textContent))); botones(panel().raiz).find(b => /Cancelar/.test(b.textContent)).onclick(); assert.equal(VIDA.actual(), null);
+  P.panelPasaporte(); assert.match(texto(panel().raiz), /Pasaporte · 0\/8/); assert.match(texto(panel().raiz), /Monumento sin descubrir/); assert.match(texto(panel().raiz), /cuadras al/); P.panelMapa(); assert.match(texto(panel().raiz), /Tu ciudad/);
+  P.panelCiudades(); assert.match(texto(panel().raiz), /Villa Dorada · aquí/); assert.match(texto(panel().raiz), /Gran Metrópoli/); const nm = botones(panel().raiz).filter(b => b.textContent === 'Mundo nuevo aquí'); assert.ok(nm.length >= 5);
+  await nm[1].onclick(); assert.equal(VIDA.nuevo, undefined, 'el primer toque solo pide confirmar'); assert.ok(botones(panel().raiz).some(b => /Seguro/.test(b.textContent))); await botones(panel().raiz).find(b => /Seguro/.test(b.textContent)).onclick(); assert.ok(VIDA.nuevo >= 1001 || VIDA.nuevo === 7, 'ahora sí cambia: ' + VIDA.nuevo);
 });
 await ok('gestión de franquicia: los controles llegan al servidor y cambian el estado real', async () => {
   const { P, srv, panel } = await montar(); const m = srv.mundo; m._mov(m.j.get('solo'), 'aporte', 3000); assert.equal(m.op('solo', { id: 'c1', op: 'comprar', lote: '1,0,00' }).ok, true);

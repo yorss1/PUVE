@@ -4,7 +4,7 @@
 // (tasas máximas por segundo, holgadas frente a lo que logra un jugador ideal: ver herramientas/equilibrio.mjs).
 // El dinero que sale del restaurante hacia las franquicias (`invertir`) solo puede venir de ganancias aceptadas: `credito`.
 import { etapaActual, DESBLOQUEOS } from '../economia/progresion.js';
-export const TASA_DINERO = 30, TASA_XP = 6, TASA_SERV = 1.5;     // máximos por segundo real (un jugador ideal logra ~10 $/s, ~1.5 xp/s, ~0.3 pedidos/s)
+export const TASA_DINERO = 45, TASA_XP = 10, TASA_SERV = 2;     // máximos por segundo real (un jugador ideal logra ~10 $/s, ~1.5 xp/s, ~0.3 pedidos/s)
 export const HOLGURA_S = 5, DT_MAX = 300, CREDITO_INICIAL = 1500, SEMANA_S = 600;
 export const nuevoLoc = () => ({ ganado: 0, xp: 0, servidos: 0, tiempo: 0, semanas: 0, ts: null, credito: CREDITO_INICIAL, ult: { ganado: 0, xp: 0, servidos: 0, tiempo: 0, semanas: 0 }, sospechas: 0, reportes: 0 });
 const cuenta = x => Number.isFinite(x) && x >= 0 && x <= 1e12;

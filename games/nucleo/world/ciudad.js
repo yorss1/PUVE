@@ -1,12 +1,14 @@
+import { esNueva, tileNuevo, lotesNuevos, traficoNuevo } from './ciudades.js';
 // Ciudad infinita determinista: cada casilla es función pura de (semilla, x, y). Los chunks (16x16) solo son una caché con carga progresiva.
 export const CH = 16;
-const SOLIDOS = new Set('#HTplb');
+const SOLIDOS = new Set('#HTplbwfrkYCMuh');   // las últimas son de las ciudades nuevas (agua, fuente, roca, puesto, palmera, contenedor, estatua, sombrilla, seto)
 export const esSolido = ch => SOLIDOS.has(ch);
 export const NEGOCIO = { puerta: { x: 2, y: 12 }, aparece: { x: 2.5, y: 11.2 } };   // lote inicial (chunk 0,0): hogar del primer jugador
 const mod = (a, n) => ((a % n) + n) % n;
 const mez = (...n) => { let h = 2166136261; for (const v of n) { h = Math.imul(h ^ (v | 0), 16777619); h ^= h >>> 13; } return h >>> 0; };
 
 export function tile(seed, gx, gy) {
+  if (esNueva(seed)) return tileNuevo(seed, gx, gy);
   const cx = Math.floor(gx / CH), cy = Math.floor(gy / CH), lx = mod(gx, CH), ly = mod(gy, CH);
   if ((lx >= 6 && lx <= 9) || (ly >= 6 && ly <= 9)) return '.';                                  // calles
   if (lx === 5 || lx === 10 || ly === 5 || ly === 10) return (lx === 5 || lx === 10) && (ly === 5 || ly === 10) ? 'l' : ',';   // banqueta / farola
@@ -50,6 +52,7 @@ export class Chunks {
     }
     return hechos;
   }
+  cambiarSemilla(seed) { this.seed = seed; this.m.clear(); this.cola = []; this._c = null; }   // al cambiar de ciudad
   forzar(px, py) { this._c = null; this.actualizar(px, py); while (this.paso(99)); }
   obtener(cx, cy) { const c = this.m.get(Chunks.clave(cx, cy)); return c && c.estado === 'listo' ? c : null; }
   tile(gx, gy) { const c = this.obtener(Math.floor(gx / CH), Math.floor(gy / CH)); return c ? c.filas[mod(gy, CH)][mod(gx, CH)] : '#'; }   // chunk sin cargar = muro
@@ -58,6 +61,7 @@ export class Chunks {
 // ---- Lotes: cada edificio es una propiedad con puerta, frente y tráfico (base de la economía compartida) ----
 export const LOTE_INICIAL = '0,0,01';
 export function lotes(seed, cx, cy) {
+  if (esNueva(seed)) return lotesNuevos(seed, cx, cy);
   const r = [];
   for (const [qx, qy] of [[0, 1], [0, 0], [1, 0], [1, 1]]) {
     if (!(cx === 0 && cy === 0 && qx === 0 && qy === 1) && mez(seed, cx, cy, qx, qy) % 4 === 3) continue;   // parque: no es lote
@@ -70,5 +74,5 @@ export function loteDe(seed, id) {
   const m = /^(-?\d{1,4}),(-?\d{1,4}),([01])([01])$/.exec(String(id)); if (!m) return null;
   return lotes(seed, +m[1], +m[2]).find(l => l.id === id) || null;
 }
-export const trafico = l => Math.max(1, 10 - 2 * Math.max(Math.abs(l.cx), Math.abs(l.cy)));   // 10 en el centro, baja con la distancia
+export const trafico = (l, seed = l.seed) => (seed >= 1000 ? traficoNuevo(seed, l) : Math.max(1, 10 - 2 * Math.max(Math.abs(l.cx), Math.abs(l.cy))));   // 10 en el centro, baja con la distancia
 export const distLotes = (a, b) => Math.hypot(a.puerta.x - b.puerta.x, a.puerta.y - b.puerta.y);

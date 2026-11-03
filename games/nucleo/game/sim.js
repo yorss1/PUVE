@@ -7,8 +7,8 @@ const SOL = new Set('#tKRFxmvBp');
 const D4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 const num = (v, a, b, d) => (Number.isFinite(v) ? Math.min(b, Math.max(a, v)) : d);
 const NOMBRES_EMP = ['Lalo', 'Mari', 'Beto', 'Ana', 'Chuy', 'Rosa', 'Nico', 'Tere'];
-export const EFIC_AUSENCIA = .5;
-export const ST0 = () => ({ ganado: 0, servidos: 0, perdidos: 0, racha: 0, mejor: 0, tiempo: 0, semana: 0, semanas: 0, apuros: 0 });
+export const EFIC_AUSENCIA = .5, PUNTO_S = 2.5, QUEMA_S = 8, RUSH_S = 35;   // plato «en su punto» hasta 2.5 s tras estar listo; pasado de punto desde los 8 s
+export const ST0 = () => ({ perfectos: 0, quemados: 0, picos: 0, ganado: 0, servidos: 0, perdidos: 0, racha: 0, mejor: 0, tiempo: 0, semana: 0, semanas: 0, apuros: 0 });
 export const espera = hab => 6 + 3 * hab;                 // sueldo por minuto que un empleado considera justo
 
 export class Sim {
@@ -17,7 +17,7 @@ export class Sim {
     this.g = cfg.mapa.map(r => r.split(''));
     this.H = this.g.length; this.W = this.g[0].length;
     this.d = { dinero: cfg.inicial.dinero, xp: 0, rep: 5, stock: cfg.inicial.stock, comp: [], st: ST0(), prov: 'mercado', ramas: [] };
-    this.ef = efectos([]); this.mercado = { dem: 1, ing: 1 }; this.avisos = []; this._min = 0; this._seg = 0; this._tc = 0; this._ts = 0; this._apuro = 0;
+    this.ef = efectos([]); this.mercado = { dem: 1, ing: 1 }; this.avisos = []; this.ev = []; this.rush = null; this._proxRush = 70; this._min = 0; this._seg = 0; this._tc = 0; this._ts = 0; this._apuro = 0;
     this.tickets = []; this.clientes = []; this.emps = []; this.cuentas = []; this.libro = [];
     this.est = []; this.cajas = []; this.refris = []; this.tableros = [];
     this.llevando = null; this.spawn = 2; this.p = { x: 1.5, y: 1.5, dir: 1 }; this.puerta = null;
@@ -104,7 +104,7 @@ export class Sim {
       this.p.dir = Math.abs(inp.x) > Math.abs(inp.y) ? (inp.x > 0 ? 3 : 2) : (inp.y > 0 ? 1 : 0); this.p.mov = true;
     } else this.p.mov = false;
     this.spawn -= dt;
-    if (this.spawn <= 0) { this.spawn = this.cfg.clientes.cada * (1.3 - this.d.rep / 20) * this.ef.spawn / Math.min(2, Math.max(.5, this.mercado.dem)); this._spawn(); }
+    if (this.spawn <= 0) { this.spawn = this.cfg.clientes.cada * (1.3 - this.d.rep / 20) * this.ef.spawn * (this.rush ? .62 : 1) / Math.min(2, Math.max(.5, this.mercado.dem)); this._spawn(); }
     for (const c of this.clientes) {
       if (c.st === 'ir') { if (this.seguir(c, dt, 2.6)) { c.st = 'pide'; c.dir = 1; } }
       else if (c.st === 'pide' || c.st === 'espera') { c.pac -= dt; if (c.pac <= 0) this._enojo(c); }
@@ -115,7 +115,7 @@ export class Sim {
     for (const e of this.est) {
       if (!e.tk) continue; const t = this.tk(e.tk);
       if (!t) { e.tk = null; continue; }
-      if (t.estado === 'cocinando') { e.t -= dt; if (e.t <= 0) t.estado = 'listo'; }
+      if (t.estado === 'cocinando') { e.t -= dt; if (e.t <= 0) { t.estado = 'listo'; t.tl = 0; this.ev.push({ k: 'listo', x: e.x, y: e.y }); } } else if (t.estado === 'listo') t.tl = (t.tl || 0) + dt;
     }
     for (const e of this.emps) this._emp(e, dt);
   }
@@ -125,7 +125,8 @@ export class Sim {
     const s = libres[Math.floor(this.rnd() * libres.length)], ruta = this.ruta(this.puerta.x, this.puerta.y, [s]);
     if (!ruta) return;
     const ps = this.cfg.platos.filter(p => p.nivel <= this.nivel), pl = ps[Math.floor(this.rnd() * ps.length)];
-    this.clientes.push({ id: this.nid++, x: this.puerta.x + .5, y: this.puerta.y + .5, dir: 0, ruta, seat: s, st: 'ir', pac: this.cfg.clientes.paciencia * this.ef.paciencia, max: this.cfg.clientes.paciencia * this.ef.paciencia, plato: pl.id, tk: null, tc: 0, look: Math.floor(this.rnd() * 4) });
+    const tipo = this._tipoCliente(), pm = { apurado: .55, critico: 1.3, vip: .8 }[tipo] || 1, pac = this.cfg.clientes.paciencia * this.ef.paciencia * pm;
+    this.clientes.push({ id: this.nid++, x: this.puerta.x + .5, y: this.puerta.y + .5, dir: 0, ruta, seat: s, st: 'ir', pac, max: pac, plato: pl.id, tk: null, tc: 0, look: Math.floor(this.rnd() * 4), tipo });
   }
   _salir(c) { c.st = 'sale'; c.ruta = this.ruta(Math.floor(c.x), Math.floor(c.y), [this.puerta]) || []; if (!c.ruta.length) c.fin = true; }
   _anular(c) {
@@ -135,14 +136,44 @@ export class Sim {
     if (this.llevando === c.tk) this.llevando = null;
     c.tk = null;
   }
-  _enojo(c) { this.d.rep = Math.max(0, this.d.rep - .5); this.d.st.perdidos++; this.d.st.racha = 0; this._anular(c); this._salir(c); }
-  _pagar(c) { const p = this.plato(c.plato), st = this.d.st; this.cuentas.push({ id: c.id, monto: Math.round(p.precio * this.ef.precio), xp: Math.round(p.xp * this.ef.xp) }); st.servidos++; st.racha++; st.mejor = Math.max(st.mejor, st.racha); this._anular(c); this._salir(c); }
-  _entregar(c, t) { t.estado = 'entregado'; t.res = null; c.st = 'come'; c.tc = this.cfg.clientes.come; if (this.llevando === t.id) this.llevando = null; return { msg: 'Servido', fx: 'ok' }; }
+  _enojo(c) { const st = this.d.st; this.d.rep = Math.max(0, this.d.rep - (c.tipo === 'critico' ? 1.5 : .5)); st.perdidos++; if (st.racha >= 5) this.ev.push({ k: 'rompe', x: c.x, y: c.y, txt: 'Racha perdida', n: st.racha }); st.racha = 0; if (this.rush) this.rush.perd++; this.ev.push({ k: 'enojo', x: c.x, y: c.y, tipo: c.tipo }); this._anular(c); this._salir(c); }
+  _pagar(c) {
+    const p = this.plato(c.plato), st = this.d.st, base = Math.round(p.precio * this.ef.precio), pr = Number.isFinite(c.pr) ? c.pr : 0, fx = [], T = c.tipo; let m = 1;
+    if (pr > .6) { m += .15; fx.push('¡Rápido!'); } else if (pr > .35) m += .06;                        // atender rápido deja más propina
+    const combo = Math.min(.25, .025 * Math.floor(st.racha / 3)); if (combo > 0) { m += combo; fx.push(`Racha +${Math.round(combo * 100)}%`); }
+    if (c.q === 'perfecto') { m += .15; fx.push('¡En su punto!'); st.perfectos++; } else if (c.q === 'quemado') { m -= .3; fx.push('Se pasó'); st.quemados++; this.d.rep = Math.max(0, this.d.rep - .15); }
+    if (T === 'generoso') { m += .3; fx.push('💰 Propinón'); } if (T === 'apurado' && pr > .5) { m *= 1.4; fx.push('⚡ Apurado atendido'); } if (T === 'vip') { m *= 2; fx.push('⭐ VIP'); }
+    if (T === 'critico') { if (c.q !== 'quemado' && pr > .4) { this.d.rep = Math.min(10, this.d.rep + .6); fx.push('📝 Reseña estelar'); } else { this.d.rep = Math.max(0, this.d.rep - 1); fx.push('📝 Mala reseña'); } }
+    const monto = Math.max(1, Math.round(base * m)), xp = Math.round(p.xp * this.ef.xp * (c.q === 'perfecto' ? 1.3 : 1) * (T === 'vip' ? 1.6 : 1));
+    this.cuentas.push({ id: c.id, monto, xp, tip: monto - base, fx });
+    st.servidos++; st.racha++; st.mejor = Math.max(st.mejor, st.racha); if (this.rush) this.rush.serv++;
+    this.ev.push({ k: 'pago', x: c.x, y: c.y, txt: '+$' + monto, fx, tipo: T }); if (st.racha % 3 === 0) this.ev.push({ k: 'combo', x: c.x, y: c.y, txt: `¡Racha ${st.racha}!`, n: st.racha });
+    this._anular(c); this._salir(c);
+  }
+  _tipoCliente() {                                  // personalidades: determinista (no toca this.rnd)
+    const n = this.nivel, h = azar(this.nid, Math.floor(this.d.st.servidos), 77);
+    return n >= 4 && h < .03 ? 'vip' : n >= 3 && h < .07 ? 'critico' : h < .15 ? 'generoso' : h < .27 ? 'apurado' : 'normal';
+  }
+  _punto(t) { t.q = (t.tl || 0) <= PUNTO_S ? 'perfecto' : (t.tl || 0) >= QUEMA_S ? 'quemado' : 'normal'; }     // al recoger el plato se fija su calidad
+  puntoDe(e) {                                      // para dibujar: el plato listo en una estación y en qué fase está
+    const t = e.tk && this.tk(e.tk); if (!t || t.estado !== 'listo') return null; const tl = t.tl || 0;
+    return { fase: tl <= PUNTO_S ? 'perfecto' : tl >= QUEMA_S ? 'pasado' : 'normal', frac: tl <= PUNTO_S ? 1 - tl / PUNTO_S : tl >= QUEMA_S ? 1 : (tl - PUNTO_S) / (QUEMA_S - PUNTO_S) };
+  }
+  rushInfo() { return this.rush ? { t: this.rush.t, dur: this.rush.dur, serv: this.rush.serv } : null; }
+  _hp(dt) {                                         // ritmo: de vez en cuando llega una hora pico
+    if (this.rush) { this.rush.t -= dt; if (this.rush.t <= 0) this._finRush(); return; }
+    this._proxRush -= dt; if (this._proxRush <= 0 && this.nivel >= 2 && this.clientes.length < 3) { this.rush = { t: RUSH_S, dur: RUSH_S, serv: 0, perd: 0 }; this.ev.push({ k: 'rush', txt: '¡HORA PICO!' }); this._aviso('¡HORA PICO! Llegan clientes sin parar'); }
+  }
+  _finRush() {
+    const r = this.rush; this.rush = null; this._proxRush = 90 + azar(this.nid, 5) * 70; const bono = r.perd === 0 && r.serv >= 4 ? 18 * r.serv : r.serv >= 3 ? 8 * r.serv : 0;
+    if (bono) { this.d.dinero += bono; this.d.st.picos++; this._log('hora pico', bono); this.ev.push({ k: 'rushOk', txt: `+$${bono}`, bono }); this._aviso(`Hora pico superada: ${r.serv} pedidos ${r.perd ? '' : 'sin perder a nadie '}(+$${bono})`); } else this._aviso('La hora pico terminó');
+  }
+  _entregar(c, t) { c.q = t.q || 'normal'; c.pr = c.max ? c.pac / c.max : 0; t.estado = 'entregado'; t.res = null; c.st = 'come'; c.tc = this.cfg.clientes.come; if (this.llevando === t.id) this.llevando = null; return { msg: 'Servido', fx: 'ok' }; }
   _cocinar(e, t, f = 1) { this.d.stock -= 1; e.tk = t.id; e.t = this.plato(t.plato).t * f * this.ef.cocina; e.res = null; t.estado = 'cocinando'; t.res = null; }
   _cobrar() {
     const lst = this.cuentas; this.cuentas = []; let m = 0, x = 0; const n0 = this.nivel;
     for (const c of lst) { m += c.monto; x += c.xp; }
-    this.d.dinero += m; this.d.st.ganado += m; this.d.xp += x; this.d.rep = Math.min(10, this.d.rep + Math.max(.02, .1 + this.ef.repServ + (this.prov.cal - 1) * .5) * lst.length); this._log('cobro', m);
+    this.d.dinero += m; this.d.st.ganado += m; this.d.xp += x; this.d.rep = Math.min(10, this.d.rep + Math.max(.02, .1 + this.ef.repServ + (this.prov.cal - 1) * .5) * lst.length); this._log('cobro', m); if (lst.length) this.ev.push({ k: 'cobro', x: this.cajas[0]?.x ?? 0, y: this.cajas[0]?.y ?? 0, txt: '+$' + m, n: lst.length });
     return { msg: `+$${m}` + (this.nivel > n0 ? ` · ¡Nivel ${this.nivel}!` : ''), fx: 'moneda' };
   }
 
@@ -161,7 +192,7 @@ export class Sim {
       if (t && t.estado === 'listo') {
         if (this.llevando) return { msg: 'Ya llevas un plato' };
         if (t.res) return { msg: 'Un ayudante lo recogerá' };
-        return { msg: 'Tomar plato', run: () => { e.tk = null; t.estado = 'llevado'; t.res = 'jugador'; this.llevando = t.id; return { msg: 'Llévalo al cliente' }; } };
+        return { msg: t.tl <= PUNTO_S ? '¡Tomar plato en su punto!' : 'Tomar plato', run: () => { this._punto(t); e.tk = null; t.estado = 'llevado'; t.res = 'jugador'; this.llevando = t.id; return { msg: t.q === 'perfecto' ? '¡En su punto! Llévalo rápido' : t.q === 'quemado' ? 'Se pasó de punto…' : 'Llévalo al cliente', fx: t.q === 'perfecto' ? 'perfecto' : undefined }; } };
       }
       if (!e.tk && !e.res) {
         const n = this.tickets.find(t => t.estado === 'cola' && !t.res);
@@ -253,7 +284,7 @@ export class Sim {
     const t = T.tk && this.tk(T.tk);
     if (T.k === 'recoger') {
       const s = this.est.find(s => s.tk === T.tk);
-      if (s && t.estado === 'listo') { s.tk = null; t.estado = 'llevado'; e.lleva = t.id; } else return this._abort(e);
+      if (s && t.estado === 'listo') { this._punto(t); s.tk = null; t.estado = 'llevado'; e.lleva = t.id; } else return this._abort(e);
     } else if (T.k === 'cocinar') {
       this._cocinar(this.est.find(s => s.res === e.id), t, this._fEmp(e));
     } else {
@@ -273,6 +304,7 @@ export class Sim {
   _fEmp(e) { return Math.max(.9, 1.7 - .12 * (e.hab || 2)) * ((e.sat ?? 70) < 40 ? 1.25 : 1); }   // factor de tiempo al cocinar (menos es más rápido)
   _exp(e) { const U = [0, 20, 50, 100, 180]; e.exp = (e.exp || 0) + 1; if (e.hab < 5 && e.exp >= U[e.hab]) { e.hab++; this._aviso(`${e.n} mejoró su habilidad (ahora espera $${espera(e.hab)}/min)`); } }
   _sistema(dt) {
+    this._hp(dt); this.ev.length > 60 && this.ev.splice(0, this.ev.length - 60);
     const st = this.d.st; st.tiempo += dt; st.semana += dt; this._min += dt; this._seg += dt;
     if (st.semana >= SEMANA_S) { st.semana = 0; st.semanas++; this._aviso('¡Completaste una semana sin apuros!'); }
     if (this._min >= 60) { this._min -= 60; this._nomina(); }

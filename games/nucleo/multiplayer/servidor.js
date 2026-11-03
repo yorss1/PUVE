@@ -1,10 +1,11 @@
 // Servidor de sala NEUTRAL A LA RED: recibe mensajes (objetos) y devuelve salidas [{ para: cid|'*', msg }].
 // Lo usan: el servidor Node (herramientas/servidor_nodo.mjs), la pestaña anfitriona (transporte local), el modo solo y el boceto de Durable Object.
 import { Sala } from './sala.js';
+import { CIUDADES } from '../world/ciudades.js';
 import { Mundo } from './mundo.js';
 const GIROS = ['restaurante', 'cafeteria'];
 export class Servidor {
-  constructor({ ahora = Date.now, rnd, rivales = 0, estricto = true } = {}) { this.ahora = ahora; this.rnd = rnd; this.nRivales = Math.max(0, Math.min(8, Math.floor(rivales) || 0)); this.sala = null; this.mundo = new Mundo({ ahora, estricto }); this.enviado = new Map(); this.token = null;
+  constructor({ ahora = Date.now, rnd, rivales = 0, estricto = true, seed = 7 } = {}) { this.estricto = estricto; this.ahora = ahora; this.rnd = rnd; this.nRivales = Math.max(0, Math.min(8, Math.floor(rivales) || 0)); this.sala = null; this.mundo = new Mundo({ ahora, estricto, seed }); this.enviado = new Map(); this.token = null;
     this.chat = []; this.chatOn = true; this.silenciados = new Set(); this.chatT = new Map(); this.nchat = 1; }
   get id() { return this.sala?.id ?? null; }
   _a(cid, msg) { return [{ para: cid, msg }]; }
@@ -16,6 +17,7 @@ export class Servidor {
         if (s) return this._a(cid, { t: 'resp', ok: false, msg: 'La sala ya existe' });
         if (!GIROS.includes(m.giro)) return this._a(cid, { t: 'resp', ok: false, msg: 'Giro inválido' });
         this.sala = new Sala({ giro: m.giro, hostCid: cid, nombreHost: m.nombre, ahora: this.ahora, rnd: this.rnd });
+        if (Number.isFinite(m.ciudad) && !this.mundo.j.size && (m.ciudad === 7 || CIUDADES.some(c => c.seed === m.ciudad))) this.mundo = new Mundo({ ahora: this.ahora, estricto: this.estricto, seed: m.ciudad });   // la sala elige su ciudad al crearse
         if (Number.isFinite(m.rivales)) this.nRivales = Math.max(0, Math.min(4, Math.floor(m.rivales)));
         this.mundo.alta(cid, this.sala.miembros.get(cid).nombre); this.mundo.giro = m.giro; this.mundo.sembrar(this.nRivales); this.token = this.sala.invitar();
         return this._a(cid, { t: 'creada', id: this.sala.id, token: this.token, giro: m.giro });
@@ -68,6 +70,7 @@ export class Servidor {
     for (const m of d.miembros || []) if (typeof m.cid === 'string') { s._alta(m.cid, m.nombre); s.miembros.get(m.cid).look = m.look && typeof m.look === 'object' ? m.look : {}; }
     if (!s.miembros.has(d.hostCid)) return false;
     this.sala = s; if (typeof d.token === 'string') { s.inv.set(d.token, { exp: this.ahora() + 600000, usos: 3 }); this.token = d.token; }
+    if (d.mundo && Number.isFinite(d.mundo.seed) && d.mundo.seed !== this.mundo.seed) this.mundo = new Mundo({ ahora: this.ahora, estricto: this.estricto, seed: d.mundo.seed });   // el mundo guardado manda: su ciudad
     if (!this.mundo.restaurar(d.mundo)) return false;
     if (d.chat && typeof d.chat === 'object') { this.chat = (Array.isArray(d.chat.msgs) ? d.chat.msgs : []).filter(x => x && typeof x.txt === 'string' && typeof x.de === 'string').slice(-40).map(x => ({ id: Number(x.id) || 0, de: x.de.slice(0, 40), nombre: String(x.nombre).slice(0, 16), txt: x.txt.slice(0, 200), ts: Number(x.ts) || 0 })); this.chatOn = d.chat.on !== false; this.silenciados = new Set((Array.isArray(d.chat.mud) ? d.chat.mud : []).filter(x => typeof x === 'string').slice(0, 8)); this.nchat = Math.max(1, Number(d.chat.n) || 1); }
     this.mundo.giro = d.giro; if (Number.isFinite(d.rivales)) this.nRivales = Math.max(0, Math.min(8, Math.floor(d.rivales)));

@@ -10,6 +10,11 @@ import { cargarSprites } from './sprites.js';
 import { Chunks, tile, esSolido, NEGOCIO, CH, lotes, loteDe, trafico, LOTE_INICIAL } from '../world/ciudad.js';
 import { Servidor } from '../multiplayer/servidor.js';
 import { crearPaneles } from './paneles.js';
+import { esNueva, ciudadDe, infoCasilla, DISTRITOS, lugarEn } from '../world/ciudades.js';
+import * as A from './arte.js';
+import { crearFx, COLORES, icono as iconoCliente, texto as textoPx } from './chispa.js';
+import { sellosDe, visita, estadoPasaporte, ofertasReparto, entrega, chisme, pista, REP_CUBO, PREMIO_PASAPORTE } from '../world/vida.js';
+import { dibujarMapa } from './mapa.js';
 import { precioLote, costoMejora, MAX_FRANQ, RADIO, TURNO_MS } from '../multiplayer/mundo.js';
 import { hostLocal, invitadoLocal } from '../multiplayer/transporte-local.js';
 import { crearCuentaSupabase } from '../persistence/cuenta-supabase.js';
@@ -106,7 +111,12 @@ async function iniciar() {
     if (S.tiene('estacion')) spr('estacion', px, py); else if (cafe) { R(P.dark, px + 1, py + 1, 14, 14); R(P.red, px + 1, py + 1, 14, 5); R(P.st, px + 3, py + 7, 10, 3); R('#3b2a22', px + 6, py + 10, 4, 4); R(P.cream, px + 7, py + 11, 2, 2); }
     else { R(P.stD, px, py + 1, T, 15); R(P.st, px + 1, py + 2, 14, 12); for (const [a, b] of [[3, 4], [9, 4], [3, 9], [9, 9]]) R(P.dark, px + a, py + b, 4, 3); R(P.red, px + 2, py + 14, 2, 1); R(P.red, px + 12, py + 14, 2, 1); }
     if (t && t.estado === 'cocinando') { R('#ffb040', px + 5, py + 1, 6, 2); const w = Math.floor(14 * (1 - e.t / (sim.plato(t.plato).t * 1.4))); R(P.dark, px + 1, py - 3, 14, 3); R(P.green, px + 2, py - 2, Math.max(0, Math.min(12, w)), 1); }
-    if (t && t.estado === 'listo') { R(P.cream, px + 3, py - 1, 10, 3); R(sim.plato(t.plato).c, px + 5, py - 4, 6, 4); }
+    if (t && t.estado === 'listo') {
+      R(P.cream, px + 3, py - 1, 10, 3); R(sim.plato(t.plato).c, px + 5, py - 4, 6, 4); const pt = sim.puntoDe(e);
+      if (pt?.fase === 'perfecto') { const b = Math.floor(performance.now() / 130) % 2; R(P.dark, px + 1, py - 9, 14, 3); R(b ? '#ffd23f' : '#fff3a0', px + 2, py - 8, Math.max(1, Math.round(12 * pt.frac)), 1); R('#fff', px + 1 + (b ? 11 : 2), py - 12, 1, 1); R('#fff', px + 3 + (b ? 2 : 9), py - 6, 1, 1); }
+      else if (pt?.fase === 'pasado') { R('#6a2a1a', px + 5, py - 4, 6, 2); if (Math.random() < .12) fx.humo(px + 8, py - 5); R(P.red, px + 1, py - 9, 14, 1); }
+      else if (pt) { R(P.dark, px + 1, py - 9, 14, 2); R('#e0a030', px + 2, py - 8, Math.max(1, Math.round(12 * (1 - pt.frac))), 1); }
+    }
   }
 
   // ---------- personajes (sprites procedurales alineados con la hoja de referencia 03) ----------
@@ -115,6 +125,7 @@ async function iniciar() {
     R('#0004', x - 5, y, 10, 2);
     for (const n of o.capas) { const im = S.get(n); if (im) ctx.drawImage(im, f * 16, (e.dir ?? 1) * 24, 16, 24, x - 8, y - 22, 16, 24); }
   }
+  const fx = crearFx();                          // textos flotantes, chispas, monedas, banners, destellos y temblor
   function persona(e, o) {
     if (o.capas && S.tiene(o.capas[0])) return personaSprite(e, o);
     const x = Math.round(e.x * T), y = Math.round(e.y * T + (o.sentado ? 3 : 6)), p = o.mov ? Math.floor(performance.now() / 140) % 2 : 0;
@@ -128,7 +139,8 @@ async function iniciar() {
   const col = (c, id) => av[c].find(o => o.id === id)?.c;
   const capasJug = k => ['piel_' + k.piel, 'ropa_' + k.ropa, 'pelo_' + k.pelo, k.gorro ? 'gorro_' + k.gorro : null].filter(Boolean);
   const jug = () => ({ capas: capasJug(perfil.look), piel: col('piel', perfil.look.piel), pelo: col('pelo', perfil.look.pelo), ropa: col('ropa', perfil.look.ropa), del: P.or, gorro: perfil.look.gorro });
-  function bocadillo(c) {
+  function bocadillo(c) { bocadillo0(c); if (c.tipo && c.tipo !== 'normal') iconoCliente(R, c.tipo, Math.round(c.x * T) - 3, Math.round(c.y * T) - (c.st === 'pide' || c.st === 'espera' ? 36 : 25)); }   // ícono de personalidad sobre la cabeza
+  function bocadillo0(c) {
     const x = Math.round(c.x * T), y = Math.round(c.y * T) - 14;
     const gp = S.get('globo_pedido'), ge = S.get('globo_espera'), ic = S.get('plato_' + c.plato);
     if (c.st === 'pide' && gp) { ctx.drawImage(gp, x - (gp.width >> 1), y - gp.height); return; }
@@ -140,7 +152,7 @@ async function iniciar() {
   function dibujarInterior() {
     if (verFondo !== sim.ver) pintarFondo();
     const cx = Math.max(0, Math.min(sim.W * T - cv.width, Math.round(sim.p.x * T - cv.width / 2)));
-    ctx.save(); ctx.clearRect(0, 0, cv.width, cv.height); ctx.translate(-cx, 0);
+    const sh = fx.sacudida(); ctx.save(); ctx.clearRect(0, 0, cv.width, cv.height); ctx.translate(-cx + sh.x, sh.y);
     ctx.drawImage(fondo, 0, 0); camX = cx; camY = 0; ventanas();
     for (const e of sim.est) estacion(e);
     const lista = [];
@@ -150,7 +162,8 @@ async function iniciar() {
     for (const r of remotosVisibles()) lista.push([r.y, () => dibRemoto(r)]);
     lista.sort((a, b) => a[0] - b[0]).forEach(l => l[1]());
     if (sim.cuentas.length) { const r = sim.cajas[0]; R('#e0c040', r.x * T + 6, r.y * T - 3 - (Math.floor(performance.now() / 300) % 2), 4, 4); }
-    ctx.restore();
+    fx.dibujar(R);
+    ctx.restore(); fx.dibujarPantalla(R, cv.width, cv.height);
   }
 
   // ---------- entrada ----------
@@ -183,7 +196,7 @@ async function iniciar() {
   function hud() {
     if (sim.avisos.length) aviso(sim.avisos.shift()); if (++tLogro > 15) { tLogro = 0; try { P.revisar(); } catch (e) { /* aún sin mundo */ } }
     $('h1').textContent = `${cfg.titulo} · Nv ${sim.nivel}`;
-    $('h2').textContent = `$${sim.d.dinero}${mundo?.mio ? ' · F$' + mundo.mio.dinero : ''} · Stock ${sim.d.stock} · ${'★'.repeat(Math.round(sim.d.rep / 2))}${'☆'.repeat(5 - Math.round(sim.d.rep / 2))}${guardadoOk ? '' : ' · ¡sin guardar!'}`;
+    $('h2').textContent = `$${sim.d.dinero}${mundo?.mio ? ' · F$' + mundo.mio.dinero : ''} · Stock ${sim.d.stock} · ${'★'.repeat(Math.round(sim.d.rep / 2))}${'☆'.repeat(5 - Math.round(sim.d.rep / 2))}${guardadoOk ? '' : ' · ¡sin guardar!'}${sim.d.st.racha >= 3 ? ' · 🔥' + sim.d.st.racha : ''}${sim.rush ? ' · ⚡ HORA PICO ' + Math.ceil(sim.rush.t) + 's' : ''}`;
     $('pista').textContent = modo === 'ciudad' ? textoCiudad() : sim.pista() || (paso < 99 ? TXT[paso] : sim.llevando ? 'Lleva el plato al cliente' : objetivo());
   }
   function objetivo() {
@@ -267,16 +280,103 @@ async function iniciar() {
     if (n && S.tiene(n)) { if (ch === 'T' || ch === 'b') ciudadProc('g', gx, gy, px, py, ar); else if (ch === 'l') ciudadProc(',', gx, gy, px, py, ar); spr(n, px, py); return; }
     ciudadProc(ch, gx, gy, px, py, ar);
   }
+  // ---- ciudades nuevas: cada casilla se pinta con la paleta de su ciudad y el estilo de su distrito ----
+  function pintarChunkNuevo(c) {
+    const seed = chunks.seed, P = A.paleta(ciudadDe(seed).paleta), im = document.createElement('canvas'); im.width = im.height = CH * T; const g = im.getContext('2d'), Rl = (col, x, y, w, h) => { g.fillStyle = col; g.fillRect(x | 0, y | 0, w, h); };
+    for (let ly = 0; ly < CH; ly++) for (let lx = 0; lx < CH; lx++) {
+      const ch = c.filas[ly][lx], gx = c.cx * CH + lx, gy = c.cy * CH + ly, x = lx * T, y = ly * T, I = infoCasilla(seed, gx, gy), DT = DISTRITOS[I.D.tipo], vec = { N: tile(seed, gx, gy - 1), S: tile(seed, gx, gy + 1), E: tile(seed, gx + 1, gy), W: tile(seed, gx - 1, gy) };
+      const base = I.q.t === 'playa' ? 'a' : I.q.t === 'solar' || I.q.t === 'colina' ? 't' : I.q.t === 'plaza' ? (DT.suelo === 'e' ? 'e' : 'o') : DT.suelo === 'a' && I.D.tipo !== 'costa' ? 'g' : DT.suelo;
+      if ('Hp'.includes(ch) || ch === 'P') { if (I.bx === 1 && I.by === 1) { A.suelo(Rl, 'g', x, y, gx, gy, P); A.edificio(Rl, x, y, { estilo: I.q.estilo, hito: I.q.hito?.arte || null, pal: P, k: (c.cx * 73 + c.cy * 131 + I.qx * 17 + I.qy * 5 + 1000) % 997, arriba: I.qy === 1 }); } else if (!(I.bx >= 1 && I.bx <= 3 && I.by >= 1 && I.by <= 3)) A.suelo(Rl, base, x, y, gx, gy, P); continue; }
+      switch (ch) {
+        case '.': A.calle(Rl, x, y, gx, gy, lx, ly, P, '.'); break; case 'e': A.suelo(Rl, 'e', x, y, gx, gy, P); break;
+        case ',': A.acera(Rl, x, y, gx, gy, P); break; case 'l': A.acera(Rl, x, y, gx, gy, P); A.farola(Rl, x, y, P); break;
+        case 'v': A.puente(Rl, x, y, gx, gy, lx, ly, P); break; case 'w': A.aguaTile(Rl, x, y, gx, gy, P, vec); break;
+        case 'T': { const calle = (lx >= 5 && lx <= 10) || (ly >= 5 && ly <= 10); if (calle) A.acera(Rl, x, y, gx, gy, P); else A.suelo(Rl, base, x, y, gx, gy, P); A.arbol(Rl, x, y, gx, gy, P, DT === DISTRITOS.colina || ciudadDe(seed).paleta === 'roca' ? 'pino' : 'redondo'); break; }
+        case 'Y': A.suelo(Rl, 'a', x, y, gx, gy, P); A.palmera(Rl, x, y, gx, gy, P); break; case 'u': A.sombrilla(Rl, x, y, gx, gy, P); break;
+        case 'r': A.suelo(Rl, base === 'o' ? 'g' : base, x, y, gx, gy, P); A.roca(Rl, x, y, gx, gy, P); break; case 'k': A.suelo(Rl, base, x, y, gx, gy, P); A.puesto(Rl, x, y, gx, gy, P); break;
+        case 'C': A.suelo(Rl, 't', x, y, gx, gy, P); A.contenedor(Rl, x, y, gx, gy, P); break; case 'f': if (lx >= 7 && lx <= 8 && ly >= 7 && ly <= 8) A.glorieta(Rl, x, y, lx - 7, ly - 7, P); else { A.suelo(Rl, 'o', x, y, gx, gy, P); A.fuente(Rl, x, y, gx, gy, P); } break;
+        case 'M': A.suelo(Rl, base, x, y, gx, gy, P); A.estatua(Rl, x, y, gx, gy, P); break; case 'b': A.suelo(Rl, base, x, y, gx, gy, P); A.banca(Rl, x, y, P); break;
+        default: A.suelo(Rl, ch, x, y, gx, gy, P);
+      }
+    }
+    return im;
+  }
   function pintarChunk(c) {
+    if (esNueva(chunks.seed)) return pintarChunkNuevo(c);
     const im = document.createElement('canvas'); im.width = im.height = CH * T; const g0 = ctx; ctx = im.getContext('2d');
     for (let ly = 0; ly < CH; ly++) for (let lx = 0; lx < CH; lx++) mosaicoCiudad(c.filas[ly][lx], c.cx * CH + lx, c.cy * CH + ly, lx * T, ly * T);
     ctx = g0; return im;
+  }
+  // ---------- vida en la ciudad: sellos del pasaporte, pedidos a domicilio y peatones con chismes ----------
+  let sellos = [], hechos = new Set(), reparto = null, repartoRacha = 0, tSello = 0; const peatones = [];
+  const cargarSellos = () => { sellos = sellosDe(chunks.seed); hechos = new Set((perfil.sellos && perfil.sellos[chunks.seed]) || []); peatones.length = 0; };
+  function ganarSello(s) {
+    hechos.add(s.id); (perfil.sellos ||= {})[chunks.seed] = [...hechos]; sim.d.dinero += s.premio; sim.d.xp += 12; const e = estadoPasaporte(sellos, hechos);
+    fx.banner('SELLO: ' + s.nombre, COLORES.cian, 2.4); fx.destello('#7ae0f0', .25, .25); fx.chispas(cp.x * T, cp.y * T - 12, 18, [COLORES.cian, COLORES.blanco, COLORES.oro], 60); audio.tono('sello'); aviso(`🛂 ${s.nombre}: +$${s.premio} (${e.ok}/${e.total})`);
+    if (e.completo) { sim.d.dinero += PREMIO_PASAPORTE; perfil.titulo = 'Explorador de ' + (ciudadDe(chunks.seed)?.nombre || 'la ciudad'); fx.banner('¡PASAPORTE COMPLETO! +$' + PREMIO_PASAPORTE, COLORES.oro, 3); fx.monedas(cp.x * T, cp.y * T - 12, 16); }
+    store.guardarPerfil(perfil); guardar();
+  }
+  const cuboReparto = () => Math.floor(Date.now() / (REP_CUBO * 1000));
+  const ofertasHoy = () => ofertasReparto(chunks.seed, cuboReparto(), { x: cp.x, y: cp.y });
+  function aceptarReparto(of) {
+    if (reparto) return { ok: false, msg: 'Ya llevas un pedido' }; if (modo !== 'ciudad') return { ok: false, msg: 'Sal a la calle para repartir' }; if (sim.d.stock < 1) return { ok: false, msg: 'Sin ingredientes: surte en tu refri' };
+    sim.d.stock--; reparto = { of, t: of.limite, tk: -1 }; fx.banner('¡REPARTO! ' + of.distrito, COLORES.naranja, 1.8); audio.tono('reparto'); guardar(); return { ok: true, msg: `Pedido a ${of.hito || of.distrito}: tienes ${of.limite} s` };
+  }
+  function entregarReparto() {
+    const r = entrega(reparto.of, reparto.t, repartoRacha); sim.d.dinero += r.total; sim.d.st.ganado += r.total; sim.d.xp += r.xp; sim.d.rep = Math.min(10, sim.d.rep + .15); repartoRacha++;
+    fx.texto(cp.x * T, cp.y * T - 22, '+$' + r.total, COLORES.oro, 2, 1.4); fx.monedas(cp.x * T, cp.y * T - 12, Math.min(14, 4 + repartoRacha * 2)); fx.chispas(cp.x * T, cp.y * T - 14, 10, [COLORES.oro, COLORES.blanco]);
+    if (r.rapido) fx.texto(cp.x * T, cp.y * T - 34, '¡Rápido!', COLORES.verde, 1, 1.4); if (repartoRacha > 1) fx.banner(`¡${repartoRacha} REPARTOS SEGUIDOS! x${r.mult.toFixed(1)}`, COLORES.naranja, 2); audio.tono('moneda'); audio.tono('combo', repartoRacha * 2);
+    aviso(`📦 Entregado: +$${r.total}${r.prop ? ` (propina $${r.prop})` : ''}`); reparto = null; guardar();
+  }
+  function fallarReparto() { sim.d.rep = Math.max(0, sim.d.rep - .2); repartoRacha = 0; fx.banner('Se enfrió el pedido…', COLORES.rojo, 1.8); audio.tono('enojo'); aviso('📦 Pedido perdido: la reputación baja un poco'); reparto = null; guardar(); }
+  const CAM = ',.evoa', caminable = (x, y) => !esSolido(chunks.tile(Math.floor(x), Math.floor(y)));
+  function pasoPeatones(dt) {
+    const rnd = Math.random;
+    for (let i = 0; i < 12 && peatones.length < 8; i++) {                                    // nacen fuera de la vista y sobre calles o banquetas
+      const a = rnd() * 6.283, d = 11 + rnd() * 6, x = Math.floor(cp.x + Math.cos(a) * d), y = Math.floor(cp.y + Math.sin(a) * d), ch = chunks.tile(x, y);
+      if (CAM.includes(ch) && ch !== '.') { const vert = CAM.includes(chunks.tile(x, y - 1)) && CAM.includes(chunks.tile(x, y + 1)) && !CAM.includes(chunks.tile(x - 1, y)); peatones.push({ x: x + .5, y: y + .5, dx: vert ? 0 : (rnd() < .5 ? 1 : -1), dy: vert ? (rnd() < .5 ? 1 : -1) : 0, v: .8 + rnd() * .7, look: Math.floor(rnd() * 8), dir: 1, mov: true, giro: 2 + rnd() * 4 }); }
+    }
+    for (let i = peatones.length - 1; i >= 0; i--) {
+      const q = peatones[i]; if (Math.hypot(q.x - cp.x, q.y - cp.y) > 26) { peatones.splice(i, 1); continue; }
+      const enCalle = chunks.tile(Math.floor(q.x), Math.floor(q.y)) === '.'; if (enCalle) { q.giro = 5; q.parado = 0; }          // sobre el asfalto solo cruzan: no se paran ni giran
+      if (q.parado > 0) { q.parado -= dt; q.mov = false; continue; } q.mov = true; q.giro -= dt;
+      const nx = q.x + q.dx * q.v * dt, ny = q.y + q.dy * q.v * dt;
+      if (!CAM.includes(chunks.tile(Math.floor(nx + q.dx * .35), Math.floor(ny + q.dy * .35))) || q.giro <= 0) {
+        const opts = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([a, b]) => (a !== -q.dx || b !== -q.dy) && CAM.includes(chunks.tile(Math.floor(q.x + a * .9), Math.floor(q.y + b * .9)))); q.giro = 2 + rnd() * 5; if (enCalle) { q.giro = 5; }
+        if (opts.length && !enCalle) { const [a, b] = opts[Math.floor(rnd() * opts.length)]; q.dx = a; q.dy = b; } else { q.dx = -q.dx; q.dy = -q.dy; } if (rnd() < .15) q.parado = 1 + rnd() * 2; continue;
+      }
+      q.x = nx; q.y = ny; q.dir = Math.abs(q.dx) > Math.abs(q.dy) ? (q.dx > 0 ? 3 : 2) : (q.dy > 0 ? 1 : 0);
+    }
+  }
+  const pedCerca = () => { let b = null, bd = 1.7; for (const q of peatones) { const d = Math.hypot(q.x - cp.x, q.y - (cp.y)); if (d < bd) { bd = d; b = q; } } return b; };
+  function hablar(q) {
+    const c = chisme({ seed: chunks.seed, mundo, pos: { x: cp.x, y: cp.y }, sellos, hechos }); q.parado = 3; q.mov = false; fx.texto(q.x * T, q.y * T - 26, c.txt.length > 60 ? c.txt.slice(0, 57) + '...' : c.txt, COLORES.blanco, 1, 3.2);
+    if (c.moneda) { sim.d.dinero += c.moneda; fx.monedas(cp.x * T, cp.y * T - 10, 4); audio.tono('moneda'); aviso(`🪙 +$${c.moneda}`); }
+    return { msg: c.txt.slice(0, 110) };
+  }
+  let ultLugar = '';
+  function vidaCiudad(dt) {
+    if (!ultLugar) pista1('ciudad', '💡 En la calle: habla con peatones (E), acepta Repartos o busca monumentos para tu Pasaporte');
+    if (esNueva(chunks.seed) && (tSello += 0) >= 0) { const l = lugarEn(chunks.seed, Math.floor(cp.x), Math.floor(cp.y)); if (l !== ultLugar) { if (ultLugar) aviso('📍 ' + l); ultLugar = l; } }
+    if ((tSello += dt) > .25) { tSello = 0; for (const s of sellos) if (!hechos.has(s.id) && visita(s, cp.x, cp.y)) { ganarSello(s); break; } }
+    if (reparto) { reparto.t -= dt; if (Math.hypot(cp.x - reparto.of.frente.x, cp.y - reparto.of.frente.y) <= 1.6) entregarReparto(); else if (reparto.t <= 0) fallarReparto(); else if (reparto.t < 8 && Math.floor(reparto.t) !== reparto.tk) { reparto.tk = Math.floor(reparto.t); audio.tono('tictac'); } }
+    pasoPeatones(dt);
+  }
+  function dibujarReparto() {                                                                    // flecha de puntos hacia el destino y marcador sobre su puerta
+    if (!reparto) return; const f = reparto.of.frente, dx = f.x - cp.x, dy = f.y - cp.y, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d, b = Math.floor(performance.now() / 160) % 4;
+    for (let i = 0; i < 4; i++) { const k = 22 + i * 9; R(i === b ? '#fff' : '#ffd23f', Math.round(cp.x * T + ux * k) - 1, Math.round(cp.y * T - 8 + uy * k) - 1, 3, 3); }
+    const bob = Math.floor(performance.now() / 220) % 2; R('#2a1f1d', Math.round(f.x * T) - 5, Math.round(f.y * T) - 33 - bob, 11, 14); R('#ffd23f', Math.round(f.x * T) - 4, Math.round(f.y * T) - 32 - bob, 9, 12); textoPx(R, '!', Math.round(f.x * T) - 1, Math.round(f.y * T) - 29 - bob, '#2a1f1d', 1, '#00000000');
+  }
+  function animarAgua() {                                                                       // destellos que se mueven sobre el agua (solo se ven las casillas en pantalla)
+    const t = Math.floor(performance.now() / 500), x0 = Math.floor(camX / T) - 1, y0 = Math.floor(camY / T) - 1, nx = Math.ceil(cv.width / T) + 2, ny = Math.ceil(cv.height / T) + 2;
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const gx = x0 + i, gy = y0 + j; if (chunks.tile(gx, gy) !== 'w') continue; const k = (gx * 7 + gy * 3 + t) % 6; if (k === 0) R('#ffffff66', gx * T + 3 + (t % 3) * 3, gy * T + 4 + ((gx + gy) % 3) * 3, 4, 1); else if (k === 3) R('#ffffff44', gx * T + 8, gy * T + 10, 3, 1); }
   }
   function pasoCiudad(dt, inp) {
     const l = Math.hypot(inp.x, inp.y);
     if (l > .1) { const k = 4.6 * dt / Math.max(1, l); Sim.prototype.mover.call(mundoC, cp, inp.x * k, inp.y * k); cp.dir = Math.abs(inp.x) > Math.abs(inp.y) ? (inp.x > 0 ? 3 : 2) : (inp.y > 0 ? 1 : 0); cp.mov = true; } else cp.mov = false;
     chunks.actualizar(cp.x, cp.y); chunks.paso();
     if (performance.now() > enfriar && esMiPuerta(Math.floor(cp.x), Math.floor(cp.y + .35))) entrarNegocio();
+    vidaCiudad(dt);
   }
   let tSalida = 0;
   function entrarNegocio() {
@@ -303,7 +403,8 @@ async function iniciar() {
     }
     const lista = [[cp.y, () => persona(cp, { ...jug(), mov: cp.mov })]];
     for (const r of remotosVisibles()) lista.push([r.y, () => dibRemoto(r)]);
-    lista.sort((a, b) => a[0] - b[0]).forEach(l => l[1]()); ctx.restore();
+    for (const q of peatones) lista.push([q.y, () => { persona(q, { capas: ['piel_' + (q.look % 4), 'cliente_ropa_' + (q.look % 4), 'pelo_' + ((q.look + 1) % 4)], piel: PIEL[q.look % 4], pelo: PELO[(q.look + 1) % 4], ropa: ROPA[q.look % 4], mov: q.mov }); }]);
+    lista.sort((a, b) => a[0] - b[0]).forEach(l => l[1]()); animarAgua(); dibujarReparto(); fx.dibujar(R); ctx.restore(); fx.dibujarPantalla(R, cv.width, cv.height);
   }
   // ---------- luz y ambiente según la hora real de quien juega (para probar otra hora: ?hora=21) ----------
   const hp = parseFloat(QS.get('hora')), HORA_FIJA = Number.isFinite(hp) ? ((hp % 24) + 24) % 24 : null;
@@ -441,7 +542,7 @@ async function iniciar() {
     ctx.restore();
   }
   function dibujar() { if (modo === 'ciudad') dibujarCiudad(); else dibujarInterior(); iluminar(); }
-  const textoCiudad = () => { const l = loteCerca(); return l ? 'E: lote ' + l.id + ' · ' + resumenLote(l) : 'Ciudad · tu ' + cfg.titulo.toLowerCase() + ' tiene el rótulo blanco' + (remotos.size ? ' · ' + [...remotos.values()].map(r => r.nombre).join(', ') : ''); };
+  const textoCiudad = () => { if (reparto) { const f = reparto.of.frente; return `📦 ${reparto.of.hito || reparto.of.distrito} · ${Math.round(Math.hypot(f.x - cp.x, f.y - cp.y))} casillas · ${Math.max(0, Math.ceil(reparto.t))} s`; } const q = pedCerca(); if (q) return 'E: hablar con el peatón'; const l = loteCerca(); return l ? 'E: lote ' + l.id + ' · ' + resumenLote(l) : 'Ciudad · tu ' + cfg.titulo.toLowerCase() + ' tiene el rótulo blanco' + (remotos.size ? ' · ' + [...remotos.values()].map(r => r.nombre).join(', ') : ''); };
   const lotesCache = new Map(), lotesChunk = (cx, cy) => { const k = cx + ',' + cy; let r = lotesCache.get(k); if (!r) { r = lotes(chunks.seed, cx, cy); if (lotesCache.size > 200) lotesCache.clear(); lotesCache.set(k, r); } return r; };
   const miHogar = () => loteDe(chunks.seed, mundo?.mio?.hogar || LOTE_INICIAL) || loteDe(chunks.seed, LOTE_INICIAL);
   const esMiPuerta = (gx, gy) => { const h = miHogar(); return gx === h.puerta.x && gy === h.puerta.y; };
@@ -498,15 +599,19 @@ async function iniciar() {
     else if (m.t === 'chat_hist') { chatMsgs.length = 0; chatMsgs.push(...m.msgs); chatCfg.activo = m.activo !== false; }
     else if (m.t === 'chat_cfg') { chatCfg.activo = m.activo; chatCfg.silenciados = m.silenciados || []; refrescar('Chat'); }
     else if (m.t === 'chat_err') aviso(m.msg);
-    else if (m.t === 'mundo') { mundo = m; ocupa.clear(); const col = new Map(m.jugadores.map(j => [j.cid, j.color])); const jug = new Map(m.jugadores.map(j => [j.cid, j])); subLotes = new Set((m.subastas || []).map(x => x.lote)); for (const [lid, dueno, nivel, tipo, , , , , venta] of m.lotes) { const j = jug.get(dueno); ocupa.set(lid, { cid: dueno, color: col.get(dueno) || '#888', nivel, tipo, glifo: j?.npc ? j.perfil : j?.soc ? 'soc' : null, venta: venta != null }); } for (const k of ['Franquicias', 'Lote', 'Gestion', 'Mercado', 'Contratos', 'Subastas', 'Sociedad']) refrescar(k); alMundo(m); }
+    else if (m.t === 'mundo') { if (m.seed !== undefined) usarCiudad(m.seed); mundo = m; ocupa.clear(); const col = new Map(m.jugadores.map(j => [j.cid, j.color])); const jug = new Map(m.jugadores.map(j => [j.cid, j])); subLotes = new Set((m.subastas || []).map(x => x.lote)); for (const [lid, dueno, nivel, tipo, , , , , venta] of m.lotes) { const j = jug.get(dueno); ocupa.set(lid, { cid: dueno, color: col.get(dueno) || '#888', nivel, tipo, glifo: j?.npc ? j.perfil : j?.soc ? 'soc' : null, venta: venta != null }); } for (const k of ['Franquicias', 'Lote', 'Gestion', 'Mercado', 'Contratos', 'Subastas', 'Sociedad']) refrescar(k); alMundo(m); }
     else if (m.t === 'res') { const f = pendientes.get(m.id); if (f) { pendientes.delete(m.id); f(m); } }
     else if (m.t === 'cerrada') { aviso('La sala se cerró'); salirRed(); }
   }
   const hooks = id => ({ onMsg: m => alMensaje(id, m), onEstado: e => { if (net?.id === id) estadoRed = e === 'conectado' ? '' : e; } });
   function nuevaRed(extra) { cerrarConn(); mundo = null; remotos.clear(); ocupa.clear(); net = { id: ++netId, snap: [], ...extra }; return net; }
   function cerrarConn() { if (net) { net.conn?.cerrar(); net = null; } }
-  function iniciarSolo() {
-    const srv = new Servidor({ rivales: 3 }); try { const g = localStorage.getItem(KEY_SOLO); if (g) srv.importar(JSON.parse(g)); } catch (e) { console.warn('Mundo solo ilegible; se crea uno nuevo', e); }
+  function usarCiudad(seed) {                    // cambia la ciudad que se ve (al abrir un mundo guardado, entrar a una sala o empezar uno nuevo)
+    if (chunks.seed === seed) return; chunks.cambiarSemilla(seed); ocupa.clear(); const h = miHogar(); cp.x = h.frente.x; cp.y = h.frente.y; cp.dir = 1; chunks.forzar(cp.x, cp.y); reparto = null; cargarSellos();
+  }
+  function iniciarSolo(seedNuevo = null) {          // un mundo nuevo empieza en Villa Dorada; uno guardado conserva su ciudad
+    const srv = new Servidor({ rivales: 3, seed: seedNuevo ?? 1000 }); if (seedNuevo == null) try { const g = localStorage.getItem(KEY_SOLO); if (g) srv.importar(JSON.parse(g)); } catch (e) { console.warn('Mundo solo ilegible; se crea uno nuevo', e); }
+    usarCiudad(srv.mundo.seed);
     const n = nuevaRed({ modo: 'solo', cid: 'solo', srv, vGuardada: -1 }); n.conn = hostLocal(srv, 'solo', hooks(n.id), { bc: false });
     n.conn.enviar(srv.sala ? { t: 'unir', nombre: nombreLocal() } : { t: 'crear', giro, nombre: nombreLocal() });
   }
@@ -562,7 +667,7 @@ async function iniciar() {
     if (!r.ok && !r.sinRespuesta) sim.d.dinero += x; guardar(); return r;
   }
   const resumenLote = l => { const o = ocupa.get(l.id); if (!o) return `libre · $${precioLote(l)}`; const j = mundo?.jugadores.find(j => j.cid === o.cid); return `${o.cid === net?.cid ? 'tuyo' : j?.nombre || 'otro'} · nv ${o.nivel}`; };
-  function accionCiudad() { const l = loteCerca(); if (!l) return { msg: '' }; if (!mundo) return { msg: 'Conectando con el servidor…' }; panelLote(l); return { msg: '' }; }
+  function accionCiudad() { const q = pedCerca(), l = loteCerca(); if (q && !reparto) return hablar(q); if (!l) return { msg: '' }; if (!mundo) return { msg: 'Conectando con el servidor…' }; panelLote(l); return { msg: '' }; }
   function panelLote(l) {
     if (typeof l === 'string') l = loteDe(chunks.seed, l); if (!l || !mundo) return cerrarTienda(); panelLoteId = l.id;
     const o = ocupa.get(l.id), mio = o && (o.cid === net?.cid || o.cid === mundo?.sociedad?.mia?.id), msg = txt('', 'msg'), sub = (mundo.subastas || []).find(x => x.lote === l.id), info = mundo.lotes.find(x => x[0] === l.id), inv = info?.[4] || 0;
@@ -630,6 +735,20 @@ async function iniciar() {
   }
 
   // ---------- sonido, tutorial, personaje, cuenta ----------
+  const pista1 = (k, t) => { if (perfil.pistas?.[k]) return; (perfil.pistas ||= {})[k] = 1; store.guardarPerfil(perfil); setTimeout(() => aviso(t), 900); };   // cada pista se muestra una sola vez
+  function reaccionar() {                        // convierte los eventos de la simulación en sonido y feedback visual
+    for (const e of sim.ev.splice(0)) {
+      const x = (e.x ?? 0) * T + 8, y = (e.y ?? 0) * T - 14;
+      if (e.k === 'pago') { fx.texto(x, y, e.txt, e.tipo === 'vip' ? COLORES.rosa : COLORES.oro, 1); e.fx.slice(0, 2).forEach((f, i) => fx.texto(x, y - 8 - i * 7, f, /Mala|Se pas/.test(f) ? COLORES.rojo : /Perfecto|punto|estelar/i.test(f) ? COLORES.verde : COLORES.cian, 1, 1.3)); fx.chispas(x, y + 6, e.tipo === 'vip' ? 14 : 5, e.tipo === 'vip' ? [COLORES.rosa, COLORES.blanco] : [COLORES.oro, COLORES.blanco]); if (e.fx.some(f => /punto|estelar/i.test(f))) audio.tono('perfecto'); }
+      else if (e.k === 'cobro') { fx.texto(x, y, e.txt, COLORES.oro, 2, 1.3); fx.monedas(x, y + 10, Math.min(12, 3 + e.n * 2)); audio.tono('moneda'); }
+      else if (e.k === 'combo') { pista1('racha', '💡 Cada 3 clientes seguidos sube tu bono de racha (hasta +25%)'); fx.texto(x, y - 12, e.txt, COLORES.naranja, 2, 1.3); fx.chispas(x, y, 12, [COLORES.naranja, COLORES.oro]); audio.tono('combo', e.n); if (e.n >= 9) { fx.destello('#ffb040', .22); fx.tiembla(1, .12); } }
+      else if (e.k === 'rompe') { fx.texto(x, y, 'Racha perdida', COLORES.rojo, 1, 1.4); audio.tono('rompe'); }
+      else if (e.k === 'enojo') { fx.texto(x, y, '!', COLORES.rojo, 2, .8); audio.tono('enojo'); }
+      else if (e.k === 'listo') { pista1('punto', '💡 Recoge el plato mientras brilla: ¡en su punto da más propina!'); audio.tono('listo'); fx.chispas(x, y + 6, 4, [COLORES.blanco, COLORES.oro], 22); }
+      else if (e.k === 'rush') { pista1('rush', '💡 Hora pico: sirve rápido y sin perder a nadie para ganar el bono'); fx.banner('¡HORA PICO!', COLORES.rojo, 2.2); fx.destello('#ff5040', .3, .3); fx.tiembla(2, .3); audio.tono('rush'); }
+      else if (e.k === 'rushOk') { fx.banner('¡HORA PICO SUPERADA! ' + e.txt, COLORES.verde, 2.4); fx.destello('#ffd23f', .3, .3); fx.monedas(cv.width / 2 + camX, 60, 14); audio.tono('rushOk'); }
+    }
+  }
   function sonido(r) {
     const m = r.msg || '';
     if (r.fx === 'moneda') audio.tono(/Nivel/.test(m) ? 'nivel' : 'moneda'); else if (r.fx === 'ok') audio.tono('ok');
@@ -643,6 +762,10 @@ async function iniciar() {
     else if (paso === 4 && r.fx === 'moneda') { paso = 99; perfil.tutorial = true; store.guardarPerfil(perfil); aviso('¡Tutorial completo!'); }
   }
   const P = crearPaneles({ el, txt, btn, sec, stat, chip, icono, abrir, aviso, audio, eco, sim, perfil, store, guardar, mundo: () => mundo, net: () => net, volver: () => menu(), loteDe: id => loteDe(chunks.seed, id), panelLote: id => panelLote(id), cerrarTienda: () => cerrarTienda(), enviar: m => net?.conn?.enviar(m),
+    vida: { ofertas: () => ofertasHoy(), aceptar: of => aceptarReparto(of), actual: () => reparto, cancelar: () => { reparto = null; repartoRacha = 0; }, racha: () => repartoRacha, sellos: () => ({ sellos, hechos }), pos: () => ({ x: cp.x, y: cp.y }), modo: () => modo, seed: () => chunks.seed, esSolo: () => !net || net.modo === 'solo',
+      mapa: (canvas, radio) => { const o = new Map(); for (const [id, d] of ocupa) { const l = loteDe(chunks.seed, id); if (l) o.set(id, { puerta: l.puerta, color: d.color }); } return dibujarMapa(canvas, chunks.seed, Math.floor(cp.x / CH), Math.floor(cp.y / CH), radio, { ocupa: o, yo: { x: cp.x, y: cp.y }, destino: reparto?.of.frente }); },
+      previa: (canvas, seed) => dibujarMapa(canvas, seed, 0, 0, 4, {}),
+      nuevoMundo: seed => { try { localStorage.removeItem(KEY_SOLO); } catch (e) { /* sin almacenamiento */ } cerrarTienda(); iniciarSolo(seed); modo = 'ciudad'; aviso('Mundo nuevo en ' + (ciudadDe(seed)?.nombre || 'la ciudad clásica')); } },
     chat: () => ({ msgs: chatMsgs, activo: chatCfg.activo, silenciados: chatCfg.silenciados, host: net?.rol === 'host', jugadores: net?.snap || [], mios: chatOcultos }) });
   if (ausLocal0) aviso(`Tu local trabajó sin ti: ${ausLocal0.dinero >= 0 ? '+' : '−'}$${Math.abs(ausLocal0.dinero)}`);
   if (ausLocal0) P.informeLocal(`Mientras no estabas, tu local trabajó ${Math.round(ausLocal0.seg / 60)} minutos con tu gerente: ${ausLocal0.dinero >= 0 ? '+' : '−'}$${Math.abs(ausLocal0.dinero)} (la mitad de lo que habrías ganado jugando), ${ausLocal0.servidos} pedidos, ${ausLocal0.perdidos} perdidos.`);
@@ -658,6 +781,10 @@ async function iniciar() {
       it(icono('mesa'), 'Personal', 'Tu equipo: habilidad, ánimo y sueldos', () => P.panelPersonal()),
       it(icono('refri'), 'Proveedores', 'Costos, calidad y contratos', () => P.panelProveedores()),
       it(icono('tablero'), 'Desarrollo', 'Mejoras con ventajas y desventajas', () => P.panelDesarrollo()),
+      it(icono('moneda'), 'Repartos', 'Pedidos a domicilio contra reloj', () => P.panelRepartos()),
+      it(icono('globo_espera'), 'Pasaporte', 'Sellos de monumentos por descubrir', () => P.panelPasaporte()),
+      it(icono('globo_espera'), 'Mapa', 'Distritos, agua y propiedades', () => P.panelMapa()),
+      it(icono('globo_espera'), 'Ciudades', 'Elige dónde jugar: 6 ciudades', () => P.panelCiudades()),
       it(icono('moneda'), 'Contratos', 'Catering con plazo y riesgo', () => P.panelContratos()),
       it(icono('moneda'), 'Subastas', 'Puja por locales y lotes', () => P.panelSubastas()),
       it(icono('globo_espera'), 'Sociedad', 'Empresa con amigos: caja y votaciones', () => P.panelSociedad()),
@@ -724,6 +851,7 @@ async function iniciar() {
       if (pend) { pend = false; audio.activar(); const r = modo === 'ciudad' ? accionCiudad() : sim.accion(); aviso(r.msg); sonido(r); tutorial(r); if (r.tienda) tienda(); else if (r.fx) guardar(); }
       acc += dt; while (acc >= 1 / 60) { if (modo === 'ciudad') pasoCiudad(1 / 60, entrada()); else { sim.tick(1 / 60, entrada()); revisarPuerta(); } acc -= 1 / 60; }
     } else pend = false;
+    reaccionar(); fx.paso(dt);
     red(dt);   // la presencia en la sala sigue activa aunque haya un menú abierto
     dibujar();
     tH -= dt; if (tH <= 0) { tH = .15; hud(); if (debug) $('pista').textContent += ` · ${fps} fps · ${sim.clientes.length} cli`; }
@@ -738,6 +866,6 @@ async function iniciar() {
   if (mh) { history.replaceState(null, '', location.pathname + location.search); unirse(mh[0]); }   // el token sale de la barra de direcciones
   requestAnimationFrame(frame);
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js', { scope: './' }).catch(e => console.warn('Sin modo offline:', e));
-  window.__juego = sim; window.__ciudad = { chunks, cp, remotos, eco, invertir, ocupa, get modo() { return modo; }, get net() { return net; }, get mundo() { return mundo; } };   // útil para diagnóstico; no expone secretos
+  window.__juego = sim; window.__ciudad = { get reparto() { return reparto; }, get sellos() { return sellos; }, get hechos() { return hechos; }, get peatones() { return peatones; }, usarCiudad, chunks, cp, remotos, eco, invertir, ocupa, get modo() { return modo; }, get net() { return net; }, get mundo() { return mundo; } };   // útil para diagnóstico; no expone secretos
 }
 iniciar();
