@@ -49,6 +49,7 @@
 <script src="JS/puve-cotizaciones.js"></script>
 <script src="JS/puve-importar.js"></script>
 <script src="JS/puve-prepara.js"></script>
+<script src="JS/puve-sellos.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
@@ -1726,6 +1727,7 @@
               </div>
               <input id="clienteNombreVenta" class="input-mini oculto" type="text" placeholder="Nombre del cliente (para el directorio)" style="width:100%; margin-bottom:8px;">
               <p class="nota" id="infoRecompensaCliente" style="margin:0 0 8px;">Opcional — déjalo vacío si el cliente no quiere acumular puntos ni comprar a crédito.</p>
+              <div class="nota oculto" id="infoSellosCliente" style="margin:0 0 8px;"></div>
               <div class="campo oculto" id="campoCanjearPuntos" style="margin:0 0 10px;">
                 <label for="puntosACanjear">Puntos a canjear</label>
                 <input id="puntosACanjear" type="number" min="0" step="1" value="0">
@@ -2457,6 +2459,7 @@
             </div>
             
           </div>
+          <div id="bloqueConfigSellos"></div>
           <div class="fila-config">
             <div>
               <div style="font-weight:600; font-size:14px;">Directorio de clientes y ventas a crédito</div>
@@ -5192,6 +5195,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     lsSet('puve_negocio_nombre', perfil.negocios?.nombre || '');
     lsSet('puve_mi_rol', miRol || '');
     lsSet('puve_config_negocio', JSON.stringify(configNegocio));
+    try { PuveSellos.cargar().then(() => aplicarConfiguracionUI()); } catch(e){}
 
     if(!esAdminActual && !suplantando && miRol === 'admin' && enLinea &&
        (!perfil.negocios?.pais || !perfil.negocios?.estado || !perfil.negocios?.municipio || !perfil.negocios?.codigo_postal)){
@@ -5994,7 +5998,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(bloqueCat) bloqueCat.style.display = configNegocio.categorias ? 'block' : 'none';
     if(filtroCat) filtroCat.style.display = configNegocio.categorias ? 'flex' : 'none';
     document.querySelectorAll('.btn-escanear').forEach(b => { b.style.display = configNegocio.codigo_barras ? 'inline-block' : 'none'; });
-    document.getElementById('areaClienteVenta').classList.toggle('oculto', !(configNegocio.recompensas?.activo || configNegocio.clientes));
+    document.getElementById('areaClienteVenta').classList.toggle('oculto', !(configNegocio.recompensas?.activo || configNegocio.clientes || (window.PuveSellos && PuveSellos.activo())));
     document.getElementById('opcionMetodoCredito').classList.toggle('oculto', !configNegocio.clientes);
     actualizarBotonesMetodoPagoMovil();
   }
@@ -6009,6 +6013,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('campoCanjearPuntos').classList.add('oculto');
     document.getElementById('puntosACanjear').value = 0;
     document.getElementById('infoCreditoCliente').classList.add('oculto');
+    const sc = document.getElementById('infoSellosCliente'); if(sc){ sc.textContent = ''; sc.classList.add('oculto'); }
   }
 
   let puntosClienteActual = 0;
@@ -6019,6 +6024,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const infoCredito = document.getElementById('infoCreditoCliente');
     const campoCanjear = document.getElementById('campoCanjearPuntos');
     if(!telefono){ info.textContent = 'Escribe un teléfono para consultar.'; return; }
+    try { PuveSellos.consultar(telefono); } catch(e){ console.error(e); }
 
     const { data, error } = await sb.rpc('consultar_puntos_cliente', { p_telefono: telefono });
     if(error){ info.textContent = 'No se pudo consultar.'; return; }
@@ -8243,6 +8249,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const telefonoCliente = clienteDisponible ? (document.getElementById('recompensaTelefono').value.trim() || null) : null;
     const nombreCliente = (configNegocio.clientes && telefonoCliente) ? (document.getElementById('clienteNombreVenta').value.trim() || null) : null;
     const puntosACanjear = configNegocio.recompensas?.activo ? (Number(document.getElementById('puntosACanjear').value) || 0) : 0;
+    const telefonoSellos = (window.PuveSellos && PuveSellos.activo()) ? (document.getElementById('recompensaTelefono').value.trim() || null) : null;
+    const nombreSellos = telefonoSellos ? (document.getElementById('clienteNombreVenta').value.trim() || null) : null;
 
     if(metodoPago === 'credito' && !telefonoCliente){
       mostrarMensaje('mensajeVenta', 'Una venta a crédito necesita el teléfono del cliente.', 'error');
@@ -8311,6 +8319,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     mostrarMensaje('mensajeVenta', valeAplicado ? 'Venta registrada. Vale canjeado: cobra ' + dineroVale(total - valeAplicado.monto) + '.' : 'Venta registrada correctamente.', 'exito');
     try { PuveHW.registrarVenta({ ventaId: typeof ventaId === 'string' ? ventaId : (ventaId && (ventaId.id || ventaId.registrar_venta)) || null, items: carrito.map(i => ({ nombre: i.nombre, cantidad: i.cantidad, unidad: i.unidad || '', precio: i.precio, subtotal: subLinea(i) })), total, metodo: metodoPago, vale: valeAplicado ? valeAplicado.monto : 0 }); } catch(e){ console.error('ticket:', e); }
     if(valeAplicado) quitarValeAplicado();
+    if(telefonoSellos){ const idSello = typeof ventaId === 'string' ? ventaId : (ventaId && (ventaId.id || ventaId.registrar_venta)) || null; if(idSello) PuveSellos.trasVenta(idSello, telefonoSellos, nombreSellos); }
     completarCitaTrasVenta(ventaId, items);
     document.getElementById('recompensaTelefono').value = '';
     reiniciarEstadoRecompensaVenta();
@@ -10045,7 +10054,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       b.classList.toggle('activo', b.dataset.vista === vista);
     });
     if(vista === 'invita') cargarPanelReferidos();
-    if(vista === 'funciones'){ cargarEstadoPinAutorizacion(); cargarAnalistas(); }
+    if(vista === 'funciones'){ cargarEstadoPinAutorizacion(); cargarAnalistas(); try { PuveSellos.montarConfig(document.getElementById('bloqueConfigSellos')); } catch(e){ console.error(e); } }
   }
 
   function cambiarVistaInventario(vista){
@@ -12965,6 +12974,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   PuveRestaurante.enlazar({ sb: sb, productos: () => productosCache, total: () => carrito.reduce((s, i) => s + subLinea(i), 0), dinero: (n) => formatoDinero(n), aviso: (m) => alert(m) });
   PuveCotizaciones.enlazar({ sb: sb, carrito: () => carrito, negocio: () => { const e = document.getElementById('nombreNegocioBarra'); const t = e ? e.textContent.trim() : ''; return t && t !== '—' ? t : ''; }, dinero: (n) => formatoDinero(n), cargarAlCarrito: cargarCotizacionAlCarrito, aviso: (m) => alert(m) });
   PuveAnaliticaRest.enlazar({ sb: sb, dinero: (n) => formatoDinero(n) });
+  PuveSellos.enlazar({ sb: sb, dinero: (n) => formatoDinero(n), aviso: (m) => alert(m) });
   PuvePrepara.enlazar({ sb: sb, categorias: () => categoriasCache, aviso: (m) => alert(m) });
   PuveInsumos.enlazar({ sb: sb, productos: () => productosCache, dinero: (n) => formatoDinero(n), recargarProductos: () => cargarProductos(), aviso: (m) => alert(m), irAInsumos: () => { alternarFormulario(false); cambiarSeccion('inventario'); try { cambiarVistaInventario('recetas'); } catch(e){} } });
   PuveHW.enlazar({
