@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#f4f2ee">
+<title>Mi tarjeta de sellos</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; connect-src https://ckzueunptmlqmtypowmg.supabase.co; img-src data: blob:; base-uri 'none'; form-action 'none'">
+<style>
+  :root{ --fondo:#f4f2ee; --papel:#fff; --tinta:#1c1b19; --suave:#6b665e; --borde:#e4e0d8; }
+  *{ box-sizing:border-box; } html{ -webkit-text-size-adjust:100%; }
+  body{ margin:0; min-height:100vh; background:var(--fondo); color:var(--tinta); font:16px/1.45 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif; padding:max(18px,env(safe-area-inset-top)) 16px max(28px,env(safe-area-inset-bottom)); }
+  main{ max-width:480px; margin:0 auto; }
+  h1{ font-size:22px; line-height:1.2; margin:6px 0 2px; } .sub{ color:var(--suave); margin:0 0 16px; font-size:15px; }
+  .tarjeta{ border-radius:26px; box-shadow:0 14px 34px rgba(30,24,10,.18),0 2px 6px rgba(30,24,10,.1); line-height:0; overflow:hidden; } .tarjeta svg{ width:100%; height:auto; display:block; }
+  .tabs{ display:flex; gap:6px; background:#e9e5dc; border-radius:999px; padding:4px; margin:0 0 14px; }
+  .tabs button{ flex:1; border:0; background:none; padding:9px 10px; border-radius:999px; font:inherit; font-weight:600; color:var(--suave); cursor:pointer; }
+  .tabs button[aria-selected=true]{ background:var(--papel); color:var(--tinta); box-shadow:0 1px 3px rgba(0,0,0,.12); }
+  .estado{ margin:18px 0 4px; text-align:center; } .estado b{ font-size:30px; display:block; line-height:1.1; } .estado span{ color:var(--suave); }
+  .premio{ margin:14px 0 0; padding:12px 14px; border-radius:14px; background:#dcfce7; color:#166534; text-align:center; font-weight:600; }
+  .acciones{ display:grid; gap:10px; margin:20px 0 6px; }
+  .acciones button{ font:inherit; font-weight:600; padding:13px 16px; border-radius:14px; border:1px solid var(--borde); background:var(--papel); color:var(--tinta); cursor:pointer; }
+  .acciones button.fuerte{ background:var(--tinta); color:#fff; border-color:var(--tinta); }
+  .acciones button:disabled{ opacity:.55; cursor:default; }
+  .nota{ color:var(--suave); font-size:13.5px; text-align:center; margin:10px 0 0; min-height:1.3em; }
+  .centro{ text-align:center; padding:60px 10px; color:var(--suave); }
+  .oculto{ display:none!important; }
+  .pie{ color:var(--suave); font-size:12.5px; text-align:center; margin-top:26px; }
+  :focus-visible{ outline:3px solid #2563eb; outline-offset:2px; }
+</style>
+</head>
+<body>
+<main id="app"><div class="centro">Cargando tu tarjeta…</div></main>
+<script src="JS/puve-tarjeta-diseno.js"></script>
+<script>
+(function(){
+  'use strict';
+  var SUPA = 'https://ckzueunptmlqmtypowmg.supabase.co', KEY = 'sb_publishable_jkE5ikAW_a0OfE2S-6u3VA_P8uEzUSp';
+  var app = document.getElementById('app'), P = window.PuveTarjeta;
+  var q = new URLSearchParams(location.search), h = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+  var token = (q.get('t') || h.get('t') || '').toLowerCase();
+  var DEMO = token === 'demo';   // tarjeta-de-ejemplo: tarjeta.html?t=demo&giro=cafeterias&sellos=3&meta=8
+  var datos = null, cara = 'dorso', refrescando = false;
+  function $(t, c, x){ var e = document.createElement(t); if(c) e.className = c; if(x != null) e.textContent = x; return e; }
+
+  function llamar(nombre, cuerpo){
+    return fetch(SUPA + '/rest/v1/rpc/' + nombre, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: KEY, Authorization: 'Bearer ' + KEY }, body: JSON.stringify(cuerpo) })
+      .then(function(r){ return r.json().catch(function(){ return null; }).then(function(d){ if(!r.ok) throw new Error((d && d.message) || 'Error'); return d; }); });
+  }
+  function cargar(){
+    if(DEMO) return Promise.resolve({
+      negocio: q.get('n') || 'Mi negocio', subgiro: q.get('giro') || 'cafeterias', giro: '', diseno: { estilo: q.get('estilo') || undefined, forma: q.get('forma') || undefined },
+      meta: parseInt(q.get('meta') || '8', 10), sellos: parseInt(q.get('sellos') || '3', 10), premios: parseInt(q.get('premios') || '0', 10), premio: q.get('premio') || 'Un premio de la casa', cliente: q.get('c') || null
+    });
+    if(!/^[0-9a-f]{32}$/.test(token)) return Promise.resolve(null);
+    return llamar('sellos_tarjeta_publica', { p_token: token });
+  }
+  function svgDe(c){ return P.svg({ nombre: datos.negocio, giro: datos.subgiro, diseno: datos.diseno, meta: datos.meta, sellos: datos.sellos, premios: datos.premios, premio: datos.premio, cara: c }); }
+
+  function pintar(){
+    app.textContent = '';
+    var titulo = $('h1', null, datos.cliente ? 'Hola, ' + datos.cliente : 'Tu tarjeta de sellos'); app.appendChild(titulo);
+    app.appendChild($('p', 'sub', datos.negocio));
+    var tabs = $('div', 'tabs'); tabs.setAttribute('role', 'tablist');
+    [['dorso', 'Mis sellos'], ['frente', 'Tarjeta']].forEach(function(t){
+      var b = $('button', null, t[1]); b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(cara === t[0]));
+      b.onclick = function(){ cara = t[0]; Array.prototype.forEach.call(tabs.children, function(x, i){ x.setAttribute('aria-selected', String(i === (cara === 'dorso' ? 0 : 1))); }); dibujar(); };
+      tabs.appendChild(b);
+    });
+    app.appendChild(tabs);
+    var lienzo = $('div', 'tarjeta'); lienzo.id = 'lienzo'; app.appendChild(lienzo);
+    var est = $('div', 'estado'); est.appendChild($('b', null, datos.sellos + ' de ' + datos.meta)); est.appendChild($('span', null, datos.sellos === 1 ? 'sello en tu tarjeta' : 'sellos en tu tarjeta')); app.appendChild(est);
+    if(datos.premios > 0) app.appendChild($('div', 'premio', (datos.premios > 1 ? '¡Tienes ' + datos.premios + ' premios!' : '¡Tienes un premio!') + ' Te toca: ' + datos.premio + '. Muéstrale esta pantalla al cajero.'));
+    else app.appendChild($('p', 'nota', 'Completa ' + datos.meta + ' sellos y recibe: ' + datos.premio + '.'));
+    var ac = $('div', 'acciones');
+    var bw = $('button', 'fuerte', 'Agregar a Google Wallet'); bw.type = 'button'; bw.id = 'bWallet'; bw.onclick = wallet; ac.appendChild(bw);
+    var bi = $('button', null, 'Guardar como imagen'); bi.type = 'button'; bi.onclick = guardarImagen; ac.appendChild(bi);
+    var bc = $('button', null, 'Compartir o copiar mi enlace'); bc.type = 'button'; bc.onclick = compartir; ac.appendChild(bc);
+    app.appendChild(ac);
+    app.appendChild($('p', 'nota', '')).id = 'aviso';
+    app.appendChild($('p', 'pie', 'Guarda este enlace: tu tarjeta se actualiza sola con cada compra. Tu teléfono no aparece aquí.'));
+    dibujar();
+  }
+  function dibujar(){ var l = document.getElementById('lienzo'); if(l) l.innerHTML = svgDe(cara); }
+  function aviso(t){ var a = document.getElementById('aviso'); if(a) a.textContent = t || ''; }
+
+  function guardarImagen(){
+    aviso('Preparando la imagen…');
+    P.png(svgDe(cara === 'frente' ? 'frente' : 'dorso'), 1500).then(function(b){
+      var url = URL.createObjectURL(b), a = document.createElement('a'); a.href = url; a.download = 'tarjeta-' + (datos.negocio || 'sellos').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '.png';
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+      aviso('Imagen guardada. Si no la ves, búscala en tus descargas.');
+    }).catch(function(e){ aviso(e.message); });
+  }
+  function compartir(){
+    var url = location.href.split('#')[0];
+    if(navigator.share){ navigator.share({ title: 'Mi tarjeta de ' + datos.negocio, text: 'Mi tarjeta de sellos de ' + datos.negocio, url: url }).catch(function(){}); return; }
+    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(function(){ aviso('Enlace copiado.'); }, function(){ aviso(url); }); }
+    else aviso(url);
+  }
+  function wallet(){
+    var b = document.getElementById('bWallet');
+    if(DEMO){ aviso('En la demostración no se conecta con Google Wallet.'); return; }
+    b.disabled = true; aviso('Abriendo Google Wallet…');
+    fetch(SUPA + '/functions/v1/wallet-tarjeta', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: KEY, Authorization: 'Bearer ' + KEY }, body: JSON.stringify({ accion: 'guardar', token: token }) })
+      .then(function(r){ return r.json().catch(function(){ return null; }).then(function(d){ return { ok: r.ok, status: r.status, d: d }; }); })
+      .then(function(r){
+        if(r.ok && r.d && r.d.url){ location.href = r.d.url; aviso(''); b.disabled = false; return; }
+        if(r.status === 501){ b.classList.add('oculto'); aviso('Este negocio todavía no tiene Google Wallet. Guarda tu tarjeta como imagen o guarda este enlace.'); return; }
+        b.disabled = false; aviso((r.d && r.d.error) || 'No se pudo abrir Google Wallet. Intenta de nuevo.');
+      }).catch(function(){ b.disabled = false; aviso('Sin conexión. Intenta de nuevo.'); });
+  }
+
+  function arrancar(){
+    cargar().then(function(d){
+      if(!d){ app.textContent = ''; var c = $('div', 'centro'); c.appendChild($('b', null, 'No encontramos esta tarjeta')); c.appendChild($('p', null, 'Revisa que el enlace esté completo o pídele al negocio que te lo mande otra vez.')); app.appendChild(c); return; }
+      datos = d; pintar();
+    }).catch(function(){ app.textContent = ''; var c = $('div', 'centro'); c.appendChild($('b', null, 'No pudimos cargar tu tarjeta')); c.appendChild($('p', null, 'Revisa tu internet e intenta de nuevo.')); var r = $('button', null, 'Reintentar'); r.onclick = arrancar; c.appendChild(r); app.appendChild(c); });
+  }
+  // Al volver a la pestaña, se actualiza sola
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden || !datos || DEMO || refrescando) return; refrescando = true;
+    cargar().then(function(d){ if(d && (d.sellos !== datos.sellos || d.premios !== datos.premios || d.meta !== datos.meta)){ datos = d; pintar(); } }).catch(function(){}).then(function(){ refrescando = false; });
+  });
+  arrancar();
+})();
+</script>
+</body>
+</html>

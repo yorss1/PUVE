@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<title>Galería de tarjetas de sellos · PUVE</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+<style>
+  body{ margin:0; font-family:system-ui,Segoe UI,sans-serif; background:#f4f2ee; color:#1c1b19; }
+  header{ padding:28px 20px 8px; max-width:1200px; margin:0 auto; } h1{ margin:0 0 6px; font-size:28px; } p{ margin:0; color:#6b665e; }
+  .rejilla{ max-width:1200px; margin:0 auto; padding:16px 20px 60px; display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:22px; }
+  .g{ background:#fff; border-radius:18px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.08); } .g h2{ font-size:15px; margin:0 0 10px; }
+  .g svg{ width:100%; height:auto; display:block; margin-bottom:10px; }
+</style></head><body>
+<header><h1>Tarjetas de sellos para los 29 giros</h1><p>Diseño sugerido de cada giro. Cada negocio puede cambiar estilo, colores, forma del sello e ícono desde Configuración.</p></header>
+<div class="rejilla" id="r"></div>
+<script src="JS/puve-tarjeta-diseno.js"></script>
+<script>
+(function(){
+  var P = window.PuveTarjeta, r = document.getElementById('r'), q = new URLSearchParams(location.search), sellos = parseInt(q.get('sellos') || '3', 10);
+  Object.keys(P.GIROS).forEach(function(id){
+    var g = document.createElement('div'); g.className = 'g'; var h = document.createElement('h2'); h.textContent = P.GIROS[id][0]; g.appendChild(h);
+    ['frente','dorso'].forEach(function(cara){ var d = document.createElement('div'); d.innerHTML = P.svg({ giro:id, nombre:P.GIROS[id][0].split(/ y |,/)[0], meta:8, sellos:sellos, premio:'Un premio de la casa', cara:cara }); g.appendChild(d.firstChild); });
+    r.appendChild(g);
+  });
+})();
+</script></body></html>
