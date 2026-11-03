@@ -1726,6 +1726,7 @@
                 <input id="recompensaTelefono" class="input-mini" type="tel" placeholder="Teléfono del cliente" style="flex:1;" oninput="reiniciarEstadoRecompensaVenta()">
                 <button type="button" class="texto" style="width:auto; white-space:nowrap;" onclick="consultarPuntosCliente()">Consultar</button>
               </div>
+              <button type="button" class="texto oculto" id="btnEscanearTarjeta" onclick="PuveSellos.escanear()" style="width:100%; text-align:left; padding:4px 0 8px; font-size:13px;">Escanear la tarjeta del cliente (QR de Google Wallet o de su celular)</button>
               <input id="clienteNombreVenta" class="input-mini oculto" type="text" placeholder="Nombre del cliente (para el directorio)" style="width:100%; margin-bottom:8px;">
               <p class="nota" id="infoRecompensaCliente" style="margin:0 0 8px;">Opcional — déjalo vacío si el cliente no quiere acumular puntos ni comprar a crédito.</p>
               <div class="nota oculto" id="infoSellosCliente" style="margin:0 0 8px;"></div>
@@ -6000,6 +6001,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(filtroCat) filtroCat.style.display = configNegocio.categorias ? 'flex' : 'none';
     document.querySelectorAll('.btn-escanear').forEach(b => { b.style.display = configNegocio.codigo_barras ? 'inline-block' : 'none'; });
     document.getElementById('areaClienteVenta').classList.toggle('oculto', !(configNegocio.recompensas?.activo || configNegocio.clientes || (window.PuveSellos && PuveSellos.activo())));
+    try { const be = document.getElementById('btnEscanearTarjeta'); if(be) be.classList.toggle('oculto', !(window.PuveSellos && PuveSellos.activo() && escanerDisponible())); } catch(e){}
     document.getElementById('opcionMetodoCredito').classList.toggle('oculto', !configNegocio.clientes);
     actualizarBotonesMetodoPagoMovil();
   }
@@ -8573,6 +8575,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       (it.opciones || []).forEach(o => { const ex = o.pid ? extrasPorId.get(o.pid) : null; if(!ex) return; const e = carrito.find(c => c.id === ex.id); if(e) e.cantidad += it.cantidad; else carrito.push({ id: ex.id, nombre: ex.nombre, precio: Number(ex.precio), cantidad: it.cantidad, stock: Number(ex.stock) }); });
     });
     cambiarSeccion('vender'); renderizarCarrito();
+    // Si el cliente ligó su tarjeta de sellos al pedir (SQL 107), la caja lo identifica sola. Si falla, se cobra normal.
+    try { if(window.PuveSellos && PuveSellos.activo()){ const { data: lig } = await sb.from('pedidos_qr').select('tarjeta_token').eq('id', id).maybeSingle(); if(lig && lig.tarjeta_token) PuveSellos.identificarToken(lig.tarjeta_token); } } catch(e){}
     mostrarMensaje('mensajeVenta', faltan.length ? 'Pedido de la mesa ' + p.mesa + ' cargado. Sin stock o ya no existe: ' + faltan.join(', ') : 'Pedido de la mesa ' + p.mesa + ' cargado. Cóbralo como siempre.', faltan.length ? 'error' : 'exito');
   }
 
@@ -12975,7 +12979,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   PuveRestaurante.enlazar({ sb: sb, productos: () => productosCache, total: () => carrito.reduce((s, i) => s + subLinea(i), 0), dinero: (n) => formatoDinero(n), aviso: (m) => alert(m) });
   PuveCotizaciones.enlazar({ sb: sb, carrito: () => carrito, negocio: () => { const e = document.getElementById('nombreNegocioBarra'); const t = e ? e.textContent.trim() : ''; return t && t !== '—' ? t : ''; }, dinero: (n) => formatoDinero(n), cargarAlCarrito: cargarCotizacionAlCarrito, aviso: (m) => alert(m) });
   PuveAnaliticaRest.enlazar({ sb: sb, dinero: (n) => formatoDinero(n) });
-  PuveSellos.enlazar({ sb: sb, dinero: (n) => formatoDinero(n), aviso: (m) => alert(m) });
+  PuveSellos.enlazar({ sb: sb, dinero: (n) => formatoDinero(n), aviso: (m) => alert(m), escanear: (cb) => abrirEscaner(cb) });
   PuvePrepara.enlazar({ sb: sb, categorias: () => categoriasCache, aviso: (m) => alert(m) });
   PuveInsumos.enlazar({ sb: sb, productos: () => productosCache, dinero: (n) => formatoDinero(n), recargarProductos: () => cargarProductos(), aviso: (m) => alert(m), irAInsumos: () => { alternarFormulario(false); cambiarSeccion('inventario'); try { cambiarVistaInventario('recetas'); } catch(e){} } });
   PuveHW.enlazar({

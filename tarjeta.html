@@ -75,13 +75,13 @@
     if(datos.premios > 0) app.appendChild($('div', 'premio', (datos.premios > 1 ? '¡Tienes ' + datos.premios + ' premios!' : '¡Tienes un premio!') + ' Te toca: ' + datos.premio + '. Muéstrale esta pantalla al cajero.'));
     else app.appendChild($('p', 'nota', 'Completa ' + datos.meta + ' sellos y recibe: ' + datos.premio + '.'));
     var ac = $('div', 'acciones');
-    var bw = $('button', 'fuerte', 'Agregar a Google Wallet'); bw.type = 'button'; bw.id = 'bWallet'; bw.onclick = wallet; ac.appendChild(bw);
+    var bw = $('button', 'fuerte oculto', 'Agregar a Google Wallet'); bw.type = 'button'; bw.id = 'bWallet'; bw.onclick = wallet; ac.appendChild(bw);
     var bi = $('button', null, 'Guardar como imagen'); bi.type = 'button'; bi.onclick = guardarImagen; ac.appendChild(bi);
     var bc = $('button', null, 'Compartir o copiar mi enlace'); bc.type = 'button'; bc.onclick = compartir; ac.appendChild(bc);
     app.appendChild(ac);
     app.appendChild($('p', 'nota', '')).id = 'aviso';
     app.appendChild($('p', 'pie', 'Guarda este enlace: tu tarjeta se actualiza sola con cada compra. Tu teléfono no aparece aquí.'));
-    dibujar();
+    dibujar(); pintarBotonWallet(); if(walletEstado === 'nada') pedirWallet();
   }
   function dibujar(){ var l = document.getElementById('lienzo'); if(l) l.innerHTML = svgDe(cara); }
   function aviso(t){ var a = document.getElementById('aviso'); if(a) a.textContent = t || ''; }
@@ -100,23 +100,42 @@
     if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(function(){ aviso('Enlace copiado.'); }, function(){ aviso(url); }); }
     else aviso(url);
   }
-  function wallet(){
-    var b = document.getElementById('bWallet');
-    if(DEMO){ aviso('En la demostración no se conecta con Google Wallet.'); return; }
-    b.disabled = true; aviso('Abriendo Google Wallet…');
-    fetch(SUPA + '/functions/v1/wallet-tarjeta', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: KEY, Authorization: 'Bearer ' + KEY }, body: JSON.stringify({ accion: 'guardar', token: token }) })
-      .then(function(r){ return r.json().catch(function(){ return null; }).then(function(d){ return { ok: r.ok, status: r.status, d: d }; }); })
+  // Google Wallet: el enlace se pide EN CUANTO se abre la tarjeta, así el botón solo aparece cuando ya está listo
+  // (nunca se queda «abriendo»). Si el negocio no tiene Wallet configurado, el botón no aparece.
+  var walletUrl = null, walletEstado = 'nada';   // nada | pidiendo | listo | no | error
+  function pedirWallet(){
+    if(DEMO){ walletEstado = 'listo'; pintarBotonWallet(); return; }
+    if(walletEstado === 'pidiendo') return; walletEstado = 'pidiendo'; pintarBotonWallet();
+    var ctl = window.AbortController ? new AbortController() : null, tm = ctl ? setTimeout(function(){ ctl.abort(); }, 15000) : null;
+    fetch(SUPA + '/functions/v1/wallet-tarjeta', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: KEY, Authorization: 'Bearer ' + KEY }, body: JSON.stringify({ accion: 'guardar', token: token }), signal: ctl ? ctl.signal : undefined })
+      .then(function(r){ clearTimeout(tm); return r.json().catch(function(){ return null; }).then(function(d){ return { ok: r.ok, status: r.status, d: d }; }); })
       .then(function(r){
-        if(r.ok && r.d && r.d.url){ location.href = r.d.url; aviso(''); b.disabled = false; return; }
-        if(r.status === 501){ b.classList.add('oculto'); aviso('Este negocio todavía no tiene Google Wallet. Guarda tu tarjeta como imagen o guarda este enlace.'); return; }
-        b.disabled = false; aviso((r.d && r.d.error) || 'No se pudo abrir Google Wallet. Intenta de nuevo.');
-      }).catch(function(){ b.disabled = false; aviso('Sin conexión. Intenta de nuevo.'); });
+        if(r.ok && r.d && r.d.url){ walletUrl = r.d.url; walletEstado = 'listo'; }
+        else if(r.status === 501 || r.status === 404){ walletEstado = 'no'; }          // sin Wallet en este negocio (o función no desplegada)
+        else { walletEstado = 'error'; walletMsg = (r.d && r.d.error) || 'Google Wallet no respondió.'; }
+        pintarBotonWallet();
+      }).catch(function(){ clearTimeout(tm); walletEstado = 'error'; walletMsg = 'Google Wallet tardó demasiado.'; pintarBotonWallet(); });
+  }
+  var walletMsg = '';
+  function pintarBotonWallet(){
+    var b = document.getElementById('bWallet'); if(!b) return;
+    b.classList.toggle('oculto', walletEstado === 'no' || walletEstado === 'nada');
+    b.disabled = walletEstado === 'pidiendo';
+    b.textContent = walletEstado === 'pidiendo' ? 'Preparando Google Wallet…' : walletEstado === 'error' ? 'Reintentar Google Wallet' : 'Agregar a Google Wallet';
+    if(walletEstado === 'error') aviso(walletMsg);
+  }
+  function wallet(){
+    if(DEMO){ aviso('En la demostración no se conecta con Google Wallet.'); return; }
+    if(walletEstado === 'listo' && walletUrl){ aviso(''); window.location.assign(walletUrl); return; }
+    if(walletEstado === 'error'){ aviso(''); walletEstado = 'nada'; pedirWallet(); }
   }
 
+  // Recuerda esta tarjeta en este celular: así pedir.html (pedidos por QR) la reconoce y suma los sellos sin pedir nada
+  function guardarLocal(){ try { if(!DEMO && datos && datos.negocio_id) localStorage.setItem('puve_tarjeta_' + datos.negocio_id, token); } catch(e){} }
   function arrancar(){
     cargar().then(function(d){
       if(!d){ app.textContent = ''; var c = $('div', 'centro'); c.appendChild($('b', null, 'No encontramos esta tarjeta')); c.appendChild($('p', null, 'Revisa que el enlace esté completo o pídele al negocio que te lo mande otra vez.')); app.appendChild(c); return; }
-      datos = d; pintar();
+      datos = d; guardarLocal(); pintar();
     }).catch(function(){ app.textContent = ''; var c = $('div', 'centro'); c.appendChild($('b', null, 'No pudimos cargar tu tarjeta')); c.appendChild($('p', null, 'Revisa tu internet e intenta de nuevo.')); var r = $('button', null, 'Reintentar'); r.onclick = arrancar; c.appendChild(r); app.appendChild(c); });
   }
   // Al volver a la pestaña, se actualiza sola

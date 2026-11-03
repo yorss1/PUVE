@@ -179,8 +179,18 @@
   }
   if(!UUID.test(NEG) || !/^[A-Za-z0-9 _-]{1,12}$/.test(MESA) || !/^[0-9a-f]{24}$/i.test(FIRMA)) return aviso('Este código QR no es válido. Pide ayuda al personal.');
 
+  // Tarjeta de sellos: si el cliente abrió su tarjeta en este celular (tarjeta.html), se reconoce aquí y el pedido se liga a ella
+  var TARJ = { token:null, datos:null, usar:true, ligada:null };
+  function cargarTarjeta(){
+    if(DEMO){ TARJ.token = 'd'.repeat(32); TARJ.datos = { negocio_id:NEG, sellos:3, meta:6, premios:0, premio:'Un premio de la casa' }; return; }
+    if(!NEG) return; var tk = LS.get('puve_tarjeta_' + NEG); if(!/^[0-9a-f]{32}$/.test(tk || '')) return;
+    var ctl = window.AbortController ? new AbortController() : null, tm = ctl ? setTimeout(function(){ ctl.abort(); }, 8000) : null;
+    fetch(SUPA + '/rest/v1/rpc/sellos_tarjeta_publica', { method:'POST', headers:{ 'Content-Type':'application/json', 'apikey':KEY, 'Authorization':'Bearer ' + KEY }, body:JSON.stringify({ p_token:tk }), signal: ctl ? ctl.signal : undefined })
+      .then(function(r){ clearTimeout(tm); return r.ok ? r.json() : null; }).then(function(d){ if(d && d.negocio_id === NEG){ TARJ.token = tk; TARJ.datos = d; } }).catch(function(){ clearTimeout(tm); });
+  }
   var menu = null, cat = '', lineas = [], seguimiento = null, timer = null, opIndex = {}, notaTxt = '', aliasTxt = '';
   function iniciar(){
+    cargarTarjeta();
     if(MESA === 'MOSTRADOR') return iniciarPap();   // QR del mostrador de una papelería
     var guardado = LS.get(KEYPED); if(guardado){ seguimiento = guardado; return verSeguimiento(); }
     var vig = null; if(window.PuveCarga){ app.textContent = ''; PuveCarga.mostrarEsqueleto(app, 'menu'); vig = PuveCarga.vigilar(app, { reintentar: iniciar, inicio: 'Abriendo el menú…' }); }
@@ -447,6 +457,11 @@
     var t = $('div', 'ln'); t.appendChild($('b', '', 'Total')); t.appendChild($('b', '', money(total()))); hj.appendChild(t);
     var alias = null;
     if(BARRA){ alias = $('input'); alias.type = 'text'; alias.maxLength = 30; alias.placeholder = '¿A nombre de quién? (para llamarte)'; alias.value = aliasTxt; alias.className = 'campo-txt'; alias.oninput = function(){ aliasTxt = alias.value; }; hj.appendChild(alias); }
+    if(TARJ.token && TARJ.datos){
+      var tj = $('label', 'legal'), tc = $('input'), tt = $('span'), dd = TARJ.datos; tc.type = 'checkbox'; tc.checked = TARJ.usar; tc.onchange = function(){ TARJ.usar = tc.checked; };
+      tt.textContent = dd.premios > 0 ? '¡Tienes un premio de tu tarjeta (' + dd.premio + ')! Avísale al cajero al pagar. Sumar este pedido a mi tarjeta de sellos (' + dd.sellos + ' de ' + dd.meta + ').' : 'Sumar este pedido a mi tarjeta de sellos (' + dd.sellos + ' de ' + dd.meta + ').';
+      tj.appendChild(tc); tj.appendChild(tt); hj.appendChild(tj);
+    }
     var nota = $('textarea'); nota.rows = 2; nota.maxLength = 200; nota.placeholder = 'Nota para la barra o cocina (opcional)'; nota.value = notaTxt; nota.oninput = function(){ notaTxt = nota.value; }; hj.appendChild(nota);
     hj.appendChild($('div', 'nota', 'No escribas datos personales en la nota. El pago se hace directamente con el negocio.'));
     var trampa = $('input'); trampa.type = 'text'; trampa.tabIndex = -1; trampa.autocomplete = 'off'; trampa.setAttribute('aria-hidden', 'true'); trampa.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;opacity:0'; hj.appendChild(trampa);
@@ -460,8 +475,8 @@
       if(err){ msg.textContent = err; msg.classList.remove('oculto'); return; }
       env.disabled = true; env.textContent = 'Enviando…';
       var items = lineas.map(function(l){ return { producto_id:l.pid, cantidad:l.cant, opciones:l.ops, quitar:l.q || [] }; });
-      api({ accion:'crear', negocio:NEG, mesa:MESA, firma:FIRMA, items:items, nota:notaTxt, alias:BARRA ? aliasTxt.trim() : '', web:trampa.value, turnstile:tsToken }).then(function(r){
-        if(r.ok && r.d && r.d.codigo){ LS.set(KEYPED, r.d.codigo); seguimiento = r.d.codigo; lineas = []; notaTxt = ''; aceptoAviso = false; cerrarHoja(); var b = document.getElementById('barra'); if(b) b.remove(); verSeguimiento(); return; }
+      api({ accion:'crear', negocio:NEG, mesa:MESA, firma:FIRMA, items:items, nota:notaTxt, alias:BARRA ? aliasTxt.trim() : '', tarjeta:(TARJ.token && TARJ.usar) ? TARJ.token : undefined, web:trampa.value, turnstile:tsToken }).then(function(r){
+        if(r.ok && r.d && r.d.codigo){ TARJ.ligada = r.d.tarjeta || null; LS.set(KEYPED, r.d.codigo); seguimiento = r.d.codigo; lineas = []; notaTxt = ''; aceptoAviso = false; cerrarHoja(); var b = document.getElementById('barra'); if(b) b.remove(); verSeguimiento(); return; }
         msg.textContent = (r.d && r.d.error) || 'No se pudo enviar el pedido. Intenta de nuevo.'; msg.classList.remove('oculto'); env.disabled = false; env.textContent = 'Enviar pedido'; tsToken = ''; if(window.turnstile && tsWidget != null) try{ window.turnstile.reset(tsWidget); }catch(e){}
       });
     };
@@ -547,6 +562,7 @@
       var ps = $('div', 'stps'); ['Enviado', 'Preparando', 'Listo'].forEach(function(n, i){ var hecho = paso > i + 1 || (i === 2 && paso >= 3), actual = paso === i + 1 && !hecho, sp = $('div', 'sp' + (hecho ? ' hecho on' : '') + (actual ? ' act on' : '')), pt = $('i'); if(hecho) pt.appendChild(ico(IC.ok, 14, 3)); sp.appendChild(pt); sp.appendChild($('span', '', n)); ps.appendChild(sp); }); w.appendChild(ps);
     }
     window.__estadoPedido = d; actualizarJuego(d); var mj = tarjetaJuego(d); if(mj) w.appendChild(mj);
+    if(TARJ.ligada && TARJ.ligada.meta){ var tn = $('div', 'nota', 'Tu tarjeta de sellos: ' + TARJ.ligada.sellos + ' de ' + TARJ.ligada.meta + '. El sello se suma cuando pagues.' + (TARJ.ligada.premios > 0 ? ' ¡Tienes un premio! Avísale al cajero.' : '')); tn.style.marginTop = '12px'; w.appendChild(tn); }
     var res = $('div', 'res'); res.appendChild($('h3', '', 'Resumen del pedido'));
     (d.items || []).forEach(function(it){ var l = $('div', 'ln'), iz = $('div'); iz.appendChild($('div', '', it.cantidad + ' × ' + it.nombre)); var ops = (it.opciones || []).map(function(o){ return o.g === 'Sin' ? 'sin ' + o.o : o.o; }).join(', '); if(ops) iz.appendChild($('small', 'opc', ops));
       $$(l, [iz, $('span', '', money(it.cantidad * Number(it.precio)))]); res.appendChild(l); });
