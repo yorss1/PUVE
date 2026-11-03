@@ -6001,7 +6001,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(filtroCat) filtroCat.style.display = configNegocio.categorias ? 'flex' : 'none';
     document.querySelectorAll('.btn-escanear').forEach(b => { b.style.display = configNegocio.codigo_barras ? 'inline-block' : 'none'; });
     document.getElementById('areaClienteVenta').classList.toggle('oculto', !(configNegocio.recompensas?.activo || configNegocio.clientes || (window.PuveSellos && PuveSellos.activo())));
-    try { const be = document.getElementById('btnEscanearTarjeta'); if(be) be.classList.toggle('oculto', !(window.PuveSellos && PuveSellos.activo() && escanerDisponible())); } catch(e){}
+    try { const be = document.getElementById('btnEscanearTarjeta'); if(be) be.classList.toggle('oculto', !(window.PuveSellos && PuveSellos.activo())); } catch(e){}
     document.getElementById('opcionMetodoCredito').classList.toggle('oculto', !configNegocio.clientes);
     actualizarBotonesMetodoPagoMovil();
   }
@@ -12979,7 +12979,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   PuveRestaurante.enlazar({ sb: sb, productos: () => productosCache, total: () => carrito.reduce((s, i) => s + subLinea(i), 0), dinero: (n) => formatoDinero(n), aviso: (m) => alert(m) });
   PuveCotizaciones.enlazar({ sb: sb, carrito: () => carrito, negocio: () => { const e = document.getElementById('nombreNegocioBarra'); const t = e ? e.textContent.trim() : ''; return t && t !== '—' ? t : ''; }, dinero: (n) => formatoDinero(n), cargarAlCarrito: cargarCotizacionAlCarrito, aviso: (m) => alert(m) });
   PuveAnaliticaRest.enlazar({ sb: sb, dinero: (n) => formatoDinero(n) });
-  PuveSellos.enlazar({ sb: sb, dinero: (n) => formatoDinero(n), aviso: (m) => alert(m), escanear: (cb) => abrirEscaner(cb) });
+  PuveSellos.enlazar({ sb: sb, dinero: (n) => formatoDinero(n), aviso: (m) => alert(m), escanear: (cb) => abrirEscaner(cb), escaner: () => escanerDisponible() });
   PuvePrepara.enlazar({ sb: sb, categorias: () => categoriasCache, aviso: (m) => alert(m) });
   PuveInsumos.enlazar({ sb: sb, productos: () => productosCache, dinero: (n) => formatoDinero(n), recargarProductos: () => cargarProductos(), aviso: (m) => alert(m), irAInsumos: () => { alternarFormulario(false); cambiarSeccion('inventario'); try { cambiarVistaInventario('recetas'); } catch(e){} } });
   PuveHW.enlazar({

@@ -26,6 +26,10 @@
   .acciones button:disabled{ opacity:.55; cursor:default; }
   .nota{ color:var(--suave); font-size:13.5px; text-align:center; margin:10px 0 0; min-height:1.3em; }
   .centro{ text-align:center; padding:60px 10px; color:var(--suave); }
+  .qr{ background:#fff; border-radius:22px; padding:16px; margin:18px 0 0; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.1); cursor:pointer; border:0; width:100%; font:inherit; color:var(--tinta); }
+  .qr svg{ width:200px; height:200px; display:block; margin:0 auto 8px; } .qr b{ display:block; font-size:16px; } .qr span{ color:var(--suave); font-size:13.5px; }
+  .grande{ position:fixed; inset:0; z-index:9; background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; text-align:center; cursor:pointer; }
+  .grande svg{ width:min(86vw,60vh); height:min(86vw,60vh); } .grande b{ font-size:20px; margin-top:14px; } .grande span{ color:var(--suave); margin-top:4px; }
   .oculto{ display:none!important; }
   .pie{ color:var(--suave); font-size:12.5px; text-align:center; margin-top:26px; }
   :focus-visible{ outline:3px solid #2563eb; outline-offset:2px; }
@@ -34,6 +38,7 @@
 <body>
 <main id="app"><div class="centro">Cargando tu tarjeta…</div></main>
 <script src="JS/puve-tarjeta-diseno.js"></script>
+<script src="JS/puve-qr.js"></script>
 <script>
 (function(){
   'use strict';
@@ -74,6 +79,7 @@
     var est = $('div', 'estado'); est.appendChild($('b', null, datos.sellos + ' de ' + datos.meta)); est.appendChild($('span', null, datos.sellos === 1 ? 'sello en tu tarjeta' : 'sellos en tu tarjeta')); app.appendChild(est);
     if(datos.premios > 0) app.appendChild($('div', 'premio', (datos.premios > 1 ? '¡Tienes ' + datos.premios + ' premios!' : '¡Tienes un premio!') + ' Te toca: ' + datos.premio + '. Muéstrale esta pantalla al cajero.'));
     else app.appendChild($('p', 'nota', 'Completa ' + datos.meta + ' sellos y recibe: ' + datos.premio + '.'));
+    var qrb = qrBloque(); if(qrb) app.appendChild(qrb);
     var ac = $('div', 'acciones');
     var bw = $('button', 'fuerte oculto', 'Agregar a Google Wallet'); bw.type = 'button'; bw.id = 'bWallet'; bw.onclick = wallet; ac.appendChild(bw);
     var bi = $('button', null, 'Guardar como imagen'); bi.type = 'button'; bi.onclick = guardarImagen; ac.appendChild(bi);
@@ -82,6 +88,22 @@
     app.appendChild($('p', 'nota', '')).id = 'aviso';
     app.appendChild($('p', 'pie', 'Guarda este enlace: tu tarjeta se actualiza sola con cada compra. Tu teléfono no aparece aquí.'));
     dibujar(); pintarBotonWallet(); if(walletEstado === 'nada') pedirWallet();
+  }
+  // QR de la tarjeta: el cajero lo escanea y el cliente queda identificado (sin decir su teléfono). Tocarlo lo agranda.
+  function urlTarjeta(){ return location.origin + '/tarjeta.html?t=' + token; }
+  function qrSvg(){
+    if(typeof qrcode === 'undefined') return null;
+    try { var q = qrcode(0, 'M'); q.addData(DEMO ? 'https://ejemplo.puve/tarjeta.html?t=' + 'd'.repeat(32) : urlTarjeta()); q.make(); return q.createSvgTag({ scalable: true, cellSize: 4, margin: 2 }); } catch(e){ return null; }
+  }
+  function qrBloque(){
+    var s = qrSvg(); if(!s) return null;
+    var b = $('button', 'qr'); b.type = 'button'; b.setAttribute('aria-label', 'Mostrar mi código en grande'); b.innerHTML = s;
+    b.appendChild($('b', null, 'Mi código para el cajero')); b.appendChild($('span', null, 'Enséñaselo al pagar para sumar tu sello. Toca para agrandarlo.'));
+    b.onclick = function(){
+      var g = $('div', 'grande'); g.innerHTML = s; g.appendChild($('b', null, datos.negocio)); g.appendChild($('span', null, 'Toca para cerrar'));
+      g.onclick = function(){ g.remove(); }; document.body.appendChild(g);
+    };
+    return b;
   }
   function dibujar(){ var l = document.getElementById('lienzo'); if(l) l.innerHTML = svgDe(cara); }
   function aviso(t){ var a = document.getElementById('aviso'); if(a) a.textContent = t || ''; }
