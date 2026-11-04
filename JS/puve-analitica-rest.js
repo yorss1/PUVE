@@ -52,7 +52,8 @@
     const secHoras = bloque(cont, 'Horas pico y horas muertas', 'Tickets por día y hora (hora de México). Las horas más bajas son tus mejores momentos para una promoción.');
     const secCajeros = bloque(cont, 'Ventas por cajero');
     const secPropinas = bloque(cont, 'Propinas', 'Se registran aparte de la venta (no suman a tus ingresos ni a tus impuestos). Se capturan al cobrar, en la pantalla de venta exitosa.');
-    await Promise.all([menu(secMenu), tiempos(secTiempos), horas(secHoras), cajeros(secCajeros), propinas(secPropinas)]);
+    const secCierre = bloque(cont, 'Cierre de propinas del equipo', 'Elige las fechas, marca quién entra al reparto y copia el resultado. Es solo un cálculo: PUVE no mueve dinero ni guarda el reparto.');
+    await Promise.all([menu(secMenu), tiempos(secTiempos), horas(secHoras), cajeros(secCajeros), propinas(secPropinas), cierre(secCierre)]);
   }
 
   async function menu(sec){
@@ -168,6 +169,69 @@
     if(data.promedio_pct != null) tarjeta(fila, fmt(data.promedio_pct) + '%', 'Propina promedio sobre la cuenta'); sec.appendChild(fila);
     const t = tabla(['Cajero', 'Cuentas', 'Propinas']); sec.appendChild(t.wrap);
     (data.por_cajero || []).forEach((f) => { const tr = h('tr'); celda(tr, f.nombre, 'font-weight:600;'); celda(tr, String(f.n)); celda(tr, enlace.dinero(f.total)); t.tb.appendChild(tr); });
+  }
+
+
+  // ----- Cierre de propinas del equipo: total por método y reparto (partes iguales o lo que cobró cada quien) -----
+  async function cierre(sec){
+    const hoy = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    const fila = h('div', null, null, 'display:flex; gap:10px; align-items:end; flex-wrap:wrap; margin-bottom:12px;');
+    const campo = (et, v) => { const w = h('label', null, et, 'display:flex; flex-direction:column; gap:4px; font-size:13px; font-weight:500;'); const i = h('input', 'input-mini', null, 'width:auto;'); i.type = 'date'; i.value = v; w.appendChild(i); fila.appendChild(w); return i; };
+    const iDesde = campo('Desde', hoy), iHasta = campo('Hasta', hoy);
+    const bCalc = h('button', 'principal', 'Calcular cierre', 'width:auto; padding:9px 14px;'); bCalc.type = 'button'; fila.appendChild(bCalc);
+    const res = h('div'); sec.appendChild(fila); sec.appendChild(res);
+    bCalc.onclick = async () => {
+      bCalc.disabled = true; res.textContent = '';
+      try {
+        const { data, error: e } = await enlace.sb.rpc('propinas_cierre', { p_desde: iDesde.value, p_hasta: iHasta.value });
+        if(e) throw new Error(/does not exist|schema cache|Could not find/i.test(e.message || '') ? 'Falta ejecutar el script SQL 109 en Supabase.' : e.message);
+        repartir(res, data, iDesde.value, iHasta.value);
+      } catch(err){ error(res, (err && err.message) || String(err)); } finally { bCalc.disabled = false; }
+    };
+  }
+  function repartir(res, d, desde, hasta){
+    if(!d || !d.n){ res.appendChild(h('p', 'nota', 'No hay propinas registradas en esas fechas.')); return; }
+    const cents = (n) => Math.round(Number(n) * 100);
+    const gente = (d.por_cajero || []).map((c) => ({ nombre: c.nombre, cobro: cents(c.total), n: c.n, entra: true, extra: false }));
+    let modo = 'iguales';
+    const tarj = h('div', null, null, 'display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;');
+    tarjeta(tarj, enlace.dinero(d.total), 'Propinas del periodo'); tarjeta(tarj, enlace.dinero(d.efectivo), 'Cobradas en efectivo'); tarjeta(tarj, enlace.dinero(d.otros), 'Tarjeta o transferencia (se paga aparte)');
+    res.appendChild(tarj);
+    const cfg = h('div', null, null, 'display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:10px;');
+    const sel = h('select', 'input-mini', null, 'width:auto;');
+    [['iguales', 'Partes iguales entre los marcados'], ['cobrado', 'Cada quien lo que cobró']].forEach(([v, t]) => { const o = h('option', null, t); o.value = v; sel.appendChild(o); });
+    sel.onchange = () => { modo = sel.value; pintar2(); };
+    const inp = h('input', 'input-mini', null, 'width:auto; min-width:190px;'); inp.placeholder = 'Agregar persona (cocina, ayudante…)'; inp.maxLength = 40;
+    const bAdd = h('button', 'texto', 'Agregar', 'width:auto; padding:7px 12px;'); bAdd.type = 'button';
+    bAdd.onclick = () => { const n = inp.value.trim(); if(!n) return; gente.push({ nombre: n, cobro: 0, n: 0, entra: true, extra: true }); inp.value = ''; pintar2(); };
+    cfg.appendChild(sel); cfg.appendChild(inp); cfg.appendChild(bAdd); res.appendChild(cfg);
+    const zona = h('div'); res.appendChild(zona);
+    function calcular(){
+      const total = cents(d.total), out = gente.map(() => 0), idx = gente.map((g, i) => i).filter((i) => gente[i].entra);
+      if(modo === 'iguales'){ if(idx.length){ const base = Math.floor(total / idx.length); let resto = total - base * idx.length; idx.forEach((i) => { out[i] = base + (resto > 0 ? 1 : 0); if(resto > 0) resto--; }); } }
+      else { idx.forEach((i) => { out[i] = gente[i].cobro; }); }
+      return out;
+    }
+    function pintar2(){
+      zona.textContent = ''; const out = calcular(), t = tabla(['Entra', 'Persona', 'Cobró', 'Le toca']); zona.appendChild(t.wrap);
+      gente.forEach((g, i) => {
+        const tr = h('tr'), td = h('td'), ck = h('input'); ck.type = 'checkbox'; ck.checked = g.entra; ck.setAttribute('aria-label', 'Entra al reparto: ' + g.nombre);
+        ck.onchange = () => { g.entra = ck.checked; pintar2(); }; td.appendChild(ck); tr.appendChild(td);
+        celda(tr, g.nombre + (g.extra ? ' (agregado)' : ''), 'font-weight:600;'); celda(tr, g.extra ? '—' : enlace.dinero(g.cobro / 100)); celda(tr, g.entra ? enlace.dinero(out[i] / 100) : '—', 'font-weight:600;');
+        t.tb.appendChild(tr);
+      });
+      const repart = out.reduce((a, b) => a + b, 0), dif = cents(d.total) - repart;
+      if(!gente.some((g) => g.entra)) zona.appendChild(h('p', 'nota', 'Marca al menos a una persona.'));
+      else if(dif !== 0) zona.appendChild(h('p', 'nota', (dif > 0 ? 'Sin repartir: ' : 'Repartido de más: ') + enlace.dinero(Math.abs(dif) / 100) + '. En "Cada quien lo que cobró" marca a todos los cajeros para repartir el total completo.', 'color:#b45309;'));
+      const txt = () => 'Propinas ' + desde + (desde === hasta ? '' : ' al ' + hasta) + ' · total ' + enlace.dinero(d.total) + '\n' + gente.map((g, i) => g.entra ? '• ' + g.nombre + ': ' + enlace.dinero(out[i] / 100) : null).filter(Boolean).join('\n');
+      const barra = h('div', null, null, 'display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;');
+      const bc = h('button', 'texto', 'Copiar resultado', 'width:auto; padding:7px 12px;'); bc.type = 'button';
+      bc.onclick = async () => { try { await navigator.clipboard.writeText(txt()); bc.textContent = 'Copiado ✓'; } catch(e){ window.prompt('Copia el texto:', txt()); } };
+      const bw = h('button', 'texto', 'Mandar por WhatsApp', 'width:auto; padding:7px 12px;'); bw.type = 'button';
+      bw.onclick = () => { window.open('https://wa.me/?text=' + encodeURIComponent(txt()), '_blank', 'noopener'); };
+      barra.appendChild(bc); barra.appendChild(bw); zona.appendChild(barra);
+    }
+    pintar2();
   }
 
   window.PuveAnaliticaRest = {
