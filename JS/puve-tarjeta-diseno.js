@@ -160,7 +160,9 @@
     const lleno = i < ctx.sellos, f = ctx.forma, p = ctx.pal, ic = ctx.icono;
     let g = '';
     if(lleno){
+      g += forma(f, c.cx, c.cy + c.r * .09, c.r, 'fill="#000" fill-opacity=".2"');   // sombra suave
       g += forma(f, c.cx, c.cy, c.r, 'fill="' + est.llenoFondo + '"' + (est.llenoBorde ? ' stroke="' + est.llenoBorde + '" stroke-width="5"' : ''));
+      g += forma(f, c.cx, c.cy, c.r * .86, 'fill="none" stroke="#fff" stroke-opacity=".38" stroke-width="2.5"');   // aro de brillo
       g += est.llenoCara ? cara(c.cx, c.cy, c.r, est.llenoIcono) : icono(ic, c.cx - c.r * .5, c.cy - c.r * .5, c.r, est.llenoIcono, 1.6);
     } else {
       g += forma(f, c.cx, c.cy, c.r, 'fill="' + (est.vacioFondo || 'none') + '"' + (est.vacioFondoOp ? ' fill-opacity="' + est.vacioFondoOp + '"' : '') + ' stroke="' + est.vacioBorde + '" stroke-width="' + (est.vacioGrosor || 4) + '" stroke-opacity="' + (est.vacioOp || 1) + '"');
@@ -303,6 +305,12 @@
       g.map((s, i) => sello(s, i, x, e)).join('') };
   }
 
+  // Acabado premium común: reflejo diagonal suave y un filo fino interior (da sensación de tarjeta física)
+  function acabado(id, w, h, rx){
+    return '<defs><linearGradient id="' + id + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".38" stop-color="#fff" stop-opacity=".05"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".07"/></linearGradient></defs>' +
+      '<rect width="' + w + '" height="' + h + '" fill="url(#' + id + ')"/>' +
+      '<rect x="9" y="9" width="' + (w - 18) + '" height="' + (h - 18) + '" rx="' + rx + '" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="2"/>';
+  }
   // ---------- API ----------
   function svg(o){
     o = o || {};
@@ -317,7 +325,7 @@
     const par = ESTILO[d.estilo](x), cid = 'c' + x.uid, nombreA = esc(x.nombre);
     if(o.cara === 'banda'){
       const b = banda(x, d.estilo, par);
-      return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1032 336" style="width:100%;height:auto;display:block" role="img" aria-label="Tarjeta de ' + nombreA + '">' + b.svg + '</svg>';
+      return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1032 336" style="width:100%;height:auto;display:block" role="img" aria-label="Tarjeta de ' + nombreA + '">' + b.svg + acabado('s' + x.uid, 1032, 336, 20) + '</svg>';
     }
     if(o.cara === 'logo'){
       const p = x.pal;
@@ -325,7 +333,7 @@
     }
     const cara = o.cara === 'frente' ? par.frente : par.dorso;
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block" role="img" aria-label="Tarjeta de sellos de ' + nombreA + '">' +
-      '<defs><clipPath id="' + cid + '"><rect width="' + W + '" height="' + H + '" rx="44"/></clipPath></defs><g clip-path="url(#' + cid + ')">' + cara + '</g></svg>';
+      '<defs><clipPath id="' + cid + '"><rect width="' + W + '" height="' + H + '" rx="44"/></clipPath></defs><g clip-path="url(#' + cid + ')">' + cara + acabado('s' + x.uid, W, H, 36) + '</g></svg>';
   }
   // Color de fondo que usa la banda de Wallet (para pintar el resto de la tarjeta igual)
   function colorBanda(diseno, giro){ const d = normalizar(diseno, giro); return BANDA[d.estilo](d.paleta).bg; }
