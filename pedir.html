@@ -29,7 +29,7 @@
 <meta name="apple-mobile-web-app-title" content="Pedidos" id="appTitle">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="theme-color" content="#000000">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://ckzueunptmlqmtypowmg.supabase.co; frame-src 'self' https://challenges.cloudflare.com; img-src 'self' data: https://ckzueunptmlqmtypowmg.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://ckzueunptmlqmtypowmg.supabase.co; frame-src 'self' https://challenges.cloudflare.com; img-src 'self' data: https://ckzueunptmlqmtypowmg.supabase.co; media-src https://ckzueunptmlqmtypowmg.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Pedidos</title>
 <link rel="icon" href="img/logo_mini.png" type="image/png" sizes="any" id="favicon">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
@@ -145,6 +145,7 @@
 <body>
 <main id="app"><div class="centro" id="cargando">Cargando…</div></main>
 <script src="JS/puve-carga.js" data-banner="no"></script>
+<script src="JS/puve-publicidad-pedir.js"></script>
 <script>if(/[?&#]demo=1/.test(location.href)) document.write('<script src="JS/puve-demo.js"><\/script>');</script>
 <script>
 (function(){
@@ -313,6 +314,7 @@
     var cats = $('div', 'cats'); cats.id = 'cats'; app.appendChild(cats); var ev = $('div', 'evita'); ev.id = 'evita'; app.appendChild(ev); pintarEvitar();
     var gh = $('div', 'gh'), gt = $('h2'), gc = $('span'); gt.id = 'gtit'; gc.id = 'gcnt'; gh.appendChild(gt); gh.appendChild(gc); app.appendChild(gh);
     var grid = $('div', 'grid'); grid.id = 'grid'; app.appendChild(grid);
+    if(!DEMO && window.PuvePubli) app.appendChild(PuvePubli.montar());   // publicidad discreta al final del menú (solo existe si hay anuncios vigentes)
     var f = $('footer'); f.appendChild(document.createTextNode(DEMO ? 'Esto es una demostración: tu pedido no se envía a ningún negocio. ' : 'Los precios y la disponibilidad los define el negocio. ')); var a = $('a', '', 'Aviso de privacidad'); a.href = AVISO; a.target = '_blank'; a.rel = 'noopener noreferrer'; f.appendChild(a); f.appendChild(document.createTextNode(' · ')); var pv = $('a', '', 'Hecho con PUVE'); pv.href = 'https://puve.yorss01.workers.dev/?utm_source=pedir&utm_medium=hecho_con_puve'; pv.target = '_blank'; pv.rel = 'noopener'; f.appendChild(pv); app.appendChild(f);
     var barra = $('div', 'barra oculto'); barra.id = 'barra'; var iz = $('div'), sm = $('small', '', 'Tu pedido'); sm.id = 'tn'; iz.appendChild(sm); var tot = $('div', 'tot'); tot.id = 'tt'; iz.appendChild(tot);
     var bv = $('button', 'btn', 'Ver pedido'); bv.type = 'button'; bv.onclick = function(){ abrirHoja(false); }; $$(barra, [iz, bv]); document.body.appendChild(barra); pintarCats(); pintarGrid();
@@ -567,6 +569,7 @@
     (d.items || []).forEach(function(it){ var l = $('div', 'ln'), iz = $('div'); iz.appendChild($('div', '', it.cantidad + ' × ' + it.nombre)); var ops = (it.opciones || []).map(function(o){ return o.g === 'Sin' ? 'sin ' + o.o : o.o; }).join(', '); if(ops) iz.appendChild($('small', 'opc', ops));
       $$(l, [iz, $('span', '', money(it.cantidad * Number(it.precio)))]); res.appendChild(l); });
     var tl = $('div', 'ln'); tl.appendChild($('b', '', 'Total')); tl.appendChild($('b', '', money(d.total))); res.appendChild(tl); res.appendChild($('div', 'nota', 'El pago se hace directamente con el negocio.')); w.appendChild(res);
+    if(!DEMO && window.PuvePubli && d.estado !== 'cancelado') w.appendChild(PuvePubli.montar());   // publicidad discreta bajo el resumen
     if(d.estado === 'entregado' || d.estado === 'cancelado'){ var b = $('button', 'btn', 'Hacer otro pedido'); b.type = 'button'; b.style.cssText = 'margin-top:18px;width:100%'; b.onclick = function(){ LS.del(KEYPED); seguimiento = null; menu = null; location.reload(); }; w.appendChild(b); }
     app.appendChild(w);
   }
@@ -769,6 +772,7 @@
   }
 
   if(DEMO) window.PuveDemo.suscribir(function(){ if(seguimiento) verSeguimiento(); });
+  if(!DEMO && window.PuvePubli) PuvePubli.iniciar({ supa: SUPA, key: KEY });
   iniciar();
 })();
 </script>

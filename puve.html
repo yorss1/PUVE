@@ -3122,7 +3122,7 @@
 
       <div id="vistaAdminPublicidad" style="display:none;">
         <div class="bloque-analitica" style="margin-bottom:20px;">
-          <h3 style="margin-bottom:4px;">Publicidad en los minijuegos</h3>
+          <h3 style="margin-bottom:4px;">Publicidad en los minijuegos y en el menú QR</h3>
           <p class="nota" style="margin:0 0 14px;">Una tira al fondo del juego, al 100% del ancho. Si no hay ningún anuncio programado para este momento, el espacio no aparece. La tira mide 120 px de alto en computadora y 100 px en celular. Computadora: imagen de 1920×120 px. Celular: sube aparte una versión de 780×200 px (así el texto se lee grande); si no la subes, se usa la de computadora recortada de los lados. Video: MP4 o WebM corto, sin sonido. Máximo 10 MB por archivo.</p>
           <div id="mensajeAnuncio" class="mensaje"></div>
           <form onsubmit="return guardarAnuncioJuego(event)">
@@ -3134,6 +3134,9 @@
             <div class="campo"><label for="anArchivo" id="anArchivoEtiqueta">Imagen o video (computadora)</label><input id="anArchivo" type="file" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm"><small class="nota" id="anArchivoActual" style="display:block;"></small></div>
             <div class="campo"><label for="anArchivoMovil">Versión para celular (opcional, 780×200 px)</label><input id="anArchivoMovil" type="file" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm"><small class="nota" id="anMovilActual" style="display:block;"></small>
               <label id="anQuitarMovilFila" class="oculto" style="gap:8px; align-items:center; font-weight:400; cursor:pointer; margin-top:4px;"><input type="checkbox" id="anQuitarMovil" style="width:18px; height:18px; margin:0;"> Quitar la versión para celular</label></div>
+            <div class="campo"><label>Dónde se muestra</label>
+              <div style="display:flex; flex-wrap:wrap; gap:6px 18px; margin:4px 0;"><label style="display:flex; gap:8px; align-items:center; font-weight:400; cursor:pointer;"><input type="checkbox" id="anUbJuego" checked style="width:18px; height:18px; margin:0;"> Minijuegos (tira al fondo)</label><label style="display:flex; gap:8px; align-items:center; font-weight:400; cursor:pointer;"><input type="checkbox" id="anUbPedir" checked style="width:18px; height:18px; margin:0;"> Menú QR de pedidos (tarjeta al final del menú y en el seguimiento)</label></div>
+              <small class="nota">En el menú QR se usa la versión para celular si la subes (780×200 px); si no, la de computadora. Los videos se reproducen sin sonido.</small></div>
             <div class="campo"><label for="anEnlace">Enlace al tocarlo (opcional, https)</label><input id="anEnlace" type="url" maxlength="500" placeholder="https://marca.com/promo"></div>
             <div class="rejilla" style="grid-template-columns:1fr 1fr;">
               <div class="campo"><label for="anDesde">Empieza el día</label><input id="anDesde" type="date" required></div>
@@ -7385,7 +7388,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const zonaDef = document.getElementById('anZona').value || 'America/Mexico_City', f = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: zonaDef, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d), hoy = new Date(), fin = new Date(Date.now() + 30 * 86400000);   // fechas en la zona del anuncio, no en UTC
     document.getElementById('anDesde').value = f(hoy); document.getElementById('anHasta').value = f(fin); document.getElementById('anOrden').value = 0;
     anTodoElDia();
-    document.getElementById('anZona').value = 'America/Mexico_City'; document.getElementById('anActivo').checked = true; anFijarDias([0, 1, 2, 3, 4, 5, 6]);
+    document.getElementById('anZona').value = 'America/Mexico_City'; document.getElementById('anActivo').checked = true; document.getElementById('anUbJuego').checked = true; document.getElementById('anUbPedir').checked = true; anFijarDias([0, 1, 2, 3, 4, 5, 6]);
     document.getElementById('anArchivoEtiqueta').textContent = 'Imagen o video (computadora)'; document.getElementById('anArchivoActual').textContent = ''; document.getElementById('anArchivoMovil').value = ''; document.getElementById('anMovilActual').textContent = ''; document.getElementById('anQuitarMovil').checked = false; document.getElementById('anQuitarMovilFila').classList.add('oculto'); document.getElementById('btnGuardarAnuncio').textContent = 'Guardar anuncio'; document.getElementById('btnCancelarAnuncio').style.display = 'none';
   }
   function anEstado(a){   // misma regla que usa la base (juego_anuncios_activos), pero diciendo POR QUÉ no está en vivo
@@ -7418,7 +7421,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       const t = document.createElement('b'); t.textContent = a.titulo + (a.anunciante ? ' · ' + a.anunciante : '');
       const est = document.createElement('span'); est.textContent = ' ' + estado.texto; est.style.cssText = 'font-weight:600; color:' + (vivo ? '#16a34a' : 'var(--texto-suave)');
       const l2 = document.createElement('div'); l2.className = 'nota'; l2.textContent = a.fecha_inicio + ' al ' + a.fecha_fin + ' · ' + anResumenDias(a.dias) + ' · ' + (a.minuto_inicio === 0 && a.minuto_fin === 1440 ? 'Todo el día' : 'de las ' + anHora(a.minuto_inicio) + ' a las ' + anHoraFin(a.minuto_fin)) + ' · ' + (AN_ZONAS.find((z) => z[0] === a.zona) || [0, a.zona])[1];
-      const l3 = document.createElement('div'); l3.className = 'nota'; l3.textContent = 'Últimos 30 días: ' + m.v + ' vistas' + (a.enlace ? ' · ' + m.c + ' clics' : '');
+      const l3 = document.createElement('div'); l3.className = 'nota'; l3.textContent = 'En: ' + (a.ubicaciones || ['juego']).map((u) => u === 'pedir' ? 'Menú QR' : 'Minijuegos').join(' y ') + ' · Últimos 30 días: ' + m.v + ' vistas' + (a.enlace ? ' · ' + m.c + ' clics' : '');
       const acc = document.createElement('div'); acc.style.cssText = 'display:flex; gap:8px; flex-wrap:wrap; margin-top:4px;';
       const b = (txtb, fn, cls) => { const x = document.createElement('button'); x.type = 'button'; x.className = cls || 'texto'; x.textContent = txtb; x.style.cssText = 'width:auto;'; x.onclick = fn; return x; };
       acc.append(b(a.activo ? 'Pausar' : 'Activar', () => anAlternarActivo(a)), b('Editar', () => anEditar(a)), b('Eliminar', () => anEliminar(a), 'texto peligro'));
@@ -7427,7 +7430,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
   function anEditar(a){
     anEditando = a; document.getElementById('anId').value = a.id; document.getElementById('anTitulo').value = a.titulo; document.getElementById('anAnunciante').value = a.anunciante || ''; document.getElementById('anEnlace').value = a.enlace || '';
-    document.getElementById('anDesde').value = a.fecha_inicio; document.getElementById('anHasta').value = a.fecha_fin; document.getElementById('anOrden').value = a.orden; document.getElementById('anZona').value = a.zona; document.getElementById('anActivo').checked = a.activo;
+    document.getElementById('anDesde').value = a.fecha_inicio; document.getElementById('anHasta').value = a.fecha_fin; document.getElementById('anOrden').value = a.orden; document.getElementById('anZona').value = a.zona; document.getElementById('anActivo').checked = a.activo; { const u = a.ubicaciones || ['juego']; document.getElementById('anUbJuego').checked = u.includes('juego'); document.getElementById('anUbPedir').checked = u.includes('pedir'); }
     anFijarDias(a.dias); document.getElementById('anHoraIni').value = anHora(a.minuto_inicio); document.getElementById('anHoraFin').value = anHoraFin(a.minuto_fin);
     document.getElementById('anArchivo').value = ''; document.getElementById('anArchivoEtiqueta').textContent = 'Cambiar imagen o video de computadora (opcional)'; document.getElementById('anArchivoActual').textContent = 'Archivo actual: ' + a.tipo; document.getElementById('anArchivoMovil').value = ''; document.getElementById('anQuitarMovil').checked = false; document.getElementById('anMovilActual').textContent = a.archivo_movil ? 'Ya tiene versión para celular; sube otra para cambiarla.' : 'Sin versión para celular.'; document.getElementById('anQuitarMovilFila').classList.toggle('oculto', !a.archivo_movil); if(a.archivo_movil) document.getElementById('anQuitarMovilFila').style.display = 'flex'; document.getElementById('btnGuardarAnuncio').textContent = 'Guardar cambios'; document.getElementById('btnCancelarAnuncio').style.display = '';
     document.getElementById('vistaAdminPublicidad').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -7442,7 +7445,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const m = String((e && (e.message || e.error_description)) || e || '');
     if(/bucket not found/i.test(m)) return 'No existe el bucket «anuncios-juego»: falta ejecutar el SQL 103 en Supabase.';
     if(/archivo_movil|PGRST204/i.test(m)) return 'Falta actualizar el SQL 103 en Supabase (columna nueva para la versión de celular). Vuelve a ejecutarlo.';
-    if(/juego_anuncios|PGRST205|schema cache|does not exist/i.test(m)) return 'Falta la tabla de anuncios: ejecuta el SQL 103 en Supabase.';
+    if(/ubicaciones/i.test(m)) return 'Falta ejecutar el SQL 111 en Supabase (dónde se muestra cada anuncio).';
+    if(/juego_anuncios|PGRST205|schema cache|does not exist/i.test(m)) return 'Falta la tabla de anuncios: ejecuta el SQL 103 y el 111 en Supabase.';
     if(/row-level security|violates row-level|not authorized|permission denied|new row violates/i.test(m)) return 'Supabase rechazó el permiso: tu usuario no es superadmin o falta ejecutar el SQL 103.';
     if(/mime|not supported|invalid_mime/i.test(m)) return 'Supabase no aceptó ese tipo de archivo (usa PNG, JPG, WebP, GIF, MP4 o WebM).';
     if(/exceeded|too large|payload|size/i.test(m)) return 'El archivo es demasiado pesado para Supabase (máximo 10 MB).';
@@ -7460,6 +7464,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(hasta < desde) return err('El día en que termina no puede ser antes del día en que empieza.');
     if(fin <= ini) return err('La hora en que termina debe ser después de la hora en que empieza. Si debe seguir después de medianoche, crea dos anuncios: uno hasta 23:59 y otro desde 00:00.');
     if(enlace && !/^https:\/\//.test(enlace)) return err('El enlace debe empezar con https://');
+    const ubic = [document.getElementById('anUbJuego').checked ? 'juego' : null, document.getElementById('anUbPedir').checked ? 'pedir' : null].filter(Boolean);
+    if(!ubic.length) return err('Marca al menos un lugar donde se mostrará: minijuegos o menú QR.');
     if(!anEditando && !arch) return err('Elige la imagen o el video del anuncio (versión de computadora).');
     for(const f of [arch, movil]){ if(!f) continue; if(!AN_EXT[f.type]) return err('Formato no permitido en «' + f.name + '». Usa PNG, JPG, WebP, GIF, MP4 o WebM.'); if(f.size > 10 * 1024 * 1024) return err('«' + f.name + '» pesa más de 10 MB.'); }
     const btn = document.getElementById('btnGuardarAnuncio'); btn.disabled = true; const subidos = [];
@@ -7469,11 +7475,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       if(arch){ const n = await subir(arch); if(archivo) borrar.push(archivo); archivo = n; tipo = arch.type.startsWith('video') ? 'video' : 'imagen'; }
       if(movil){ const n = await subir(movil); if(archivoMovil) borrar.push(archivoMovil); archivoMovil = n; }
       else if(document.getElementById('anQuitarMovil').checked && archivoMovil){ borrar.push(archivoMovil); archivoMovil = null; }
-      const fila = { titulo: document.getElementById('anTitulo').value.trim(), anunciante: document.getElementById('anAnunciante').value.trim() || null, tipo, archivo, archivo_movil: archivoMovil, enlace: enlace || null, activo: document.getElementById('anActivo').checked, duracion_seg: dur, fecha_inicio: desde, fecha_fin: hasta, dias, minuto_inicio: ini, minuto_fin: fin, zona: document.getElementById('anZona').value, orden: Number(document.getElementById('anOrden').value) || 0 };
+      const fila = { titulo: document.getElementById('anTitulo').value.trim(), anunciante: document.getElementById('anAnunciante').value.trim() || null, tipo, archivo, archivo_movil: archivoMovil, enlace: enlace || null, activo: document.getElementById('anActivo').checked, duracion_seg: dur, fecha_inicio: desde, fecha_fin: hasta, dias, minuto_inicio: ini, minuto_fin: fin, zona: document.getElementById('anZona').value, orden: Number(document.getElementById('anOrden').value) || 0, ubicaciones: ubic };
       const r2 = anEditando ? await sb.from('juego_anuncios').update(fila).eq('id', anEditando.id) : await sb.from('juego_anuncios').insert(fila);
       if(r2.error) throw r2.error;
       subidos.length = 0; if(borrar.length) await sb.storage.from(AN_BUCKET).remove(borrar);
-      mostrarMensaje('mensajeAnuncio', anEditando ? 'Anuncio actualizado.' : 'Anuncio guardado. Se mostrará en el juego dentro de su horario.', 'exito'); anLimpiarFormulario(); cargarPublicidadJuego();
+      mostrarMensaje('mensajeAnuncio', anEditando ? 'Anuncio actualizado.' : 'Anuncio guardado. Se mostrará dentro de su horario en los lugares que marcaste.', 'exito'); anLimpiarFormulario(); cargarPublicidadJuego();
     } catch(e){
       console.error('Anuncio del juego:', e);
       if(subidos.length) await sb.storage.from(AN_BUCKET).remove(subidos);   // no dejar archivos huérfanos
