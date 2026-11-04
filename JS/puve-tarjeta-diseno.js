@@ -197,7 +197,7 @@
       const dorso = '<rect width="1000" height="630" fill="' + c + '"/><rect x="0" y="0" width="1000" height="96" fill="' + f + '"/>' + icono(x.icono, 40, 22, 52, a, 1.6) +
         texto(110, 64, x.lema.toUpperCase(), { fam: FAM.redondo, size: 26, color: t, sp: 3, peso: 800 }) + cinta(x, a, f) +
         g.map((s, i) => sello(s, i, x, e)).join('') + pie(x, t, 500, 580, 'middle', .75);
-      return { frente, dorso };
+      return { frente, dorso, e: typeof e === 'undefined' ? null : e };
     },
     retro(x){
       const [f, t, a, c] = x.pal, nom = ajustar(x.nombre.toUpperCase(), 820, 170, .7), nid = 'n' + x.uid;
@@ -210,7 +210,7 @@
       const dorso = '<rect width="1000" height="630" fill="' + f + '"/><path d="M0 0H1000V110L0 150z" fill="' + a + '" />' +
         texto(40, 80, 'CLIENTE FRECUENTE', { fam: FAM.grueso, size: 44, color: c, peso: 900, rot: -2, sp: 1 }) + cinta(x, t, c) +
         g.map((s, i) => sello(s, i, x, Object.assign({}, e, { vacioBorde: t }))).join('') + pie(x, t, 40, 596, 'start', .9);
-      return { frente: fr, dorso };
+      return { frente: fr, dorso, e };
     },
     oscuro(x){
       const [f, t, a, c] = x.pal, nom = ajustar(x.nombre, 780, 98, .56);
@@ -222,7 +222,7 @@
       const g = rejilla(x.meta, { x: 80, y: 140, w: 840, h: 370 }), e = { llenoFondo: a, llenoIcono: f, vacioBorde: a, vacioGrosor: 3, vacioOp: .75, vacioIcono: .28 };
       const dorso = '<rect width="1000" height="630" fill="' + f + '"/>' + marco + texto(500, 100, x.nombre, { fam: FAM.serif, size: 40, color: t, ancla: 'middle', estilo: 'italic', peso: 400 }) + cinta(x, a, f) +
         g.map((s, i) => sello(s, i, x, e)).join('') + pie(x, a, 500, 566, 'middle', .95);
-      return { frente, dorso };
+      return { frente, dorso, e: typeof e === 'undefined' ? null : e };
     },
     gotas(x){
       const [f, t, a, c] = x.pal, nom = ajustar(x.nombre, 600, 100, .6);
@@ -232,7 +232,7 @@
       const g = rejilla(x.meta, { x: 60, y: 200, w: 880, h: 320 }), e = { llenoFondo: a, llenoIcono: c, vacioFondo: a, vacioFondoOp: .18, vacioBorde: t, vacioGrosor: 0, vacioIcono: .3 };
       const dorso = '<rect width="1000" height="630" fill="' + c + '"/>' + gotas(80) + texto(60, 56, 'TARJETA DE CLIENTE', { fam: FAM.redondo, size: 32, color: c, peso: 900, sp: 3 }) + cinta(x, t, c) +
         g.map((s, i) => sello(s, i, x, e)).join('') + pie(x, t, 500, 590, 'middle', .85);
-      return { frente, dorso };
+      return { frente, dorso, e: typeof e === 'undefined' ? null : e };
     },
     minimo(x){
       const [f, t, a, c] = x.pal, nom = ajustar(x.nombre, 900, 190, .62);
@@ -248,7 +248,7 @@
           return forma(x.forma === 'punteado' ? 'circulo' : x.forma, s.cx, s.cy, s.r, 'fill="' + (l ? f : 'none') + '" stroke="' + t + '" stroke-width="4"' + (l ? ' fill-opacity=".55"' : '')) +
             (l ? icono(x.icono, s.cx - s.r * .5, s.cy - s.r * .5, s.r, t, 1.4) : texto(s.cx, s.cy + s.r * .16, String(i + 1), { fam: FAM.tierno, size: s.r * .55, color: t, ancla: 'middle', peso: 400, op: .35 }));
         }).join('') + pie(x, t, 500, 590, 'middle', .8);
-      return { frente, dorso };
+      return { frente, dorso, e: typeof e === 'undefined' ? null : e };
     },
     kawaii(x){
       const [f, t, a, c] = x.pal, nom = ajustar(x.nombre, 560, 92, .6);
@@ -263,7 +263,7 @@
       const dorso = '<rect width="1000" height="630" fill="' + f + '"/>' + texto(500, 96, 'TARJETA DE CLIENTE', { fam: FAM.tierno, size: 54, color: t, ancla: 'middle', peso: 900, rot: -3, sp: 2 }) +
         texto(500, 134, 'junta ' + x.meta + ' sellos y recibe un premio', { fam: FAM.tierno, size: 24, color: t, ancla: 'middle', peso: 600, op: .8 }) + cinta(x, a, f) +
         g.map((s, i) => sello(s, i, x, e)).join('') + pie(x, t, 500, 582, 'middle', .85);
-      return { frente, dorso };
+      return { frente, dorso, e: typeof e === 'undefined' ? null : e };
     },
     ticket(x){
       const [f, t, a, c] = x.pal, nom = ajustar(x.nombre.toUpperCase(), 600, 92, .62), id = 'k' + x.uid;
@@ -278,9 +278,30 @@
       const dorso = '<defs>' + muesca + '</defs><g mask="url(#' + id + ')"><rect width="1000" height="630" fill="' + f + '"/></g>' +
         texto(60, 90, x.nombre.toUpperCase() + ' · ' + x.meta + ' SELLOS', { fam: FAM.mono, size: 28, color: t, sp: 2, peso: 700 }) + '<path d="M60 112H940" stroke="' + t + '" stroke-width="3" stroke-dasharray="4 10" stroke-linecap="round"/>' + cinta(x, a, f) +
         g.map((s, i) => sello(s, i, x, e)).join('') + pie(x, t, 60, 590, 'start', .85);
-      return { frente, dorso };
+      return { frente, dorso, e: typeof e === 'undefined' ? null : e };
     }
   };
+
+  // ---------- Imágenes para Google Wallet: banda (1032×336) y logo (660×660) con el mismo estilo de la tarjeta ----------
+  const BANDA = {   // fondo, color del nombre, tipografía y adorno de cada estilo
+    limpio: (p) => ({ bg: p[0], nom: p[1], fam: FAM.serif, peso: 700, ital: '', deco: '<path d="M0 0H150A150 150 0 0 1 0 150z" fill="' + p[2] + '"/>' }),
+    retro: (p) => ({ bg: p[0], nom: p[1], fam: FAM.grueso, peso: 900, ital: '', up: true, deco: '<path d="M0 0H430L380 336H0z" fill="' + p[2] + '" opacity=".14"/>' }),
+    oscuro: (p) => ({ bg: p[0], nom: p[1], fam: FAM.serif, peso: 400, ital: 'italic', deco: '<rect x="14" y="14" width="1004" height="308" rx="16" fill="none" stroke="' + p[2] + '" stroke-width="3"/><rect x="24" y="24" width="984" height="288" rx="10" fill="none" stroke="' + p[2] + '" stroke-opacity=".4" stroke-width="1.5"/>' }),
+    gotas: (p) => ({ bg: p[3], nom: p[1], fam: FAM.redondo, peso: 900, ital: '', deco: '<path d="M0 0H1032V34C990 34 980 76 940 76S890 34 830 34S770 62 720 62S660 34 590 34S520 90 470 90S410 34 350 34S290 70 240 70S180 34 120 34S40 60 0 34Z" fill="' + p[2] + '"/>' }),
+    minimo: (p) => ({ bg: p[3], nom: p[1], fam: FAM.suave, peso: 900, ital: '', deco: '<path d="M40 300H992" stroke="' + p[1] + '" stroke-width="5" stroke-linecap="round"/>' }),
+    kawaii: (p) => ({ bg: p[0], nom: p[1], fam: FAM.tierno, peso: 900, ital: '', deco: '<circle cx="960" cy="40" r="110" fill="' + p[3] + '" opacity=".5"/><circle cx="30" cy="330" r="90" fill="' + p[3] + '" opacity=".45"/>' }),
+    ticket: (p) => ({ bg: p[0], nom: p[1], fam: FAM.mono, peso: 700, ital: '', up: true, deco: '<path d="M410 18V318" stroke="' + p[2] + '" stroke-width="4" stroke-dasharray="12 10"/><circle cx="0" cy="168" r="24" fill="#fff" opacity="0"/>' })
+  };
+  function banda(x, estilo, par){
+    const p = x.pal, b = BANDA[estilo](p), e = par.e || { llenoFondo: p[2], llenoIcono: p[0], vacioBorde: p[1], vacioGrosor: 4, vacioIcono: .3 };
+    const nom = b.up ? x.nombre.toUpperCase() : x.nombre, tam = ajustar(nom, 340, 64, .6);
+    const g = rejilla(x.meta, { x: 440, y: 28, w: 570, h: 280 });
+    return { fondo: b.bg, svg: '<rect width="1032" height="336" fill="' + b.bg + '"/>' + b.deco +
+      '<circle cx="205" cy="104" r="58" fill="' + p[2] + '"/>' + icono(x.icono, 165, 64, 80, b.bg, 1.7) +
+      texto(205, 214, nom, { fam: b.fam, size: tam, color: b.nom, ancla: 'middle', peso: b.peso, estilo: b.ital || null }) +
+      texto(205, 258, x.lema.length > 30 ? x.lema.slice(0, 29) + '…' : x.lema, { fam: FAM.redondo, size: 20, color: b.nom, ancla: 'middle', peso: 600, op: .8 }) +
+      g.map((s, i) => sello(s, i, x, e)).join('') };
+  }
 
   // ---------- API ----------
   function svg(o){
@@ -293,15 +314,27 @@
       sellos: Math.max(0, Math.min(meta, parseInt(o.sellos, 10) || 0)), premios: Math.max(0, parseInt(o.premios, 10) || 0),
       premio: String(o.premio || 'Un premio').slice(0, 60)
     };
-    const par = ESTILO[d.estilo](x), cara = o.cara === 'frente' ? par.frente : par.dorso, cid = 'c' + x.uid;
-    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block" role="img" aria-label="Tarjeta de sellos de ' + esc(x.nombre) + '">' +
+    const par = ESTILO[d.estilo](x), cid = 'c' + x.uid, nombreA = esc(x.nombre);
+    if(o.cara === 'banda'){
+      const b = banda(x, d.estilo, par);
+      return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1032 336" style="width:100%;height:auto;display:block" role="img" aria-label="Tarjeta de ' + nombreA + '">' + b.svg + '</svg>';
+    }
+    if(o.cara === 'logo'){
+      const p = x.pal;
+      return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 660" style="width:100%;height:auto;display:block" role="img" aria-label="Logo de ' + nombreA + '"><rect width="660" height="660" fill="' + p[2] + '"/>' + icono(x.icono, 150, 150, 360, p[0], 1.5) + '</svg>';
+    }
+    const cara = o.cara === 'frente' ? par.frente : par.dorso;
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block" role="img" aria-label="Tarjeta de sellos de ' + nombreA + '">' +
       '<defs><clipPath id="' + cid + '"><rect width="' + W + '" height="' + H + '" rx="44"/></clipPath></defs><g clip-path="url(#' + cid + ')">' + cara + '</g></svg>';
   }
+  // Color de fondo que usa la banda de Wallet (para pintar el resto de la tarjeta igual)
+  function colorBanda(diseno, giro){ const d = normalizar(diseno, giro); return BANDA[d.estilo](d.paleta).bg; }
   function png(texto, ancho){
     return new Promise((res, rej) => {
-      const fijo = String(texto).replace(/ style="[^"]*"/, '').replace('<svg ', '<svg width="' + W + '" height="' + H + '" '), img = new Image(), url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(fijo);
+      const vb = String(texto).match(/viewBox="0 0 (\d+) (\d+)"/), vw = vb ? +vb[1] : W, vh = vb ? +vb[2] : H;
+      const fijo = String(texto).replace(/ style="[^"]*"/, '').replace('<svg ', '<svg width="' + vw + '" height="' + vh + '" '), img = new Image(), url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(fijo);
       img.onload = () => {
-        const w = ancho || 1500, c = document.createElement('canvas'); c.width = w; c.height = Math.round(w * H / W);
+        const w = ancho || 1500, c = document.createElement('canvas'); c.width = w; c.height = Math.round(w * vh / vw);
         c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
         c.toBlob((b) => b ? res(b) : rej(new Error('No se pudo crear la imagen')), 'image/png');
       };
@@ -310,5 +343,5 @@
     });
   }
 
-  window.PuveTarjeta = { svg, png, sugerido, normalizar, ICONOS, GIROS, PALETAS, ESTILOS, FORMAS, W, H };
+  window.PuveTarjeta = { svg, png, colorBanda, sugerido, normalizar, ICONOS, GIROS, PALETAS, ESTILOS, FORMAS, W, H };
 })();

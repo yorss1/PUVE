@@ -7,7 +7,7 @@
   'use strict';
   let enlace = { sb: null, aviso: (m) => alert(m), dinero: (n) => '$' + Number(n).toFixed(2) };
   let cfg = { activo: false, meta: 8, premio: 'Un producto gratis', minimo: 0, diseno: {}, negocio: '', subgiro: '', giro: '' };
-  let walletDisponible = true;   // se apaga solo si el servidor dice que no hay Google Wallet configurado
+  let walletDisponible = true, walletConectado = false;   // se apaga solo si el servidor dice que no hay Google Wallet configurado
   const GIRO_POR_FAMILIA = { restaurante: 'restaurantes', cafeteria: 'cafeterias', tienda: 'abarrotes', ropa: 'ropa', ferreteria: 'ferreteria', papeleria: 'papelerias', farmacia: 'farmacias', servicios: 'estetica' };
   const giroActual = () => (window.PuveTarjeta && PuveTarjeta.GIROS[cfg.subgiro]) ? cfg.subgiro : (GIRO_POR_FAMILIA[cfg.giro] || 'restaurantes');
   function svgTarjeta(cara, sellos, premios, extra){
@@ -230,7 +230,10 @@
     }
     if(PT){ caja.appendChild(h('div', null, 'Diseño de la tarjeta', 'font-weight:600; font-size:14px; margin-top:16px;')); caja.appendChild(h('div', 'nota', 'Así la ve tu cliente al abrir su enlace. Ya viene un diseño pensado para tu giro; cámbialo si quieres.', 'margin:2px 0 0;')); caja.appendChild(prev); caja.appendChild(panel); armarPanel(); dibujar(); meta.addEventListener('input', dibujar); premio.addEventListener('input', dibujar); }
 
-    const wal = h('p', 'nota', '', 'margin:10px 0 0;'); caja.appendChild(wal); estadoWallet(wal);
+    const wal = h('p', 'nota', '', 'margin:10px 0 0;'); caja.appendChild(wal);
+    const bwal = h('button', 'texto oculto', 'Actualizar el diseño en Google Wallet', 'width:auto; padding:4px 0; font-size:13px;'); bwal.type = 'button';
+    bwal.onclick = async () => { bwal.disabled = true; try { await publicarWallet((a, b) => { msg.textContent = 'Preparando tu tarjeta para Google Wallet… ' + a + ' de ' + b; }); msg.textContent = 'Listo: Google Wallet ya usa el diseño actual.'; } catch(e){ msg.textContent = e.message; } bwal.disabled = false; };
+    caja.appendChild(bwal); estadoWallet(wal).then(() => bwal.classList.toggle('oculto', !walletConectado));
     const msg = h('p', 'nota', '', 'min-height:1.2em; margin:8px 0 0;'), res = h('div');
     const guardar = h('button', 'principal', 'Guardar', 'width:auto; margin-top:8px;'); guardar.type = 'button';
     async function enviar(){
@@ -242,19 +245,60 @@
         await rpc('sellos_configurar', { p_activo: chk.checked, p_meta: m, p_premio: premio.value.trim(), p_minimo: mn });
         if(dis) await rpc('sellos_diseno_guardar', { p_diseno: dis });
       } catch(e){ msg.textContent = /does not exist|105|106/.test(e.message) ? 'Falta ejecutar el script SQL 106 en Supabase.' : e.message; return false; }
-      cfg = Object.assign({}, cfg, { activo: chk.checked, meta: m, premio: premio.value.trim(), minimo: mn, diseno: dis || cfg.diseno }); msg.textContent = 'Guardado.'; actualizarCaja(); resumen(res); return true;
+      cfg = Object.assign({}, cfg, { activo: chk.checked, meta: m, premio: premio.value.trim(), minimo: mn, diseno: dis || cfg.diseno }); msg.textContent = 'Guardado.'; actualizarCaja(); resumen(res);
+      if(walletConectado && chk.checked){
+        try { await publicarWallet((a, b) => { msg.textContent = 'Guardado. Preparando tu tarjeta para Google Wallet… ' + a + ' de ' + b; }); msg.textContent = 'Guardado. Tu tarjeta de Google Wallet ya usa este diseño.'; }
+        catch(e){ msg.textContent = 'Guardado, pero no se pudo actualizar Google Wallet: ' + e.message; }
+      }
+      return true;
     }
     guardar.onclick = async () => { guardar.disabled = true; try { await enviar(); } finally { guardar.disabled = false; } };
     chk.onchange = async () => { caja.style.display = chk.checked ? '' : 'none'; await enviar(); };
     caja.append(guardar, msg, res); cont.appendChild(caja); caja.style.display = chk.checked ? '' : 'none';
     if(chk.checked) resumen(res);
   }
+  // Dibuja la banda (con 0..N sellos) y el logo con el diseño del negocio y los sube a Storage para que Google Wallet los muestre.
+  // Son ~N+2 imágenes pequeñas; se hace al guardar el diseño y se puede repetir con el botón.
+  async function publicarWallet(progreso){
+    const PT = window.PuveTarjeta, sb = enlace.sb, neg = enlace.negocio && enlace.negocio();
+    if(!PT || !sb || !sb.storage || !neg) throw new Error('Este equipo no puede subir las imágenes de la tarjeta.');
+    const dis = PT.normalizar(cfg.diseno, giroActual()), meta = cfg.meta, v = Date.now().toString(36), base = { nombre: cfg.negocio, giro: giroActual(), diseno: dis, meta, premio: cfg.premio };
+    const trabajos = [{ n: 'logo.png', svg: PT.svg(Object.assign({}, base, { cara: 'logo' })), w: 660 }];
+    for(let i = 0; i <= meta; i++) trabajos.push({ n: 'banda_' + i + '.png', svg: PT.svg(Object.assign({}, base, { cara: 'banda', sellos: i })), w: 1032 });
+    let hechos = 0, fallo = null, sig = 0;
+    async function obrero(){
+      while(!fallo){
+        const j = trabajos[sig++]; if(!j) return;
+        try {
+          const blob = await PT.png(j.svg, j.w);
+          const r = await sb.storage.from('wallet').upload(neg + '/' + v + '/' + j.n, blob, { contentType: 'image/png', upsert: true });
+          if(r.error) throw new Error(r.error.message);
+          hechos++; if(progreso) progreso(hechos, trabajos.length);
+        } catch(e){ fallo = e; }
+      }
+    }
+    await Promise.all([obrero(), obrero(), obrero(), obrero()]);
+    if(fallo) throw new Error(/Bucket not found|not found/i.test(fallo.message) ? 'Falta ejecutar el script SQL 108 en Supabase.' : fallo.message);
+    await rpc('sellos_wallet_publicar', { p_version: v, p_color: PT.colorBanda(dis, giroActual()) });
+    try { await sb.functions.invoke('wallet-tarjeta', { body: { accion: 'clase' } }); } catch(e){}   // las tarjetas ya guardadas toman el diseño nuevo
+    // Limpieza: se conservan la versión nueva y la anterior (las tarjetas ya guardadas todavía pueden apuntar a ella)
+    try {
+      const l = await sb.storage.from('wallet').list(neg, { limit: 100 });
+      const vers = ((l && l.data) || []).map((x) => x.name).filter((n) => /^[a-z0-9]{4,16}$/.test(n)).sort((a, b) => a.length - b.length || (a < b ? -1 : 1));
+      for(const viejo of vers.slice(0, Math.max(0, vers.length - 2))){
+        const f = await sb.storage.from('wallet').list(neg + '/' + viejo, { limit: 100 });
+        const rutas = ((f && f.data) || []).map((x) => neg + '/' + viejo + '/' + x.name); if(rutas.length) await sb.storage.from('wallet').remove(rutas);
+      }
+    } catch(e){}
+    return v;
+  }
+
   // ¿Ya está conectado Google Wallet? Sin eso, el cliente no ve el botón «Agregar a Google Wallet» (la tarjeta, el QR y el enlace funcionan igual)
   async function estadoWallet(el){
-    el.textContent = '';
+    el.textContent = ''; walletConectado = false;
     try {
       const r = await enlace.sb.functions.invoke('wallet-tarjeta', { body: { accion: 'estado' } });
-      const ok = r && r.data && r.data.configurado === true;
+      const ok = r && r.data && r.data.configurado === true; walletConectado = !!ok;
       el.textContent = ok ? 'Google Wallet: conectado. Tus clientes verán el botón «Agregar a Google Wallet».' : 'Google Wallet: todavía no está conectado, por eso tus clientes no ven ese botón. Su tarjeta, su QR y su enlace ya funcionan sin Wallet. Para conectarlo sigue la GUIA_GOOGLE_WALLET.md.';
     } catch(e){ el.textContent = 'Google Wallet: todavía no está conectado (la función wallet-tarjeta no está desplegada). La tarjeta, el QR y el enlace funcionan sin Wallet.'; }
   }
@@ -273,7 +317,7 @@
 
   window.PuveSellos = {
     enlazar(o){ enlace = Object.assign(enlace, o || {}); },
-    cargar, activo: () => !!cfg.activo, consultar, trasVenta, montarConfig, escanear, identificarToken,
+    cargar, activo: () => !!cfg.activo, consultar, trasVenta, montarConfig, escanear, identificarToken, publicarWallet,
     _: { tarjetaTexto, telWhatsapp, tokenDe }
   };
 })();
