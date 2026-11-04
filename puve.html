@@ -49,6 +49,7 @@
 <script src="JS/puve-cotizaciones.js"></script>
 <script src="JS/puve-importar.js"></script>
 <script src="JS/puve-prepara.js"></script>
+<script src="JS/puve-decisiones.js"></script>
 <script src="JS/puve-tarjeta-diseno.js"></script>
 <script src="JS/puve-sellos.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2216,6 +2217,7 @@
         <button data-vista="clientes" id="tabClientesAnalitica" class="oculto" onclick="cambiarVistaAnalitica('clientes')">Clientes</button>
         <button data-vista="clima" id="tabClimaAnalitica" class="oculto" onclick="cambiarVistaAnalitica('clima')">Clima</button>
         <button data-vista="restaurante" id="tabRestauranteAnalitica" class="oculto" onclick="cambiarVistaAnalitica('restaurante')">Restaurante</button>
+        <button data-vista="inteligencia" id="tabInteligenciaAnalitica" class="oculto" onclick="cambiarVistaAnalitica('inteligencia')">Decisiones</button>
       </div>
 
       <div class="barra-filtros">
@@ -2288,6 +2290,7 @@
       </div>
 
       <div id="vistaAnaliticaRestaurante" style="display:none;"></div>
+      <div id="vistaAnaliticaInteligencia" style="display:none;"></div>
       <div id="vistaAnaliticaClima" style="display:none;">
       <div class="bloque-analitica">
         <h3>Qué se vende según el clima</h3>
@@ -8784,6 +8787,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const nc = document.getElementById('navComisiones'); if(nc) nc.classList.toggle('oculto', !(giro === 'servicios' && miRol === 'admin' && !esAdminActual));
     const tc = document.getElementById('tabClimaAnalitica'); if(tc) tc.classList.toggle('oculto', !(climaDisponible() && miRol === 'admin' && !esAdminActual));
     const bdc = document.getElementById('btnDividirCuenta'); if(bdc) bdc.style.display = ['restaurante', 'cafeteria'].includes(giro) ? 'inline-block' : 'none';
+    const tin = document.getElementById('tabInteligenciaAnalitica'); if(tin) tin.classList.toggle('oculto', !(miRol === 'admin' && !esAdminActual));
     const tre = document.getElementById('tabRestauranteAnalitica'); if(tre) tre.classList.toggle('oculto', !(['restaurante', 'cafeteria'].includes(giro) && miRol === 'admin' && !esAdminActual));
     if(usaPedProg()) cargarEstadoProg();
     const nl = document.getElementById('navEnlinea'); if(nl) nl.classList.toggle('oculto', !(usaPedProg() && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
@@ -10041,7 +10045,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   function cambiarVistaAnalitica(vista){
-    ['resumen','ventas','productos','clientes','clima','restaurante'].forEach(v => {
+    ['resumen','ventas','productos','clientes','clima','restaurante','inteligencia'].forEach(v => {
       document.getElementById('vistaAnalitica' + v.charAt(0).toUpperCase() + v.slice(1)).style.display = (v === vista ? '' : 'none');
     });
     document.querySelectorAll('#seccionAnalitica button[data-vista]').forEach(b => {
@@ -10049,6 +10053,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     });
     if(vista === 'clima') cargarAnaliticaClima();
     if(vista === 'restaurante'){ try { PuveAnaliticaRest.abrir(); } catch(e){ console.error(e); } }
+    if(vista === 'inteligencia'){ try { PuveDecisiones.abrir(); } catch(e){ console.error(e); } }
   }
 
   function cambiarVistaConfig(vista){
@@ -12979,6 +12984,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   PuveRestaurante.enlazar({ sb: sb, productos: () => productosCache, total: () => carrito.reduce((s, i) => s + subLinea(i), 0), dinero: (n) => formatoDinero(n), aviso: (m) => alert(m) });
   PuveCotizaciones.enlazar({ sb: sb, carrito: () => carrito, negocio: () => { const e = document.getElementById('nombreNegocioBarra'); const t = e ? e.textContent.trim() : ''; return t && t !== '—' ? t : ''; }, dinero: (n) => formatoDinero(n), cargarAlCarrito: cargarCotizacionAlCarrito, aviso: (m) => alert(m) });
   PuveAnaliticaRest.enlazar({ sb: sb, dinero: (n) => formatoDinero(n) });
+  PuveDecisiones.enlazar({ sb: sb, dinero: (n) => formatoDinero(n) });
   PuveSellos.enlazar({ sb: sb, dinero: (n) => formatoDinero(n), aviso: (m) => alert(m), escanear: (cb) => abrirEscaner(cb), escaner: () => escanerDisponible(), negocio: () => negocioId });
   PuvePrepara.enlazar({ sb: sb, categorias: () => categoriasCache, aviso: (m) => alert(m) });
   PuveInsumos.enlazar({ sb: sb, productos: () => productosCache, dinero: (n) => formatoDinero(n), recargarProductos: () => cargarProductos(), aviso: (m) => alert(m), irAInsumos: () => { alternarFormulario(false); cambiarSeccion('inventario'); try { cambiarVistaInventario('recetas'); } catch(e){} } });
