@@ -5,7 +5,7 @@
  */
 (function(){
   'use strict';
-  let enlace = { sb: null, dinero: (n) => '$' + Number(n).toFixed(2) };
+  let enlace = { sb: null, giro: () => null, dinero: (n) => '$' + Number(n).toFixed(2) };
   const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
   const fmt = (n, d) => Number(n).toLocaleString('es-MX', { maximumFractionDigits: d == null ? 2 : d });
   function h(tag, cls, txt, estilo){ const e = document.createElement(tag); if(cls) e.className = cls; if(txt != null) e.textContent = txt; if(estilo) e.style.cssText = estilo; return e; }
@@ -110,6 +110,45 @@
     });
   }
 
+
+  // 6) Fechas pico: calendario de fechas fuertes para tu giro y lo que vendiste en esa temporada el año pasado
+  const F = (y, m, d) => new Date(y, m - 1, d);
+  const nDow = (y, m, dow, n) => { const p = new Date(y, m - 1, 1); return new Date(y, m - 1, 1 + (dow - p.getDay() + 7) % 7 + 7 * (n - 1)); };
+  function pascua(y){ const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), hh = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - hh - k) % 7, m = Math.floor((a + 11 * hh + 22 * l) / 451), mes = Math.floor((hh + l - 7 * m + 114) / 31), dia = ((hh + l - 7 * m + 114) % 31) + 1; return new Date(y, mes - 1, dia); }
+  const FECHAS = {
+    reyes: ['Día de Reyes (6 de enero)', (y) => F(y, 1, 6)], candelaria: ['Día de la Candelaria (2 de febrero)', (y) => F(y, 2, 2)], valentin: ['San Valentín (14 de febrero)', (y) => F(y, 2, 14)],
+    nino: ['Día del Niño (30 de abril)', (y) => F(y, 4, 30)], madres: ['Día de las Madres (10 de mayo)', (y) => F(y, 5, 10)], padre: ['Día del Padre (3.er domingo de junio)', (y) => nDow(y, 6, 0, 3)],
+    santa: ['Semana Santa (Domingo de Ramos)', (y) => { const p = pascua(y); return new Date(p.getFullYear(), p.getMonth(), p.getDate() - 7); }], clases: ['Regreso a clases (finales de agosto)', (y) => F(y, 8, 24)],
+    clasesEne: ['Regreso a clases de enero', (y) => F(y, 1, 8)], patrias: ['Fiestas patrias (15 de septiembre)', (y) => F(y, 9, 15)], halloween: ['Halloween (31 de octubre)', (y) => F(y, 10, 31)],
+    muertos: ['Día de Muertos (1 de noviembre)', (y) => F(y, 11, 1)], guadalupe: ['Día de la Virgen de Guadalupe (12 de diciembre)', (y) => F(y, 12, 12)], posadas: ['Inicio de posadas (16 de diciembre)', (y) => F(y, 12, 16)], navidad: ['Navidad (24 de diciembre)', (y) => F(y, 12, 24)]
+  };
+  const POR_GIRO = {
+    panaderia: ['reyes', 'candelaria', 'santa', 'madres', 'muertos', 'guadalupe', 'posadas', 'navidad'], dulcerias: ['reyes', 'valentin', 'nino', 'madres', 'halloween', 'muertos', 'posadas', 'navidad'],
+    floristerias: ['valentin', 'madres', 'muertos', 'guadalupe', 'navidad'], regalos: ['reyes', 'valentin', 'nino', 'madres', 'padre', 'navidad'], papelerias: ['clasesEne', 'clases'], heladerias: ['santa', 'nino', 'madres', 'padre'],
+    joyeria: ['valentin', 'madres', 'padre', 'navidad'], ropa: ['valentin', 'madres', 'padre', 'clases', 'patrias', 'navidad'], restaurantes: ['valentin', 'madres', 'padre', 'patrias', 'navidad'], licorerias: ['valentin', 'madres', 'padre', 'patrias', 'navidad']
+  };
+  const BASE = ['valentin', 'madres', 'padre', 'patrias', 'muertos', 'navidad'];
+  function fechas(sec){
+    const ids = POR_GIRO[enlace.giro && enlace.giro()] || BASE, hoy = new Date(); hoy.setHours(0, 0, 0, 0); const lim = new Date(hoy.getTime() + 150 * 86400000), lista = [];
+    ids.forEach((k) => { [hoy.getFullYear(), hoy.getFullYear() + 1].forEach((y) => { const d = FECHAS[k][1](y); if(d >= hoy && d <= lim) lista.push({ k, y, d }); }); }); lista.sort((a, b) => a.d - b.d);
+    if(!lista.length){ vacio(sec, 'No hay fechas fuertes en los próximos 5 meses para tu giro.'); return; }
+    const iso = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    lista.forEach((x) => {
+      const dias = Math.round((x.d - hoy) / 86400000), c = h('div', null, null, 'border:1px solid var(--borde); border-radius:10px; padding:10px 12px; margin-bottom:8px;'), t = h('div', null, null, 'display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; align-items:center;');
+      t.appendChild(h('strong', null, FECHAS[x.k][0])); t.appendChild(h('span', 'nota', (dias === 0 ? 'hoy' : 'en ' + dias + (dias === 1 ? ' día' : ' días')) + ' · ' + x.d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long' }))); c.appendChild(t);
+      const z = h('div'), b = boton('Ver cómo me fue el año pasado', async () => {
+        b.disabled = true; z.textContent = '';
+        try { const ant = FECHAS[x.k][1](x.y - 1), r = await enlace.sb.rpc('ventas_ventana', { p_desde: iso(new Date(ant.getTime() - 10 * 86400000)), p_hasta: iso(new Date(ant.getTime() + 2 * 86400000)) });
+          if(r.error) throw new Error(/does not exist|schema cache|Could not find/i.test(r.error.message || '') ? 'Falta ejecutar el script SQL 116 en Supabase.' : r.error.message); const d = r.data;
+          if(!d.tickets){ z.appendChild(h('p', 'nota', 'No tengo ventas de esa temporada el año pasado (del ' + iso(new Date(ant.getTime() - 10 * 86400000)) + ' al ' + iso(new Date(ant.getTime() + 2 * 86400000)) + ').')); return; }
+          z.appendChild(h('p', null, 'Del ' + new Date(ant.getTime() - 10 * 86400000).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) + ' al ' + new Date(ant.getTime() + 2 * 86400000).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) + ' del año pasado vendiste ' + enlace.dinero(d.total) + ' en ' + d.tickets + ' ventas.', 'margin:8px 0 4px; font-size:14px;'));
+          z.appendChild(h('div', 'nota', 'Prepara al menos lo que se vendió: ' + d.top.map((p) => fmt(p.unidades, 0) + ' × ' + p.nombre).join(' · ')));
+        } catch(e){ error(z, (e && e.message) || String(e)); } finally { b.disabled = false; }
+      }); b.style.marginTop = '8px'; c.appendChild(b); c.appendChild(z); sec.appendChild(c);
+    });
+    sec.appendChild(h('p', 'nota', 'Son fechas de México. Compara los 10 días antes y los 2 días después de la fecha, del año pasado. Solo funciona si ya tenías ventas registradas en PUVE entonces.'));
+  }
+
   function pintar(cont){
     cont.textContent = '';
     reponer(bloque(cont, 'Qué reponer', 'Compara lo que tienes con lo que vendes al día y te dice cuánto comprar. Solo ve productos con ventas recientes.'));
@@ -117,6 +156,7 @@
     lentos(bloque(cont, 'Lento movimiento', 'Productos con existencia que no se han vendido: dinero parado en tu estante.'));
     inactivos(bloque(cont, 'Clientes que no regresan', 'Tus clientes frecuentes que llevan tiempo sin venir.'));
     horas(bloque(cont, 'Mapa de horas', 'A qué hora y qué día se vende más.'));
+    fechas(bloque(cont, 'Fechas pico', 'Las fechas fuertes de tu giro en los próximos 5 meses y qué vendiste en esa temporada el año pasado, para preparar producto con tiempo.'));
   }
   window.PuveDecisiones = {
     enlazar(o){ enlace = Object.assign(enlace, o || {}); },
