@@ -50,6 +50,7 @@
 <script src="JS/puve-importar.js"></script>
 <script src="JS/puve-prepara.js"></script>
 <script src="JS/puve-decisiones.js"></script>
+<script src="JS/puve-lotes.js"></script>
 <script src="JS/puve-tarjeta-diseno.js"></script>
 <script src="JS/puve-sellos.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2141,6 +2142,7 @@
         <button data-vista="recetas" id="tabInvRecetas" style="display:none;" onclick="cambiarVistaInventario('recetas')">Recetas e insumos</button>
         <button data-vista="prepara" id="tabInvPrepara" style="display:none;" onclick="cambiarVistaInventario('prepara')">Prepara hoy</button>
         <button data-vista="caducidad" onclick="cambiarVistaInventario('caducidad')">Caducidad</button>
+        <button data-vista="lotes" onclick="cambiarVistaInventario('lotes')">Lotes</button>
       </div>
 
       <div id="vistaInventarioOrdenes">
@@ -2184,6 +2186,7 @@
       <div id="vistaInventarioRecetas" style="display:none;"></div>
       <div id="vistaInventarioPrepara" style="display:none;"></div>
       <div id="vistaInventarioCaducidad" style="display:none;"></div>
+      <div id="vistaInventarioLotes" style="display:none;"></div>
       <div id="vistaInventarioProveedores" style="display:none;">
       <div class="bloque-analitica" style="margin-bottom:20px;">
         <h3>Proveedores</h3>
@@ -10074,10 +10077,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   function cambiarVistaInventario(vista){
-    ['ordenes','mermas','proveedores','recetas','prepara','caducidad'].forEach(v => {
+    ['ordenes','mermas','proveedores','recetas','prepara','caducidad','lotes'].forEach(v => {
       document.getElementById('vistaInventario' + v.charAt(0).toUpperCase() + v.slice(1)).style.display = (v === vista ? '' : 'none');
     });
     if(vista === 'recetas' || vista === 'caducidad'){ try { PuveInsumos.abrir(vista); } catch(e){ console.error(e); } }
+    if(vista === 'lotes'){ try { PuveLotes.abrir(); } catch(e){ console.error(e); } }
     if(vista === 'prepara'){ try { PuvePrepara.abrir(); } catch(e){ console.error(e); } }
     document.querySelectorAll('#tabsInventario button[data-vista]').forEach(b => {
       b.classList.toggle('activo', b.dataset.vista === vista);
@@ -12991,6 +12995,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   PuveCotizaciones.enlazar({ sb: sb, carrito: () => carrito, negocio: () => { const e = document.getElementById('nombreNegocioBarra'); const t = e ? e.textContent.trim() : ''; return t && t !== '—' ? t : ''; }, dinero: (n) => formatoDinero(n), cargarAlCarrito: cargarCotizacionAlCarrito, aviso: (m) => alert(m) });
   PuveAnaliticaRest.enlazar({ sb: sb, dinero: (n) => formatoDinero(n) });
   PuveDecisiones.enlazar({ sb: sb, dinero: (n) => formatoDinero(n) });
+  PuveLotes.enlazar({ sb: sb });
   PuveSellos.enlazar({ sb: sb, dinero: (n) => formatoDinero(n), aviso: (m) => alert(m), escanear: (cb) => abrirEscaner(cb), escaner: () => escanerDisponible(), negocio: () => negocioId });
   PuvePrepara.enlazar({ sb: sb, categorias: () => categoriasCache, aviso: (m) => alert(m) });
   PuveInsumos.enlazar({ sb: sb, productos: () => productosCache, dinero: (n) => formatoDinero(n), recargarProductos: () => cargarProductos(), aviso: (m) => alert(m), irAInsumos: () => { alternarFormulario(false); cambiarSeccion('inventario'); try { cambiarVistaInventario('recetas'); } catch(e){} } });
