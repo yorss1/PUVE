@@ -51,8 +51,14 @@
 <script src="JS/puve-prepara.js"></script>
 <script src="JS/puve-decisiones.js"></script>
 <script src="JS/puve-lotes.js"></script>
+<script src="JS/puve-etiquetas.js"></script>
+<script src="JS/puve-combos.js"></script>
+<script src="JS/puve-catalogo.js"></script>
 <script src="JS/puve-recibos.js"></script>
 <script src="JS/puve-fichas.js"></script>
+<script src="JS/puve-prepagos.js"></script>
+<script src="JS/puve-cuentas.js"></script>
+<script src="JS/puve-ordenes.js"></script>
 <script src="JS/puve-tarjeta-diseno.js"></script>
 <script src="JS/puve-sellos.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1585,6 +1591,9 @@
           <button id="navAgenda" class="oculto" onclick="cambiarSeccion('agenda')">Agenda</button>
           <button id="navEncargos" class="oculto" onclick="cambiarSeccion('encargos')">Encargos</button>
           <button id="navFichas" class="oculto" onclick="cambiarSeccion('fichas')">Fichas</button>
+          <button id="navCuentas" class="oculto" onclick="cambiarSeccion('cuentas')">Cuentas</button>
+          <button id="navBonos" class="oculto" onclick="cambiarSeccion('bonos')">Bonos</button>
+          <button id="navOrdenes" class="oculto" onclick="cambiarSeccion('ordenes')">Órdenes</button>
           <button id="navEnlinea" class="oculto" onclick="cambiarSeccion('enlinea')">Pedidos en línea<span id="badgeEnlinea" class="badge-nav oculto">0</span></button>
           <button id="navCorte" onclick="conTutorial('nav-corte', this, function(){ if(funcionPuveActiva('cajero.nav_corte')) cambiarSeccion('corte'); })">Corte de caja</button>
           <button id="navDevoluciones" class="oculto" onclick="conTutorial('nav-devoluciones', this, function(){ if(funcionPuveActiva('cajero.nav_devoluciones')) cambiarSeccion('devoluciones'); })">Devoluciones</button>
@@ -2041,6 +2050,9 @@
   </div>
 
   <div class="seccion" id="seccionFichas"></div>
+  <div class="seccion" id="seccionCuentas"></div>
+  <div class="seccion" id="seccionBonos"></div>
+  <div class="seccion" id="seccionOrdenes"></div>
   <div class="seccion" id="seccionEncargos">
     <div class="contenido">
       <div class="encabezado-seccion">
@@ -2147,6 +2159,9 @@
         <button data-vista="prepara" id="tabInvPrepara" style="display:none;" onclick="cambiarVistaInventario('prepara')">Prepara hoy</button>
         <button data-vista="caducidad" onclick="cambiarVistaInventario('caducidad')">Caducidad</button>
         <button data-vista="lotes" onclick="cambiarVistaInventario('lotes')">Lotes</button>
+        <button data-vista="combos" onclick="cambiarVistaInventario('combos')">Combos</button>
+        <button data-vista="etiquetas" onclick="cambiarVistaInventario('etiquetas')">Etiquetas</button>
+        <button data-vista="catalogo" onclick="cambiarVistaInventario('catalogo')">Catálogo</button>
       </div>
 
       <div id="vistaInventarioOrdenes">
@@ -2191,6 +2206,9 @@
       <div id="vistaInventarioPrepara" style="display:none;"></div>
       <div id="vistaInventarioCaducidad" style="display:none;"></div>
       <div id="vistaInventarioLotes" style="display:none;"></div>
+      <div id="vistaInventarioCombos" style="display:none;"></div>
+      <div id="vistaInventarioEtiquetas" style="display:none;"></div>
+      <div id="vistaInventarioCatalogo" style="display:none;"></div>
       <div id="vistaInventarioProveedores" style="display:none;">
       <div class="bloque-analitica" style="margin-bottom:20px;">
         <h3>Proveedores</h3>
@@ -7314,6 +7332,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       case 'enlinea':      return (esCajeroAhora || esEncargadoAhora) && usaPedProg();
       case 'encargos':     return (esCajeroAhora || esEncargadoAhora) && usaEncargos();
       case 'fichas':       return (esCajeroAhora || esEncargadoAhora) && usaFichas();
+      case 'cuentas':      return (esCajeroAhora || esEncargadoAhora) && usaCuentas();
+      case 'bonos':        return (esCajeroAhora || esEncargadoAhora) && usaBonos();
+      case 'ordenes':      return (esCajeroAhora || esEncargadoAhora) && usaOrdenes();
       case 'agenda':       return (esCajeroAhora || esEncargadoAhora) && document.body.classList.contains('giro-servicios');
       case 'comisiones':   return esEncargadoAhora && document.body.classList.contains('giro-servicios');
       case 'pedidos':      return (esCajeroAhora || esEncargadoAhora) && pedidosQrActivo === true;
@@ -7337,7 +7358,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       console.warn('Navegación bloqueada: tu rol no tiene acceso a "' + cual + '".');
       return;
     }
-    ['Vender','Agenda','Encargos','Fichas','Enlinea','Prodanalitica','Pedidos','Comisiones','Productos','Corte','Devoluciones','Gastos','Inventario','Analitica','Dispositivos','Config','Fiscal','Soporte','Admin'].forEach(s => {
+    ['Vender','Agenda','Encargos','Fichas','Cuentas','Bonos','Ordenes','Enlinea','Prodanalitica','Pedidos','Comisiones','Productos','Corte','Devoluciones','Gastos','Inventario','Analitica','Dispositivos','Config','Fiscal','Soporte','Admin'].forEach(s => {
       document.getElementById('nav'+s).classList.toggle('activo', s.toLowerCase() === cual);
       document.getElementById('seccion'+s).classList.toggle('activa', s.toLowerCase() === cual);
     });
@@ -7348,6 +7369,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(cual === 'agenda') abrirAgenda();
     if(cual === 'encargos') abrirEncargos();
     if(cual === 'fichas'){ try { PuveFichas.abrir(); } catch(e){ console.error(e); } }
+    if(cual === 'cuentas'){ try { PuveCuentas.abrir(); } catch(e){ console.error(e); } }
+    if(cual === 'bonos'){ try { PuvePrepagos.abrir(); } catch(e){ console.error(e); } }
+    if(cual === 'ordenes'){ try { PuveOrdenes.abrir(); } catch(e){ console.error(e); } }
     if(cual === 'enlinea') abrirEnlinea();
     if(cual === 'prodanalitica') abrirProdAnalitica();
     if(cual === 'productos'){ aplicarModoProductosSegunRol(); aplicarVocabularioGiro(); actualizarBloqueClima(); pintarTemporada(); actualizarBloqueHorario(); }
@@ -8808,9 +8832,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const nl = document.getElementById('navEnlinea'); if(nl) nl.classList.toggle('oculto', !(usaPedProg() && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
     const ne = document.getElementById('navEncargos'); if(ne) ne.classList.toggle('oculto', !(usaEncargos() && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
     const nf = document.getElementById('navFichas'); if(nf) nf.classList.toggle('oculto', !(usaFichas() && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
+    const nct = document.getElementById('navCuentas'); if(nct) nct.classList.toggle('oculto', !(usaCuentas() && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
+    const nb = document.getElementById('navBonos'); if(nb) nb.classList.toggle('oculto', !(usaBonos() && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
+    const no = document.getElementById('navOrdenes'); if(no) no.classList.toggle('oculto', !(usaOrdenes() && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
     const bl = document.getElementById('btnListaEscolar'); if(bl) bl.classList.toggle('oculto', giro !== 'papeleria');
     const na = document.getElementById('navAgenda'); if(na) na.classList.toggle('oculto', !(giro === 'servicios' && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
-    if(giro === 'servicios') cargarEmpleados(); if(giro === 'cafeteria') cargarGrupos(); if(GIROS_CLIMA.includes(giro)) iniciarClima(); if(GIROS_HORARIO.includes(giro)) iniciarHorario(); ajustarFormServicio();
+    if(giro === 'servicios') cargarEmpleados(); if(giro === 'cafeteria') cargarGrupos(); if(GIROS_CLIMA.includes(giro)) iniciarClima(); if(GIROS_HORARIO.includes(giro) || featGiro('horario')) iniciarHorario(); ajustarFormServicio();
   }
 
   // Re-codifica la imagen en el navegador: se pierden metadatos/EXIF y cualquier contenido oculto; solo salen píxeles nuevos.
@@ -9606,7 +9633,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   const GIROS_HORARIO = ['restaurante', 'cafeteria'];
   const DIAS_HH = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
   let reglasHorario = [], horarioTimer = null, horarioPrevio = null;
-  const horarioDisponible = () => GIROS_HORARIO.includes(configNegocio.tipo_negocio || '');
+  const horarioDisponible = () => GIROS_HORARIO.includes(configNegocio.tipo_negocio || '') || featGiro('horario');
   const hhHora = (t) => String(t || '').slice(0, 5);
   function descripcionReglaHorario(r){
     const cat = categoriasCache.find(c => c.id === r.categoria_id), dias = (r.dias || []).slice().sort().map(d => DIAS_HH[d]).join(' ');
@@ -10084,11 +10111,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   function cambiarVistaInventario(vista){
-    ['ordenes','mermas','proveedores','recetas','prepara','caducidad','lotes'].forEach(v => {
+    ['ordenes','mermas','proveedores','recetas','prepara','caducidad','lotes','combos','etiquetas','catalogo'].forEach(v => {
       document.getElementById('vistaInventario' + v.charAt(0).toUpperCase() + v.slice(1)).style.display = (v === vista ? '' : 'none');
     });
     if(vista === 'recetas' || vista === 'caducidad'){ try { PuveInsumos.abrir(vista); } catch(e){ console.error(e); } }
     if(vista === 'lotes'){ try { PuveLotes.abrir(); } catch(e){ console.error(e); } }
+    if(vista === 'combos'){ try { PuveCombos.abrir(); } catch(e){ console.error(e); } }
+    if(vista === 'etiquetas'){ try { PuveEtiquetas.abrir(); } catch(e){ console.error(e); } }
+    if(vista === 'catalogo'){ try { PuveCatalogo.abrir(); } catch(e){ console.error(e); } }
     if(vista === 'prepara'){ try { PuvePrepara.abrir(); } catch(e){ console.error(e); } }
     document.querySelectorAll('#tabsInventario button[data-vista]').forEach(b => {
       b.classList.toggle('activo', b.dataset.vista === vista);
@@ -13001,9 +13031,15 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   PuveRestaurante.enlazar({ sb: sb, productos: () => productosCache, total: () => carrito.reduce((s, i) => s + subLinea(i), 0), dinero: (n) => formatoDinero(n), aviso: (m) => alert(m) });
   PuveCotizaciones.enlazar({ sb: sb, carrito: () => carrito, negocio: () => { const e = document.getElementById('nombreNegocioBarra'); const t = e ? e.textContent.trim() : ''; return t && t !== '—' ? t : ''; }, dinero: (n) => formatoDinero(n), cargarAlCarrito: cargarCotizacionAlCarrito, aviso: (m) => alert(m) });
   PuveAnaliticaRest.enlazar({ sb: sb, dinero: (n) => formatoDinero(n) });
-  PuveDecisiones.enlazar({ sb: sb, dinero: (n) => formatoDinero(n) });
+  PuveDecisiones.enlazar({ sb: sb, giro: () => { const g = giroEspecifico(); return g ? g.id : null; }, dinero: (n) => formatoDinero(n) });
+  PuveCombos.enlazar({ sb: sb, giro: () => { const g = giroEspecifico(); return g ? g.id : null; }, dinero: (n) => formatoDinero(n) });
+  PuveEtiquetas.enlazar({ sb: sb, dinero: (n) => formatoDinero(n) });
+  PuveCatalogo.enlazar({ sb: sb, negocio: async () => { try { const r = await sb.from('negocios').select('nombre').eq('id', negocioId).maybeSingle(); return (r.data && r.data.nombre) || 'Mi negocio'; } catch(e){ return 'Mi negocio'; } } });
   PuveLotes.enlazar({ sb: sb });
   PuveRecibos.enlazar({ sb: sb, negocioId: () => negocioId });
+  PuveCuentas.enlazar({ sb: sb, negocioId: () => negocioId, dinero: (n) => formatoDinero(n) });
+  PuvePrepagos.enlazar({ sb: sb, giro: () => { const g = giroEspecifico(); return g ? g.id : null; }, dinero: (n) => formatoDinero(n) });
+  PuveOrdenes.enlazar({ sb: sb, negocioId: () => negocioId, giro: () => { const g = giroEspecifico(); return g ? g.id : null; }, dinero: (n) => formatoDinero(n) });
   PuveFichas.enlazar({ sb: sb, giro: () => { const g = giroEspecifico(); return g ? g.id : null; } });
   PuveSellos.enlazar({ sb: sb, dinero: (n) => formatoDinero(n), aviso: (m) => alert(m), escanear: (cb) => abrirEscaner(cb), escaner: () => escanerDisponible(), negocio: () => negocioId });
   PuvePrepara.enlazar({ sb: sb, categorias: () => categoriasCache, aviso: (m) => alert(m) });
@@ -15359,7 +15395,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   // ===== Giros de PUVE: grupos, giros y las funciones que cada uno enciende =====
   // tipo_negocio guarda la FAMILIA (tienda, restaurante, cafeteria, ferreteria, ropa, farmacia, papeleria, servicios): así todo lo que ya existe sigue funcionando.
   // subgiro guarda el giro específico y decide el lenguaje y las funciones extra (unidades/granel, encargos, pedidos en línea, caducidad).
-  const GRUPOS_GIRO = [{"id":"comida","nombre":"Comida y bebida","desc":"Comandas, mesas y cocina.","giros":[{"id":"restaurantes","nombre":"Restaurantes y fondas","base":"restaurante","feats":["mesas","fotos","camara"],"ph":"Tacos al pastor","catPh":"Ej. Entradas, Platos fuertes, Bebidas, Postres...","extra":["Foto de cada platillo en tu menú"]},{"id":"taquerias","nombre":"Taquerías","base":"restaurante","feats":["mesas","fotos","encargos"],"ph":"Orden de pastor (5 tacos)","catPh":"Ej. Tacos, Órdenes, Bebidas, Extras...","extra":["Menú con precios por orden o por pieza"]},{"id":"pizzerias","nombre":"Pizzerías y comida rápida","base":"restaurante","feats":["mesas","fotos","encargos"],"ph":"Pizza grande pepperoni","catPh":"Ej. Pizzas, Hamburguesas, Complementos, Bebidas...","extra":["Menú con fotos para vender más"]},{"id":"bares","nombre":"Bares y cantinas","base":"restaurante","feats":["mesas","encargos"],"ph":"Cerveza clara","catPh":"Ej. Cervezas, Cocteles, Botanas, Promociones...","extra":["Pedidos por mesa con QR"]},{"id":"cafeterias","nombre":"Cafeterías","base":"cafeteria","feats":["fotos","camara","encargos"],"ph":"Latte mediano","catPh":"Ej. Café, Té, Postres, Alimentos...","extra":["Personaliza cada bebida con opciones y extras","Pedidos por QR en barra"]},{"id":"heladerias","nombre":"Heladerías y paleterías","base":"cafeteria","feats":["fotos"],"ph":"Helado de vainilla (2 bolas)","catPh":"Ej. Helados, Paletas, Aguas, Toppings...","extra":["Opciones de sabor, tamaño y toppings"]},{"id":"panaderia","nombre":"Panadería y repostería","base":"cafeteria","feats":["encargos","pedprog","fotos","caducidad"],"ph":"Concha de vainilla","catPh":"Ej. Pan dulce, Pan salado, Pasteles, Galletas...","extra":["Encargos de pasteles con anticipo y fecha de entrega","Pedidos en línea para recoger"]}]},{"id":"abarrotes","nombre":"Abarrotes y alimentos","desc":"Venta a granel, caducidad y fiado.","giros":[{"id":"abarrotes","nombre":"Abarrotes y tiendas de conveniencia","base":"tienda","feats":["unidades","caducidad","fiado","pedprog","camara"],"ph":"Refresco 600 ml","catPh":"Ej. Botanas, Bebidas, Lácteos, Limpieza...","extra":[]},{"id":"licorerias","nombre":"Licorerías y cervecerías","base":"tienda","feats":["pedprog","camara"],"ph":"Cerveza clara (six)","catPh":"Ej. Cervezas, Tequila, Whisky, Refrescos...","extra":["Precio por caja o por pieza con descuento por volumen"]},{"id":"carnicerias","nombre":"Carnicerías","base":"tienda","feats":["fichas","unidades","caducidad","pedprog"],"ph":"Bistec de res (kg)","catPh":"Ej. Res, Cerdo, Pollo, Embutidos...","extra":["Cortes y empaques por kilo"]},{"id":"dulcerias","nombre":"Dulcerías","base":"tienda","feats":["unidades","caducidad","pedprog"],"ph":"Gomitas a granel (100 g)","catPh":"Ej. Dulces, Chocolates, Botanas, Fiestas...","extra":["Venta a granel y por bolsita"]},{"id":"cremerias","nombre":"Cremerías y salchichonerías","base":"tienda","feats":["unidades","caducidad","fiado"],"ph":"Queso Oaxaca (kg)","catPh":"Ej. Quesos, Cremas, Jamones, Lácteos...","extra":["Quesos y embutidos por kilo"]},{"id":"fruterias","nombre":"Fruterías y verdulerías","base":"tienda","feats":["unidades","pedprog"],"ph":"Jitomate (kg)","catPh":"Ej. Frutas, Verduras, Hierbas, Abarrotes...","extra":["Venta por kilo, pieza o manojo"]},{"id":"pollerias","nombre":"Pollerías y pescaderías","base":"tienda","feats":["unidades","caducidad","pedprog"],"ph":"Pechuga de pollo (kg)","catPh":"Ej. Pollo, Pescado, Mariscos, Congelados...","extra":["Pedidos para recoger por la tarde"]},{"id":"tortillerias","nombre":"Tortillerías y molinos","base":"tienda","feats":["unidades","fiado"],"ph":"Tortilla de maíz (kg)","catPh":"Ej. Tortillas, Masa, Totopos, Abarrotes...","extra":["Cobro por kilo y por pieza"]}]},{"id":"especialidad","nombre":"Tienda y especialidad","desc":"Tallas, colores y productos sin código.","giros":[{"id":"ropa","nombre":"Ropa y zapatos","base":"ropa","feats":["tallas","vales","encargos","camara"],"ph":"Playera básica","catPh":"Ej. Playeras, Jeans, Calzado, Accesorios...","extra":["Tallas y colores por cada modelo","Vales de saldo a favor para cambios"]},{"id":"joyeria","nombre":"Joyería y relojería","base":"tienda","feats":["fichas","encargos","camara"],"ph":"Cadena de plata 45 cm","catPh":"Ej. Anillos, Cadenas, Relojes, Aretes...","extra":["Apartados con anticipo y fecha límite"]},{"id":"ferreteria","nombre":"Ferreterías y tlapalerías","base":"ferreteria","feats":["unidades","encargos","pedprog","camara"],"ph":"Tornillo 1/4 x 2 (pieza)","catPh":"Ej. Tornillería, Herramientas, Plomería, Electricidad...","extra":["Precio por volumen: más barato al llevar más"]},{"id":"electronicos","nombre":"Electrónicos y celulares","base":"tienda","feats":["encargos","camara"],"ph":"Cargador USB-C 20 W","catPh":"Ej. Celulares, Accesorios, Cables, Audio...","extra":["Apartados y pedidos de equipos"]},{"id":"papelerias","nombre":"Papelerías y copias","base":"papeleria","feats":["unidades","encargos","pedprog","impresion","caducidad_no"],"ph":"Cartulina azul","catPh":"Ej. Escolar, Oficina, Arte, Regalos...","extra":["Imprime y pide: tus clientes suben archivos con un QR","Lista escolar por texto o foto"]},{"id":"refaccionarias","nombre":"Refaccionarias","base":"ferreteria","feats":["fichas","unidades","encargos","camara"],"ph":"Balata delantera (juego)","catPh":"Ej. Frenos, Motor, Suspensión, Eléctrico...","extra":["Pedido de piezas que no tienes, con anticipo"]},{"id":"floristerias","nombre":"Florerías","base":"tienda","feats":["encargos","pedprog","fotos"],"ph":"Ramo de rosas (12)","catPh":"Ej. Ramos, Arreglos, Plantas, Detalles...","extra":["Encargos con fecha, hora y anticipo"]},{"id":"regalos","nombre":"Regalos y novedades","base":"tienda","feats":["fichas","encargos","pedprog","camara"],"ph":"Taza personalizada","catPh":"Ej. Tazas, Peluches, Detalles, Fiestas...","extra":["Pedidos para recoger en tu tienda"]}]},{"id":"salud","nombre":"Salud y servicios","desc":"Inventario actualizado y tienda en línea.","giros":[{"id":"farmacias","nombre":"Farmacias","base":"farmacia","feats":["caducidad","pedprog","camara"],"ph":"Paracetamol 500 mg (caja)","catPh":"Ej. Medicamentos, Genéricos, Cuidado personal, Bebés...","extra":["Caducidad en cada producto"]},{"id":"estetica","nombre":"Estética, barbería y spa","base":"servicios","feats":["fichas","citas"],"ph":"Corte de cabello","catPh":"Ej. Cabello, Uñas, Barba, Tratamientos...","extra":["Agenda de citas","Cada servicio con su duración"]},{"id":"suplementos","nombre":"Tiendas de suplementos","base":"tienda","feats":["caducidad","pedprog","encargos","camara"],"ph":"Proteína 2 lb vainilla","catPh":"Ej. Proteínas, Vitaminas, Pre-entreno, Accesorios...","extra":["Puntos de recompensa para clientes frecuentes"]},{"id":"veterinarias","nombre":"Veterinarias y tiendas de mascotas","base":"servicios","feats":["fichas","citas","unidades","caducidad","pedprog"],"ph":"Croquetas adulto (kg)","catPh":"Ej. Alimento, Accesorios, Higiene, Consultas...","extra":["Alimento a granel por kilo"]},{"id":"talleres","nombre":"Talleres y lavado de autos","base":"servicios","feats":["fichas","citas"],"ph":"Cambio de aceite","catPh":"Ej. Mantenimiento, Lavado, Frenos, Refacciones...","extra":["Agenda por servicio y duración"]},{"id":"lavanderias","nombre":"Lavanderías y tintorerías","base":"servicios","feats":["citas","encargos"],"ph":"Lavado por kilo","catPh":"Ej. Lavado, Planchado, Tintorería, Edredones...","extra":["Pedidos con anticipo y fecha de entrega"]}]}];
+  const GRUPOS_GIRO = [{"id":"comida","nombre":"Comida y bebida","desc":"Comandas, mesas y cocina.","giros":[{"id":"restaurantes","nombre":"Restaurantes y fondas","base":"restaurante","feats":["cuentas","mesas","fotos","camara"],"ph":"Tacos al pastor","catPh":"Ej. Entradas, Platos fuertes, Bebidas, Postres...","extra":["Foto de cada platillo en tu menú"]},{"id":"taquerias","nombre":"Taquerías","base":"restaurante","feats":["cuentas","mesas","fotos","encargos"],"ph":"Orden de pastor (5 tacos)","catPh":"Ej. Tacos, Órdenes, Bebidas, Extras...","extra":["Menú con precios por orden o por pieza"]},{"id":"pizzerias","nombre":"Pizzerías y comida rápida","base":"restaurante","feats":["cuentas","mesas","fotos","encargos"],"ph":"Pizza grande pepperoni","catPh":"Ej. Pizzas, Hamburguesas, Complementos, Bebidas...","extra":["Menú con fotos para vender más"]},{"id":"bares","nombre":"Bares y cantinas","base":"restaurante","feats":["cuentas","mesas","encargos"],"ph":"Cerveza clara","catPh":"Ej. Cervezas, Cocteles, Botanas, Promociones...","extra":["Pedidos por mesa con QR"]},{"id":"cafeterias","nombre":"Cafeterías","base":"cafeteria","feats":["cuentas","fotos","camara","encargos"],"ph":"Latte mediano","catPh":"Ej. Café, Té, Postres, Alimentos...","extra":["Personaliza cada bebida con opciones y extras","Pedidos por QR en barra"]},{"id":"heladerias","nombre":"Heladerías y paleterías","base":"cafeteria","feats":["fotos"],"ph":"Helado de vainilla (2 bolas)","catPh":"Ej. Helados, Paletas, Aguas, Toppings...","extra":["Opciones de sabor, tamaño y toppings"]},{"id":"panaderia","nombre":"Panadería y repostería","base":"cafeteria","feats":["horario","encargos","pedprog","fotos","caducidad"],"ph":"Concha de vainilla","catPh":"Ej. Pan dulce, Pan salado, Pasteles, Galletas...","extra":["Encargos de pasteles con anticipo y fecha de entrega","Pedidos en línea para recoger"]}]},{"id":"abarrotes","nombre":"Abarrotes y alimentos","desc":"Venta a granel, caducidad y fiado.","giros":[{"id":"abarrotes","nombre":"Abarrotes y tiendas de conveniencia","base":"tienda","feats":["unidades","caducidad","fiado","pedprog","camara"],"ph":"Refresco 600 ml","catPh":"Ej. Botanas, Bebidas, Lácteos, Limpieza...","extra":[]},{"id":"licorerias","nombre":"Licorerías y cervecerías","base":"tienda","feats":["horario","pedprog","camara"],"ph":"Cerveza clara (six)","catPh":"Ej. Cervezas, Tequila, Whisky, Refrescos...","extra":["Precio por caja o por pieza con descuento por volumen"]},{"id":"carnicerias","nombre":"Carnicerías","base":"tienda","feats":["horario","fichas","unidades","caducidad","pedprog"],"ph":"Bistec de res (kg)","catPh":"Ej. Res, Cerdo, Pollo, Embutidos...","extra":["Cortes y empaques por kilo"]},{"id":"dulcerias","nombre":"Dulcerías","base":"tienda","feats":["unidades","caducidad","pedprog"],"ph":"Gomitas a granel (100 g)","catPh":"Ej. Dulces, Chocolates, Botanas, Fiestas...","extra":["Venta a granel y por bolsita"]},{"id":"cremerias","nombre":"Cremerías y salchichonerías","base":"tienda","feats":["horario","unidades","caducidad","fiado"],"ph":"Queso Oaxaca (kg)","catPh":"Ej. Quesos, Cremas, Jamones, Lácteos...","extra":["Quesos y embutidos por kilo"]},{"id":"fruterias","nombre":"Fruterías y verdulerías","base":"tienda","feats":["horario","unidades","pedprog"],"ph":"Jitomate (kg)","catPh":"Ej. Frutas, Verduras, Hierbas, Abarrotes...","extra":["Venta por kilo, pieza o manojo"]},{"id":"pollerias","nombre":"Pollerías y pescaderías","base":"tienda","feats":["horario","unidades","caducidad","pedprog"],"ph":"Pechuga de pollo (kg)","catPh":"Ej. Pollo, Pescado, Mariscos, Congelados...","extra":["Pedidos para recoger por la tarde"]},{"id":"tortillerias","nombre":"Tortillerías y molinos","base":"tienda","feats":["unidades","fiado"],"ph":"Tortilla de maíz (kg)","catPh":"Ej. Tortillas, Masa, Totopos, Abarrotes...","extra":["Cobro por kilo y por pieza"]}]},{"id":"especialidad","nombre":"Tienda y especialidad","desc":"Tallas, colores y productos sin código.","giros":[{"id":"ropa","nombre":"Ropa y zapatos","base":"ropa","feats":["tallas","vales","encargos","camara"],"ph":"Playera básica","catPh":"Ej. Playeras, Jeans, Calzado, Accesorios...","extra":["Tallas y colores por cada modelo","Vales de saldo a favor para cambios"]},{"id":"joyeria","nombre":"Joyería y relojería","base":"tienda","feats":["ordenes","fichas","encargos","camara"],"ph":"Cadena de plata 45 cm","catPh":"Ej. Anillos, Cadenas, Relojes, Aretes...","extra":["Apartados con anticipo y fecha límite"]},{"id":"ferreteria","nombre":"Ferreterías y tlapalerías","base":"ferreteria","feats":["unidades","encargos","pedprog","camara"],"ph":"Tornillo 1/4 x 2 (pieza)","catPh":"Ej. Tornillería, Herramientas, Plomería, Electricidad...","extra":["Precio por volumen: más barato al llevar más"]},{"id":"electronicos","nombre":"Electrónicos y celulares","base":"tienda","feats":["ordenes","encargos","camara"],"ph":"Cargador USB-C 20 W","catPh":"Ej. Celulares, Accesorios, Cables, Audio...","extra":["Apartados y pedidos de equipos"]},{"id":"papelerias","nombre":"Papelerías y copias","base":"papeleria","feats":["unidades","encargos","pedprog","impresion","caducidad_no"],"ph":"Cartulina azul","catPh":"Ej. Escolar, Oficina, Arte, Regalos...","extra":["Imprime y pide: tus clientes suben archivos con un QR","Lista escolar por texto o foto"]},{"id":"refaccionarias","nombre":"Refaccionarias","base":"ferreteria","feats":["ordenes","fichas","unidades","encargos","camara"],"ph":"Balata delantera (juego)","catPh":"Ej. Frenos, Motor, Suspensión, Eléctrico...","extra":["Pedido de piezas que no tienes, con anticipo"]},{"id":"floristerias","nombre":"Florerías","base":"tienda","feats":["encargos","pedprog","fotos"],"ph":"Ramo de rosas (12)","catPh":"Ej. Ramos, Arreglos, Plantas, Detalles...","extra":["Encargos con fecha, hora y anticipo"]},{"id":"regalos","nombre":"Regalos y novedades","base":"tienda","feats":["fichas","encargos","pedprog","camara"],"ph":"Taza personalizada","catPh":"Ej. Tazas, Peluches, Detalles, Fiestas...","extra":["Pedidos para recoger en tu tienda"]}]},{"id":"salud","nombre":"Salud y servicios","desc":"Inventario actualizado y tienda en línea.","giros":[{"id":"farmacias","nombre":"Farmacias","base":"farmacia","feats":["caducidad","pedprog","camara"],"ph":"Paracetamol 500 mg (caja)","catPh":"Ej. Medicamentos, Genéricos, Cuidado personal, Bebés...","extra":["Caducidad en cada producto"]},{"id":"estetica","nombre":"Estética, barbería y spa","base":"servicios","feats":["bonos","fichas","citas"],"ph":"Corte de cabello","catPh":"Ej. Cabello, Uñas, Barba, Tratamientos...","extra":["Agenda de citas","Cada servicio con su duración"]},{"id":"suplementos","nombre":"Tiendas de suplementos","base":"tienda","feats":["bonos","caducidad","pedprog","encargos","camara"],"ph":"Proteína 2 lb vainilla","catPh":"Ej. Proteínas, Vitaminas, Pre-entreno, Accesorios...","extra":["Puntos de recompensa para clientes frecuentes"]},{"id":"veterinarias","nombre":"Veterinarias y tiendas de mascotas","base":"servicios","feats":["fichas","citas","unidades","caducidad","pedprog"],"ph":"Croquetas adulto (kg)","catPh":"Ej. Alimento, Accesorios, Higiene, Consultas...","extra":["Alimento a granel por kilo"]},{"id":"talleres","nombre":"Talleres y lavado de autos","base":"servicios","feats":["ordenes","bonos","fichas","citas"],"ph":"Cambio de aceite","catPh":"Ej. Mantenimiento, Lavado, Frenos, Refacciones...","extra":["Agenda por servicio y duración"]},{"id":"lavanderias","nombre":"Lavanderías y tintorerías","base":"servicios","feats":["bonos","citas","encargos"],"ph":"Lavado por kilo","catPh":"Ej. Lavado, Planchado, Tintorería, Edredones...","extra":["Pedidos con anticipo y fecha de entrega"]}]}];
   const GIRO_POR_ID = {}; GRUPOS_GIRO.forEach(gr => gr.giros.forEach(x => { x.grupo = gr.id; GIRO_POR_ID[x.id] = x; }));
   const GIRO_BASE_DEFECTO = { tienda: 'abarrotes', servicios: 'estetica', restaurante: 'restaurantes', cafeteria: 'cafeterias', farmacia: 'farmacias', papeleria: 'papelerias', ropa: 'ropa', ferreteria: 'ferreteria' };
   const baseDeGiro = (id) => (GIRO_POR_ID[id] ? GIRO_POR_ID[id].base : id);
@@ -15368,7 +15404,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     return (g && g.base === c.tipo_negocio) ? g : null;
   }
   const featGiro = (f) => { const g = giroEspecifico(); return !!(g && g.feats.indexOf(f) >= 0); };
-  const usaUnidades = () => featGiro('unidades'), usaEncargos = () => featGiro('encargos'), usaFichas = () => featGiro('fichas'), usaPedProg = () => featGiro('pedprog');
+  const usaUnidades = () => featGiro('unidades'), usaEncargos = () => featGiro('encargos'), usaFichas = () => featGiro('fichas'), usaBonos = () => featGiro('bonos'), usaCuentas = () => featGiro('cuentas'), usaOrdenes = () => featGiro('ordenes'), usaPedProg = () => featGiro('pedprog');
   function valorSelectGiro(){ const g = giroEspecifico(); return g ? g.id : (GIRO_BASE_DEFECTO[(configNegocio || {}).tipo_negocio] || ''); }
   const mostrarCaducidadForm = () => { const g = giroEspecifico(); return g ? g.feats.indexOf('caducidad') >= 0 : !esPapeleria(); };
   const UNIDADES_PAPELERIA = [['pieza', 'Por pieza'], ['hoja', 'Por hoja'], ['metro', 'Por metro'], ['copia', 'Por copia'], ['pliego', 'Por pliego'], ['otra', 'Otra…']];
@@ -15378,6 +15414,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   const FEAT_TEXTO = {
     unidades: ['Venta a granel y por medida', 'Vende por kilo, litro, metro o pieza, con medios y cuartos y precio por cantidad — en Productos.'],
     encargos: ['Encargos y apartados', 'Registra anticipo, fecha de entrega y saldo, con recibo en PDF y por WhatsApp — en Encargos.'],
+    cuentas: ['Cuentas abiertas', 'Abre una cuenta por mesa o por nombre, agrega rondas y cobra al final, completa o por productos — en Cuentas.'],
+    bonos: ['Bonos y membresías', 'Vende paquetes de sesiones, lavados o kilos y membresías por vigencia, y descuenta cada uso — en Bonos.'],
+    ordenes: ['Órdenes y garantías', 'Recibe equipos con folio y estado previo, avisa cuando están listos y emite el certificado de garantía — en Órdenes.'],
     fichas: ['Fichas con historial', 'Guarda los datos y el historial de cada cliente, mascota, pieza o vehículo, con avisos de lo que vence — en Fichas.'],
     pedprog: ['Pedidos en línea para recoger', 'Tus clientes piden con un QR y eligen la hora — en Pedidos en línea.'],
     caducidad: ['Fechas de caducidad', 'Cada producto puede llevar su fecha de caducidad — en Productos.'],

@@ -2,4 +2,8 @@ User-agent: *
 Allow: /
 Disallow: /pedir.html
 Disallow: /cocina.html
+
+# /games/ ya NO se bloquea aqui: las redes sociales (Facebook, WhatsApp, X) necesitan leer la pagina para armar la vista previa al compartir el enlace.
+# Los juegos no salen en buscadores porque cada pagina lleva <meta name="robots" content="noindex">.
+
 Sitemap: https://puve.yorss01.workers.dev/sitemap.xml
