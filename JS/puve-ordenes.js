@@ -9,6 +9,7 @@
     electronicos: { equipo: 'Equipo', id: 'IMEI o número de serie', previo: 'Estado al recibirlo (golpes, pantalla, accesorios que deja)', problema: 'Falla reportada', dias: 90 },
     talleres: { equipo: 'Vehículo (marca, modelo, año)', id: 'Placa', previo: 'Estado previo del vehículo (golpes, rayones, nivel de gasolina, objetos)', problema: 'Servicio solicitado o falla', dias: 30 },
     refaccionarias: { equipo: 'Pieza o vehículo', id: 'Placa, folio o serie', previo: 'Estado de la pieza al recibirla', problema: 'Defecto reportado', dias: 30 },
+    lavanderias: { equipo: 'Prendas o bolsa (descripción)', id: 'Número de bolsa o ticket', previo: 'Daños o manchas previas que se reciben (para cuidar a ambas partes)', problema: 'Servicio solicitado (lavado, planchado, tintorería…)', dias: 0 },
     joyeria: { equipo: 'Pieza o reloj', id: 'Folio o serie', previo: 'Estado de la pieza al recibirla (rayones, piedras flojas)', problema: 'Trabajo solicitado', dias: 365 }
   };
   const cfg = () => GIROS[enlace.giro()] || { equipo: 'Equipo', id: 'Serie o identificador', previo: 'Estado al recibirlo', problema: 'Problema o servicio', dias: 30 };
