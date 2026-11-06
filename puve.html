@@ -55,6 +55,11 @@
 <script src="JS/puve-combos.js"></script>
 <script src="JS/puve-bitacora.js"></script>
 <script src="JS/puve-produccion.js"></script>
+<script src="JS/puve-compras.js"></script>
+<script src="JS/puve-arqueo.js"></script>
+<script src="JS/puve-reparto.js"></script>
+<script src="JS/puve-gestion.js"></script>
+<script src="JS/puve-citas.js"></script>
 <script src="JS/puve-catalogo.js"></script>
 <script src="JS/puve-recibos.js"></script>
 <script src="JS/puve-fichas.js"></script>
@@ -1954,6 +1959,7 @@
             <div class="campo" id="campoCorteRetiros"><label for="corteRetiros">Retiros</label><input id="corteRetiros" type="number" step="0.01" min="0" value="0"></div>
             <div class="campo"><label for="corteContado">Efectivo contado</label><input id="corteContado" type="number" step="0.01" min="0" required></div>
           </div>
+          <div id="arqueoCorte"></div>
           <div style="display:flex; gap:10px; margin-top:16px;">
             <button class="principal" type="submit" style="width:auto;">Guardar corte</button>
             <button type="button" class="texto" onclick="document.getElementById('panelCorte').classList.remove('activo')">Cancelar</button>
@@ -1967,6 +1973,7 @@
       </table>
       </div>
 
+      <div id="listaArqueos"></div>
       <div class="bloque-analitica oculto" id="bloqueAuditoriaCarrito" style="margin-top:20px;">
         <h3 style="margin-bottom:6px;">Productos eliminados del carrito antes de cobrar</h3>
         <p class="nota" style="margin-bottom:14px;">Si ves a un cajero quitando productos justo antes de cobrar, una y otra vez, vale la pena preguntarle qué pasó.</p>
@@ -2062,6 +2069,7 @@
         <button type="button" class="principal" style="width:auto;" onclick="abrirNuevoEncargo()">Nuevo encargo</button>
       </div>
       <div id="mensajeEncargos" class="mensaje"></div>
+      <div id="encargosCapacidad"></div>
       <div id="listaEncargos"></div>
     </div>
   </div>
@@ -2079,6 +2087,7 @@
         <div class="ag-horario">Horario <select id="agDesde"></select> a <select id="agHasta"></select></div>
       </div>
       <div class="ag-scroll" id="agendaGrid"></div>
+      <div id="agendaExtras" style="margin-top:22px;"></div>
     </div>
   </div>
 
@@ -2161,6 +2170,11 @@
         <button data-vista="prepara" id="tabInvPrepara" style="display:none;" onclick="cambiarVistaInventario('prepara')">Prepara hoy</button>
         <button data-vista="caducidad" onclick="cambiarVistaInventario('caducidad')">Caducidad</button>
         <button data-vista="lotes" onclick="cambiarVistaInventario('lotes')">Lotes</button>
+        <button data-vista="compras" onclick="cambiarVistaInventario('compras')">Compras</button>
+        <button data-vista="precios" onclick="cambiarVistaInventario('precios')">Precios</button>
+        <button data-vista="conteo" onclick="cambiarVistaInventario('conteo')">Conteo</button>
+        <button data-vista="fechas" onclick="cambiarVistaInventario('fechas')">Fechas</button>
+        <button data-vista="reparto" onclick="cambiarVistaInventario('reparto')">Reparto</button>
         <button data-vista="produccion" onclick="cambiarVistaInventario('produccion')">Producción</button>
         <button data-vista="bitacora" onclick="cambiarVistaInventario('bitacora')">Bitácora</button>
         <button data-vista="combos" onclick="cambiarVistaInventario('combos')">Combos</button>
@@ -2190,6 +2204,7 @@
       </div>
       <div id="vistaInventarioMermas" style="display:none;">
       <div class="bloque-analitica">
+        <div id="bloqueMermasResumen" style="margin-bottom:18px;"></div>
         <h3>Mermas y ajustes de inventario</h3>
         <div id="mensajeMovInventario" class="mensaje"></div>
         <div class="rejilla" style="grid-template-columns:1fr 1fr 1fr;">
@@ -2197,6 +2212,7 @@
           <div class="campo"><label for="movTipo">Tipo</label><select id="movTipo" onchange="actualizarEtiquetaMovInventario()"><option value="merma">Merma (se pierde)</option><option value="ajuste">Ajuste (conteo físico)</option></select></div>
           <div class="campo"><label id="etiquetaMovCantidad" for="movCantidad">Cantidad perdida</label><input id="movCantidad" type="number" min="0" step="0.01"></div>
         </div>
+        <div class="campo" id="campoMovCausa"><label for="movCausa">Causa de la merma</label><select id="movCausa"><option value="caducado">Caducado</option><option value="maduracion">Maduración (fruta o verdura pasada)</option><option value="danado">Dañado o roto</option><option value="derrame">Derrame</option><option value="corte">Corte o limpieza</option><option value="empaque">Empaque</option><option value="robo">Faltante o robo</option><option value="otro">Otra causa</option></select></div>
         <div class="campo"><label for="movMotivo">Motivo (opcional)</label><input id="movMotivo" type="text" placeholder="Ej. Caducado, dañado, conteo mensual..."></div>
         <button class="principal" type="button" style="width:auto;" onclick="guardarMovimientoInventario()">Registrar</button>
 
@@ -2210,6 +2226,11 @@
       <div id="vistaInventarioPrepara" style="display:none;"></div>
       <div id="vistaInventarioCaducidad" style="display:none;"></div>
       <div id="vistaInventarioLotes" style="display:none;"></div>
+      <div id="vistaInventarioCompras" style="display:none;"></div>
+      <div id="vistaInventarioReparto" style="display:none;"></div>
+      <div id="vistaInventarioPrecios" style="display:none;"></div>
+      <div id="vistaInventarioConteo" style="display:none;"></div>
+      <div id="vistaInventarioFechas" style="display:none;"></div>
       <div id="vistaInventarioProduccion" style="display:none;"></div>
       <div id="vistaInventarioBitacora" style="display:none;"></div>
       <div id="vistaInventarioCombos" style="display:none;"></div>
@@ -9215,6 +9236,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   const agendaActiva = () => document.getElementById('seccionAgenda').classList.contains('activa');
 
   function abrirAgenda(){
+    try { PuveCitas.abrir(); } catch(e){ console.error(e); }
     const d = document.getElementById('agDesde'), h = document.getElementById('agHasta');
     if(!d.options.length){ for(let i = 0; i <= 23; i++){ const o = el('option', '', pad2(i) + ':00'); o.value = i; d.appendChild(o); } for(let i = 1; i <= 24; i++){ const o = el('option', '', pad2(i) + ':00'); o.value = i; h.appendChild(o); }
       const cambiar = () => { const a = Number(d.value), b = Number(h.value); if(a >= b) return; agendaHoras.ini = a; agendaHoras.fin = b; try { localStorage.setItem('puve_agenda_horas', a + '-' + b); } catch(e){} renderizarAgenda(); };
@@ -10117,11 +10139,17 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   function cambiarVistaInventario(vista){
-    ['ordenes','mermas','proveedores','recetas','prepara','caducidad','lotes','produccion','bitacora','combos','etiquetas','catalogo'].forEach(v => {
+    ['ordenes','mermas','proveedores','recetas','prepara','caducidad','lotes','compras','reparto','precios','conteo','fechas','produccion','bitacora','combos','etiquetas','catalogo'].forEach(v => {
       document.getElementById('vistaInventario' + v.charAt(0).toUpperCase() + v.slice(1)).style.display = (v === vista ? '' : 'none');
     });
     if(vista === 'recetas' || vista === 'caducidad'){ try { PuveInsumos.abrir(vista); } catch(e){ console.error(e); } }
     if(vista === 'lotes'){ try { PuveLotes.abrir(); } catch(e){ console.error(e); } }
+    if(vista === 'precios'){ try { PuveGestion.precios(); } catch(e){ console.error(e); } }
+    if(vista === 'conteo'){ try { PuveGestion.conteo(); } catch(e){ console.error(e); } }
+    if(vista === 'fechas'){ try { PuveGestion.fechas(); } catch(e){ console.error(e); } }
+    if(vista === 'reparto'){ try { PuveReparto.abrir(); } catch(e){ console.error(e); } }
+    if(vista === 'compras'){ try { PuveCompras.abrir(); } catch(e){ console.error(e); } }
+    if(vista === 'mermas'){ try { PuveCompras.abrirMermas(); } catch(e){ console.error(e); } }
     if(vista === 'produccion'){ try { PuveProduccion.abrir(); } catch(e){ console.error(e); } }
     if(vista === 'bitacora'){ try { PuveBitacora.abrir(); } catch(e){ console.error(e); } }
     if(vista === 'combos'){ try { PuveCombos.abrir(); } catch(e){ console.error(e); } }
@@ -13042,6 +13070,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   PuveDecisiones.enlazar({ sb: sb, giro: () => { const g = giroEspecifico(); return g ? g.id : null; }, dinero: (n) => formatoDinero(n) });
   PuveBitacora.enlazar({ sb: sb });
   PuveProduccion.enlazar({ sb: sb });
+  PuveGestion.enlazar({ sb: sb, dinero: (n) => formatoDinero(n), esAdmin: () => esAdminActual, negocio: () => { const e = document.getElementById('nombreNegocioBarra'); const t = e ? e.textContent.trim() : ''; return t && t !== '—' ? t : ''; } });
+  PuveReparto.enlazar({ sb: sb, dinero: (n) => formatoDinero(n), negocio: () => { const e = document.getElementById('nombreNegocioBarra'); const t = e ? e.textContent.trim() : ''; return t && t !== '—' ? t : ''; } });
+  PuveArqueo.enlazar({ sb: sb, dinero: (n) => formatoDinero(n) });
+  PuveCitas.enlazar({ sb: sb, negocio: () => { const e = document.getElementById('nombreNegocioBarra'); const t = e ? e.textContent.trim() : ''; return t && t !== '—' ? t : ''; } });
+  PuveCompras.enlazar({ sb: sb, dinero: (n) => formatoDinero(n), recargarOrdenes: () => { try { cargarOrdenesCompra(); } catch(e){} } });
   PuveCombos.enlazar({ sb: sb, giro: () => { const g = giroEspecifico(); return g ? g.id : null; }, dinero: (n) => formatoDinero(n) });
   PuveEtiquetas.enlazar({ sb: sb, dinero: (n) => formatoDinero(n) });
   PuveCatalogo.enlazar({ sb: sb, negocio: async () => { try { const r = await sb.from('negocios').select('nombre').eq('id', negocioId).maybeSingle(); return (r.data && r.data.nombre) || 'Mi negocio'; } catch(e){ return 'Mi negocio'; } } });
@@ -13086,6 +13119,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('panelCorte').classList.add('activo');
     ocultarMensaje('mensajeCorte');
     const infoCorte = document.getElementById('infoPeriodoCorte');
+    try { PuveArqueo.montar(document.getElementById('arqueoCorte'), document.getElementById('corteContado')); } catch(e){ console.error(e); }
 
     if(esCajero){
       document.getElementById('campoCorteInicial').classList.add('oculto');
@@ -13117,11 +13151,13 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const contado = parseFloat(document.getElementById('corteContado').value);
     if(isNaN(contado)){ mostrarMensaje('mensajeCorte', 'Ingresa el efectivo contado.', 'error'); return false; }
 
+    let desgloseArqueo = null; try { desgloseArqueo = PuveArqueo.desglose(); } catch(e){}
     const { data: resultado, error } = await sb.rpc('registrar_corte_caja', {
       p_efectivo_inicial: inicial, p_retiros: retiros, p_efectivo_contado: contado
     });
 
     if(error){ mostrarMensaje('mensajeCorte', 'No se pudo guardar: ' + error.message, 'error'); return false; }
+    if(desgloseArqueo){ try { await PuveArqueo.guardar(desgloseArqueo); } catch(e){ console.error('Arqueo no guardado', e); } }
 
     if(resultado?.diferencia !== undefined){
       
@@ -13183,6 +13219,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     }
 
     document.getElementById('bloqueAuditoriaCarrito').classList.remove('oculto');
+    try { PuveArqueo.lista(document.getElementById('listaArqueos')); } catch(e){}
     await cargarAuditoriaCarrito();
 
     encabezado.innerHTML = '<th>Fecha</th><th>Efectivo esperado</th><th>Efectivo contado</th><th>Tarjeta</th><th>Transferencia</th><th>Abonos a crédito</th><th>Resultado</th>';
@@ -13373,6 +13410,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   function actualizarEtiquetaMovInventario(){
     const esAjuste = document.getElementById('movTipo').value === 'ajuste';
     document.getElementById('etiquetaMovCantidad').textContent = esAjuste ? 'Nuevo stock contado' : 'Cantidad perdida';
+    const cc = document.getElementById('campoMovCausa'); if(cc) cc.style.display = esAjuste ? 'none' : '';
   }
 
   function poblarSelectProductosInventario(){
@@ -13391,14 +13429,21 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(!productoId){ mostrarMensaje('mensajeMovInventario', 'Elige un producto.', 'error'); return; }
     if(isNaN(cantidad) || cantidad < 0){ mostrarMensaje('mensajeMovInventario', 'Escribe una cantidad válida.', 'error'); return; }
 
-    const { error } = tipo === 'merma'
-      ? await sb.rpc('registrar_merma', { p_producto_id: productoId, p_cantidad: cantidad, p_motivo: motivo })
-      : await sb.rpc('ajustar_inventario', { p_producto_id: productoId, p_nuevo_stock: cantidad, p_motivo: motivo });
+    let error = null;
+    if(tipo === 'merma'){
+      const causa = document.getElementById('movCausa').value;
+      ({ error } = await sb.rpc('merma_causa_registrar', { p_producto_id: productoId, p_cantidad: cantidad, p_causa: causa, p_nota: motivo }));
+      // Si todavía no se ejecuta el SQL 121, se usa el registro de merma de siempre (sin causa).
+      if(error && /does not exist|schema cache|Could not find/i.test(error.message)) ({ error } = await sb.rpc('registrar_merma', { p_producto_id: productoId, p_cantidad: cantidad, p_motivo: motivo }));
+    } else {
+      ({ error } = await sb.rpc('ajustar_inventario', { p_producto_id: productoId, p_nuevo_stock: cantidad, p_motivo: motivo }));
+    }
 
     if(error){ mostrarMensaje('mensajeMovInventario', 'No se pudo registrar: ' + error.message, 'error'); return; }
     document.getElementById('movCantidad').value = '';
     document.getElementById('movMotivo').value = '';
     mostrarMensaje('mensajeMovInventario', 'Movimiento registrado.', 'exito');
+    if(tipo === 'merma'){ try { PuveCompras.abrirMermas(); } catch(e){} }
     await cargarProductos();
     poblarSelectProductosInventario();
     cargarMovimientosInventario();
@@ -15044,7 +15089,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const fm = new Date(f + 'T00:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
     return d < 0 ? { txt: 'Venció el ' + fm, cls: 'err' } : d === 0 ? { txt: 'Se entrega hoy', cls: 'err' } : d <= 2 ? { txt: 'Entrega ' + fm + ' (en ' + d + ' d)', cls: 'err' } : { txt: 'Entrega ' + fm, cls: '' };
   }
-  async function abrirEncargos(){ await cargarEncargos(); }
+  async function abrirEncargos(){ try { PuveGestion.capacidad(); } catch(e){ console.error(e); } await cargarEncargos(); }
   async function cargarEncargos(){
     const cont = idv('listaEncargos'); if(!cont) return; cont.textContent = 'Cargando…';
     const { data, error } = await sb.from('encargos').select('*, encargo_items(*), encargo_abonos(*)').eq('negocio_id', negocioId).eq('estado', 'abierto').order('fecha_entrega', { ascending: true, nullsFirst: false }).order('creado_en').limit(200);
@@ -15104,6 +15149,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const { caja, fondo } = modalBase('Nuevo encargo', 520), lineas = [];
     const campo = (et, tipo, ph) => { caja.appendChild(el('div', 'cr-etq', et)); const i = el('input', 'input-mini'); i.type = tipo || 'text'; i.placeholder = ph || ''; i.style.cssText = 'width:100%; margin-bottom:8px;'; caja.appendChild(i); return i; };
     const nom = campo('Cliente', 'text', 'Nombre'), tel = campo('Teléfono (opcional)', 'tel', ''), fec = campo('Fecha de entrega (opcional)', 'date'), nota = campo('Nota (opcional)', 'text', 'Ej. forrar con plástico');
+    const avFec = el('div', ''); avFec.style.cssText = 'color:#b45309; font-size:13px; margin:-4px 0 8px;'; fec.insertAdjacentElement('afterend', avFec); fec.addEventListener('change', async () => { try { avFec.textContent = await PuveGestion.avisoCapacidad(fec.value); } catch(e){ avFec.textContent = ''; } });
     caja.appendChild(el('div', 'cr-etq', 'Artículos'));
     const q = el('input', 'input-mini'); q.type = 'text'; q.placeholder = 'Buscar artículo (ej. “cart azul”)'; q.style.cssText = 'width:100%;'; caja.appendChild(q);
     const res = el('div', 'filtro-cats'); res.style.cssText = 'flex-wrap:wrap; margin:6px 0;'; caja.appendChild(res);
