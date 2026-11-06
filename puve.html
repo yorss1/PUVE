@@ -1198,6 +1198,7 @@
   body.productos-solo-lectura #tablaProductos td.acciones{ display:none !important; }
   body.productos-solo-lectura .prod-layout{ grid-template-columns:minmax(0,1fr) !important; }
 </style>
+<link rel="canonical" href="https://puve.yorss01.workers.dev/puve.html">
 </head>
 <body>
 
@@ -3000,6 +3001,13 @@
             <div class="rejilla" style="grid-template-columns:1fr; margin-top:12px;">
               <div class="campo"><label for="cfgComisionEmbajador">Comisión por embajador (MXN, por negocio referido que hace su primer pago)</label><input id="cfgComisionEmbajador" type="number" min="0" step="0.01"></div>
             </div>
+            <div class="campo" style="margin-top:16px;">
+              <label>Precio de cajeros nuevos por tramos</label>
+              <p class="nota" style="margin:2px 0 8px;">El primer cajero cuesta el precio de arriba. Aquí defines cuánto cuesta cada cajero que se agrega, según cuántos cajeros tenga el negocio. Si no pones tramos, todos cuestan el precio de arriba. Los tramos son para todos los negocios: también cambian la renovación de los que ya tienen varios cajeros.</p>
+              <div id="cfgTramos"></div>
+              <button type="button" class="texto" onclick="agregarTramoCajero()" style="width:auto; padding:6px 10px;">+ Agregar tramo</button>
+              <p class="nota" id="cfgTramosVista" style="margin:8px 0 0; font-weight:600; color:var(--texto);">—</p>
+            </div>
             <button class="principal" type="submit" style="width:auto; margin-top:12px;">Guardar precio</button>
           </form>
         </div>
@@ -4081,8 +4089,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
   function mostrarMensaje(idEl, texto, tipo){
     const el = document.getElementById(idEl);
+    if(!el) return;
     el.textContent = texto;
     el.className = 'mensaje ' + tipo;
+    el.setAttribute('role', tipo === 'error' ? 'alert' : 'status');
+    // Que el aviso siempre se vea, aunque el formulario sea largo o la pantalla chica.
+    if(tipo === 'error' && el.scrollIntoView){ try { el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch(_){} }
   }
   function ocultarMensaje(idEl){
     const el = document.getElementById(idEl);
@@ -4285,15 +4297,23 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     ocultarMensaje('mensajeAuth');
     const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPass').value;
-    const { data, error } = await sb.auth.signInWithPassword({ email, password });
-    btn.disabled = false; btn.textContent = 'Entrar';
-    if(error){
-      if((error.message || '').includes('Invalid login credentials')){
-        sb.rpc('registrar_log_seguridad', { p_tipo: 'login_fallido', p_negocio_id: null, p_detalle: 'Correo: ' + email }).catch(() => {});
+    try {
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      btn.disabled = false; btn.textContent = 'Entrar';
+      if(error){
+        const credenciales = (error.message || '').includes('Invalid login credentials') || error.code === 'invalid_credentials';
+        if(credenciales){
+          // Promise.resolve: la llamada de Supabase solo trae .then, y un .catch directo rompía la función antes de mostrar el aviso.
+          try { Promise.resolve(sb.rpc('registrar_log_seguridad', { p_tipo: 'login_fallido', p_negocio_id: null, p_detalle: 'Correo: ' + email })).catch(() => {}); } catch(_){}
+          const pass = document.getElementById('loginPass'); if(pass){ pass.value = ''; pass.focus(); }
+        }
+        mostrarMensaje('mensajeAuth', traducirError(error.message, error.code), 'error'); return false;
       }
-      mostrarMensaje('mensajeAuth', traducirError(error.message), 'error'); return false;
+      await entrarApp(data.user);
+    } catch(err){
+      btn.disabled = false; btn.textContent = 'Entrar';
+      mostrarMensaje('mensajeAuth', traducirError(err && err.message, err && err.code), 'error');
     }
-    await entrarApp(data.user);
     return false;
   }
 
@@ -6601,7 +6621,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     window.__cajeroExtraNegocio = negocio;
 
     document.getElementById('cajeroActualCantidad').textContent = negocio.dispositivos_permitidos + ' (' + (negocio.tipo_plan || 'mensual') + ')';
-    document.getElementById('cajeroCostoUnidad').textContent = formatoDinero(calcularMontoEsperado(1, negocio.tipo_plan)) + (negocio.tipo_plan === 'anual' ? ' / año' : ' / mes');
+    document.getElementById('cajeroCostoUnidad').textContent = formatoDinero(calcularMontoEsperado(Number(negocio.dispositivos_permitidos) + 1, negocio.tipo_plan) - calcularMontoEsperado(negocio.dispositivos_permitidos, negocio.tipo_plan)) + (negocio.tipo_plan === 'anual' ? ' / año' : ' / mes') + ' (el próximo)';
 
     actualizarResumenCajeroExtra();
   }
@@ -10688,7 +10708,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(error){
       const esLimite = (error.message || '').toLowerCase().includes('row-level security');
       mostrarMensaje('mensajeCajas', esLimite
-        ? 'Alcanzaste el límite de cajas de tu plan (' + dispositivosPermitidos + '). Cada dispositivo extra cuesta ' + formatoDinero(precioMensualDispositivo) + ' MXN/mes — contacta a soporte de PUVE para contratar más, o revoca una caja que ya no uses.'
+        ? 'Alcanzaste el límite de cajas de tu plan (' + dispositivosPermitidos + '). Tu próximo dispositivo extra cuesta ' + formatoDinero(precioCajeroN(Number(dispositivosPermitidos) + 1)) + ' MXN/mes — contacta a soporte de PUVE para contratar más, o revoca una caja que ya no uses.'
         : 'No se pudo crear: ' + error.message, 'error');
       return;
     }
@@ -10854,7 +10874,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const activos = data.filter(n => !n.baneado);
     const baneados = data.filter(n => n.baneado);
     const dispositivosContratados = activos.reduce((s,n) => s + Number(n.dispositivos_permitidos), 0);
-    const ingresosMensuales = dispositivosContratados * precioMensualDispositivo;
+    const ingresosMensuales = activos.reduce((s,n) => s + precioDispositivosTotal(n.dispositivos_permitidos), 0);
 
     document.getElementById('adminKpiActivos').textContent = activos.length;
     document.getElementById('adminKpiBaneados').textContent = baneados.length;
@@ -11003,7 +11023,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   function calcularMontoEsperado(dispositivos, tipoPlan){
-    const base = Number(dispositivos) * precioMensualDispositivo;
+    const base = precioDispositivosTotal(dispositivos);
     return tipoPlan === 'anual' ? base * 12 * 0.90 : base;
   }
 
@@ -11042,6 +11062,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   let precioMensualDispositivo = 250;
+  // Tramos de precio de los cajeros NUEVOS (SQL 126): [{desde:2, precio:150}, {desde:6, precio:250}] = cajeros 2 a 5 a $150 y del 6 en adelante a $250. Vacío = todos al precio base.
+  let escalonesCajero = [];
+  function precioCajeroDe(n, base, tramos){ let p = base; (tramos || []).forEach((e) => { if(Number(e.desde) <= n) p = Number(e.precio); }); return p; }
+  function totalDispositivosDe(n, base, tramos){ n = Math.max(1, Math.min(1000, Math.floor(Number(n) || 1))); let t = base; for(let i = 2; i <= n; i++) t += precioCajeroDe(i, base, tramos); return t; }
+  function precioCajeroN(n){ return precioCajeroDe(n, precioMensualDispositivo, escalonesCajero); }
+  function precioDispositivosTotal(n){ return totalDispositivosDe(n, precioMensualDispositivo, escalonesCajero); }
 
   async function cargarPrecioPuve(){
     let { data, error } = await sb.rpc('obtener_config_publica_puve');
@@ -11050,6 +11076,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     }
     if(!error && data?.precio_mensual_dispositivo != null){
       precioMensualDispositivo = Number(data.precio_mensual_dispositivo);
+    }
+    if(!error && data && Array.isArray(data.escalones_cajero)){
+      escalonesCajero = data.escalones_cajero.map((e) => ({ desde: Number(e.desde), precio: Number(e.precio) })).filter((e) => e.desde >= 2 && e.precio >= 0).sort((a, b) => a.desde - b.desde);
     }
     if(!error && data){
       const el = document.getElementById('cfgComisionEmbajador');
@@ -11069,12 +11098,64 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   function previsualizarPrecioAnual(){
     const val = Number(document.getElementById('cfgPrecioMensual').value) || 0;
     document.getElementById('previewPrecioAnual').textContent = formatoDinero(val * 12 * 0.90) + ' / año';
+    if(typeof vistaTramos === 'function') vistaTramos();
+  }
+
+  // ---- Editor de tramos de precio por cajero (superadmin) ----
+  let tramosEditor = [];
+  function cargarTramosEditor(){ tramosEditor = escalonesCajero.map((e) => ({ desde: e.desde, precio: e.precio })); pintarTramos(); }
+  function agregarTramoCajero(){
+    if(tramosEditor.length >= 10){ mostrarMensaje('mensajePrecios', 'Máximo 10 tramos.', 'error'); return; }
+    const ult = tramosEditor.length ? Math.max(...tramosEditor.map((t) => Number(t.desde) || 1)) : 1;
+    tramosEditor.push({ desde: ult + 1, precio: Number(document.getElementById('cfgPrecioMensual').value) || precioMensualDispositivo }); pintarTramos();
+  }
+  function quitarTramoCajero(i){ tramosEditor.splice(i, 1); pintarTramos(); }
+  function pintarTramos(){
+    const z = document.getElementById('cfgTramos'); if(!z) return; z.textContent = '';
+    tramosEditor.forEach((t, i) => {
+      const f = document.createElement('div'); f.style.cssText = 'display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:6px; font-size:14px;';
+      const a = document.createElement('input'); a.type = 'number'; a.min = '2'; a.step = '1'; a.value = t.desde; a.style.width = '80px'; a.oninput = () => { t.desde = a.value === '' ? '' : Number(a.value); vistaTramos(); };
+      const b = document.createElement('input'); b.type = 'number'; b.min = '0'; b.step = '0.01'; b.value = t.precio; b.style.width = '100px'; b.oninput = () => { t.precio = b.value === '' ? '' : Number(b.value); vistaTramos(); };
+      const q = document.createElement('button'); q.type = 'button'; q.className = 'texto'; q.textContent = 'Quitar'; q.style.cssText = 'width:auto; padding:5px 9px;'; q.onclick = () => quitarTramoCajero(i);
+      f.appendChild(document.createTextNode('A partir del cajero #')); f.appendChild(a); f.appendChild(document.createTextNode(' cada cajero cuesta $')); f.appendChild(b); f.appendChild(document.createTextNode(' / mes')); f.appendChild(q); z.appendChild(f);
+    });
+    vistaTramos();
+  }
+  function leerTramos(){
+    const base = Number(document.getElementById('cfgPrecioMensual').value);
+    const lim = tramosEditor.map((t) => ({ desde: Number(t.desde), precio: Number(t.precio) }));
+    for(const t of lim){
+      if(!Number.isInteger(t.desde) || t.desde < 2 || t.desde > 1000) return { error: 'En cada tramo, el número de cajero debe ser un entero desde 2.' };
+      if(!isFinite(t.precio) || t.precio < 0 || t.precio > 100000) return { error: 'En cada tramo, el precio debe estar entre 0 y 100000.' };
+    }
+    lim.sort((a, b) => a.desde - b.desde);
+    for(let i = 1; i < lim.length; i++) if(lim[i].desde === lim[i - 1].desde) return { error: 'Hay dos tramos que empiezan en el mismo cajero (#' + lim[i].desde + ').' };
+    return { tramos: lim, base };
+  }
+  function vistaTramos(){
+    const v = document.getElementById('cfgTramosVista'); if(!v) return; const r = leerTramos();
+    if(r.error){ v.textContent = r.error; v.style.color = 'var(--error)'; return; } v.style.color = 'var(--texto)';
+    const base = r.base || precioMensualDispositivo, p = (n) => formatoDinero(totalDispositivosDe(n, base, r.tramos));
+    const partes = [1, 2, 3, 5, 10].map((n) => n + ' cajero' + (n > 1 ? 's' : '') + ': ' + p(n));
+    v.textContent = (r.tramos.length ? 'Total mensual → ' : 'Sin tramos: todos cuestan el precio base. Total mensual → ') + partes.join(' · ');
   }
 
   async function guardarPrecioPuve(e){
     e.preventDefault();
     const nuevo = Number(document.getElementById('cfgPrecioMensual').value);
     if(!nuevo || nuevo <= 0){ mostrarMensaje('mensajePrecios', 'Escribe un precio válido.', 'error'); return false; }
+    const lectura = leerTramos();
+    if(lectura.error){ mostrarMensaje('mensajePrecios', lectura.error, 'error'); return false; }
+    const tramosCambian = JSON.stringify(lectura.tramos) !== JSON.stringify(escalonesCajero);
+    if(tramosCambian){
+      // Aviso de impacto: los tramos también mueven la renovación de los negocios que ya tienen varios cajeros.
+      const { data: negs } = await sb.from('negocios').select('dispositivos_permitidos, baneado');
+      const afectados = (negs || []).filter((n) => !n.baneado && Number(n.dispositivos_permitidos) > 1);
+      if(afectados.length){
+        const dif = afectados.reduce((s, n) => s + totalDispositivosDe(n.dispositivos_permitidos, nuevo, lectura.tramos) - precioDispositivosTotal(n.dispositivos_permitidos), 0);
+        if(!window.confirm('Este cambio también modifica la renovación de ' + afectados.length + ' negocio(s) con varios cajeros: ' + (dif >= 0 ? '+' : '−') + formatoDinero(Math.abs(dif)) + ' al mes en total. ¿Guardar?')) return false;
+      }
+    }
     const comisionEl = document.getElementById('cfgComisionEmbajador');
     const nuevaComision = comisionEl ? Number(comisionEl.value) : null;
     if(comisionEl && (nuevaComision == null || isNaN(nuevaComision) || nuevaComision < 0)){
@@ -11082,9 +11163,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     }
     const cambios = { precio_mensual_dispositivo: nuevo };
     if(comisionEl) cambios.comision_embajador_pesos = nuevaComision;
+    if(tramosCambian) cambios.escalones_cajero = lectura.tramos;
     const { error } = await sb.from('configuracion_puve').update(cambios).eq('id', 1);
-    if(error){ mostrarMensaje('mensajePrecios', 'No se pudo guardar: ' + error.message, 'error'); return false; }
+    if(error){ mostrarMensaje('mensajePrecios', /escalones_cajero/.test(error.message || '') ? 'Falta ejecutar el script SQL 126 en Supabase para guardar los tramos.' : 'No se pudo guardar: ' + error.message, 'error'); return false; }
+    if(tramosCambian) escalonesCajero = lectura.tramos;
     precioMensualDispositivo = nuevo;
+    vistaTramos();
     actualizarTextosPrecioPlan();
     mostrarMensaje('mensajePrecios', 'Precio actualizado — los negocios lo ven de inmediato.', 'exito');
     return false;
@@ -11258,6 +11342,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       cargarDatosFiscalesPuve();
       document.getElementById('cfgPrecioMensual').value = precioMensualDispositivo;
       previsualizarPrecioAnual();
+      cargarTramosEditor();
       document.getElementById('kpiEmbajadoresFinanzas').classList.remove('oculto');
       sb.rpc('admin_pasivo_embajadores').then(({ data, error }) => {
         document.getElementById('finKpiEmbajadores').textContent = error ? '—' : formatoDinero(data || 0);
@@ -13643,14 +13728,33 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     `).join('');
   }
 
-  function traducirError(msg){
+  function traducirError(msg, codigo){
     const mapa = {
-      'Invalid login credentials': 'Correo o contraseña incorrectos.',
+      'Invalid login credentials': 'Contraseña incorrecta (o el correo no es el correcto). Revisa que estén bien escritos.',
       'User already registered': 'Ya existe una cuenta con ese correo.',
       'Password should be at least 6 characters': 'La contraseña debe tener al menos 6 caracteres.',
       'Email not confirmed': 'Debes confirmar tu correo antes de entrar.'
     };
-    return mapa[msg] || msg;
+    const porCodigo = {
+      invalid_credentials: mapa['Invalid login credentials'],
+      user_already_exists: mapa['User already registered'],
+      email_exists: mapa['User already registered'],
+      weak_password: 'La contraseña es muy débil. Usa al menos 6 caracteres.',
+      email_not_confirmed: mapa['Email not confirmed'],
+      over_request_rate_limit: 'Demasiados intentos seguidos. Espera unos minutos e inténtalo de nuevo.',
+      over_email_send_rate_limit: 'Se enviaron muchos correos seguidos. Espera unos minutos e inténtalo de nuevo.',
+      user_banned: 'Esta cuenta está suspendida. Contacta a soporte.',
+      session_not_found: 'Tu sesión ya no es válida. Entra de nuevo.',
+      validation_failed: 'Revisa que el correo y la contraseña estén bien escritos.'
+    };
+    if(mapa[msg]) return mapa[msg];
+    if(codigo && porCodigo[codigo]) return porCodigo[codigo];
+    const m = String(msg || '');
+    if(/failed to fetch|networkerror|load failed|network request failed/i.test(m)) return 'No se pudo conectar. Revisa tu internet e inténtalo de nuevo.';
+    if(/rate limit|too many requests/i.test(m)) return porCodigo.over_request_rate_limit;
+    if(/unable to validate email|invalid email/i.test(m)) return 'Escribe un correo válido.';
+    if(/new password should be different/i.test(m)) return 'La contraseña nueva debe ser distinta de la anterior.';
+    return m || 'No se pudo completar la acción. Inténtalo de nuevo.';
   }
 
   actualizarIndicadorConexion();
