@@ -1514,6 +1514,13 @@
         <p class="nota" style="margin:0;">Tu negocio fue bloqueado por PUVE — contacta a soporte para que revisen tu cuenta.</p>
       </div>
 
+      <div id="selectorPlanPago" class="oculto" style="margin-bottom:16px;">
+        <div class="nota" style="margin:0 0 8px; font-weight:600; color:var(--texto);">Elige cómo quieres pagar</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button type="button" id="btnPlanPagoMensual" onclick="elegirPlanAlPagar('mensual')" style="flex:1 1 160px; text-align:left; padding:10px 12px; border:1px solid var(--borde); border-radius:10px; background:transparent; color:var(--texto); cursor:pointer;"></button>
+          <button type="button" id="btnPlanPagoAnual" onclick="elegirPlanAlPagar('anual')" style="flex:1 1 160px; text-align:left; padding:10px 12px; border:1px solid var(--borde); border-radius:10px; background:transparent; color:var(--texto); cursor:pointer;"></button>
+        </div>
+      </div>
       <div id="bloquePlanPago">
         <div class="fila"><span class="k">Tu plan</span><span class="v" id="pagoTipoPlan">—</span></div>
         <div class="fila"><span class="k">Monto a pagar</span><span class="v" id="pagoMontoPlan">—</span></div>
@@ -2988,25 +2995,28 @@
 
         <div class="bloque-analitica oculto" id="bloquePrecios">
           <h3 style="margin-bottom:4px;">Precio de PUVE</h3>
-          <p class="nota" style="margin:0 0 14px;">Se cobra por cada dispositivo contratado. El anual se calcula solo, con 10% de descuento.</p>
+          <p class="nota" style="margin:0 0 14px;">Es lo que paga cada negocio por PUVE con 1 cajero incluido; los cajeros extra se configuran abajo. El anual se calcula solo, con 10% de descuento.</p>
           <div id="mensajePrecios" class="mensaje"></div>
           <form id="formPrecios" onsubmit="return guardarPrecioPuve(event)">
             <div class="rejilla" style="grid-template-columns:1fr 1fr; align-items:end;">
-              <div class="campo"><label for="cfgPrecioMensual">Precio mensual por dispositivo (MXN)</label><input id="cfgPrecioMensual" type="number" min="0.01" step="0.01" oninput="previsualizarPrecioAnual()"></div>
+              <div class="campo"><label for="cfgPrecioMensual">Precio mensual de PUVE con 1 cajero incluido (MXN)</label><input id="cfgPrecioMensual" type="number" min="0.01" step="0.01" oninput="previsualizarPrecioAnual()"></div>
               <div class="campo">
-                <label>Precio anual por dispositivo (automático)</label>
+                <label>Precio anual con 1 cajero incluido (automático)</label>
                 <p class="nota" id="previewPrecioAnual" style="margin:9px 0 0; font-weight:600; color:var(--texto);">—</p>
               </div>
             </div>
             <div class="rejilla" style="grid-template-columns:1fr; margin-top:12px;">
               <div class="campo"><label for="cfgComisionEmbajador">Comisión por embajador (MXN, por negocio referido que hace su primer pago)</label><input id="cfgComisionEmbajador" type="number" min="0" step="0.01"></div>
             </div>
-            <div class="campo" style="margin-top:16px;">
-              <label>Precio de cajeros nuevos por tramos</label>
-              <p class="nota" style="margin:2px 0 8px;">El primer cajero cuesta el precio de arriba. Aquí defines cuánto cuesta cada cajero que se agrega, según cuántos cajeros tenga el negocio. Si no pones tramos, todos cuestan el precio de arriba. Los tramos son para todos los negocios: también cambian la renovación de los que ya tienen varios cajeros.</p>
-              <div id="cfgTramos"></div>
-              <button type="button" class="texto" onclick="agregarTramoCajero()" style="width:auto; padding:6px 10px;">+ Agregar tramo</button>
-              <p class="nota" id="cfgTramosVista" style="margin:8px 0 0; font-weight:600; color:var(--texto);">—</p>
+            <div class="campo" style="margin-top:18px;">
+              <label>Cajeros extra</label>
+              <p class="nota" style="margin:2px 0 10px;">El precio de arriba incluye 1 cajero. Aquí controlas cuánto cuesta cada cajero extra y desde cuántos cajeros vuelve a costar más. Se refleja en la membresía mensual y en la anual. Son precios para todos los negocios: también cambian la renovación de los que ya tienen varios cajeros.</p>
+              <div class="rejilla" style="grid-template-columns:1fr 1fr 1fr; gap:10px; align-items:end;">
+                <div class="campo"><label for="cfgExtraPrecio">Precio de cada cajero extra (MXN/mes)</label><input id="cfgExtraPrecio" type="number" min="0" step="0.01" placeholder="Igual al precio de arriba" oninput="vistaTramos()"></div>
+                <div class="campo"><label for="cfgExtraDesde">Desde el cajero número… (contando el incluido)</label><input id="cfgExtraDesde" type="number" min="3" step="1" placeholder="Ej. 5 · vacío = no cambia" oninput="vistaTramos()"></div>
+                <div class="campo"><label for="cfgExtraPrecio2">…cada cajero extra cuesta (MXN/mes)</label><input id="cfgExtraPrecio2" type="number" min="0" step="0.01" placeholder="Ej. 250" oninput="vistaTramos()"></div>
+              </div>
+              <p class="nota" id="cfgTramosVista" style="margin:10px 0 0; font-weight:600; color:var(--texto); line-height:1.5;">—</p>
             </div>
             <button class="principal" type="submit" style="width:auto; margin-top:12px;">Guardar precio</button>
           </form>
@@ -5418,6 +5428,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     }
     document.getElementById('bloqueBloqueoManual').classList.toggle('oculto', !bloqueoManual);
     document.getElementById('bloquePlanPago').classList.toggle('oculto', !!bloqueoManual);
+    document.getElementById('selectorPlanPago').classList.add('oculto');
     if(bloqueoManual){
       document.getElementById('bloqueFichaPago').style.display = 'none';
       return;
@@ -5430,6 +5441,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     await cargarDescuentoReferido();
     const monto = montoConReferido(calcularMontoEsperado(dispositivos, tipoPlan), tipoPlan, descuentoReferido);
 
+    pintarSelectorPlanPago(dispositivos, tipoPlan);
     document.getElementById('pagoTipoPlan').textContent = tipoPlan + ' · ' + dispositivos + ' dispositivo(s)';
     document.getElementById('pagoMontoPlan').textContent = formatoDinero(monto) + (hayDescuentoReferido(tipoPlan, descuentoReferido) ? ' · precio de bienvenida' : '');
     window.__montoBasePago = monto;
@@ -5626,6 +5638,33 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       return;
     }
     location.href = data.url;
+  }
+
+  // El encargado elige mensual o anual ANTES de pagar. Se guarda en el negocio (SQL 127) para que ficha, Stripe y SPEI cobren con ese plan.
+  function pintarSelectorPlanPago(dispositivos, tipoPlan){
+    const z = document.getElementById('selectorPlanPago'); if(!z) return;
+    z.classList.toggle('oculto', miRol !== 'admin');
+    const m = montoConReferido(calcularMontoEsperado(dispositivos, 'mensual'), 'mensual', descuentoReferido);
+    const a = montoConReferido(calcularMontoEsperado(dispositivos, 'anual'), 'anual', descuentoReferido);
+    const pinta = (id, plan, titulo, linea1, linea2) => {
+      const b = document.getElementById(id); b.textContent = ''; const sel = tipoPlan === plan;
+      const t = document.createElement('div'); t.style.cssText = 'font-weight:700; font-size:14px;'; t.textContent = titulo + (sel ? ' ✓' : '');
+      const l1 = document.createElement('div'); l1.style.cssText = 'font-size:13px;'; l1.textContent = linea1;
+      const l2 = document.createElement('div'); l2.className = 'nota'; l2.style.margin = '2px 0 0'; l2.textContent = linea2;
+      b.appendChild(t); b.appendChild(l1); b.appendChild(l2);
+      b.style.borderColor = sel ? 'var(--texto)' : 'var(--borde)'; b.style.borderWidth = sel ? '2px' : '1px'; b.setAttribute('aria-pressed', sel ? 'true' : 'false');
+    };
+    pinta('btnPlanPagoMensual', 'mensual', 'Mensual', formatoDinero(m) + ' / mes', 'Pagas cada mes');
+    pinta('btnPlanPagoAnual', 'anual', 'Anual', formatoDinero(a) + ' / año', '10% de descuento · equivale a ' + formatoDinero(a / 12) + ' al mes');
+  }
+  async function elegirPlanAlPagar(plan){
+    if(miRol !== 'admin') return;
+    ocultarMensaje('mensajePagoPendiente');
+    const { data, error } = await sb.rpc('elegir_plan_de_pago', { p_plan: plan });
+    if(error){ mostrarMensaje('mensajePagoPendiente', /elegir_plan_de_pago|schema cache|does not exist/i.test(error.message || '') ? 'Falta ejecutar el script SQL 127 en Supabase para poder elegir el plan aquí.' : error.message, 'error'); return; }
+    window.__cuponAplicado = null;
+    await mostrarPantallaPagoPendiente(false);
+    if(data && data.cambio) mostrarMensaje('mensajePagoPendiente', 'Plan ' + (plan === 'anual' ? 'anual' : 'mensual') + ' elegido. Ahora haz tu pago y se activa.', 'exito');
   }
 
   async function generarFichaPago(){
@@ -11101,43 +11140,43 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(typeof vistaTramos === 'function') vistaTramos();
   }
 
-  // ---- Editor de tramos de precio por cajero (superadmin) ----
-  let tramosEditor = [];
-  function cargarTramosEditor(){ tramosEditor = escalonesCajero.map((e) => ({ desde: e.desde, precio: e.precio })); pintarTramos(); }
-  function agregarTramoCajero(){
-    if(tramosEditor.length >= 10){ mostrarMensaje('mensajePrecios', 'Máximo 10 tramos.', 'error'); return; }
-    const ult = tramosEditor.length ? Math.max(...tramosEditor.map((t) => Number(t.desde) || 1)) : 1;
-    tramosEditor.push({ desde: ult + 1, precio: Number(document.getElementById('cfgPrecioMensual').value) || precioMensualDispositivo }); pintarTramos();
-  }
-  function quitarTramoCajero(i){ tramosEditor.splice(i, 1); pintarTramos(); }
-  function pintarTramos(){
-    const z = document.getElementById('cfgTramos'); if(!z) return; z.textContent = '';
-    tramosEditor.forEach((t, i) => {
-      const f = document.createElement('div'); f.style.cssText = 'display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:6px; font-size:14px;';
-      const a = document.createElement('input'); a.type = 'number'; a.min = '2'; a.step = '1'; a.value = t.desde; a.style.width = '80px'; a.oninput = () => { t.desde = a.value === '' ? '' : Number(a.value); vistaTramos(); };
-      const b = document.createElement('input'); b.type = 'number'; b.min = '0'; b.step = '0.01'; b.value = t.precio; b.style.width = '100px'; b.oninput = () => { t.precio = b.value === '' ? '' : Number(b.value); vistaTramos(); };
-      const q = document.createElement('button'); q.type = 'button'; q.className = 'texto'; q.textContent = 'Quitar'; q.style.cssText = 'width:auto; padding:5px 9px;'; q.onclick = () => quitarTramoCajero(i);
-      f.appendChild(document.createTextNode('A partir del cajero #')); f.appendChild(a); f.appendChild(document.createTextNode(' cada cajero cuesta $')); f.appendChild(b); f.appendChild(document.createTextNode(' / mes')); f.appendChild(q); z.appendChild(f);
-    });
+  // ---- Cajeros extra (superadmin): 3 campos que se guardan como tramos ----
+  // precio del cajero extra (desde el #2) + opcionalmente «desde el cajero #N cada uno cuesta $Y».
+  function cargarTramosEditor(){
+    const a = document.getElementById('cfgExtraPrecio'), n = document.getElementById('cfgExtraDesde'), b = document.getElementById('cfgExtraPrecio2'); if(!a || !n || !b) return;
+    a.value = ''; n.value = ''; b.value = '';
+    const t = escalonesCajero.slice();
+    if(t[0] && t[0].desde === 2){ a.value = t[0].precio; t.shift(); }
+    if(t[0]){ n.value = t[0].desde; b.value = t[0].precio; }
     vistaTramos();
   }
   function leerTramos(){
     const base = Number(document.getElementById('cfgPrecioMensual').value);
-    const lim = tramosEditor.map((t) => ({ desde: Number(t.desde), precio: Number(t.precio) }));
-    for(const t of lim){
-      if(!Number.isInteger(t.desde) || t.desde < 2 || t.desde > 1000) return { error: 'En cada tramo, el número de cajero debe ser un entero desde 2.' };
-      if(!isFinite(t.precio) || t.precio < 0 || t.precio > 100000) return { error: 'En cada tramo, el precio debe estar entre 0 y 100000.' };
+    const txt = (id) => document.getElementById(id).value.trim();
+    const hayX = txt('cfgExtraPrecio') !== '', hayN = txt('cfgExtraDesde') !== '', hayY = txt('cfgExtraPrecio2') !== '';
+    const X = Number(txt('cfgExtraPrecio')), N = Number(txt('cfgExtraDesde')), Y = Number(txt('cfgExtraPrecio2'));
+    const tramos = [];
+    if(hayX){
+      if(!isFinite(X) || X < 0 || X > 100000) return { error: 'El precio del cajero extra debe estar entre 0 y 100000.' };
+      tramos.push({ desde: 2, precio: X });
     }
-    lim.sort((a, b) => a.desde - b.desde);
-    for(let i = 1; i < lim.length; i++) if(lim[i].desde === lim[i - 1].desde) return { error: 'Hay dos tramos que empiezan en el mismo cajero (#' + lim[i].desde + ').' };
-    return { tramos: lim, base };
+    if(hayN || hayY){
+      if(!hayN || !hayY) return { error: 'Para que el precio cambie llena los dos campos: desde qué cajero y cuánto cuesta.' };
+      if(!Number.isInteger(N) || N < 2 || N > 1000) return { error: 'El número de cajero debe ser un entero desde 2.' };
+      if(hayX && N <= 2) return { error: 'El cambio de precio debe empezar en el cajero 3 o después (el 2 ya tiene su precio).' };
+      if(!isFinite(Y) || Y < 0 || Y > 100000) return { error: 'El precio nuevo debe estar entre 0 y 100000.' };
+      tramos.push({ desde: N, precio: Y });
+    }
+    return { tramos, base };
   }
   function vistaTramos(){
     const v = document.getElementById('cfgTramosVista'); if(!v) return; const r = leerTramos();
     if(r.error){ v.textContent = r.error; v.style.color = 'var(--error)'; return; } v.style.color = 'var(--texto)';
-    const base = r.base || precioMensualDispositivo, p = (n) => formatoDinero(totalDispositivosDe(n, base, r.tramos));
-    const partes = [1, 2, 3, 5, 10].map((n) => n + ' cajero' + (n > 1 ? 's' : '') + ': ' + p(n));
-    v.textContent = (r.tramos.length ? 'Total mensual → ' : 'Sin tramos: todos cuestan el precio base. Total mensual → ') + partes.join(' · ');
+    const base = r.base || precioMensualDispositivo, tot = (n) => totalDispositivosDe(n, base, r.tramos), cuantos = [1, 2, 3, 4, 5, 10];
+    v.textContent = (r.tramos.length ? '' : 'Sin precio especial: cada cajero extra cuesta lo mismo que el precio de arriba. ') +
+      'Mensual → ' + cuantos.map((n) => n + ' cajero' + (n > 1 ? 's' : '') + ': ' + formatoDinero(tot(n))).join(' · ') +
+      '\nAnual (10% menos) → ' + cuantos.map((n) => n + ': ' + formatoDinero(tot(n) * 12 * 0.90)).join(' · ');
+    v.style.whiteSpace = 'pre-line';
   }
 
   async function guardarPrecioPuve(e){
