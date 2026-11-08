@@ -83,8 +83,8 @@
 
   // ================= FECHAS IMPORTANTES DE CLIENTES =================
   let zFec = null;
-  async function fechas(){
-    zFec = zFec || document.getElementById('vistaInventarioFechas'); if(!zFec) return; zFec.textContent = '';
+  async function fechas(z0){
+    if(z0) zFec = z0; zFec = zFec || document.getElementById('vistaInventarioFechas'); if(!zFec) return; zFec.textContent = '';
     zFec.appendChild(h('h3', null, 'Fechas importantes de tus clientes', 'margin:0 0 4px;')); zFec.appendChild(h('p', 'nota', 'Guarda cumpleaños, aniversarios y otras ocasiones. PUVE te muestra las que vienen y abre WhatsApp con el mensaje; tú lo envías. Guarda solo datos que el cliente te haya dado.', 'margin:0 0 10px;'));
     const zp = h('div'), zf = h('div'), zt = h('div'); zFec.appendChild(zp); zFec.appendChild(zf); zFec.appendChild(zt);
     const est = h('div'); const nom = input('', 'Nombre', 80), tel = input('', 'Teléfono', 20), oc = sel([['Cumpleaños', 'Cumpleaños'], ['Aniversario', 'Aniversario'], ['Día de las madres', 'Día de las madres'], ['__otra', 'Otra…']]), oc2 = input('', 'Ocasión', 60), mes = sel(MESES.map((m, i) => [String(i + 1), m])), dia = sel(Array.from({ length: 31 }, (_, i) => [String(i + 1), String(i + 1)])), nota = input('', 'Nota (ej. le gustan las rosas)', 120);
