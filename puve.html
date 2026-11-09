@@ -1198,6 +1198,112 @@
   body.productos-solo-lectura #tablaProductos thead th:last-child,
   body.productos-solo-lectura #tablaProductos td.acciones{ display:none !important; }
   body.productos-solo-lectura .prod-layout{ grid-template-columns:minmax(0,1fr) !important; }
+
+  /* ===== SUPERADMIN · cómodo en teléfono (tablas en tarjetas + chat de soporte estilo mensajería) ===== */
+  /* — Soporte: bandeja + conversación (escritorio: dos columnas) — */
+  .soporte-admin{ display:grid; grid-template-columns:300px minmax(0,1fr); gap:16px; align-items:start; }
+  .soporte-lista{ background:var(--superficie); border:1px solid var(--borde); border-radius:12px; max-height:560px; overflow-y:auto; }
+  .soporte-vacio{ margin:0; padding:18px 16px; }
+  .soporte-item{ all:unset; box-sizing:border-box; display:flex; align-items:center; gap:12px; width:100%; padding:12px 14px; cursor:pointer; border-bottom:1px solid var(--borde); -webkit-tap-highlight-color:transparent; }
+  .soporte-item:last-child{ border-bottom:none; }
+  .soporte-item:hover,.soporte-item.activa{ background:var(--fondo); }
+  .soporte-item:active{ background:var(--borde); }
+  .soporte-item:focus-visible{ outline:2px solid var(--foco); outline-offset:-2px; }
+  .soporte-avatar{ flex:0 0 auto; width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:var(--acento,#111); color:var(--texto-sobre-acento,#fff); font-size:14px; font-weight:600; letter-spacing:.02em; }
+  .soporte-item-texto{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:3px; }
+  .soporte-item-fila{ display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0; }
+  .soporte-item-fila strong{ font-size:14.5px; font-weight:600; color:var(--texto); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .soporte-hora{ flex:0 0 auto; font-size:11.5px; color:var(--texto-suave); }
+  .soporte-preview{ font-size:13px; color:var(--texto-suave); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+  .soporte-badge{ flex:0 0 auto; min-width:20px; height:20px; padding:0 6px; border-radius:99px; background:var(--error); color:#fff; font-size:11.5px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; }
+
+  .soporte-conv:not(.abierta){ background:var(--superficie); border:1px dashed var(--borde); border-radius:12px; padding:18px 16px; }
+  .soporte-conv:not(.abierta) .nota{ margin:0; }
+  .soporte-conv.abierta{ display:flex; flex-direction:column; height:560px; background:var(--superficie); border:1px solid var(--borde); border-radius:12px; overflow:hidden; }
+  .soporte-conv-cab{ flex:0 0 auto; display:flex; align-items:center; gap:12px; padding:10px 14px; border-bottom:1px solid var(--borde); background:var(--superficie); }
+  .soporte-conv-titulo{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; }
+  .soporte-conv-titulo strong{ font-size:15px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .soporte-conv-titulo .nota{ margin:0; font-size:12px; }
+  .soporte-volver,.soporte-cerrar{ all:unset; box-sizing:border-box; flex:0 0 auto; width:40px; height:40px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; color:var(--texto); -webkit-tap-highlight-color:transparent; }
+  .soporte-volver:hover,.soporte-cerrar:hover{ background:var(--fondo); }
+  .soporte-volver:focus-visible,.soporte-cerrar:focus-visible{ outline:2px solid var(--foco); }
+  .soporte-volver svg,.soporte-cerrar svg{ width:22px; height:22px; }
+  .soporte-volver{ display:none; }
+  .soporte-conv-cuerpo{ flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:16px; display:flex; flex-direction:column; gap:8px; background:var(--fondo); }
+  .soporte-conv-cuerpo .chat-burbuja{ max-width:78%; }
+  .soporte-msg-hora{ display:block; margin-top:3px; font-size:10.5px; opacity:.65; text-align:right; }
+  .soporte-conv-pie{ flex:0 0 auto; display:flex; align-items:flex-end; gap:8px; padding:10px 12px; border-top:1px solid var(--borde); background:var(--superficie); }
+  .soporte-conv-pie textarea{ flex:1 1 auto; min-width:0; resize:none; max-height:112px; padding:10px 14px; border:1px solid var(--borde); border-radius:20px; background:var(--fondo); color:var(--texto); font:inherit; font-size:16px; line-height:1.35; }
+  .soporte-conv-pie textarea:focus{ outline:2px solid var(--foco); outline-offset:-1px; }
+  .soporte-enviar{ all:unset; box-sizing:border-box; flex:0 0 auto; width:42px; height:42px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; background:var(--acento,#111); color:var(--texto-sobre-acento,#fff); -webkit-tap-highlight-color:transparent; }
+  .soporte-enviar svg{ width:20px; height:20px; }
+  .soporte-enviar:active{ transform:scale(.94); }
+  .soporte-enviar:focus-visible{ outline:2px solid var(--texto); outline-offset:2px; }
+
+  /* — Teléfono y tablet vertical — */
+  @media (max-width:820px){
+    /* Chat: la lista ocupa todo el ancho y la conversación abre en pantalla completa con botón de regresar */
+    .soporte-admin{ display:block; }
+    .soporte-lista{ max-height:none; border-radius:16px; }
+    .soporte-item{ padding:14px 16px; }
+    .soporte-conv:not(.abierta){ display:none; }
+    .soporte-conv.abierta{
+      position:fixed; inset:0; z-index:9100; height:auto; border:none; border-radius:0; background:var(--fondo);
+    }
+    @supports (height:100dvh){ .soporte-conv.abierta{ height:100dvh; bottom:auto; } }
+    .soporte-conv-cab{ padding:calc(8px + env(safe-area-inset-top, 0px)) 10px 8px; }
+    .soporte-volver{ display:inline-flex; }
+    .soporte-cerrar{ display:none; }
+    .soporte-conv-cuerpo{ padding:14px 12px; }
+    .soporte-conv-cuerpo .chat-burbuja{ max-width:86%; }
+    .soporte-conv-pie{ padding:8px 10px calc(8px + env(safe-area-inset-bottom, 0px)); }
+
+    /* KPIs del panel: 2 por fila, compactos, para llegar rápido a la lista */
+    #seccionAdmin .kpis{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+    #seccionAdmin .kpi{ padding:14px 14px 12px; border-radius:16px; }
+    #seccionAdmin .kpi .etiqueta{ font-size:11.5px; line-height:1.25; }
+    #seccionAdmin .kpi .valor{ font-size:22px; margin-top:4px; overflow-wrap:anywhere; }
+
+    /* Barra de filtros / acciones de Negocios */
+    #seccionAdmin .barra-negocios .barra-negocios-filtros input{ min-width:0 !important; }
+    #seccionAdmin .barra-negocios .barra-negocios-filtros #filtroTexto{ grid-column:1 / -1; }
+    #seccionAdmin .barra-negocios-acciones{ width:100%; }
+    #seccionAdmin .barra-negocios-acciones button{ flex:1 1 100%; width:100% !important; min-height:44px; }
+
+    /* Pestañas del panel: fila deslizable, sin barra de scroll visible */
+    #seccionAdmin .tabs-admin{ flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+    #seccionAdmin .tabs-admin::-webkit-scrollbar{ display:none; }
+    #seccionAdmin .tabs-admin button{ flex:0 0 auto; white-space:nowrap; }
+
+    /* Tablas del superadmin → tarjetas (sin scroll horizontal). Las etiquetas salen del encabezado de cada columna. */
+    #seccionAdmin .envoltura-tabla{ overflow:visible; border-radius:0; max-height:none; }
+    #seccionAdmin table,
+    #seccionAdmin .envoltura-tabla table{ display:block; min-width:0 !important; width:100%; background:transparent; border:none; border-radius:0; }
+    #seccionAdmin table thead{ display:none; }
+    #seccionAdmin table tbody{ display:flex; flex-direction:column; gap:10px; }
+    #seccionAdmin table tbody tr{ display:block; background:var(--superficie); border:1px solid var(--borde); border-radius:16px; padding:2px 16px 14px; overflow:hidden; }
+    #seccionAdmin table tbody td{ display:block; position:relative; padding:9px 0 9px 42%; min-height:38px; text-align:right; font-size:13.5px; line-height:1.4; border-bottom:1px solid var(--borde); overflow-wrap:anywhere; }
+    #seccionAdmin table tbody td[data-label]::before{ content:attr(data-label); position:absolute; left:0; top:11px; width:38%; text-align:left; font-size:11px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; color:var(--texto-suave); }
+    /* primera celda = título de la tarjeta */
+    #seccionAdmin table tbody td.pv-titulo{ padding:14px 0 10px; text-align:left; font-size:15.5px; font-weight:600; color:var(--texto); }
+    #seccionAdmin table tbody td.nombre-negocio:hover{ text-decoration:none; }
+    #seccionAdmin table tbody td.pv-vacio{ padding:22px 0; text-align:center; border-bottom:none; color:var(--texto-suave); }
+    #seccionAdmin table tbody tr:has(> td.pv-vacio){ padding:0 16px; }
+    /* última celda de datos sin raya, si no hay botones */
+    #seccionAdmin table tbody td:last-child{ border-bottom:none; }
+    /* botones: ordenaditos, grandes y con texto visible */
+    #seccionAdmin table tbody td.acciones{ display:flex; flex-wrap:wrap; gap:8px; padding:14px 0 0; border-bottom:none; text-align:center; white-space:normal; min-height:0; }
+    #seccionAdmin table tbody td.acciones button{
+      flex:1 1 calc(50% - 8px); min-height:42px; padding:9px 10px; font-size:13px; font-weight:600; line-height:1.2;
+      border:1px solid var(--borde); border-radius:12px; background:var(--fondo); color:var(--texto); white-space:normal;
+    }
+    #seccionAdmin table tbody td.acciones button.editar{ color:var(--foco); }
+    #seccionAdmin table tbody td.acciones button.reactivar{ color:var(--exito); }
+    #seccionAdmin table tbody td.acciones button.eliminar{ color:var(--error); }
+    #seccionAdmin table tbody td.acciones button.boton-gestionar-negocio{ flex-basis:100%; background:#111; color:#fff; border-color:#111; }
+    #seccionAdmin table tbody td.acciones button.boton-eliminar-negocio{ flex-basis:100%; background:#000 !important; color:#fff !important; border-color:#000; }
+    #seccionAdmin table tbody td.acciones button:active{ transform:scale(.97); }
+  }
 </style>
 <link rel="canonical" href="https://puve.yorss01.workers.dev/puve.html">
 </head>
@@ -3331,13 +3437,9 @@
 
       <div id="vistaAdminSoporteHumano" style="display:none;">
         <p class="nota" style="margin:0 0 16px;">Conversaciones que los encargados empezaron desde "Hablar con PUVE".</p>
-        <div style="display:grid; grid-template-columns:280px 1fr; gap:16px; align-items:start;">
-          <div class="envoltura-tabla" style="max-height:520px; overflow-y:auto;">
-            <table>
-              <tbody id="cuerpoInboxSoporte"><tr><td class="nota">Sin conversaciones todavía.</td></tr></tbody>
-            </table>
-          </div>
-          <div id="panelConversacionSoporte">
+        <div class="soporte-admin">
+          <div class="soporte-lista" id="cuerpoInboxSoporte"><p class="nota soporte-vacio">Sin conversaciones todavía.</p></div>
+          <div class="soporte-conv" id="panelConversacionSoporte">
             <p class="nota">Elige una conversación de la lista.</p>
           </div>
         </div>
@@ -7658,6 +7760,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(vista === 'backups') cargarBackups();
     if(vista === 'bugs') cargarBugs();
     if(vista === 'controles') cargarControlesFunciones();
+    if(vista !== 'soporte-humano' && __soporteNegocioActivo) cerrarConversacionSoporte();
     if(vista === 'soporte-humano') cargarInboxSoporte();
   }
 
@@ -12247,55 +12350,150 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   
+  var __soporteNegocioActivo = null;
+  var __soporteHistorial = false;
+  const SVG_SOPORTE_VOLVER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>';
+  const SVG_SOPORTE_CERRAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+  const SVG_SOPORTE_ENVIAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>';
+
+  function soporteEsMovil(){ return window.matchMedia('(max-width:820px)').matches; }
+  function soporteIniciales(nombre){
+    const partes = String(nombre || '?').trim().split(/\s+/).filter(Boolean).slice(0, 2);
+    return (partes.map(p => p.charAt(0)).join('') || '?').toUpperCase();
+  }
+  function soporteFechaCorta(f){
+    if(!f) return '';
+    const d = new Date(f);
+    if(isNaN(d)) return '';
+    return d.toDateString() === new Date().toDateString()
+      ? d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+      : d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+  }
+  function soporteFechaMensaje(f){
+    if(!f) return '';
+    const d = new Date(f);
+    if(isNaN(d)) return '';
+    const hora = d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    return d.toDateString() === new Date().toDateString() ? hora : d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) + ' · ' + hora;
+  }
+
   async function cargarInboxSoporte(){
     const { data, error } = await sb.rpc('admin_listar_conversaciones_soporte');
     const cuerpo = document.getElementById('cuerpoInboxSoporte');
     const badge = document.getElementById('badgeInboxSoporte');
-    if(error){ cuerpo.innerHTML = '<tr><td class="nota">No se pudo cargar: ' + escapar(error.message) + '</td></tr>'; return; }
+    if(error){ cuerpo.innerHTML = '<p class="nota soporte-vacio">No se pudo cargar: ' + escapar(error.message) + '</p>'; return; }
     const lista = data || [];
     const totalSinLeer = lista.reduce((s, c) => s + Number(c.sin_leer || 0), 0);
     if(badge){ badge.textContent = totalSinLeer; badge.classList.toggle('oculto', !totalSinLeer); }
-    if(!lista.length){ cuerpo.innerHTML = '<tr><td class="nota">Sin conversaciones todavía.</td></tr>'; return; }
+    if(!lista.length){ cuerpo.innerHTML = '<p class="nota soporte-vacio">Sin conversaciones todavía.</p>'; return; }
     cuerpo.innerHTML = lista.map(c => `
-      <tr style="cursor:pointer;" onclick="abrirConversacionSoporte(${jsAttr(c.negocio_id)}, ${jsAttr(c.negocio_nombre)})">
-        <td>
-          <div style="font-weight:600;">${escapar(c.negocio_nombre)}${Number(c.sin_leer) > 0 ? ` <span style="background:var(--error); color:#fff; border-radius:99px; padding:1px 7px; font-size:11px;">${c.sin_leer}</span>` : ''}</div>
-          <div class="nota" style="margin:2px 0 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:240px;">${escapar(c.ultimo_texto || '')}</div>
-        </td>
-      </tr>
+      <button type="button" class="soporte-item${c.negocio_id === __soporteNegocioActivo ? ' activa' : ''}" onclick="abrirConversacionSoporte(${jsAttr(c.negocio_id)}, ${jsAttr(c.negocio_nombre)})">
+        <span class="soporte-avatar">${escapar(soporteIniciales(c.negocio_nombre))}</span>
+        <span class="soporte-item-texto">
+          <span class="soporte-item-fila"><strong>${escapar(c.negocio_nombre)}</strong><span class="soporte-hora">${escapar(soporteFechaCorta(c.ultimo_mensaje))}</span></span>
+          <span class="soporte-item-fila"><span class="soporte-preview">${escapar(c.ultimo_texto || '')}</span>${Number(c.sin_leer) > 0 ? `<span class="soporte-badge">${Number(c.sin_leer)}</span>` : ''}</span>
+        </span>
+      </button>
     `).join('');
   }
 
-  async function abrirConversacionSoporte(negocioId, nombre){
-    const panel = document.getElementById('panelConversacionSoporte');
-    panel.innerHTML = '<p class="nota">Cargando...</p>';
+  function pintarMensajesSoporteAdmin(mensajes){
+    const cuerpo = document.getElementById('chatCuerpoAdminSoporte');
+    if(!cuerpo) return;
+    cuerpo.innerHTML = mensajes.length
+      ? mensajes.map(m => `<div class="chat-burbuja ${m.rol_mensaje === 'usuario' ? 'asistente' : 'usuario'}">${escapar(m.contenido)}<span class="soporte-msg-hora">${escapar(soporteFechaMensaje(m.creado_en))}</span></div>`).join('')
+      : '<p class="nota">Sin mensajes.</p>';
+    cuerpo.scrollTop = cuerpo.scrollHeight;
+  }
+
+  async function refrescarMensajesSoporte(negocioId){
     const { data, error } = await sb.rpc('admin_ver_conversacion_soporte', { p_negocio_id: negocioId });
-    if(error){ panel.innerHTML = '<p class="nota">No se pudo cargar: ' + escapar(error.message) + '</p>'; return; }
-    const mensajes = data || [];
+    if(__soporteNegocioActivo !== negocioId) return;
+    const cuerpo = document.getElementById('chatCuerpoAdminSoporte');
+    if(!cuerpo) return;
+    if(error){ cuerpo.innerHTML = '<p class="nota">No se pudo cargar: ' + escapar(error.message) + '</p>'; return; }
+    pintarMensajesSoporteAdmin(data || []);
+  }
+
+  async function abrirConversacionSoporte(negocioId, nombre){
+    __soporteNegocioActivo = negocioId;
+    const panel = document.getElementById('panelConversacionSoporte');
+    panel.classList.add('abierta');
+    // En teléfono se abre en pantalla completa: se agrega un paso al historial para que el botón "atrás" del teléfono también regrese a la lista
+    if(soporteEsMovil() && !__soporteHistorial){ try { history.pushState({ pvSoporte: 1 }, ''); __soporteHistorial = true; } catch(e){} }
     panel.innerHTML = `
-      <h3 style="margin:0 0 12px;">${escapar(nombre)}</h3>
-      <div class="chat-panel-integrado" style="height:400px;">
-        <div class="chat-cuerpo" id="chatCuerpoAdminSoporte">${mensajes.map(m => `<div class="chat-burbuja ${m.rol_mensaje === 'usuario' ? 'asistente' : 'usuario'}">${escapar(m.contenido)}</div>`).join('') || '<p class="nota">Sin mensajes.</p>'}</div>
-        <div class="chat-pie">
-          <textarea id="chatInputAdminSoporte" rows="1" placeholder="Escribe tu respuesta..."></textarea>
-          <button type="button" class="principal" onclick="enviarRespuestaSoporte(${jsAttr(negocioId)}, ${jsAttr(nombre)})">Enviar</button>
-        </div>
+      <div class="soporte-conv-cab">
+        <button type="button" class="soporte-volver" aria-label="Volver a las conversaciones" onclick="cerrarConversacionSoporte()">${SVG_SOPORTE_VOLVER}</button>
+        <span class="soporte-avatar">${escapar(soporteIniciales(nombre))}</span>
+        <div class="soporte-conv-titulo"><strong>${escapar(nombre)}</strong><span class="nota">Soporte PUVE</span></div>
+        <button type="button" class="soporte-cerrar" aria-label="Cerrar conversación" onclick="cerrarConversacionSoporte()">${SVG_SOPORTE_CERRAR}</button>
+      </div>
+      <div class="soporte-conv-cuerpo" id="chatCuerpoAdminSoporte"><p class="nota">Cargando...</p></div>
+      <div class="soporte-conv-pie">
+        <textarea id="chatInputAdminSoporte" rows="1" placeholder="Escribe tu respuesta..." oninput="autoAjustarChatInput(this)" onkeydown="if(event.key==='Enter' && !event.shiftKey && !soporteEsMovil()){ event.preventDefault(); enviarRespuestaSoporte(${jsAttr(negocioId)}, ${jsAttr(nombre)}); }"></textarea>
+        <button type="button" class="soporte-enviar" aria-label="Enviar respuesta" onclick="enviarRespuestaSoporte(${jsAttr(negocioId)}, ${jsAttr(nombre)})">${SVG_SOPORTE_ENVIAR}</button>
       </div>
     `;
-    const cuerpo = document.getElementById('chatCuerpoAdminSoporte');
-    cuerpo.scrollTop = cuerpo.scrollHeight;
+    await refrescarMensajesSoporte(negocioId);
     cargarInboxSoporte();
   }
 
+  function cerrarConversacionSoporte(desdeHistorial){
+    if(!desdeHistorial && __soporteHistorial){ __soporteHistorial = false; try { history.back(); } catch(e){} }
+    __soporteNegocioActivo = null;
+    const panel = document.getElementById('panelConversacionSoporte');
+    if(!panel) return;
+    panel.classList.remove('abierta');
+    panel.innerHTML = '<p class="nota">Elige una conversación de la lista.</p>';
+    if(!desdeHistorial) cargarInboxSoporte();
+  }
+
+  window.addEventListener('popstate', () => {
+    if(__soporteHistorial){ __soporteHistorial = false; cerrarConversacionSoporte(true); cargarInboxSoporte(); }
+  });
+
   async function enviarRespuestaSoporte(negocioId, nombre){
     const input = document.getElementById('chatInputAdminSoporte');
+    if(!input) return;
     const texto = input.value.trim();
     if(!texto) return;
     input.value = '';
+    input.style.height = 'auto';
     const { error } = await sb.rpc('admin_responder_soporte', { p_negocio_id: negocioId, p_contenido: texto });
     if(error){ alert('No se pudo enviar: ' + error.message); input.value = texto; return; }
-    abrirConversacionSoporte(negocioId, nombre);
+    await refrescarMensajesSoporte(negocioId);   // solo se actualizan los mensajes: el cuadro de texto conserva el foco
+    input.focus();
+    cargarInboxSoporte();
   }
+
+  /* — Tablas del superadmin → tarjetas en teléfono: cada celda toma su etiqueta del encabezado de su columna.
+       Se vuelve a aplicar sola cada vez que alguna función repinta las filas. — */
+  (function(){
+    function etiquetarTabla(tabla){
+      const cab = Array.from(tabla.querySelectorAll('thead th')).map(th => th.textContent.trim());
+      if(!cab.length) return;
+      tabla.querySelectorAll('tbody tr').forEach(tr => {
+        const celdas = Array.from(tr.children).filter(c => c.tagName === 'TD');
+        if(celdas.length === 1 && celdas[0].colSpan > 1){ celdas[0].classList.add('pv-vacio'); return; }
+        celdas.forEach((td, i) => {
+          if(i === 0){ td.classList.add('pv-titulo'); return; }
+          if(td.classList.contains('acciones')) return;
+          if(cab[i]) td.setAttribute('data-label', cab[i]);
+        });
+      });
+    }
+    const raiz = document.getElementById('seccionAdmin');
+    if(!raiz) return;
+    let pendiente = false;
+    function repasar(){
+      pendiente = false;
+      raiz.querySelectorAll('table').forEach(etiquetarTabla);
+    }
+    // Un solo observador para todo el panel: también cubre tablas que se crean después (Métricas, etc.)
+    new MutationObserver(() => { if(!pendiente){ pendiente = true; requestAnimationFrame(repasar); } })
+      .observe(raiz, { childList: true, subtree: true });
+    repasar();
+  })();
 
   async function cargarBugs(){
     const { data, error } = await sb.from('bugs_puve').select('*, negocios(nombre)').order('creado_en', { ascending: false }).limit(100);
