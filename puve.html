@@ -5218,11 +5218,18 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     }
     cargarPinConfiguradoGlobal();
     if(miRol === 'admin' || miRol === 'vendedor') actualizarBadgeSoporteHumano();
-    const { data: perfil, error } = await sb
-      .from('perfiles')
-      .select('nombre, rol, negocio_id, negocios ( nombre, dispositivos_permitidos, baneado, motivo_baneo, bloqueado_por_pago, configuracion, pais, estado, municipio, codigo_postal )')
-      .eq('id', user.id)
-      .single();
+    // El negocio se pide por separado (sin relación incrustada perfiles→negocios): así entrar NO depende de cómo estén las relaciones entre esas tablas en la API de Supabase.
+    let perfil = null, error = null;
+    {
+      const rp = await sb.from('perfiles').select('nombre, rol, negocio_id').eq('id', user.id).single();
+      perfil = rp.data; error = rp.error;
+      if(!error && perfil){
+        const rn = await sb.from('negocios')
+          .select('nombre, dispositivos_permitidos, baneado, motivo_baneo, bloqueado_por_pago, configuracion, pais, estado, municipio, codigo_postal')
+          .eq('id', perfil.negocio_id).maybeSingle();
+        if(rn.error) error = rn.error; else perfil = Object.assign({}, perfil, { negocios: rn.data });
+      }
+    }
 
     if(error){
       if(esErrorDeRed(error)){
@@ -10874,8 +10881,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const vacio = document.getElementById('adminVacio');
     let { data: crudo, error } = await sb
       .from('negocios')
-      .select('id, nombre, dispositivos_permitidos, baneado, motivo_baneo, created_at, tipo_plan, pais, estado, municipio, codigo_postal, perfiles(count)')
+      .select('id, nombre, dispositivos_permitidos, baneado, motivo_baneo, created_at, tipo_plan, pais, estado, municipio, codigo_postal, perfiles!negocio_id(count)')
       .order('created_at', { ascending: false });
+    if(error){
+      // Si la API no resuelve la relación con perfiles, se carga la lista sin el conteo de usuarios en vez de romper el panel.
+      ({ data: crudo, error } = await sb.from('negocios')
+        .select('id, nombre, dispositivos_permitidos, baneado, motivo_baneo, created_at, tipo_plan, pais, estado, municipio, codigo_postal')
+        .order('created_at', { ascending: false }));
+    }
 
     if(error){
       cuerpo.innerHTML = '';
@@ -14415,7 +14428,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(await rechazarCuentaDeJuego(user)) return;
     window.__usuarioSesionPendiente = user;
 
-    const { data: perfil } = await sb.from('perfiles').select('nombre, rol, negocios(nombre)').eq('id', user.id).maybeSingle();
+    let perfil = null;
+    {
+      const rp = await sb.from('perfiles').select('nombre, rol, negocio_id').eq('id', user.id).maybeSingle();
+      perfil = rp.data;
+      if(perfil && perfil.negocio_id){ const rn = await sb.from('negocios').select('nombre').eq('id', perfil.negocio_id).maybeSingle(); perfil = Object.assign({}, perfil, { negocios: rn.data || null }); }
+    }
 
     document.getElementById('vistaAuth').style.display = 'none';
     document.getElementById('vistaSesionActiva').style.display = 'flex';
