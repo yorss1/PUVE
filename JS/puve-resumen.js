@@ -1,689 +1,551 @@
-/* PUVE - Resumen (PUVE IA)
- * Un chat que contesta en palabras muy simples cómo va el negocio: ventas, ganancia, gastos, lo que más y menos se vende,
- * inventario, caducidades, horas fuertes, formas de pago, cajeros, clientes y recomendaciones.
- * NO usa modelos externos: entiende la pregunta con diccionarios de palabras (como Atención a cliente), lee los datos que PUVE ya
- * consulta en Analítica y arma las respuestas con frases según cada situación. Se muestran como tarjetitas (notificaciones).
- * Solo lee: no cambia ventas, inventario ni precios. La seguridad la dan las reglas de la base (RLS): cada quien solo recibe
- * lo de su negocio; el cajero solo ve lo suyo y nada de ganancias, gastos ni costos.
+/* PUVE IA · Resumen (chat que explica el negocio como un amigo)
+ * Entiende la pregunta (puve-ia-nlu.js), lee los datos (puve-ia-datos.js) y contesta con una recomendación concreta y palabras sencillas.
+ * Aprende sola: cada "me sirvió" y cada corrección entrena el clasificador de ese negocio; si varios negocios coinciden, pasa a ser vocabulario de todos
+ * (con el filtro de la base de datos, SQL 131). Sin modelos externos. Solo lee: no cambia ventas, inventario ni precios.
  */
 (function(){
   'use strict';
-  let enlace = {
-    sb: null,
-    dinero: (n) => '$' + Number(n || 0).toLocaleString('es-MX', { maximumFractionDigits: 2 }),
-    productos: () => [], rol: () => null, usuarioId: () => null
-  };
-  const DIAS_SEM = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
-  const DIAS_BONITO = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-  const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-  const NUMEROS = { una: 1, uno: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10, once: 11, doce: 12 };
+  const N = window.PuveIaNlu, D = window.PuveIaDatos;
+  let enlace = { sb: null, dinero: (n) => '$' + Number(n || 0).toLocaleString('es-MX', { maximumFractionDigits: 2 }), productos: () => [], rol: () => null, usuarioId: () => null };
 
-  // ---------- utilidades ----------
-  const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9: -]/g, ' ').replace(/\s+/g, ' ').trim();
-  const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const pad = (n) => String(n).padStart(2, '0');
+  // ---------- utilidades de redacción ----------
+  const $d = (n) => enlace.dinero(n), $r = (n) => enlace.dinero(Math.round(Number(n) || 0));
   const cap = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
-  const inicioDia = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const suma = (d, dias) => { const x = new Date(d); x.setDate(x.getDate() + dias); return x; };
-  const conHora = (d, h, m) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m || 0);
-  const fechaLocal = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
-  const $d = (n) => enlace.dinero(n);
-  const $r = (n) => enlace.dinero(Math.round(Number(n) || 0));
-  const SIN_PREP = /^(hoy|ayer|antier|el (lunes|martes|miércoles|jueves|viernes|sábado|domingo|\d))/;
-  const en = (t) => SIN_PREP.test(t.etiqueta) ? t.etiqueta : 'en ' + t.etiqueta;
-  const de = (t) => SIN_PREP.test(t.etiqueta) && !/^el /.test(t.etiqueta) ? t.etiqueta : (/^el /.test(t.etiqueta) ? 'del ' + t.etiqueta.slice(3) : 'de ' + t.etiqueta);
-  const fmt = (n) => { n = Number(n) || 0; return Number.isInteger(n) ? String(n) : n.toFixed(1); };
+  const fmt = (n) => { n = Number(n) || 0; return Number.isInteger(n) ? String(n) : (Math.abs(n) < 10 ? n.toFixed(1) : String(Math.round(n))); };
   const veces = (n, s, p) => n + ' ' + (n === 1 ? s : p);
   const lista = (a) => a.length <= 1 ? a.join('') : a.slice(0, -1).join(', ') + ' y ' + a[a.length - 1];
   const semilla = () => { const d = new Date(); return d.getFullYear() * 372 + d.getMonth() * 31 + d.getDate(); };
   const variante = (arr, extra) => arr[Math.abs(semilla() + (extra || 0)) % arr.length];
-  const esCajero = () => enlace.rol() === 'vendedor';
-  const puedeCostos = () => enlace.rol() === 'admin';
-  const carta = (tono, icono, titulo, texto, consejo, acciones) => ({ tono, icono, titulo, texto, consejo: consejo || null, acciones: acciones || null });
+  const esCajero = () => enlace.rol() === 'vendedor', puedeCostos = () => enlace.rol() === 'admin';
+  const SIN_PREP = /^(hoy|ayer|antier|el (lunes|martes|miércoles|jueves|viernes|sábado|domingo|\d))/;
+  const en = (t) => SIN_PREP.test(t.etiqueta) ? t.etiqueta : 'en ' + t.etiqueta;
+  const dias = (d) => d < 1 ? 'menos de un día' : (d < 1.5 ? 'un día' : 'unos ' + Math.round(d) + ' días');
+  // bloques de un mensaje: párrafo, lista, pasos y sugerencias
+  const P = (x) => ({ t: 'p', x }), L = (titulo, filas) => ({ t: 'lista', titulo, filas }), S = (titulo, items) => ({ t: 'pasos', titulo, items }), C = (items) => ({ t: 'chips', items });
+  const sug = (x) => ({ texto: x, pregunta: x });
 
-  // ---------- horas en palabras ----------
-  function horaT(h, m){ const b = h % 24 === 0 ? 12 : (h % 24 > 12 ? h % 24 - 12 : h % 24); return b + (m ? ':' + pad(m) : ''); }
-  function perT(h){ h = h % 24; if(h === 12) return 'del día'; if(h === 0) return 'de la noche'; if(h < 12) return 'de la mañana'; return h < 19 ? 'de la tarde' : 'de la noche'; }
-  function rangoTexto(hh){
-    if(hh.nombre) return { manana: 'en la mañana', tarde: 'en la tarde', noche: 'en la noche' }[hh.nombre];
-    const p1 = perT(hh.h1), p2 = perT(hh.h2), a = horaT(hh.h1, hh.m1), b = horaT(hh.h2, hh.m2);
-    return p1 === p2 ? 'de ' + a + ' a ' + b + ' ' + p1 : 'de ' + a + ' ' + p1 + ' a ' + b + ' ' + p2;
+  function compara(act, prev, etPrev){
+    if(!prev && !act) return '';
+    if(!prev) return cap(etPrev) + ' no hubo ventas, así que vas mejor.';
+    const dif = act - prev, rel = dif / prev;
+    if(Math.abs(rel) < 0.03) return 'Vas casi igual que ' + etPrev + '.';
+    return dif > 0 ? variante(['Eso es ' + $d(dif) + ' más que ' + etPrev + '.', 'Son ' + $d(dif) + ' más que ' + etPrev + '.'], 1) : variante(['Eso es ' + $d(-dif) + ' menos que ' + etPrev + '.', 'Son ' + $d(-dif) + ' menos que ' + etPrev + '.'], 1);
   }
-  function horaFuerteTexto(h){ return rangoTexto({ h1: h, m1: 0, h2: h + 1, m2: 0 }); }
+  const topProductos = (a, n) => Object.entries(a.productos).map(([nombre, v]) => Object.assign({ nombre }, v)).sort((x, y) => y.cant - x.cant).slice(0, n || 3);
+  const stockBajo = () => enlace.productos().filter((p) => D.esFisico(p) && Number(p.stock) <= 5).sort((a, b) => Number(a.stock) - Number(b.stock));
+  function porCaducar(){
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    return enlace.productos().filter((p) => p.fecha_caducidad && D.esFisico(p) && Number(p.stock) > 0).map((p) => ({ p, dias: Math.ceil((new Date(p.fecha_caducidad + 'T00:00:00').getTime() - hoy.getTime()) / 86400000) })).filter((x) => x.dias <= 7).sort((a, b) => a.dias - b.dias);
+  }
+  const NOMBRE_PAGO = { efectivo: 'efectivo', tarjeta: 'tarjeta', transferencia: 'transferencia', mixto: 'pagos combinados' };
+  async function rpc(nombre, args){ try { const r = await enlace.sb.rpc(nombre, args); return r.error ? null : r.data; } catch(e){ return null; } }
 
-  // ---------- entender el horario de la pregunta ----------
-  function resolverHora(n, mer, global){
-    n = Number(n);
-    if(n >= 13) return n;
-    const m = mer || global;
-    if(m === 'am') return n === 12 ? 0 : n;
-    if(m === 'pm') return n === 12 ? 12 : n + 12;
-    if(n >= 1 && n <= 6) return n + 12;   // en una tienda "de 2 a 5" casi siempre es de la tarde
-    return n;
-  }
-  function extraerHoras(t0){
-    const t = t0.replace(/(^| )(una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)(?= |$)/g, (x, sp, w) => sp + NUMEROS[w]);
-    const global = /(^| )(de|en|por|a) la (tarde|noche)/.test(t) ? 'pm' : (/(^| )(de|en|por) la manana/.test(t) ? 'am' : null);
-    const mer = (s) => !s ? null : (s.charAt(0) === 'a' ? 'am' : 'pm');
-    const NO = '(?!\\s*(?:dias|dia|semanas|semana|meses|mes|piezas|productos|pesos|ventas|articulos|veces|clientes|unidades))';
-    let m = t.match(new RegExp('(?:^| )(?:de|desde|entre)\\s+(?:las |la )?(\\d{1,2})(?::(\\d{2}))?\\s*(am|pm|a m|p m)?(?:\\s*(?:horas|hrs|hs|h))?(?:\\s+(?:a|hasta|y)\\s+|\\s*-\\s*)(?:las |la )?(\\d{1,2})(?::(\\d{2}))?\\s*(am|pm|a m|p m)?' + NO));
-    if(m){
-      if(Number(m[1]) > 24 || Number(m[4]) > 24) return null;
-      const gl = global || mer(m[6]) || mer(m[3]);
-      const h1 = resolverHora(m[1], mer(m[3]), gl);
-      let h2 = resolverHora(m[4], mer(m[6]), gl);
-      if(h2 <= h1){ if(h2 < 12 && h2 + 12 > h1) h2 += 12; else h2 = Math.min(24, h1 + 1); }
-      return { h1, m1: Number(m[2]) || 0, h2: Math.min(24, h2), m2: Number(m[5]) || 0 };
-    }
-    m = t.match(new RegExp('(?:^| )a las? (\\d{1,2})(?::(\\d{2}))?\\s*(am|pm|a m|p m)?' + NO));
-    if(m && Number(m[1]) <= 24){
-      const h = resolverHora(m[1], mer(m[3]), global), mm = Number(m[2]) || 0;
-      return { h1: h, m1: mm, h2: Math.min(24, h + 1), m2: mm };
-    }
-    m = t.match(/(?:^| )(?:esta|en la|por la|de la) (manana|tarde|noche)(?: |$)/);
-    if(m){ const r = { manana: [6, 12], tarde: [12, 19], noche: [19, 24] }[m[1]]; return { h1: r[0], m1: 0, h2: r[1], m2: 0, nombre: m[1] }; }
-    return null;
-  }
-
-  function parseTiempo(texto, ahoraRef){
-    const t = norm(texto), ahora = ahoraRef || new Date(), hoy0 = inicioDia(ahora);
-    const r = { tipo: 'dia', explicito: false };
-    let dia = null, diaEt = null, m;
-    if(/(^| )(antier|anteayer)( |$)/.test(t)){ dia = suma(hoy0, -2); diaEt = 'antier'; }
-    else if(/(^| )ayer( |$)/.test(t)){ dia = suma(hoy0, -1); diaEt = 'ayer'; }
-    else if(/(^| )hoy( |$)/.test(t)){ dia = hoy0; diaEt = 'hoy'; }
-    if(!dia && (m = t.match(/(?:^| )(domingo|lunes|martes|miercoles|jueves|viernes|sabado)(?: |$)/))){
-      const idx = DIAS_SEM.indexOf(m[1]), dif = (hoy0.getDay() - idx + 7) % 7;
-      dia = suma(hoy0, -dif); diaEt = dif === 0 ? 'hoy' : 'el ' + DIAS_BONITO[idx];
-    }
-    if(!dia && (m = t.match(new RegExp('(?:^| )(\\d{1,2}) de (' + MESES.join('|') + ')(?: |$)')))){
-      const mes = MESES.indexOf(m[2]); let d = new Date(ahora.getFullYear(), mes, Number(m[1]));
-      if(d > hoy0) d = new Date(ahora.getFullYear() - 1, mes, Number(m[1]));
-      dia = d; diaEt = 'el ' + m[1] + ' de ' + m[2];
-    }
-    const lunesDe = (d) => suma(d, -((d.getDay() + 6) % 7));
-    if(/semana pasada|semana anterior/.test(t)){
-      const l = lunesDe(hoy0); Object.assign(r, { tipo: 'semana', desde: suma(l, -7), hasta: l, prevDesde: suma(l, -14), prevHasta: suma(l, -7), etiqueta: 'la semana pasada', etPrev: 'la semana anterior', explicito: true });
-    } else if(/mes pasado|mes anterior/.test(t)){
-      const i = new Date(ahora.getFullYear(), ahora.getMonth(), 1), d0 = new Date(i.getFullYear(), i.getMonth() - 1, 1);
-      Object.assign(r, { tipo: 'mes', desde: d0, hasta: i, prevDesde: new Date(i.getFullYear(), i.getMonth() - 2, 1), prevHasta: d0, etiqueta: 'el mes pasado', etPrev: 'el mes anterior', explicito: true });
-    } else if((m = t.match(/ultim[oa]s? (\d{1,3}) (dias|semanas|meses)/)) || /ultim[oa] (semana|mes)/.test(t)){
-      let n, unidad;
-      if(m){ n = Number(m[1]); unidad = m[2]; } else { unidad = /ultim[oa] semana/.test(t) ? 'semana' : 'mes'; n = 1; }
-      const dias = Math.max(1, /dia/.test(unidad) ? n : (/seman/.test(unidad) ? n * 7 : n * 30));
-      const desde = suma(hoy0, -(dias - 1));
-      const nombre = n === 1 && !/dias/.test(unidad) ? (unidad === 'mes' || unidad === 'meses' ? 'el último mes' : 'la última semana') : 'los últimos ' + n + ' ' + ({ dias: 'días', semanas: 'semanas', meses: 'meses' }[unidad] || unidad);
-      Object.assign(r, { tipo: 'dias', desde, hasta: ahora, prevDesde: suma(desde, -dias), prevHasta: desde, etiqueta: nombre, etPrev: 'el periodo anterior', explicito: true });
-    } else if(/(^| )semana( |$)/.test(t)){
-      const l = lunesDe(hoy0);
-      Object.assign(r, { tipo: 'semana', desde: l, hasta: ahora, prevDesde: suma(l, -7), prevHasta: suma(ahora, -7), etiqueta: 'esta semana', etPrev: 'la semana pasada', explicito: true });
-    } else if(/(^| )mes( |$)/.test(t)){
-      const i = new Date(ahora.getFullYear(), ahora.getMonth(), 1), p0 = new Date(i.getFullYear(), i.getMonth() - 1, 1);
-      Object.assign(r, { tipo: 'mes', desde: i, hasta: ahora, prevDesde: p0, prevHasta: new Date(Math.min(i.getTime(), new Date(p0.getFullYear(), p0.getMonth(), ahora.getDate(), ahora.getHours(), ahora.getMinutes()).getTime())), etiqueta: 'este mes', etPrev: 'el mes pasado', explicito: true });
-    }
-    if(r.tipo === 'dia'){
-      const base = dia || hoy0, et = diaEt || 'hoy', hh = extraerHoras(t);
-      if(hh){
-        r.tipo = 'horas'; r.horas = hh; r.explicito = true;
-        r.desde = conHora(base, hh.h1, hh.m1); r.hasta = hh.h2 >= 24 ? suma(base, 1) : conHora(base, hh.h2, hh.m2);
-        r.prevDesde = suma(r.desde, -1); r.prevHasta = suma(r.hasta, -1);
-        r.etiqueta = et + ' ' + rangoTexto(hh); r.etPrev = et === 'hoy' ? 'ayer en ese mismo horario' : 'el día anterior en ese mismo horario';
-      } else if(base.getTime() === hoy0.getTime()){
-        Object.assign(r, { desde: hoy0, hasta: ahora, prevDesde: suma(hoy0, -1), prevHasta: suma(ahora, -1), etiqueta: 'hoy', etPrev: 'ayer a esta misma hora' });
-        if(dia) r.explicito = true;
-      } else {
-        Object.assign(r, { desde: base, hasta: suma(base, 1), prevDesde: suma(base, -1), prevHasta: base, etiqueta: et, etPrev: et === 'ayer' ? 'antier' : 'el día anterior', explicito: true });
-      }
-    }
-    r.dias = Math.max(1, Math.round((r.hasta - r.desde) / 86400000));
-    return r;
-  }
-  const ultimos = (n) => parseTiempo('ultimos ' + n + ' dias');
-
-  // ---------- diccionario de preguntas (palabras que activan cada tema) ----------
-  const DICC = [
-    { id: 'salud', claves: ['salud', 'como esta mi negocio', 'como va mi negocio', 'como esta todo', 'como va todo', 'diagnostico', 'chequeo', 'voy bien', 'estoy bien', 'como estoy'] },
-    { id: 'resumen', claves: ['resumen', 'como me fue', 'como me va', 'como nos fue', 'como nos va', 'como va el dia', 'que tal', 'dame todo', 'reporte', 'balance', 'del dia', 'como estuvo'] },
-    { id: 'ventas', claves: ['vendi', 'vendimos', 'vendio', 'venta', 'ventas', 'vendo', 'ingreso', 'ingresos', 'entro', 'cobre', 'cobramos', 'llevo', 'facturado', 'cuanto dinero'] },
-    { id: 'ganancia', claves: ['gane', 'ganancia', 'ganancias', 'ganando', 'utilidad', 'margen', 'me quedo', 'me queda de ganancia', 'rentable', 'saque'] },
-    { id: 'gastos', claves: ['gaste', 'gasto', 'gastos', 'gastando', 'pague', 'egresos', 'renta', 'luz', 'sueldos'] },
-    { id: 'top', claves: ['mas vendido', 'mas vendidos', 'que se vende mas', 'que mas se vende', 'lo que mas', 'mas sale', 'estrella', 'popular', 'populares', 'mas pedido', 'top', 'que vendo mas', 'que se vendio mas', 'mejores productos', 'que se vende'] },
-    { id: 'lentos', claves: ['menos vendido', 'menos vendidos', 'no se vende', 'no se vendio', 'no sale', 'no se mueve', 'lento', 'lentos', 'parado', 'estancado', 'sin ventas', 'no vendo', 'que se vende menos', 'se vende menos', 'peores productos', 'sin salida'] },
-    { id: 'stock', claves: ['stock', 'inventario', 'acab', 'se acaba', 'se acabo', 'se acabando', 'agotar', 'agotado', 'agotados', 'falta', 'faltan', 'quedan', 'queda', 'existencia', 'existencias', 'reponer', 'resurtir', 'surtir', 'comprar', 'por acabarse', 'poco', 'pocos'] },
-    { id: 'riesgo', claves: ['caduc', 'vencer', 'vence', 'vencen', 'vencido', 'vencidos', 'merma', 'echar a perder', 'echando a perder', 'riesgo', 'perder', 'por vencer'] },
-    { id: 'horas', claves: ['que hora', 'a que hora', 'hora pico', 'horas pico', 'mejor hora', 'peor hora', 'hora fuerte', 'horas fuertes', 'hora floja', 'horario', 'horarios', 'cuando vendo', 'cuando se vende', 'horas'] },
-    { id: 'dias', claves: ['que dia', 'mejor dia', 'peor dia', 'dia de la semana', 'dias de la semana', 'dia vendo', 'dia se vende', 'dias vendo', 'dias fuertes', 'dia fuerte', 'dia flojo'] },
-    { id: 'pagos', claves: ['efectivo', 'tarjeta', 'transferencia', 'forma de pago', 'formas de pago', 'como pagan', 'como me pagan', 'metodo de pago', 'metodos de pago', 'como cobro'] },
-    { id: 'cajeros', claves: ['cajero', 'cajeros', 'quien vende', 'quien vendio', 'empleado', 'empleados', 'vendedor', 'vendedores', 'quien vende mas', 'mi equipo', 'personal'] },
-    { id: 'clientes', claves: ['cliente', 'clientes', 'no regresan', 'no vuelven', 'dejaron de venir', 'fieles', 'frecuentes', 'que clientes'] },
-    { id: 'consejo', claves: ['consejo', 'consejos', 'recomienda', 'recomiendas', 'recomendacion', 'recomendaciones', 'que hago', 'que puedo hacer', 'como vender mas', 'vender mas', 'ayudame a vender', 'sugerencia', 'sugerencias', 'oferta', 'promocion', 'mejorar', 'que me aconsejas', 'aconseja', 'que me conviene'] },
-    { id: 'ayuda', claves: ['ayuda', 'que puedes', 'que haces', 'que sabes', 'como funciona', 'que te puedo preguntar', 'hola', 'buenas', 'buenos dias', 'buenas tardes', 'buenas noches', 'gracias'] }
-  ];
-  const SOLO_ENCARGADO = new Set(['salud', 'ganancia', 'gastos', 'cajeros', 'clientes', 'riesgo', 'lentos']);
-
-  function detectar(t){
-    const puntos = {};
-    DICC.forEach((d) => d.claves.forEach((k) => {
-      const nk = norm(k);
-      if(new RegExp('(^| )' + escRe(nk)).test(t)) puntos[d.id] = (puntos[d.id] || 0) + Math.pow(nk.split(' ').length, 2);
-    }));
-    const orden = Object.keys(puntos).sort((a, b) => puntos[b] - puntos[a]);
-    if(!orden.length) return [];
-    const max = puntos[orden[0]];
-    let ids = orden.filter((i) => puntos[i] >= Math.max(1, max * 0.6)).slice(0, 3);
-    if(ids.includes('ayuda') && ids.length > 1) ids = ids.filter((i) => i !== 'ayuda');
-    if(ids.includes('salud')) return ['salud'];
-    if(ids.includes('resumen')) return ['resumen'];
-    return ids;
-  }
-
-  const PALABRAS_VACIAS = new Set(['de', 'la', 'el', 'los', 'las', 'con', 'para', 'sin', 'del', 'por', 'una', 'uno', 'en']);
-  function buscarProducto(t){
-    let mejor = null;
-    enlace.productos().forEach((p) => {
-      const nombre = norm(p.nombre);
-      if(nombre.length < 3) return;
-      let puntaje = 0;
-      if(new RegExp('(^| )' + escRe(nombre) + '( |$)').test(t)) puntaje = 10 + nombre.length;
-      else {
-        const fichas = nombre.split(' ').filter((w) => w.length >= 3 && !PALABRAS_VACIAS.has(w));
-        if(!fichas.length) return;
-        const hay = fichas.filter((w) => new RegExp('(^| )' + escRe(w) + '( |$|s |es )').test(t)).length;
-        const frac = hay / fichas.length;
-        if(frac >= 0.99 || (fichas.length >= 3 && frac >= 0.66)) puntaje = frac * 5 + fichas.join('').length / 20;
-      }
-      if(puntaje && (!mejor || puntaje > mejor.puntaje)) mejor = { p, puntaje };
-    });
-    return mejor ? mejor.p : null;
-  }
-
-  // ---------- datos (lo mismo que consulta Analítica, con el límite del cajero) ----------
-  async function paginar(armar){
-    const salida = [];
-    for(let pag = 0; pag < 12; pag++){
-      const { data, error } = await armar().range(pag * 1000, pag * 1000 + 999);
-      if(error) throw new Error(error.message || 'Error de consulta');
-      salida.push(...(data || []));
-      if(!data || data.length < 1000) break;
-    }
-    return salida;
-  }
-  const traerVentas = (d, h) => paginar(() => {
-    let q = enlace.sb.from('ventas').select('id,total,created_at,usuario_id,metodo_pago').gte('created_at', d.toISOString()).lt('created_at', h.toISOString())
-      .order('created_at', { ascending: true }).order('id', { ascending: true });
-    if(esCajero()) q = q.eq('usuario_id', enlace.usuarioId());
-    return q;
-  });
-  const traerDetalle = (d, h) => paginar(() => {
-    let q = enlace.sb.from('detalle_ventas').select('id,producto_id,producto_nombre,cantidad,subtotal,ventas!inner(created_at,usuario_id)')
-      .gte('ventas.created_at', d.toISOString()).lt('ventas.created_at', h.toISOString()).order('id', { ascending: true });
-    if(esCajero()) q = q.eq('ventas.usuario_id', enlace.usuarioId());
-    return q;
-  });
-  async function traerGastos(d, h){
-    if(!puedeCostos() || enlace.rol() !== 'admin') return null;
-    const { data, error } = await enlace.sb.from('gastos').select('monto,fecha,categoria').gte('fecha', fechaLocal(d)).lte('fecha', fechaLocal(suma(h, 0)));
-    if(error) return null;
-    return data || [];
-  }
-
-  function calcular(ventas, detalle){
-    const r = { n: ventas.length, total: 0, ticket: 0, porHora: new Array(24).fill(0), nHora: new Array(24).fill(0), porDia: new Array(7).fill(0), porMetodo: {}, porCajero: {}, productos: {}, margen: null };
-    ventas.forEach((v) => {
-      const tot = Number(v.total) || 0, f = new Date(v.created_at);
-      r.total += tot; r.porHora[f.getHours()] += tot; r.nHora[f.getHours()]++; r.porDia[f.getDay()] += tot;
-      const m = v.metodo_pago || 'efectivo'; r.porMetodo[m] = (r.porMetodo[m] || 0) + tot;
-      if(v.usuario_id){ const c = r.porCajero[v.usuario_id] || (r.porCajero[v.usuario_id] = { n: 0, total: 0 }); c.n++; c.total += tot; }
-    });
-    r.ticket = r.n ? r.total / r.n : 0;
-    if(detalle){
-      const mapa = new Map(enlace.productos().map((p) => [p.id, p])); let marg = 0, hay = false;
-      detalle.forEach((d) => {
-        const nom = d.producto_nombre || 'Sin nombre', o = r.productos[nom] || (r.productos[nom] = { cant: 0, monto: 0, margen: 0, id: d.producto_id });
-        const cant = Number(d.cantidad) || 0, sub = Number(d.subtotal) || 0; o.cant += cant; o.monto += sub;
-        const p = mapa.get(d.producto_id);
-        if(p && p.costo != null && puedeCostos()){ const g = sub - Number(p.costo) * cant; o.margen += g; marg += g; hay = true; }
-      });
-      r.margen = hay ? marg : null;
-    }
-    return r;
-  }
-
-  const memoria = new Map();
-  async function cargarPeriodo(t, conDetalle){
-    const clave = [t.desde.getTime(), t.hasta.getTime(), conDetalle ? 1 : 0, esCajero() ? enlace.usuarioId() : 'a'].join('|'), hit = memoria.get(clave);
-    if(hit && Date.now() - hit.t < 45000) return hit.d;
-    const [v1, v0, d1] = await Promise.all([traerVentas(t.desde, t.hasta), traerVentas(t.prevDesde, t.prevHasta), conDetalle ? traerDetalle(t.desde, t.hasta) : Promise.resolve(null)]);
-    const d = { act: calcular(v1, d1), ant: calcular(v0, null) };
-    memoria.set(clave, { t: Date.now(), d });
-    if(memoria.size > 30) memoria.delete(memoria.keys().next().value);
-    return d;
-  }
-  // si hoy todavía no hay ventas y la persona no pidió un día en especial, se muestran los últimos 7 días
-  async function periodo(ctx, conDetalle, defectoDias){
-    let t = ctx.t, nota = null;
-    if(!t.explicito && defectoDias){ t = ultimos(defectoDias); }
-    let p = await cargarPeriodo(t, conDetalle);
-    if(!ctx.t.explicito && !defectoDias && !p.act.n){
-      t = ultimos(7); p = await cargarPeriodo(t, conDetalle); nota = 'Hoy todavía no hay ventas, así que te cuento de los últimos 7 días.';
-    }
+  async function periodo(c, conDetalle, defectoDias){
+    let t = c.t, nota = null;
+    if(!t.explicito && defectoDias) t = N.ultimos(defectoDias);
+    let p = await D.cargarPeriodo(t, conDetalle);
+    if(!c.t.explicito && !defectoDias && !p.act.n){ t = N.ultimos(7); p = await D.cargarPeriodo(t, conDetalle); nota = 'Hoy todavía no hay ventas, así que te cuento de los últimos 7 días.'; }
     return { p, t, nota };
   }
 
-  // ---------- frases ----------
-  function compara(act, prev, etPrev){
-    if(!prev && !act) return { texto: '', tono: 'neutro' };
-    if(!prev) return { texto: cap(etPrev) + ' no hubo ventas, así que vas mejor.', tono: 'bien' };
-    const dif = act - prev, rel = dif / prev;
-    if(Math.abs(rel) < 0.03) return { texto: 'Vas casi igual que ' + etPrev + '.', tono: 'neutro' };
-    if(dif > 0) return { texto: variante(['Son ' + $d(dif) + ' más que ' + etPrev + '.', 'Eso es ' + $d(dif) + ' más que ' + etPrev + '.'], 1), tono: 'bien' };
-    return { texto: variante(['Son ' + $d(-dif) + ' menos que ' + etPrev + '.', 'Eso es ' + $d(-dif) + ' menos que ' + etPrev + '.'], 1), tono: rel < -0.2 ? 'alerta' : 'aviso' };
+  // ---------- análisis de productos ----------
+  const mediana = (a) => { if(!a.length) return 0; const s = a.slice().sort((x, y) => x - y), m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+  const estrellas = (an, n) => an.lista.filter((x) => x.u30 > 0).sort((x, y) => (y.margen30 != null && x.margen30 != null ? y.margen30 - x.margen30 : y.ing30 - x.ing30)).slice(0, n);
+  function oportunidades(an, n){
+    if(!an.hayCostos) return [];
+    const con = an.lista.filter((x) => x.mUnit != null && x.mUnit > 0 && x.u30 > 0), mU = mediana(con.map((x) => x.mUnit)), mV = mediana(con.map((x) => x.vel));
+    const f = (x) => x.mUnit * (1 + Math.max(-0.5, Math.min(1, x.tend)));
+    return con.filter((x) => x.mUnit >= mU && x.vel <= mV && (!x.fisico || x.stock > 0)).sort((x, y) => f(y) - f(x)).slice(0, n);
   }
-  const topProductos = (a, n) => Object.entries(a.productos).map(([nombre, v]) => Object.assign({ nombre }, v)).sort((x, y) => y.cant - x.cant).slice(0, n || 3);
-  const esFisico = (p) => (p.tipo || 'producto') === 'producto' && Number(p.stock) < 900000;
-  const stockBajo = () => enlace.productos().filter((p) => esFisico(p) && Number(p.stock) <= 5).sort((a, b) => Number(a.stock) - Number(b.stock));
-  const NOMBRE_PAGO = { efectivo: 'efectivo', tarjeta: 'tarjeta', transferencia: 'transferencia', mixto: 'pagos combinados' };
-  function porCaducar(){
-    const hoy = inicioDia(new Date()).getTime();
-    return enlace.productos().filter((p) => p.fecha_caducidad && esFisico(p) && Number(p.stock) > 0).map((p) => ({ p, dias: Math.ceil((new Date(p.fecha_caducidad + 'T00:00:00').getTime() - hoy) / 86400000) })).filter((x) => x.dias <= 7).sort((a, b) => a.dias - b.dias);
+  const subiendo = (an, n, fuera) => an.lista.filter((x) => x.u30 >= 5 && x.tend >= 0.3 && !(fuera || []).includes(x)).sort((x, y) => y.tend - x.tend).slice(0, n);
+  const paraNoInvertir = (an, n) => an.lista.filter((x) => x.fisico && x.capital != null && x.stock > 0 && x.dias >= 45 && x.capital >= 30).sort((x, y) => y.capital - x.capital).slice(0, n);
+  const sinSalida = (an, n) => an.lista.filter((x) => !x.fisico && x.u30 <= 1).sort((x, y) => x.u30 - y.u30).slice(0, n);
+  function paraComprar(an, n, semanas){
+    const sem = semanas || 2;
+    return an.lista.filter((x) => x.fisico && x.vel > 0 && x.dias < 7 * sem).map((x) => { const q = Math.max(1, Math.ceil(x.vel * 7 * sem - x.stock)); return Object.assign({ q, gasto: x.costo != null ? q * x.costo : null }, x); })
+      .sort((x, y) => (y.margen30 != null && x.margen30 != null ? y.margen30 - x.margen30 : y.ing30 - x.ing30)).slice(0, n);
   }
+  const verPlural = (arr, s, p) => arr.length === 1 ? s : p;
 
-  // ---------- recomendaciones ----------
-  function consejos(a, b, t, gastos){
-    const out = [], top = topProductos(a, 3), sem = semilla();
-    if(b.total > 0 && a.total < b.total * 0.9){
-      const nom = top[0] && top[0].nombre;
-      out.push({ prio: 90, tono: 'alerta', titulo: 'Estás vendiendo menos', texto: cap(en(t)) + ' vendiste ' + $d(b.total - a.total) + ' menos que ' + t.etPrev + '.',
-        consejo: nom ? variante(['Haz una oferta con ' + nom + ', que es lo que más sale: por ejemplo "llévate 2 y paga menos".', 'Avisa a tus clientes por WhatsApp de una promoción en ' + nom + '.', 'Pon ' + nom + ' bien a la vista y regala algo chico cuando se lleven 2.'], sem) : 'Prueba una oferta chica en tu producto más popular y avisa a tus clientes.' });
+  // ---------- plan de acción: lo más importante y concreto que haría un asesor ----------
+  async function plan(){
+    const an = await D.analisis(), t = N.ultimos(14), pd = await D.cargarPeriodo(t, false), a = pd.act, b = pd.ant, out = [];
+    const est = estrellas(an, 3), opp = oportunidades(an, 3), parados = paraNoInvertir(an, 3), cad = porCaducar(), pr = an.pares[0];
+    est.forEach((x) => { if(x.fisico && x.vel > 0 && x.dias <= 7) out.push({ prio: 95, tipo: 'cuidar', titulo: 'Pide ' + x.nombre + ' hoy', texto: 'Es de lo que más vendes y te quedan ' + fmt(x.stock) + ': con lo que vendes (unas ' + fmt(x.vel) + ' al día) te dura ' + dias(x.dias) + '.' }); });
+    if(cad.length) out.push({ prio: 90, tipo: 'cuidar', titulo: 'Vende primero lo que caduca', texto: lista(cad.slice(0, 3).map((x) => x.p.nombre)) + ' ' + verPlural(cad, 'caduca', 'caducan') + ' pronto. Ponlo en oferta o júntalo con algo que sí se venda.' });
+    if(b.total > 0 && a.total < b.total * 0.9) out.push({ prio: 80, tipo: 'vender', titulo: 'Estás vendiendo menos que antes', texto: 'En los últimos 14 días vendiste ' + $r(b.total - a.total) + ' menos que en los 14 de antes. ' + (opp[0] ? 'Un empujón a ' + opp[0].nombre + ' (te deja ' + $d(opp[0].mUnit) + ' cada uno) puede ayudar.' : (est[0] ? 'Haz una oferta con ' + est[0].nombre + '.' : '')) });
+    if(an.hayCostos && puedeCostos()){
+      const g = await D.traerGastos(new Date(Date.now() - 30 * 86400000), new Date()), mg = an.lista.reduce((s, x) => s + (x.margen30 || 0), 0), tg = g ? g.reduce((s, x) => s + Number(x.monto), 0) : 0;
+      if(tg > 0 && tg > mg) out.push({ prio: 85, tipo: 'ahorrar', titulo: 'Tus gastos se comen tu ganancia', texto: 'En 30 días ganaste ' + $r(mg) + ' con tus ventas y gastaste ' + $r(tg) + '. Revisa en qué se va el dinero y recorta lo que no sea necesario.' });
     }
-    if(a.total > 0 && b.total > 0 && a.total > b.total * 1.1){
-      out.push({ prio: 40, tono: 'bien', titulo: '¡Vas muy bien!', texto: 'Vendiste ' + $d(a.total - b.total) + ' más que ' + t.etPrev + '.', consejo: top[0] ? 'Cuida que no te falte ' + top[0].nombre + ' para seguir vendiendo así.' : 'Sigue así.' });
-    }
-    const bajos = stockBajo();
-    top.forEach((x) => {
-      const p = bajos.find((q) => norm(q.nombre) === norm(x.nombre));
-      if(p) out.push({ prio: 95, tono: 'alerta', titulo: 'Se te está acabando lo que más vendes', texto: 'Te quedan solo ' + fmt(p.stock) + ' de ' + p.nombre + ', que es de lo que más sale.', consejo: esCajero() ? 'Avísale al encargado para que lo pida hoy.' : 'Cómpralo hoy para no perder ventas.' });
-    });
-    const cad = porCaducar();
-    if(cad.length && !esCajero()) out.push({ prio: 85, tono: 'alerta', titulo: 'Hay productos por caducar', texto: lista(cad.slice(0, 3).map((x) => x.p.nombre)) + (cad.length > 3 ? ' y ' + (cad.length - 3) + ' más' : '') + ' ' + (cad.length === 1 ? 'está' : 'están') + ' por caducar.', consejo: cad.length === 1 ? 'Véndelo primero: ponlo en oferta o júntalo con algo que sí se venda.' : 'Véndelos primero: ponlos en oferta o júntalos con algo que sí se venda.' });
-    if(puedeCostos()){
-      if(a.margen != null && a.total > 0 && a.margen / a.total < 0.15) out.push({ prio: 70, tono: 'aviso', titulo: 'Te queda poca ganancia', texto: 'Por cada $100 que vendes, solo te quedan ' + $r(a.margen / a.total * 100) + ' de ganancia.', consejo: 'Revisa los precios de lo que más vendes: quizá puedes subirlos un poquito o buscar un proveedor más barato.' });
-      if(gastos != null && a.margen != null && gastos > 0 && gastos > a.margen) out.push({ prio: 88, tono: 'alerta', titulo: 'Gastaste más de lo que ganaste', texto: 'Gastaste ' + $d(gastos) + ' y tu ganancia por ventas fue ' + $d(a.margen) + '.', consejo: 'Mira en qué estás gastando y recorta lo que no sea necesario.' });
-      if(t.dias >= 7){
-        const sinVender = enlace.productos().filter((p) => esFisico(p) && Number(p.stock) > 0 && !a.productos[p.nombre] && p.costo != null).sort((x, y) => Number(y.stock) * Number(y.costo) - Number(x.stock) * Number(x.costo)).slice(0, 3);
-        if(sinVender.length) out.push({ prio: 60, tono: 'aviso', titulo: 'Dinero parado en el estante', texto: lista(sinVender.map((p) => p.nombre)) + ' no se ' + (sinVender.length === 1 ? 'vendió' : 'vendieron') + ' ' + en(t) + '.', consejo: sinVender.length === 1 ? 'Ponlo en oferta o júntalo en un combo con lo que sí se vende; así recuperas el dinero.' : 'Ponlos en oferta o júntalos en un combo con lo que sí se vende; así recuperas el dinero.' });
-      }
-    }
+    parados.forEach((x, i) => { if(i < 2) out.push({ prio: 70 - i, tipo: 'ahorrar', titulo: 'No compres más ' + x.nombre, texto: 'Tienes ' + $r(x.capital) + ' guardados ahí y ' + (x.vel > 0 ? 'te alcanza para ' + dias(x.dias) : 'no se vendió nada en el mes') + '. Mejor ponlo en oferta y usa ese dinero en lo que sí sale.' }); });
+    if(opp[0]){ const c = D.compañero(an, opp[0].nombre); out.push({ prio: 65, tipo: 'vender', titulo: 'Ofrece más ' + opp[0].nombre, texto: 'Te deja ' + $d(opp[0].mUnit) + ' por cada uno y solo vendiste ' + fmt(opp[0].u30) + ' en el mes. Ofrécelo al cobrar' + (c ? ' junto con ' + c.con : '') + '.' }); }
+    if(pr) out.push({ prio: 55, tipo: 'vender', titulo: 'Arma un combo', texto: pr.a + ' y ' + pr.b + ' se compran juntos seguido (' + veces(pr.n, 'vez', 'veces') + ' este mes). Ármalos en combo con un precio especial.' });
+    const bajos = an.lista.filter((x) => x.mPct != null && x.mPct < 0.15 && x.vel * 30 >= 20).sort((x, y) => y.u30 - x.u30);
+    if(bajos[0]) out.push({ prio: 50, tipo: 'vender', titulo: 'Sube un poquito ' + bajos[0].nombre, texto: 'Lo vendes mucho (' + fmt(bajos[0].u30) + ' en el mes) pero solo te quedan ' + $d(bajos[0].mUnit) + ' por cada uno. Con $1 o $2 más, ganarías bastante más sin que casi se note.' });
     if(a.n >= 10){
-      const hs = a.porHora.map((v, h) => ({ h, v })).filter((x) => x.v > 0).sort((x, y) => y.v - x.v);
-      if(hs.length >= 3) out.push({ prio: 30, tono: 'info', titulo: 'Tu hora fuerte', texto: 'Vendes más en el horario ' + horaFuerteTexto(hs[0].h) + '.', consejo: 'En esa hora ten listo lo que más vendes y, si puedes, una persona más en caja.' });
+      const hs = a.porHora.map((v, h) => ({ h, v })).filter((x) => x.v > 0), fu = hs.slice().sort((x, y) => y.v - x.v)[0], ini = hs[0].h, fin = hs[hs.length - 1].h, fl = hs.filter((x) => x.h >= ini && x.h <= fin).sort((x, y) => x.v - y.v)[0];
+      if(fl && hs.length >= 5) out.push({ prio: 40, tipo: 'vender', titulo: 'Llena tu hora más floja', texto: 'Vendes menos en el horario ' + N.horaFuerteTexto(fl.h) + '. Prueba una oferta relámpago ahí.' });
+      if(fu) out.push({ prio: 30, tipo: 'cuidar', titulo: 'Prepárate para tu hora fuerte', texto: 'Vendes más en el horario ' + N.horaFuerteTexto(fu.h) + '. Ten listo lo que más vendes y, si puedes, otra persona en caja.' });
     }
     return out.sort((x, y) => y.prio - x.prio);
   }
 
-  // ---------- respuestas por tema ----------
-  const cuentaLista = (arr, f) => arr.map(f);
-
-  async function hVentas(ctx){
-    const { p, t, nota } = await periodo(ctx, false), a = p.act, b = p.ant;
-    if(!a.n) return [carta('neutro', 'dinero', cap('Ventas ' + de(t)), esCajero() ? 'Todavía no tienes ventas en ese horario.' : 'Todavía no hay ventas en ese horario.', t.etiqueta === 'hoy' ? 'Cuando se haga la primera venta, aquí te cuento cómo vas.' : null)];
-    const verbo = t.etiqueta === 'hoy' ? 'Llevas vendido' : 'Vendiste', c = compara(a.total, b.total, t.etPrev), cartas = [];
-    if(nota) cartas.push(carta('info', 'reloj', 'Aviso', nota));
-    cartas.push(carta(c.tono, 'dinero', cap('Ventas ' + de(t)), (verbo + ' ' + $d(a.total) + ' en ' + veces(a.n, 'venta', 'ventas') + '. ' + c.texto).trim()));
-    let tk = 'Cada cliente te deja, en promedio, ' + $d(a.ticket) + '.';
-    if(b.n){ const dif = a.ticket - b.ticket; tk += Math.abs(dif) < 0.5 ? ' Es casi igual que antes.' : (dif > 0 ? ' Antes dejaba ' + $d(b.ticket) + ': ¡ahora gastan más!' : ' Antes dejaba ' + $d(b.ticket) + ': ahora gastan un poco menos.'); }
-    cartas.push(carta('neutro', 'persona', 'Lo que gasta cada cliente', tk));
-    return cartas;
-  }
-
-  async function hGanancia(ctx){
-    const { p, t } = await periodo(ctx, true), a = p.act;
-    if(!a.n) return [carta('neutro', 'dinero', 'Ganancia ' + de(t), 'Todavía no hay ventas en ese periodo, así que no hay ganancia que contar.')];
-    if(a.margen == null) return [carta('aviso', 'dinero', 'No pude calcular tu ganancia', 'Para saber cuánto ganas, PUVE necesita saber cuánto te cuesta cada producto.', 'Entra a Productos y anota el costo de cada uno.')];
-    const cartas = [carta(a.margen >= 0 ? 'bien' : 'alerta', 'dinero', 'Tu ganancia ' + de(t), 'De ' + $d(a.total) + ' que vendiste, ' + $d(a.margen) + ' son ganancia (lo que queda después de pagar la mercancía). Por cada $100 que vendes, te quedan ' + $r(a.total ? a.margen / a.total * 100 : 0) + '.')];
-    if(t.tipo === 'horas'){ cartas.push(carta('info', 'reloj', 'Sobre los gastos', 'Los gastos se anotan por día, no por hora. Pregúntame por el día completo para ver tu ganancia real.')); return cartas; }
-    const g = await traerGastos(t.desde, t.hasta);
-    if(g){
-      const total = g.reduce((s, x) => s + Number(x.monto), 0), real = a.margen - total;
-      cartas.push(carta(real >= 0 ? 'bien' : 'alerta', 'caja', 'Después de tus gastos', total ? 'Gastaste ' + $d(total) + ' en cosas del negocio. Tu ganancia real es ' + $d(real) + '.' : 'No anotaste gastos en ese periodo, así que tu ganancia real es ' + $d(real) + '.', real < 0 ? 'Estás gastando más de lo que ganas: revisa tus gastos.' : null));
-    }
-    return cartas;
-  }
-
-  async function hGastos(ctx){
-    const t = ctx.t.tipo === 'horas' ? parseTiempo(ctx.t.etiqueta.split(' ')[0] === 'hoy' ? 'hoy' : 'ayer') : ctx.t;
-    const g = await traerGastos(t.desde, t.hasta), gAnt = await traerGastos(t.prevDesde, t.prevHasta);
-    if(g == null) return [carta('aviso', 'caja', 'No pude ver los gastos', 'Los gastos solo los ve el encargado del negocio.')];
+  // ---------- respuestas por tema (cada una devuelve bloques) ----------
+  const H = {};
+  H.ventas = async (c) => {
+    const { p, t, nota } = await periodo(c, false), a = p.act, b = p.ant;
+    if(!a.n) return [P(cap(en(t)) + ' todavía no ' + (esCajero() ? 'tienes' : 'hay') + ' ventas en ese horario.'), P(t.etiqueta === 'hoy' ? 'Cuando se haga la primera, aquí te cuento cómo vas.' : 'Prueba con otro día o con "esta semana".')];
+    const out = []; if(nota) out.push(P(nota));
+    out.push(P((t.etiqueta === 'hoy' ? 'Llevas vendido ' : cap(en(t)) + ' vendiste ') + '**' + $d(a.total) + '** en ' + veces(a.n, 'venta', 'ventas') + '. ' + compara(a.total, b.total, t.etPrev)));
+    let tk = 'Cada cliente te deja en promedio **' + $d(a.ticket) + '**.';
+    if(b.n){ const dif = a.ticket - b.ticket; tk += Math.abs(dif) < 0.5 ? ' Casi igual que antes.' : (dif > 0 ? ' Antes dejaba ' + $d(b.ticket) + ': ahora gastan más.' : ' Antes dejaba ' + $d(b.ticket) + ': ahora gastan un poco menos.'); }
+    out.push(P(tk));
+    if(!esCajero() && b.total > 0 && a.total < b.total * 0.9) out.push(P('Si quieres, te digo qué hacer para recuperarte.'), C([sug('¿Cómo puedo vender más?')]));
+    return out;
+  };
+  H.ganancia = async (c) => {
+    const { p, t } = await periodo(c, true), a = p.act;
+    if(!a.n) return [P(cap(en(t)) + ' todavía no hay ventas, así que no hay ganancia que contar.')];
+    if(a.margen == null) return [P('Para decirte cuánto ganas necesito saber cuánto te cuesta cada producto.'), P('Entra a **Productos** y anota el costo de cada uno. Con eso te calculo todo.')];
+    const out = [P('De **' + $d(a.total) + '** que vendiste ' + en(t) + ', **' + $d(a.margen) + '** son ganancia. Es lo que te queda después de pagar la mercancía: por cada $100 que vendes, te quedan ' + $r(a.margen / a.total * 100) + '.')];
+    if(t.tipo === 'horas'){ out.push(P('Los gastos se anotan por día, no por hora. Pregúntame por el día completo y te digo tu ganancia real.')); return out; }
+    const g = await D.traerGastos(t.desde, t.hasta);
+    if(g){ const tot = g.reduce((s, x) => s + Number(x.monto), 0), real = a.margen - tot; out.push(P(tot ? 'Gastaste **' + $d(tot) + '** en cosas del negocio, así que tu ganancia de verdad es **' + $d(real) + '**.' + (real < 0 ? ' Estás gastando más de lo que ganas: revisa tus gastos.' : '') : 'No anotaste gastos en ese periodo, así que tu ganancia real es **' + $d(real) + '**.')); }
+    return out;
+  };
+  H.gastos = async (c) => {
+    const t = c.t.tipo === 'horas' ? N.parseTiempo(/^hoy/.test(c.t.etiqueta) ? 'hoy' : 'ayer') : (c.t.explicito ? c.t : N.parseTiempo('este mes'));
+    const g = await D.traerGastos(t.desde, t.hasta), gA = await D.traerGastos(t.prevDesde, t.prevHasta);
+    if(g == null) return [P('Los gastos solo los ve el encargado del negocio.')];
     const total = g.reduce((s, x) => s + Number(x.monto), 0);
-    if(!total) return [carta('neutro', 'caja', 'Gastos ' + de(t), 'No anotaste gastos en ese periodo.', 'Anota tus gastos (renta, luz, sueldos…) para saber tu ganancia de verdad.')];
+    if(!total) return [P('No anotaste gastos ' + en(t) + '.'), P('Anótalos (renta, luz, sueldos…) para saber tu ganancia de verdad.')];
     const por = {}; g.forEach((x) => { por[x.categoria] = (por[x.categoria] || 0) + Number(x.monto); });
-    const orden = Object.entries(por).sort((x, y) => y[1] - x[1]).slice(0, 3), prev = (gAnt || []).reduce((s, x) => s + Number(x.monto), 0);
-    const c = compara(total, prev, t.etPrev);
-    return [carta(prev && total > prev * 1.1 ? 'aviso' : 'neutro', 'caja', 'Gastos ' + de(t), 'Gastaste ' + $d(total) + '. ' + (prev ? (total > prev ? 'Es ' + $d(total - prev) + ' más que ' + t.etPrev + '.' : (total < prev ? 'Es ' + $d(prev - total) + ' menos que ' + t.etPrev + '.' : 'Es igual que ' + t.etPrev + '.')) : '')),
-      carta('info', 'grafica', 'En qué gastaste más', lista(orden.map(([k, v]) => k + ' (' + $d(v) + ')')) + '.', orden[0][1] > total * 0.5 ? 'Más de la mitad se fue en ' + orden[0][0] + ': revisa si puedes bajarlo.' : null)];
-  }
-
-  async function hTop(ctx){
-    const { p, t, nota } = await periodo(ctx, true), a = p.act;
-    if(!a.n) return [carta('neutro', 'estrella', 'Lo más vendido ' + de(t), 'Todavía no hay ventas en ese periodo.')];
-    const top = topProductos(a, 3), cartas = [];
-    if(nota) cartas.push(carta('info', 'reloj', 'Aviso', nota));
-    cartas.push(carta('bien', 'estrella', 'Lo que más se vendió ' + en(t), top.map((x, i) => (['En primer lugar', 'Luego', 'Y después'][i]) + ' ' + x.nombre + ' (' + fmt(x.cant) + ' vendidos)').join('; ') + '.', 'Procura que nunca te falte ' + top[0].nombre + '.'));
-    if(puedeCostos() && a.margen != null){
-      const m = Object.entries(a.productos).map(([nombre, v]) => ({ nombre, margen: v.margen })).sort((x, y) => y.margen - x.margen)[0];
-      if(m && m.margen > 0) cartas.push(carta('info', 'dinero', 'El que más ganancia te dejó', m.nombre + ' te dejó ' + $d(m.margen) + ' de ganancia.', m.nombre !== top[0].nombre ? 'No es el que más se vende, pero sí el que más te deja: ponlo más a la vista.' : null));
+    const orden = Object.entries(por).sort((x, y) => y[1] - x[1]).slice(0, 4), prev = (gA || []).reduce((s, x) => s + Number(x.monto), 0);
+    const out = [P(cap(en(t)) + ' gastaste **' + $d(total) + '**. ' + (prev ? (total > prev ? 'Es ' + $d(total - prev) + ' más que ' + t.etPrev + '.' : (total < prev ? 'Es ' + $d(prev - total) + ' menos que ' + t.etPrev + '.' : 'Igual que ' + t.etPrev + '.')) : '')), L('En qué se fue', orden.map(([k, v]) => [cap(k), $d(v), Math.round(v / total * 100) + ' de cada 100 pesos']))];
+    if(orden[0][1] > total * 0.5) out.push(P('Más de la mitad se va en **' + orden[0][0] + '**: ahí es donde más puedes ahorrar.'));
+    return out;
+  };
+  H.top = async (c) => {
+    const { p, t, nota } = await periodo(c, true), a = p.act;
+    if(!a.n) return [P('Todavía no hay ventas ' + en(t) + ' para decirte qué se vende más.')];
+    const top = topProductos(a, 4), out = []; if(nota) out.push(P(nota));
+    out.push(P('Lo que más se vendió ' + en(t) + ' fue **' + top[0].nombre + '** (' + fmt(top[0].cant) + ').'), L('Los más vendidos', top.map((x) => [x.nombre, fmt(x.cant) + ' vendidos', puedeCostos() && x.margen ? 'te dejó ' + $d(x.margen) + ' de ganancia' : ''])));
+    if(puedeCostos() && a.margen != null){ const m = Object.entries(a.productos).map(([nombre, v]) => ({ nombre, margen: v.margen })).sort((x, y) => y.margen - x.margen)[0]; if(m && m.margen > 0 && m.nombre !== top[0].nombre) out.push(P('El que más ganancia te dejó fue **' + m.nombre + '** (' + $d(m.margen) + '), aunque no es el que más sale: ponlo más a la vista.')); }
+    out.push(P('Procura que nunca te falte ' + top[0].nombre + '.'));
+    return out;
+  };
+  H.lentos = async (c) => {
+    const { p, t } = await periodo(c, true, 30), a = p.act, sin = enlace.productos().filter((q) => D.esFisico(q) && Number(q.stock) > 0 && !a.productos[q.nombre]);
+    if(!sin.length) return [P('Todo se está moviendo: ' + en(t) + ' se vendió casi todo lo que tienes.')];
+    const ord = sin.sort((x, y) => Number(y.stock) * Number(y.costo || 0) - Number(x.stock) * Number(x.costo || 0)).slice(0, 6);
+    const out = [P('Esto no se vendió ' + en(t) + ':'), L('', ord.map((q) => [q.nombre, 'tienes ' + fmt(q.stock), Number(q.costo) > 0 ? $r(q.stock * q.costo) + ' guardados' : '']))];
+    if(sin.length > 6) out.push(P('Y ' + (sin.length - 6) + ' más.'));
+    out.push(P('Mi consejo: ponlos en oferta, júntalos con algo que sí se vende o acomódalos en un lugar más visible. Y por ahora **no compres más** de estos.'), C([sug('¿En qué no debería invertir?')]));
+    return out;
+  };
+  H.stock = async () => {
+    const prods = enlace.productos().filter(D.esFisico), agot = prods.filter((p) => Number(p.stock) <= 0), bajos = prods.filter((p) => Number(p.stock) > 0 && Number(p.stock) <= 5).sort((a, b) => Number(a.stock) - Number(b.stock));
+    if(!agot.length && !bajos.length) return [P('Tu inventario está bien: no tienes nada agotado ni a punto de acabarse.')];
+    const out = [];
+    if(agot.length) out.push(P('Ya se acabó: **' + lista(agot.slice(0, 8).map((p) => p.nombre)) + '**' + (agot.length > 8 ? ' y ' + (agot.length - 8) + ' más' : '') + '.'));
+    if(bajos.length) out.push(P('Te quedan pocos de:'), L('', bajos.slice(0, 8).map((p) => [p.nombre, fmt(p.stock) + ' ' + (Number(p.stock) === 1 ? 'pieza' : 'piezas'), ''])));
+    out.push(P(esCajero() ? 'Avísale al encargado para que los pida.' : 'Si quieres, te armo la lista de lo que te conviene comprar.'));
+    if(!esCajero()) out.push(C([sug('¿Qué debo comprar?')]));
+    return out;
+  };
+  H.comprar = async () => {
+    const an = await D.analisis(), l2 = paraComprar(an, 8, 2);
+    if(!an.ventas30) return [P('Todavía no tengo suficientes ventas para saber cuánto te conviene comprar.')];
+    if(!l2.length) return [P('Por ahora no necesitas comprar nada urgente: con lo que vendes, todo te alcanza para más de 2 semanas.'), C([sug('¿En qué no debería invertir?')])];
+    const total = l2.reduce((s, x) => s + (x.gasto || 0), 0);
+    const out = [P('Para que te alcance **2 semanas**, esto es lo que yo compraría (primero lo que más te deja):'), L('Qué comprar', l2.map((x) => [x.nombre, 'unas ' + x.q + ' piezas', 'tienes ' + fmt(x.stock) + ' y vendes ~' + fmt(x.vel) + ' al día' + (x.gasto != null ? ' · ' + $r(x.gasto) : '')]))];
+    if(total > 0) out.push(P('En total serían unos **' + $r(total) + '**.'));
+    out.push(P('No metas dinero en lo que se vende lento: eso lo veo aparte si quieres.'), C([sug('¿En qué no debería invertir?')]));
+    return out;
+  };
+  H.no_invertir = async () => {
+    const an = await D.analisis();
+    if(!an.ventas30) return [P('Todavía no tengo suficientes ventas para decirte en qué no invertir.')];
+    const pa = paraNoInvertir(an, 5), plat = sinSalida(an, 4), out = [];
+    if(pa.length){
+      const total = an.lista.filter((x) => x.fisico && x.capital != null && x.stock > 0 && x.dias >= 45).reduce((s, x) => s + x.capital, 0);
+      out.push(P('Esto es lo que yo **no volvería a comprar por ahora**, porque ya tienes de sobra:'), L('Dinero parado', pa.map((x) => [x.nombre, $r(x.capital), x.vel > 0 ? 'vendes ~' + fmt(x.vel * 30) + ' al mes y tienes ' + fmt(x.stock) + ': te dura ' + dias(x.dias) : 'tienes ' + fmt(x.stock) + ' y no se vendió ninguno este mes'])));
+      out.push(P('En total hay unos **' + $r(total) + '** guardados en mercancía que sale despacio. Mi consejo: ponlos en oferta (2x1, o 10% menos) para volverlos dinero, y ese dinero úsalo en lo que sí se vende.'));
     }
-    return cartas;
-  }
-
-  async function hLentos(ctx){
-    const { p, t } = await periodo(ctx, true, 30), a = p.act;
-    const sin = enlace.productos().filter((q) => esFisico(q) && Number(q.stock) > 0 && !a.productos[q.nombre]).slice(0, 40);
-    const cartas = [];
-    if(!sin.length) cartas.push(carta('bien', 'caja', 'Todo se está moviendo', cap(en(t)) + ' se vendió todo lo que tienes en existencia, o casi.'));
-    else {
-      const ord = sin.sort((x, y) => Number(y.stock) * Number(y.costo || 0) - Number(x.stock) * Number(x.costo || 0)).slice(0, 6);
-      cartas.push(carta('aviso', 'caja', 'No se vendieron ' + en(t), lista(ord.map((q) => q.nombre)) + (sin.length > 6 ? ' y ' + (sin.length - 6) + ' más' : '') + '.', 'Ponlos en oferta, júntalos en un combo con lo que sí se vende o acomódalos en un lugar más visible.'));
-    }
-    const lentos = puedeCostos() ? await rpc('productos_lentos', { p_dias: 60 }) : null;
-    if(lentos && lentos.n) cartas.push(carta('aviso', 'dinero', 'Dinero parado', 'Tienes ' + $d(lentos.capital) + ' guardados en ' + veces(lentos.n, 'producto', 'productos') + ' que no se vendieron en 60 días.', 'Entre más tiempo pasen, más difícil es recuperar ese dinero. Una oferta hoy es mejor que nada.'));
-    const poco = Object.entries(a.productos).map(([nombre, v]) => ({ nombre, cant: v.cant })).sort((x, y) => x.cant - y.cant)[0];
-    if(poco && sin.length) cartas.push(carta('info', 'grafica', 'De lo que sí se vendió', 'Lo que menos salió fue ' + poco.nombre + ' (' + fmt(poco.cant) + ' vendidos).'));
-    return cartas;
-  }
-
-  async function rpc(nombre, args){
-    try { const r = await enlace.sb.rpc(nombre, args); return r.error ? null : r.data; } catch(e){ return null; }
-  }
-
-  async function hStock(ctx){
-    const prods = enlace.productos().filter(esFisico), agot = prods.filter((p) => Number(p.stock) <= 0), bajos = prods.filter((p) => Number(p.stock) > 0 && Number(p.stock) <= 5).sort((a, b) => Number(a.stock) - Number(b.stock));
-    const cartas = [], av = esCajero() ? 'Avísale al encargado.' : null;
-    if(!agot.length && !bajos.length) cartas.push(carta('bien', 'caja', 'Inventario en buen nivel', 'No tienes nada agotado ni a punto de acabarse. ¡Muy bien!'));
-    if(agot.length) cartas.push(carta('alerta', 'alerta', 'Ya se acabó', lista(agot.slice(0, 8).map((p) => p.nombre)) + (agot.length > 8 ? ' y ' + (agot.length - 8) + ' más' : '') + '.', av || 'Si se vendían bien, cada día sin ellos pierdes ventas: pídelos pronto.'));
-    if(bajos.length) cartas.push(carta('aviso', 'alerta', 'Te quedan pocos', lista(bajos.slice(0, 8).map((p) => p.nombre + ' (' + fmt(p.stock) + ')')) + (bajos.length > 8 ? ' y ' + (bajos.length - 8) + ' más' : '') + '.', av));
-    if(puedeCostos() && (agot.length || bajos.length)){
-      const rep = await rpc('reposicion_sugerida', { p_dias: 30, p_cobertura: 14 });
-      if(rep && rep.length) cartas.push(carta('info', 'caja', 'Qué te conviene comprar', rep.slice(0, 5).map((x) => x.nombre + ': ' + fmt(x.sugerido) + (x.dias_alcanza != null ? ' (te alcanza para ' + fmt(x.dias_alcanza) + ' días)' : '')).join('; ') + '.', 'Con eso te alcanza para unas 2 semanas, según lo que vendes.'));
-    }
-    return cartas;
-  }
-
-  async function hRiesgo(){
-    const cad = porCaducar(), cartas = [];
-    if(!cad.length) cartas.push(carta('bien', 'caja', 'Nada por caducar', 'No tienes productos caducados ni por caducar en los próximos 7 días.'));
+    if(plat.length) out.push(P('También **' + lista(plat.map((x) => x.nombre)) + '** casi no se ' + (plat.length === 1 ? 'vende' : 'venden') + '. No gastes en ingredientes o material para ' + (plat.length === 1 ? 'él' : 'ellos') + ' hasta que se muevan.'));
+    if(!pa.length && !plat.length) out.push(P('Buenas noticias: no veo mercancía parada de más. Todo lo que tienes se está moviendo.'));
+    if(!an.hayCostos) out.push(P('Ojo: sin el costo de tus productos no puedo calcular cuánto dinero tienes parado. Anótalos en **Productos** y te lo afino.'));
+    out.push(C([sug('¿Qué me recomiendas vender más?'), sug('¿Qué debo comprar?')]));
+    return out;
+  };
+  H.recomendar_vender = async () => {
+    const an = await D.analisis();
+    if(!an.ventas30) return [P('Todavía no tengo suficientes ventas de los últimos 30 días para decirte qué empujar. Cuando tengas unas cuantas, te lo digo con seguridad.')];
+    const est = estrellas(an, 3), opp = oportunidades(an, 3), sub = subiendo(an, 2, est.concat(opp)), out = [P('Viendo tus últimos 30 días, esto es lo que yo **empujaría para vender más**:')];
+    if(est.length) out.push(L('Tus mejores: que nunca falten y ponlos al frente', est.map((x) => [x.nombre, x.margen30 != null ? $r(x.margen30) + ' de ganancia' : $r(x.ing30) + ' vendidos', 'vendiste ' + fmt(x.u30) + (x.fisico && x.vel > 0 && x.dias <= 7 ? ' · te quedan pocos' : '')])));
+    if(opp.length) out.push(L('Dejan buen dinero pero se venden poco: ofrécelos más', opp.map((x) => { const c = D.compañero(an, x.nombre); return [x.nombre, '+' + $d(x.mUnit) + ' cada uno', 'solo vendiste ' + fmt(x.u30) + (c ? ' · ofrécelo junto con ' + c.con : '')]; })));
+    if(sub.length) out.push(L('Vienen subiendo: aprovéchalos', sub.map((x) => [x.nombre, '+' + Math.round(x.tend * 100) + ' de cada 100', 'vendiste ' + fmt(x.u30) + ' este mes'])));
+    out.push(P('**Cómo hacerlo fácil:** pon un letrerito en el mostrador, ofrécelos al cobrar ("¿le agrego uno?") o júntalos con tus mejores en un combo.'));
+    if(!an.hayCostos) out.push(P('Ojo: no tengo el costo de tus productos, así que los ordené por lo que más se vende. Anótalo en **Productos** y te digo cuáles dejan más ganancia.'));
+    out.push(C([sug('¿En qué no debería invertir?'), sug('¿Qué precio le subo?')]));
+    return out;
+  };
+  H.subir_ventas = async () => {
+    const pl = (await plan()).filter((x) => x.tipo === 'vender').slice(0, 4);
+    if(!pl.length) return [P('Ahorita no veo un problema que arreglar: tus ventas van parejas. Para crecer, prueba un combo o una oferta en tu producto más vendido.'), C([sug('¿Qué me recomiendas vender más?')])];
+    return [P('Para vender más, yo haría esto, en este orden:'), S('', pl.map((x) => [x.titulo, x.texto])), C([sug('¿Qué me recomiendas vender más?'), sug('¿Qué precio le subo?')])];
+  };
+  H.que_hago = async () => {
+    const pl = (await plan()).slice(0, 4);
+    if(!pl.length) return [P('Todo va tranquilo, no veo nada urgente. Sigue así y revísame cada día para que no se te pase nada.')];
+    return [P('Esto es lo más importante que yo haría ahorita:'), S('', pl.map((x) => [x.titulo, x.texto])), C([sug('¿Cómo vendo más?'), sug('¿En qué no debería invertir?')])];
+  };
+  H.precios = async () => {
+    const an = await D.analisis();
+    if(!an.hayCostos) return [P('Para decirte qué precios subir necesito el costo de tus productos. Anótalo en **Productos** y lo calculo.')];
+    const cand = an.lista.filter((x) => x.mPct != null && x.mPct < 0.2 && x.u30 >= 5).sort((x, y) => y.u30 - x.u30).slice(0, 4);
+    if(!cand.length) return [P('Tus precios se ven sanos: no encuentro productos que vendas mucho y dejen muy poco.')];
+    return [P('Estos los vendes bastante pero te dejan poquito por cada uno. Subirles un poco ayuda:'), L('Candidatos a subir', cand.map((x) => { const aum = Math.max(1, Math.round(x.precioReal * 0.07)); return [x.nombre, '+' + $d(aum), 'hoy te quedan ' + $d(x.mUnit) + ' por pieza; si se vende igual, ganas ~' + $r(aum * x.u30) + ' más al mes']; })), P('Pruébalo una semana y mira si se sigue vendiendo parecido. Si baja mucho, regrésalo.')];
+  };
+  H.equilibrio = async () => {
+    const an = await D.analisis(), g = await D.traerGastos(new Date(Date.now() - 30 * 86400000), new Date());
+    if(g == null) return [P('Esto solo lo ve el encargado del negocio.')];
+    const gt = g.reduce((s, x) => s + Number(x.monto), 0), mg = an.lista.reduce((s, x) => s + (x.margen30 || 0), 0), ing = an.ing30;
+    if(!gt) return [P('No tienes gastos anotados en los últimos 30 días, así que no puedo calcular cuánto necesitas vender para cubrirlos. Anótalos y te lo digo.')];
+    if(!an.hayCostos || mg <= 0 || ing <= 0) return [P('Tus gastos del mes son **' + $r(gt) + '**. Para saber cuánto necesitas vender para cubrirlos, necesito el costo de tus productos.')];
+    const pct = mg / ing, necesito = gt / pct, falta = Math.max(0, necesito - ing);
+    return [P('Tus gastos de 30 días son **' + $r(gt) + '**. De cada $100 que vendes te quedan ' + $r(pct * 100) + ', así que necesitas vender unos **' + $r(necesito) + '** al mes (como **' + $r(necesito / 30) + '** al día) para cubrir todo sin perder.'), P(falta > 0 ? 'En los últimos 30 días vendiste ' + $r(ing) + ': te faltaron unos **' + $r(falta) + '** para llegar.' : 'En los últimos 30 días vendiste ' + $r(ing) + ': ya pasaste esa meta por unos **' + $r(ing - necesito) + '**. Todo lo de arriba es ganancia.')];
+  };
+  H.prediccion = async (c) => {
+    const dia = c.t.futuro ? new Date(c.t.desde).getDay() : (c.t.diaSemana != null ? c.t.diaSemana : new Date().getDay()), pr = await D.prediccion(dia), nombre = N.DIAS_BONITO[dia];
+    if(!pr.n) return [P('Todavía no tengo suficientes ' + nombre + 's para calcularlo. Con unas semanas de ventas ya te lo digo.')];
+    return [P('Un ' + nombre + ' normal vendes alrededor de **' + $r(pr.prom) + '**. Los ' + nombre + 's de las últimas semanas fueron desde ' + $r(pr.min) + ' hasta ' + $r(pr.max) + '.'), P('Es solo un cálculo con tu historial: si hay lluvia, quincena o fiesta, puede cambiar.')];
+  };
+  H.horas = async (c) => {
+    const { p, t } = await periodo(c, false, 30), a = p.act;
+    if(a.n < 3) return [P('Todavía hay muy pocas ventas para saber a qué hora vendes más.')];
+    const hs = a.porHora.map((v, h) => ({ h, v })).filter((x) => x.v > 0), fu = hs.slice().sort((x, y) => y.v - x.v).slice(0, 3), out = [P('Vendes más en el horario **' + N.horaFuerteTexto(fu[0].h) + '** (' + $r(fu[0].v) + ' en ' + t.etiqueta + ').'), L('Tus horas fuertes', fu.map((x) => [N.horaFuerteTexto(x.h), $r(x.v), '']))];
+    const ini = hs[0].h, fin = hs[hs.length - 1].h, fl = hs.filter((x) => x.h >= ini && x.h <= fin).sort((x, y) => x.v - y.v).slice(0, 2);
+    if(fl.length && hs.length >= 5) out.push(P('Tus horas más flojas son ' + lista(fl.map((x) => N.horaFuerteTexto(x.h))) + '. Ahí prueba una oferta relámpago.'));
+    out.push(P('En tu hora fuerte ten listo lo que más vendes y, si puedes, otra persona en caja.'));
+    return out;
+  };
+  H.dias = async (c) => {
+    const { p, t } = await periodo(c, false, 30), a = p.act;
+    if(a.n < 5) return [P('Todavía hay muy pocas ventas para saber qué día vendes más.')];
+    const dd = a.porDia.map((v, d) => ({ d, v })).filter((x) => x.v > 0).sort((x, y) => y.v - x.v), out = [P('Tu mejor día es el **' + N.DIAS_BONITO[dd[0].d] + '** (' + $r(dd[0].v) + ' en ' + t.etiqueta + ')' + (dd[1] ? ' y después el ' + N.DIAS_BONITO[dd[1].d] + '.' : '.'))];
+    if(dd.length > 2) out.push(P('El más flojo es el ' + N.DIAS_BONITO[dd[dd.length - 1].d] + ' (' + $r(dd[dd.length - 1].v) + '). Haz una promoción ese día para llenarlo.'));
+    return out;
+  };
+  H.pagos = async (c) => {
+    const { p, t, nota } = await periodo(c, false), a = p.act;
+    if(!a.n) return [P('Todavía no hay ventas ' + en(t) + ' para ver cómo te pagan.')];
+    const orden = Object.entries(a.porMetodo).sort((x, y) => y[1] - x[1]), out = []; if(nota) out.push(P(nota));
+    out.push(P('De cada $100 que cobras ' + en(t) + ': ' + lista(orden.map(([k, v]) => '**' + $r(v / a.total * 100) + '** son en ' + (NOMBRE_PAGO[k] || k))) + '.'));
+    if(orden[0][0] === 'efectivo' && orden[0][1] / a.total > 0.85) out.push(P('Casi todo es efectivo: ofrece también tarjeta o transferencia para no perder clientes que no traen cambio.'));
+    return out;
+  };
+  H.cajeros = async (c) => {
+    const { p, t, nota } = await periodo(c, false), a = p.act, ids = Object.keys(a.porCajero);
+    if(!ids.length) return [P('Todavía no hay ventas ' + en(t) + ' para comparar a tu equipo.')];
+    const nombres = {}; try { const r = await enlace.sb.from('perfiles').select('id,nombre').in('id', ids); (r.data || []).forEach((x) => { nombres[x.id] = x.nombre; }); } catch(e){}
+    const orden = ids.map((id) => ({ nombre: nombres[id] || 'Un cajero', n: a.porCajero[id].n, total: a.porCajero[id].total })).sort((x, y) => y.total - x.total), out = []; if(nota) out.push(P(nota));
+    out.push(P('**' + orden[0].nombre + '** vendió más ' + en(t) + ': ' + $r(orden[0].total) + ' en ' + veces(orden[0].n, 'venta', 'ventas') + '.'));
+    if(orden.length > 1) out.push(L('Todo el equipo', orden.map((x) => [x.nombre, $r(x.total), veces(x.n, 'venta', 'ventas')])));
+    return out;
+  };
+  H.clientes = async () => {
+    const d = await rpc('clientes_inactivos', { p_dias: 45 });
+    if(d == null) return [P('No pude revisar tus clientes. Para verlos, activa **Clientes** o **Recompensas** y registra el teléfono al cobrar.')];
+    if(!d.length) return [P('Tus clientes siguen viniendo: ninguno de los frecuentes lleva más de 45 días sin venir.')];
+    return [P(veces(d.length, 'cliente frecuente lleva', 'clientes frecuentes llevan') + ' más de 45 días sin venir. Los que más te compraban:'), L('Escríbeles', d.slice(0, 4).map((x) => [x.nombre, $r(x.total), x.visitas + ' visitas'])), P('Mándales un WhatsApp con una promoción chica para que regresen.')];
+  };
+  H.riesgo = async () => {
+    const cad = porCaducar(), out = [];
+    if(!cad.length) out.push(P('No tienes nada caducado ni por caducar en los próximos 7 días.'));
     else {
       const ya = cad.filter((x) => x.dias <= 0), pronto = cad.filter((x) => x.dias > 0);
-      if(ya.length) cartas.push(carta('alerta', 'alerta', 'Ya caducaron', lista(ya.slice(0, 6).map((x) => x.p.nombre)) + '.', 'Sácalos de la venta para no tener problemas con tus clientes.'));
-      if(pronto.length) cartas.push(carta('aviso', 'alerta', 'Van a caducar pronto', lista(pronto.slice(0, 6).map((x) => x.p.nombre + ' (en ' + veces(x.dias, 'día', 'días') + ')')) + '.', 'Véndelos primero: ponlos en oferta hoy o júntalos con algo que sí se vende.'));
+      if(ya.length) out.push(P('Ya caducó: **' + lista(ya.slice(0, 6).map((x) => x.p.nombre)) + '**. Sácalo de la venta para no tener problemas con tus clientes.'));
+      if(pronto.length) out.push(P('Va a caducar pronto:'), L('', pronto.slice(0, 6).map((x) => [x.p.nombre, 'en ' + veces(x.dias, 'día', 'días'), fmt(x.p.stock) + ' en existencia'])), P('Véndelo primero: ponlo en oferta hoy o júntalo con algo que sí se vende.'));
     }
     const lentos = await rpc('productos_lentos', { p_dias: 60 });
-    if(lentos && lentos.n) cartas.push(carta('aviso', 'dinero', 'También hay productos sin moverse', veces(lentos.n, 'producto', 'productos') + ' llevan 60 días sin venderse y tienen ' + $d(lentos.capital) + ' de dinero parado.', 'Haz una oferta para recuperar ese dinero.'));
-    return cartas;
-  }
-
-  async function hHoras(ctx){
-    const { p, t, nota } = await periodo(ctx, false, 30), a = p.act;
-    if(a.n < 3) return [carta('neutro', 'reloj', 'Todavía hay pocos datos', 'Necesito unas cuantas ventas más para saber a qué hora vendes más.')];
-    const hs = a.porHora.map((v, h) => ({ h, v })).filter((x) => x.v > 0), fuertes = hs.slice().sort((x, y) => y.v - x.v).slice(0, 3);
-    const cartas = [carta('bien', 'reloj', 'Tus horas fuertes (' + t.etiqueta + ')', fuertes.map((x, i) => (i ? 'luego ' : 'Vendes más en el horario ') + horaFuerteTexto(x.h) + ' (' + $d(x.v) + ')').join('; ') + '.', 'En esas horas ten listo lo que más vendes y, si puedes, una persona más en caja.')];
-    const ini = hs[0].h, fin = hs[hs.length - 1].h, flojas = hs.filter((x) => x.h >= ini && x.h <= fin).sort((x, y) => x.v - y.v).slice(0, 2);
-    if(flojas.length && hs.length >= 5) cartas.push(carta('aviso', 'reloj', 'Tus horas flojas', 'Vendes menos en el horario ' + lista(flojas.map((x) => horaFuerteTexto(x.h))) + '.', 'Prueba una oferta relámpago en esas horas para llenarlas.'));
-    return cartas;
-  }
-
-  async function hDias(ctx){
-    const { p, t } = await periodo(ctx, false, 30), a = p.act;
-    if(a.n < 5) return [carta('neutro', 'grafica', 'Todavía hay pocos datos', 'Necesito unas cuantas ventas más para saber qué día vendes más.')];
-    const dd = a.porDia.map((v, d) => ({ d, v })).filter((x) => x.v > 0).sort((x, y) => y.v - x.v);
-    return [carta('bien', 'grafica', 'Tus mejores días (' + t.etiqueta + ')', 'Vendes más el ' + DIAS_BONITO[dd[0].d] + ' (' + $d(dd[0].v) + ')' + (dd[1] ? ' y el ' + DIAS_BONITO[dd[1].d] + ' (' + $d(dd[1].v) + ')' : '') + '.'),
-      dd.length > 2 ? carta('aviso', 'grafica', 'Tu día más flojo', 'El ' + DIAS_BONITO[dd[dd.length - 1].d] + ' es cuando menos vendes (' + $d(dd[dd.length - 1].v) + ').', 'Haz una promoción ese día para que se llene más.') : null].filter(Boolean);
-  }
-
-  async function hPagos(ctx){
-    const { p, t, nota } = await periodo(ctx, false), a = p.act;
-    if(!a.n) return [carta('neutro', 'tarjeta', 'Formas de pago ' + de(t), 'Todavía no hay ventas en ese periodo.')];
-    const orden = Object.entries(a.porMetodo).sort((x, y) => y[1] - x[1]), cartas = [];
-    if(nota) cartas.push(carta('info', 'reloj', 'Aviso', nota));
-    cartas.push(carta('info', 'tarjeta', 'Cómo te pagan ' + en(t), 'De cada $100 que cobras: ' + lista(orden.map(([k, v]) => $r(v / a.total * 100) + ' son en ' + (NOMBRE_PAGO[k] || k))) + '.',
-      orden[0][0] === 'efectivo' && orden[0][1] / a.total > 0.85 ? 'Casi todo es efectivo: ofrece también tarjeta o transferencia para no perder clientes que no traen cambio.' : null));
-    return cartas;
-  }
-
-  async function hCajeros(ctx){
-    const { p, t, nota } = await periodo(ctx, false), a = p.act;
-    const ids = Object.keys(a.porCajero);
-    if(!ids.length) return [carta('neutro', 'persona', 'Ventas por cajero', 'Todavía no hay ventas en ese periodo.')];
-    let nombres = {};
-    try { const r = await enlace.sb.from('perfiles').select('id,nombre').in('id', ids); (r.data || []).forEach((x) => { nombres[x.id] = x.nombre; }); } catch(e){}
-    const orden = ids.map((id) => ({ nombre: nombres[id] || 'Un cajero', n: a.porCajero[id].n, total: a.porCajero[id].total })).sort((x, y) => y.total - x.total), cartas = [];
-    if(nota) cartas.push(carta('info', 'reloj', 'Aviso', nota));
-    cartas.push(carta('bien', 'persona', 'Quién vendió más ' + en(t), orden[0].nombre + ' vendió más: ' + $d(orden[0].total) + ' en ' + veces(orden[0].n, 'venta', 'ventas') + '.' + (orden.length > 1 ? ' Después ' + lista(orden.slice(1, 4).map((x) => x.nombre + ' (' + $d(x.total) + ')')) + '.' : '')));
-    return cartas;
-  }
-
-  async function hClientes(){
-    const d = await rpc('clientes_inactivos', { p_dias: 45 });
-    if(d == null) return [carta('neutro', 'persona', 'Clientes', 'No pude revisar tus clientes. Para verlos, activa Clientes o Recompensas y registra el teléfono al cobrar.')];
-    if(!d.length) return [carta('bien', 'persona', 'Tus clientes siguen viniendo', 'Ningún cliente frecuente lleva más de 45 días sin venir.')];
-    return [carta('aviso', 'persona', 'Clientes que dejaron de venir', veces(d.length, 'cliente frecuente lleva', 'clientes frecuentes llevan') + ' más de 45 días sin venir. Los que más te compraban: ' + lista(d.slice(0, 3).map((x) => x.nombre + ' (' + $d(x.total) + ')')) + '.', 'Mándales un mensaje de WhatsApp con una promoción chica para que regresen.')];
-  }
-
-  async function hProducto(ctx){
-    const prod = ctx.producto, t = ctx.t.explicito ? ctx.t : ultimos(30), dato = await cargarPeriodo(t, true), a = dato.act, v = a.productos[prod.nombre];
-    const cartas = [], dias = Math.max(1, t.dias);
-    if(!v) cartas.push(carta('neutro', 'caja', prod.nombre, 'De ' + prod.nombre + ' no se vendió nada ' + en(t) + '.'));
-    else cartas.push(carta('bien', 'caja', prod.nombre, 'De ' + prod.nombre + ' vendiste ' + fmt(v.cant) + ' ' + en(t) + ' (' + $d(v.monto) + ').' + (puedeCostos() && v.margen ? ' Te dejó ' + $d(v.margen) + ' de ganancia.' : '')));
-    if(esFisico(prod)){
-      const st = Number(prod.stock), vd = v ? v.cant / dias : 0;
-      let txt = st <= 0 ? 'Ya se acabó.' : 'Te quedan ' + fmt(st) + '.';
-      if(st > 0 && vd > 0){ const al = Math.floor(st / vd); txt += al < 1 ? ' Al ritmo que lo vendes, no te alcanza ni para un día.' : ' Al ritmo que lo vendes, te alcanza para unos ' + veces(al, 'día', 'días') + '.'; }
-      cartas.push(carta(st <= 0 ? 'alerta' : (st <= 5 ? 'aviso' : 'info'), 'caja', 'Cuánto tienes', txt, st <= 5 ? (esCajero() ? 'Avísale al encargado.' : 'Pídelo pronto para no quedarte sin él.') : null));
-    }
-    return cartas;
-  }
-
-  async function hConsejo(ctx){
-    const t = ctx.t.explicito ? ctx.t : ultimos(14), dato = await cargarPeriodo(t, true), g = (t.tipo !== 'horas') ? await traerGastos(t.desde, t.hasta) : null;
-    const c = consejos(dato.act, dato.ant, t, g ? g.reduce((s, x) => s + Number(x.monto), 0) : null).slice(0, 4);
-    if(!c.length) return [carta('bien', 'foco', 'Todo va tranquilo', 'No veo nada urgente. Sigue así y revisa tu resumen todos los días.')];
-    return c.map((x) => carta(x.tono, x.tono === 'bien' ? 'estrella' : 'foco', x.titulo, x.texto, x.consejo));
-  }
-
-  async function hResumen(ctx){
-    const { p, t, nota } = await periodo(ctx, true), a = p.act, b = p.ant, cartas = [];
-    if(!a.n) return [carta('neutro', 'dinero', cap('Resumen: ' + t.etiqueta), esCajero() ? 'Todavía no tienes ventas en ese periodo.' : 'Todavía no hay ventas en ese periodo.', 'Cuando haya ventas, aquí te cuento cómo va todo.')];
-    if(nota) cartas.push(carta('info', 'reloj', 'Aviso', nota));
-    const c = compara(a.total, b.total, t.etPrev);
-    cartas.push(carta(c.tono, 'dinero', cap('Ventas ' + de(t)), ((t.etiqueta === 'hoy' ? 'Llevas vendido ' : 'Vendiste ') + $d(a.total) + ' en ' + veces(a.n, 'venta', 'ventas') + '. ' + c.texto).trim()));
-    let gastos = null;
-    if(puedeCostos() && a.margen != null){
-      gastos = t.tipo === 'horas' ? null : await traerGastos(t.desde, t.hasta);
-      const g = gastos ? gastos.reduce((s, x) => s + Number(x.monto), 0) : null;
-      cartas.push(carta(a.margen >= 0 ? 'bien' : 'alerta', 'dinero', 'Tu ganancia', 'De lo que vendiste, ' + $d(a.margen) + ' son ganancia.' + (g != null ? (g ? ' Gastaste ' + $d(g) + ', así que tu ganancia real es ' + $d(a.margen - g) + '.' : ' No anotaste gastos.') : '')));
-      gastos = g;
-    }
-    const top = topProductos(a, 1)[0];
-    if(top) cartas.push(carta('info', 'estrella', 'Lo que más salió', top.nombre + ' fue lo más vendido: ' + fmt(top.cant) + ' vendidos.'));
-    if(a.n >= 4 && t.tipo !== 'horas'){
-      const hs = a.porHora.map((v, h) => ({ h, v })).sort((x, y) => y.v - x.v)[0];
-      if(hs.v > 0) cartas.push(carta('info', 'reloj', 'Tu mejor hora', 'Vendiste más en el horario ' + horaFuerteTexto(hs.h) + ' (' + $d(hs.v) + ').'));
-    }
-    const pg = Object.entries(a.porMetodo).sort((x, y) => y[1] - x[1])[0];
-    if(pg && Object.keys(a.porMetodo).length > 1) cartas.push(carta('info', 'tarjeta', 'Cómo te pagaron', 'Lo que más usaron fue ' + (NOMBRE_PAGO[pg[0]] || pg[0]) + ': ' + $r(pg[1] / a.total * 100) + ' de cada $100.'));
-    const bajos = stockBajo();
-    if(bajos.length) cartas.push(carta('aviso', 'alerta', 'Se te está acabando', lista(bajos.slice(0, 4).map((x) => x.nombre + ' (' + fmt(x.stock) + ')')) + (bajos.length > 4 ? ' y ' + (bajos.length - 4) + ' más' : '') + '.', esCajero() ? 'Avísale al encargado.' : null));
-    const cs = consejos(a, b, t, gastos)[0];
-    if(cs) cartas.push(carta(cs.tono === 'bien' ? 'bien' : 'info', 'foco', 'Lo que te recomiendo', cs.texto, cs.consejo));
-    return cartas;
-  }
-
-  async function hSalud(ctx){
-    const t = ctx.t.explicito ? ctx.t : ultimos(30), dato = await cargarPeriodo(t, true), a = dato.act, b = dato.ant;
-    if(!a.n) return [carta('neutro', 'corazon', 'Salud de tu negocio', 'Todavía no hay ventas ' + en(t) + ' para revisar cómo vas.')];
-    let puntos = 0; const cartas = [], c = compara(a.total, b.total, t.etPrev);
-    puntos += c.tono === 'bien' ? 1 : (c.tono === 'alerta' ? -1.5 : (c.tono === 'aviso' ? -0.5 : 0));
-    cartas.push(carta(c.tono, 'dinero', 'Ventas', cap(en(t)) + ' vendiste ' + $d(a.total) + '. ' + c.texto));
-    let g = null;
-    if(a.margen != null){
-      const porCien = a.total ? a.margen / a.total * 100 : 0;
-      puntos += porCien >= 25 ? 1 : (porCien < 12 ? -1 : 0);
-      g = await traerGastos(t.desde, t.hasta);
-      const gt = g ? g.reduce((s, x) => s + Number(x.monto), 0) : null, real = gt != null ? a.margen - gt : null;
-      if(real != null && real < 0) puntos -= 1.5;
-      cartas.push(carta(porCien >= 25 ? 'bien' : (porCien < 12 ? 'alerta' : 'aviso'), 'dinero', 'Ganancia', 'Por cada $100 que vendes, te quedan ' + $r(porCien) + '.' + (real != null ? ' Ya con gastos, tu ganancia real es ' + $d(real) + '.' : ''), porCien < 12 ? 'Es poquito: revisa tus precios o busca proveedores más baratos.' : null));
-    }
-    const fis = enlace.productos().filter(esFisico), apuros = fis.filter((p) => Number(p.stock) <= 5).length;
-    if(fis.length){
-      const fr = apuros / fis.length; puntos += fr > 0.3 ? -1 : 0;
-      cartas.push(carta(fr > 0.3 ? 'alerta' : (apuros ? 'aviso' : 'bien'), 'caja', 'Inventario', apuros ? veces(apuros, 'producto está', 'productos están') + ' agotado' + (apuros === 1 ? '' : 's') + ' o por acabarse, de ' + fis.length + '.' : 'Todo tu inventario está en buen nivel.', fr > 0.3 ? 'Es mucho: haz una compra pronto.' : null));
-    }
-    const cad = porCaducar();
-    if(cad.length){ puntos -= 0.5; cartas.push(carta('aviso', 'alerta', 'Caducidad', veces(cad.length, 'producto caduca', 'productos caducan') + ' en menos de 7 días.', 'Ponlos en oferta ya.')); }
-    const nivel = puntos >= 2 ? ['bien', 'Tu negocio va muy bien.'] : (puntos >= 0.5 ? ['bien', 'Tu negocio va bien.'] : (puntos >= -0.5 ? ['aviso', 'Tu negocio va regular: hay cosas que mejorar.'] : ['alerta', 'Tu negocio necesita atención pronto.']));
-    cartas.push(carta(nivel[0], 'corazon', 'En resumen', nivel[1]));
-    const cs = consejos(a, b, t, g ? g.reduce((s, x) => s + Number(x.monto), 0) : null)[0];
-    if(cs) cartas.push(carta('info', 'foco', 'Lo primero que te recomiendo', cs.texto, cs.consejo));
-    return cartas;
-  }
-
-  async function hAyuda(ctx){
-    const e = esCajero();
-    return [carta('info', 'foco', 'Soy PUVE IA', 'Te cuento cómo va ' + (e ? 'tu turno' : 'tu negocio') + ' con palabras sencillas. Escríbeme como le hablarías a una persona: puedes preguntar por un día, o por un horario como "ayer de 2 a 5 de la tarde". Toca una de las preguntas de abajo para empezar.')];
-  }
-  async function hNoEntendi(){
-    return [carta('neutro', 'foco', 'No te entendí bien', 'Prueba con otras palabras. Por ejemplo, así me puedes preguntar:', null, ['¿Cuánto vendí hoy?', 'Ventas de ayer de 2 a 5 de la tarde', '¿Qué se está acabando?', '¿Qué hago para vender más?'].map((x) => ({ texto: x, pregunta: x })))];
-  }
-
-  const MANEJADORES = { resumen: hResumen, ventas: hVentas, ganancia: hGanancia, gastos: hGastos, top: hTop, lentos: hLentos, stock: hStock, riesgo: hRiesgo, horas: hHoras, dias: hDias, pagos: hPagos, cajeros: hCajeros, clientes: hClientes, consejo: hConsejo, salud: hSalud, ayuda: hAyuda, producto: hProducto };
-
-  async function responder(texto){
-    const t0 = norm(texto), ctx = { t: parseTiempo(texto), texto: t0, producto: null };
-    let ids = detectar(t0);
-    if(ctx.t.tipo === 'horas' && !/(que hora|hora pico|mejor hora|peor hora|hora fuerte|hora floja)/.test(t0)) ids = ids.filter((i) => i !== 'horas');
-    const prod = buscarProducto(t0);
-    if(prod && (!ids.length || ids.every((i) => ['ventas', 'top', 'stock', 'lentos', 'resumen', 'consejo'].includes(i)))){ ctx.producto = prod; ids = ['producto']; }
-    if(!ids.length){
-      if(ctx.t.explicito) ids = [ctx.t.tipo === 'horas' ? 'ventas' : 'resumen'];
-      else return hNoEntendi();
-    }
-    const cartas = [];
-    if(esCajero() && ids.some((i) => SOLO_ENCARGADO.has(i))){
-      cartas.push(carta('neutro', 'alerta', 'Eso lo ve el encargado', 'Esa información solo la puede ver el encargado del negocio. Yo te puedo contar de tus ventas, lo que más vendes y lo que se está acabando.'));
-      ids = ids.filter((i) => !SOLO_ENCARGADO.has(i));
-    }
-    if(!puedeCostos() && !esCajero() && ids.some((i) => ['ganancia', 'gastos', 'riesgo', 'clientes'].includes(i))){
-      cartas.push(carta('neutro', 'alerta', 'Eso no lo puedo mostrar', 'Los costos, gastos y clientes los ve solo el encargado del negocio.'));
-      ids = ids.filter((i) => !['ganancia', 'gastos', 'riesgo', 'clientes'].includes(i));
-    }
-    for(const id of ids){ cartas.push(...await MANEJADORES[id](ctx)); }
-    return cartas.length ? cartas : hNoEntendi();
-  }
-
-  // ---------- pantalla: chat con tarjetitas ----------
-  const SVG_NS = 'http://www.w3.org/2000/svg';
-  const ICONOS = {
-    dinero: 'M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',
-    grafica: 'M18 20V10M12 20V4M6 20v-6',
-    caja: 'M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16zM3.27 6.96 12 12.01l8.73-5.05M12 22.08V12',
-    reloj: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM12 6v6l4 2',
-    alerta: 'M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01',
-    estrella: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
-    foco: 'M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.74V17h8v-2.26A7 7 0 0 0 12 2z',
-    persona: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
-    tarjeta: 'M3 4h18a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM1 10h22',
-    corazon: 'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z',
-    escudo: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
-    mensaje: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',
-    tienda: 'M3 9l1-5h16l1 5M3 9v11h18V9M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0',
-    bug: 'M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6zM12 20v-9M9 7V6a3 3 0 1 1 6 0v1M2 13h4M18 13h4',
-    enviar: 'M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z'
+    if(lentos && lentos.n) out.push(P('Además, **' + veces(lentos.n, 'producto lleva', 'productos llevan') + '** 60 días sin venderse y tienen ' + $r(lentos.capital) + ' de dinero parado. Una oferta hoy es mejor que nada.'));
+    return out;
   };
-  function el(tag, cls, txt){ const e = document.createElement(tag); if(cls) e.className = cls; if(txt != null) e.textContent = txt; return e; }
-  function icono(nombre){
-    const s = document.createElementNS(SVG_NS, 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('fill', 'none'); s.setAttribute('stroke', 'currentColor');
-    s.setAttribute('stroke-width', '2'); s.setAttribute('stroke-linecap', 'round'); s.setAttribute('stroke-linejoin', 'round'); s.setAttribute('aria-hidden', 'true');
-    const p = document.createElementNS(SVG_NS, 'path'); p.setAttribute('d', ICONOS[nombre] || ICONOS.foco); s.appendChild(p); return s;
-  }
-  const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
+  H.producto = async (c) => {
+    const ps = c.productos || [];
+    if(!ps.length) return [P('¿De qué producto quieres saber? Dime el nombre y te cuento cuánto se vende y cuánto te queda.')];
+    const t = c.t.explicito ? c.t : N.ultimos(30), dato = await D.cargarPeriodo(t, true), a = dato.act, ids = new Set(ps.map((x) => x.nombre)), vs = Object.entries(a.productos).filter(([n]) => ids.has(n)).map(([, v]) => v);
+    const cant = vs.reduce((s, v) => s + v.cant, 0), monto = vs.reduce((s, v) => s + v.monto, 0), marg = vs.reduce((s, v) => s + v.margen, 0), nombre = ps.length === 1 ? ps[0].nombre : lista(ps.slice(0, 3).map((x) => x.nombre)) + (ps.length > 3 ? ' y otros' : ''), out = [];
+    out.push(P(cant ? 'De **' + nombre + '** vendiste **' + fmt(cant) + '** ' + en(t) + ' (' + $d(monto) + ').' + (puedeCostos() && marg ? ' Te dejó ' + $d(marg) + ' de ganancia.' : '') : 'De ' + nombre + ' no se vendió nada ' + en(t) + '.'));
+    const fis = ps.filter(D.esFisico);
+    if(fis.length){
+      const st = fis.reduce((s, x) => s + Number(x.stock), 0), vd = cant / Math.max(1, t.dias);
+      let txt = st <= 0 ? 'Ya se acabó.' : 'Te quedan **' + fmt(st) + '**.';
+      if(st > 0 && vd > 0) txt += ' Al ritmo que lo vendes te alcanza para ' + dias(st / vd) + '.';
+      out.push(P(txt));
+      if(st <= 5 || (vd > 0 && st / vd < 5)) out.push(P(esCajero() ? 'Avísale al encargado para que lo pida.' : 'Yo lo pediría pronto para no quedarte sin él.'));
+    }
+    return out;
+  };
+  H.salud = async (c) => {
+    const t = c.t.explicito ? c.t : N.ultimos(30), dato = await D.cargarPeriodo(t, true), a = dato.act, b = dato.ant;
+    if(!a.n) return [P('Todavía no hay ventas ' + en(t) + ' para revisar cómo va tu negocio.')];
+    let pts = 0; const pu = [], rel = b.total ? (a.total - b.total) / b.total : 0;
+    pts += rel > 0.03 ? 1 : (rel < -0.2 ? -1.5 : (rel < -0.03 ? -0.5 : 0));
+    pu.push(['Ventas', $r(a.total), b.total ? (rel >= 0 ? 'subieron ' : 'bajaron ') + $r(Math.abs(a.total - b.total)) + ' contra ' + t.etPrev : '']);
+    if(a.margen != null){
+      const por = a.total ? a.margen / a.total * 100 : 0; pts += por >= 25 ? 1 : (por < 12 ? -1 : 0);
+      const g = await D.traerGastos(t.desde, t.hasta), gTot = g ? g.reduce((s, x) => s + Number(x.monto), 0) : null; if(gTot != null && a.margen - gTot < 0) pts -= 1.5;
+      pu.push(['Ganancia', $r(a.margen), 'de cada $100 te quedan ' + $r(por) + (gTot != null ? ' · ya con gastos: ' + $r(a.margen - gTot) : '')]);
+    }
+    const fis = enlace.productos().filter(D.esFisico), ap = fis.filter((x) => Number(x.stock) <= 5).length;
+    if(fis.length){ if(ap / fis.length > 0.3) pts -= 1; pu.push(['Inventario', ap ? veces(ap, 'producto', 'productos') : 'bien', ap ? 'agotados o por acabarse, de ' + fis.length : 'nada se está acabando']); }
+    const cad = porCaducar(); if(cad.length){ pts -= 0.5; pu.push(['Caducidad', veces(cad.length, 'producto', 'productos'), 'caducan en menos de 7 días']); }
+    const veredicto = pts >= 2 ? 'Tu negocio va **muy bien**.' : (pts >= 0.5 ? 'Tu negocio va **bien**.' : (pts >= -0.5 ? 'Tu negocio va **regular**: hay cosas por mejorar.' : 'Tu negocio **necesita atención pronto**.'));
+    const pl = (await plan())[0], out = [P(veredicto + ' Esto es lo que veo ' + en(t) + ':'), L('', pu)];
+    if(pl) out.push(P('Lo primero que haría: **' + pl.titulo + '.** ' + pl.texto));
+    out.push(C([sug('¿Qué me recomiendas hacer?')]));
+    return out;
+  };
+  H.resumen = async (c) => {
+    const { p, t, nota } = await periodo(c, true), a = p.act, b = p.ant;
+    if(!a.n) return [P(cap(en(t)) + ' todavía no ' + (esCajero() ? 'tienes' : 'hay') + ' ventas.'), P('Cuando haya, aquí te cuento cómo va todo.')];
+    const out = []; if(nota) out.push(P(nota));
+    out.push(P((t.etiqueta === 'hoy' ? 'Hoy llevas ' : cap(en(t)) + ' vendiste ') + '**' + $d(a.total) + '** en ' + veces(a.n, 'venta', 'ventas') + '. ' + compara(a.total, b.total, t.etPrev)));
+    const filas = [], top = topProductos(a, 1)[0];
+    if(puedeCostos() && a.margen != null){ const gastos = t.tipo === 'horas' ? null : await D.traerGastos(t.desde, t.hasta), g = gastos ? gastos.reduce((s, x) => s + Number(x.monto), 0) : null; filas.push(['Te quedó de ganancia', $d(a.margen), g ? 'ya con gastos: ' + $d(a.margen - g) : '']); }
+    if(top) filas.push(['Lo que más salió', top.nombre, fmt(top.cant) + ' vendidos']);
+    if(a.n >= 4 && t.tipo !== 'horas'){ const hs = a.porHora.map((v, h) => ({ h, v })).sort((x, y) => y.v - x.v)[0]; if(hs.v > 0) filas.push(['Tu mejor hora', N.horaFuerteTexto(hs.h), $d(hs.v)]); }
+    const pg = Object.entries(a.porMetodo).sort((x, y) => y[1] - x[1])[0]; if(pg && Object.keys(a.porMetodo).length > 1) filas.push(['Cómo te pagaron', 'más ' + (NOMBRE_PAGO[pg[0]] || pg[0]), $r(pg[1] / a.total * 100) + ' de cada $100']);
+    if(filas.length) out.push(L('', filas));
+    const bajos = stockBajo(); if(bajos.length) out.push(P('Ojo: se te está acabando **' + lista(bajos.slice(0, 4).map((x) => x.nombre)) + '**' + (bajos.length > 4 ? ' y ' + (bajos.length - 4) + ' más' : '') + '.' + (esCajero() ? ' Avísale al encargado.' : '')));
+    if(!esCajero()){ const pl = (await plan())[0]; if(pl) out.push(P('Lo que yo haría ahora: **' + pl.titulo + '.** ' + pl.texto)); out.push(C([sug('¿Qué me recomiendas vender más?'), sug('¿En qué no debería invertir?')])); }
+    return out;
+  };
+  const GLOSARIO = [
+    [['ganancia', 'utilidad'], 'La ganancia es lo que te queda después de pagar lo que te costó la mercancía. Si compras algo en $10 y lo vendes en $15, tu ganancia es $5.'],
+    [['margen'], 'El margen es qué parte del precio es ganancia. Si vendes algo en $100 y te quedan $30, tu margen es 30%: de cada $100, $30 son tuyos.'],
+    [['ticket'], 'El ticket promedio es lo que gasta en promedio cada cliente cada vez que te compra. Si hoy vendiste $1,000 a 10 clientes, el ticket promedio es $100.'],
+    [['inventario', 'stock', 'existencia'], 'El inventario (o stock) son las cosas que tienes guardadas para vender. Cuando "el stock está bajo" quiere decir que te quedan pocas piezas.'],
+    [['parado', 'capital'], 'El dinero parado es el dinero que pusiste en mercancía que no se está vendiendo. Mientras esté en el estante no te sirve: ahí conviene hacer ofertas para volverlo dinero.'],
+    [['rotacion', 'rota'], 'La rotación es qué tan rápido se vende un producto. Si algo "rota rápido", se vende y lo vuelves a comprar seguido; si rota lento, se queda mucho tiempo guardado.'],
+    [['costo'], 'El costo es lo que a ti te costó cada producto (lo que le pagaste al proveedor). El precio es lo que le cobras a tu cliente. La diferencia es tu ganancia.'],
+    [['equilibrio'], 'El punto de equilibrio es lo que necesitas vender para cubrir todos tus gastos. Abajo de esa cifra pierdes; arriba de ella ya estás ganando.'],
+    [['merma', 'caducidad'], 'La merma es lo que pierdes porque se echó a perder, caducó o se rompió. Por eso conviene vender primero lo que caduca pronto.'],
+    [['combo'], 'Un combo es vender dos o más productos juntos a un precio especial. Funciona bien con cosas que la gente ya compra junta.']
+  ];
+  H.glosario = async (c) => {
+    const t = N.norm(c.texto), hit = GLOSARIO.find(([ks]) => ks.some((k) => t.indexOf(k) >= 0));
+    if(hit) return [P(hit[1]), P('¿Quieres que te lo explique con tus números?'), C([sug('¿Cuánto gané este mes?')])];
+    return [P('Te explico lo que no se entienda. Dime qué palabra quieres que te explique, por ejemplo:'), C(['ganancia', 'margen', 'ticket promedio', 'dinero parado', 'punto de equilibrio'].map((x) => sug('¿Qué es ' + x + '?')))];
+  };
+  H.ayuda = async (c) => {
+    const t = N.norm(c.texto);
+    if(/gracias|perfecto|listo|^ok$/.test(t)) return [P(variante(['¡Con gusto! Aquí estoy para lo que necesites.', 'De nada. Cuando quieras te cuento cómo va todo.'], 3))];
+    const e = esCajero(), h = new Date().getHours(), saludo = h < 12 ? 'Buenos días' : (h < 19 ? 'Buenas tardes' : 'Buenas noches');
+    return [P(saludo + '. Soy PUVE IA y te explico cómo va ' + (e ? 'tu turno' : 'tu negocio') + ' con palabras sencillas.'), P(e ? 'Pregúntame, por ejemplo, cuánto llevas vendido, qué has vendido más o qué se está acabando.' : 'Pregúntame lo que quieras, como le preguntarías a un amigo: cuánto vendiste, qué conviene vender más, en qué no gastar tanto, qué comprar… Y si no te entiendo, dímelo: **aprendo de cada corrección**.')];
+  };
 
-  function pintarCarta(c, enviar){
-    const d = el('div', 'rs-card rs-' + (c.tono || 'neutro')); d.setAttribute('role', 'article');
-    const cab = el('div', 'rs-cab'), ic = el('span', 'rs-ico'); ic.appendChild(icono(c.icono)); cab.appendChild(ic);
-    cab.appendChild(el('span', 'rs-tit', c.titulo)); cab.appendChild(el('span', 'rs-ahora', 'ahora')); d.appendChild(cab);
-    d.appendChild(el('p', 'rs-texto', c.texto));
-    if(c.consejo){ const k = el('div', 'rs-consejo'); k.appendChild(el('span', 'rs-consejo-etq', 'Qué te recomiendo')); k.appendChild(el('span', null, c.consejo)); d.appendChild(k); }
-    if(c.acciones && c.acciones.length){ const a = el('div', 'rs-acciones'); c.acciones.forEach((x) => { const b = el('button', 'rs-chip', x.texto); b.type = 'button'; b.onclick = () => enviar(x.pregunta); a.appendChild(b); }); d.appendChild(a); }
-    return d;
+  // ---------- entender y responder ----------
+  const ETIQUETA_TEMAS = { ventas: 'Cuánto vendí', resumen: 'Cómo me fue', ganancia: 'Cuánto gané', gastos: 'Mis gastos', top: 'Lo que más se vende', lentos: 'Lo que no se vende', stock: 'Lo que se acaba', comprar: 'Qué comprar', no_invertir: 'En qué no gastar', recomendar_vender: 'Qué vender más', subir_ventas: 'Cómo subir mis ventas', precios: 'Mis precios', horas: 'Mejores horas', pagos: 'Cómo me pagan', que_hago: 'Qué me recomiendas', salud: 'Cómo está mi negocio' };
+  const PASOS = { ventas: 'Revisando tus ventas…', resumen: 'Juntando tu resumen…', ganancia: 'Calculando tu ganancia…', gastos: 'Sumando tus gastos…', top: 'Viendo qué se vende más…', lentos: 'Buscando lo que no sale…', stock: 'Revisando tu inventario…', comprar: 'Calculando qué te conviene comprar…', no_invertir: 'Buscando dinero parado…', recomendar_vender: 'Viendo qué te deja más…', subir_ventas: 'Pensando cómo subir tus ventas…', precios: 'Revisando tus precios…', horas: 'Viendo tus horarios…', dias: 'Viendo tus mejores días…', pagos: 'Viendo cómo te pagan…', cajeros: 'Comparando a tu equipo…', clientes: 'Revisando tus clientes…', riesgo: 'Revisando caducidades…', producto: 'Buscando ese producto…', salud: 'Revisando tu negocio completo…', que_hago: 'Pensando qué te conviene hacer…', equilibrio: 'Haciendo cuentas…', prediccion: 'Mirando tu historial…', glosario: 'Buscando cómo explicártelo…' };
+  const UMBRAL_CLARO = 0.55;
+  const temasPara = () => Object.keys(ETIQUETA_TEMAS).filter((i) => !(esCajero() && N.SOLO_ENCARGADO.has(i)));
+
+  async function ejecutar(intent, ctx){
+    if(esCajero() && N.SOLO_ENCARGADO.has(intent)) return [P('Eso lo ve solo el encargado del negocio. Yo te puedo contar de **tus ventas**, lo que más has vendido y lo que se está acabando.')];
+    if(!puedeCostos() && !esCajero() && ['ganancia', 'gastos', 'riesgo', 'clientes', 'equilibrio', 'precios', 'no_invertir', 'comprar'].includes(intent)) return [P('Eso depende de costos y gastos, y solo los ve el encargado del negocio.')];
+    return (H[intent] || H.ayuda)(ctx);
+  }
+
+  async function responder(texto, estado, onPaso){
+    estado = estado || {};
+    const original = String(texto || '').slice(0, 240), pr = N.buscarProductos(original, enlace.productos()), masc = pr.productos.length ? N.enmascarar(original, pr.palabras) : N.norm(original);
+    const t = N.parseTiempo(original), partes = N.dividir(masc), mensajes = [], nombres = enlace.productos().map((x) => x.nombre);
+    for(const parte of partes.slice(0, 3)){
+      const cl = N.clasificar(parte), top = cl.lista[0], sec = cl.lista[1], frase = N.sanear(parte, nombres);
+      let intent = top && top.p >= UMBRAL_CLARO && (!sec || top.p - sec.p >= 0.12 || cl.conocida) && cl.cobertura > 0.5 ? top.i : null;
+      // preguntas cortas de seguimiento: "¿y ayer?", "¿y de la semana pasada?", "¿y de la coca?"
+      if(!intent && estado.ultimo && (N.vacia(parte) || cl.cobertura <= 0.5) && (t.explicito || pr.productos.length)) intent = pr.productos.length && ['ventas', 'stock', 'top'].includes(estado.ultimo.intent) ? 'producto' : estado.ultimo.intent;
+      if(!intent && pr.productos.length && N.vacia(parte)) intent = 'producto';
+      const ctx = { t, texto: original, productos: pr.productos, intent };
+      if(!intent){
+        const c1 = top && top.p >= 0.25 && cl.cobertura > 0.3 ? top.i : null, c2 = sec && sec.p >= 0.18 && cl.cobertura > 0.3 ? sec.i : null;
+        const opciones = [c1, c2].filter(Boolean).filter((i, k, a) => a.indexOf(i) === k).filter((i) => ETIQUETA_TEMAS[i] && !(esCajero() && N.SOLO_ENCARGADO.has(i)));
+        const bl = opciones.length ? [P('Creo que me preguntas por una de estas cosas, ¿cuál es?'), C(opciones.map((i) => ({ texto: ETIQUETA_TEMAS[i], elegir: i })))] : [P('No estoy segura de entenderte. ¿Qué quieres saber?'), C(temasPara().slice(0, 6).map((i) => ({ texto: ETIQUETA_TEMAS[i], elegir: i })))];
+        mensajes.push({ bloques: bl, meta: { aclarar: true, frase, parte, original, ctx } });
+        registrarAprendizaje(frase, 'desconocido', false);
+        continue;
+      }
+      if(onPaso) onPaso(PASOS[intent] || 'Pensando…');
+      const bloques = await ejecutar(intent, ctx);
+      mensajes.push({ bloques, meta: { intent, p: top ? top.p : 1, frase, parte, original, ctx } });
+      estado.ultimo = { intent, productos: pr.productos };
+    }
+    return mensajes;
+  }
+
+  // ---------- aprender: cada "me sirvió" y cada corrección ----------
+  const LLAVE = () => 'puve_ia_v1_' + (enlace.usuarioId() || 'x');
+  let memLocal = [], servidorOk = true;
+  function guardarLocal(){ try { localStorage.setItem(LLAVE(), JSON.stringify(memLocal.slice(-400))); } catch(e){} }
+  async function cargarAprendizaje(){
+    try { memLocal = JSON.parse(localStorage.getItem(LLAVE()) || '[]'); N.cargarMemoria(memLocal, 3); } catch(e){ memLocal = []; }
+    const r = await rpc('ia_cargar_aprendizaje');
+    if(r){ N.cargarMemoria(r.global, 2); N.cargarMemoria(r.propio, 3); } else servidorOk = false;
+  }
+  function registrarAprendizaje(frase, intent, ok){
+    if(!frase) return;
+    if(intent !== 'desconocido'){
+      if(ok){ N.aprender(frase, intent, 3); memLocal = memLocal.filter((x) => x.f !== frase); memLocal.push({ f: frase, i: intent }); }
+      else { N.castigar(frase, intent); memLocal = memLocal.filter((x) => !(x.f === frase && x.i === intent)); }
+      guardarLocal();
+    }
+    if(servidorOk) rpc('ia_aprender', { p_frase: frase, p_intent: intent, p_ok: !!ok });
+  }
+
+  // ---------- pantalla: chat limpio con esfera, texto fluido y animaciones suaves ----------
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const ICONOS = { enviar: 'M12 19V5M5 12l7-7 7 7', mic: 'M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3zM19 11a7 7 0 0 1-14 0M12 18v4', nuevo: 'M12 5v14M5 12h14', si: 'M20 6 9 17l-5-5', no: 'M18 6 6 18M6 6l12 12' };
+  function el(tag, cls, txt){ const e = document.createElement(tag); if(cls) e.className = cls; if(txt != null) e.textContent = txt; return e; }
+  function icono(n){ const s = document.createElementNS(SVG_NS, 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('fill', 'none'); s.setAttribute('stroke', 'currentColor'); s.setAttribute('stroke-width', '2'); s.setAttribute('stroke-linecap', 'round'); s.setAttribute('stroke-linejoin', 'round'); s.setAttribute('aria-hidden', 'true'); const p = document.createElementNS(SVG_NS, 'path'); p.setAttribute('d', ICONOS[n]); s.appendChild(p); return s; }
+  function esfera(tam, cls){ const o = el('span', 'rs-orb' + (cls ? ' ' + cls : '')); o.style.setProperty('--s', tam + 'px'); ['b1', 'b2', 'b3'].forEach((c) => o.appendChild(el('i', c))); return o; }
+  const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
+  const reducido = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // texto con **negritas**; las cantidades en pesos "cuentan" hasta su valor
+  function texto(cont, x){
+    x.split(/(\*\*[^*]+\*\*)/).forEach((seg) => {
+      if(!seg) return;
+      if(seg.startsWith('**')){ const v = seg.slice(2, -2), b = el('b', null, v), m = v.match(/^\$([\d,]+(?:\.\d+)?)$/); if(m && !reducido()){ b.className = 'rs-num'; b.dataset.v = m[1].replace(/,/g, ''); b.textContent = enlace.dinero(0); } cont.appendChild(b); }
+      else cont.appendChild(document.createTextNode(seg));
+    });
+  }
+  function contar(raiz){
+    raiz.querySelectorAll('.rs-num').forEach((b) => {
+      const fin = Number(b.dataset.v), t0 = performance.now(), dur = 900;
+      (function paso(t){ const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3); b.textContent = enlace.dinero(fin * e); if(k < 1) requestAnimationFrame(paso); else b.textContent = enlace.dinero(fin); })(t0);
+    });
   }
 
   function crearChat(cont, cfg){
     cont.textContent = '';
-    const raiz = el('div', 'rs-chat'), cab = el('div', 'rs-chat-cab'), msgs = el('div', 'rs-mensajes'), chips = el('div', 'rs-chips'), form = el('form', 'rs-entrada');
+    const raiz = el('div', 'rs-chat rs-sin-charla'), top = el('div', 'rs-top'), vista = el('div', 'rs-vista'), msgs = el('div', 'rs-mensajes'), vacio = el('div', 'rs-vacio'), pie = el('div', 'rs-pie'), sugs = el('div', 'rs-sugs'), form = el('form', 'rs-compo');
+    const estado = {};
     msgs.setAttribute('aria-live', 'polite');
-    const tit = el('div', 'rs-chat-tit'); tit.appendChild(el('strong', null, cfg.titulo || 'PUVE IA')); tit.appendChild(el('span', 'rs-sub', cfg.subtitulo || 'Te cuento cómo va todo, en palabras fáciles'));
-    const nuevo = el('button', 'rs-limpiar', 'Limpiar'); nuevo.type = 'button';
-    cab.appendChild(tit); cab.appendChild(nuevo);
-    const inp = el('input', 'rs-input'); inp.type = 'text'; inp.maxLength = 240; inp.placeholder = cfg.placeholder || 'Escribe tu pregunta…'; inp.setAttribute('aria-label', 'Tu pregunta'); inp.setAttribute('enterkeyhint', 'send'); inp.autocomplete = 'off';
-    const bt = el('button', 'rs-enviar'); bt.type = 'submit'; bt.setAttribute('aria-label', 'Enviar pregunta'); bt.appendChild(icono('enviar'));
-    form.appendChild(inp); form.appendChild(bt);
-    (cfg.chips || []).forEach((x) => { const b = el('button', 'rs-chip', x); b.type = 'button'; b.onclick = () => enviar(x); chips.appendChild(b); });
-    raiz.appendChild(cab); raiz.appendChild(msgs); if((cfg.chips || []).length) raiz.appendChild(chips); raiz.appendChild(form); cont.appendChild(raiz);
-    let ocupado = false;
-    const reducido = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    async function mostrarCartas(lista){
-      let primera = null;
-      for(const c of lista){
-        const nodo = pintarCarta(c, enviar); msgs.appendChild(nodo);
-        if(!primera) primera = nodo;
-        if(!reducido) await dormir(320);
-      }
-      // al terminar, se deja a la vista el inicio de la respuesta para leerla de arriba hacia abajo
-      if(primera) msgs.scrollTo({ top: Math.max(0, primera.offsetTop - 10), behavior: reducido ? 'auto' : 'smooth' });
+    const tit = el('div', 'rs-top-tit'); tit.appendChild(esfera(26, 'rs-mini')); tit.appendChild(el('strong', null, cfg.titulo || 'PUVE IA'));
+    const nuevo = el('button', 'rs-nueva'); nuevo.type = 'button'; nuevo.setAttribute('aria-label', 'Nueva charla'); nuevo.appendChild(icono('nuevo')); nuevo.appendChild(el('span', null, 'Nueva'));
+    top.appendChild(tit); top.appendChild(nuevo);
+    const h = new Date().getHours(), saludo = h < 12 ? 'Buenos días' : (h < 19 ? 'Buenas tardes' : 'Buenas noches');
+    const orbe = el('div', 'rs-orbe'); orbe.appendChild(esfera(116, 'rs-grande'));
+    vacio.appendChild(orbe); vacio.appendChild(el('h3', 'rs-saludo', saludo + '.')); vacio.appendChild(el('p', 'rs-saludo-2', cfg.subtitulo || '¿Qué quieres saber de tu negocio? Pregúntame con tus palabras.'));
+    const inicio = el('div', 'rs-inicio-sugs'); (cfg.chips || []).slice(0, 4).forEach((x, i) => { const b = el('button', 'rs-pill', x); b.type = 'button'; b.style.setProperty('--d', (400 + i * 90) + 'ms'); b.onclick = () => enviar(x); inicio.appendChild(b); }); vacio.appendChild(inicio);
+    vista.appendChild(vacio); vista.appendChild(msgs);
+    (cfg.chips || []).forEach((x) => { const b = el('button', 'rs-pill', x); b.type = 'button'; b.onclick = () => enviar(x); sugs.appendChild(b); });
+    const inp = el('input', 'rs-input'); inp.type = 'text'; inp.maxLength = 240; inp.placeholder = cfg.placeholder || 'Escribe tu pregunta…'; inp.autocomplete = 'off'; inp.setAttribute('aria-label', 'Tu pregunta'); inp.setAttribute('enterkeyhint', 'send');
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition, mic = el('button', 'rs-mic'); mic.type = 'button'; mic.setAttribute('aria-label', 'Hablar'); mic.appendChild(icono('mic'));
+    const bt = el('button', 'rs-enviar'); bt.type = 'submit'; bt.setAttribute('aria-label', 'Enviar pregunta'); bt.appendChild(icono('enviar')); bt.disabled = true;
+    form.appendChild(inp); if(SR) form.appendChild(mic); form.appendChild(bt);
+    pie.appendChild(sugs); pie.appendChild(form);
+    raiz.appendChild(top); raiz.appendChild(vista); raiz.appendChild(pie); cont.appendChild(raiz);
+    let ocupado = false, escuchando = null;
+    inp.addEventListener('input', () => { bt.disabled = !inp.value.trim() || ocupado; });
+    if(SR){
+      mic.onclick = () => {
+        if(escuchando){ escuchando.stop(); return; }
+        const r = new SR(); r.lang = 'es-MX'; r.interimResults = true; r.maxAlternatives = 1; escuchando = r; raiz.classList.add('rs-escucha');
+        r.onresult = (ev) => { const tx = Array.from(ev.results).map((x) => x[0].transcript).join(' '); inp.value = tx; bt.disabled = !tx.trim() || ocupado; if(ev.results[ev.results.length - 1].isFinal) setTimeout(() => enviar(tx), 250); };
+        r.onend = r.onerror = () => { escuchando = null; raiz.classList.remove('rs-escucha'); };
+        try { r.start(); } catch(e){ escuchando = null; raiz.classList.remove('rs-escucha'); }
+      };
     }
-    async function enviar(texto){
-      texto = String(texto || '').trim().slice(0, 240);
-      if(!texto || ocupado) return;
-      ocupado = true; inp.value = ''; bt.disabled = true;
-      const u = el('div', 'rs-usuario', texto); msgs.appendChild(u); msgs.scrollTop = msgs.scrollHeight;
-      const esc = el('div', 'rs-escribiendo'); for(let i = 0; i < 3; i++) esc.appendChild(el('span')); esc.setAttribute('aria-label', 'Pensando'); msgs.appendChild(esc); msgs.scrollTop = msgs.scrollHeight;
-      let cartas;
-      try {
-        if(!navigator.onLine) throw new Error('sin conexión');
-        cartas = await cfg.responder(texto);
-      } catch(e){
-        console.error(e);
-        cartas = [carta('alerta', 'alerta', 'No pude consultarlo', navigator.onLine ? 'Algo falló al buscar la información. Inténtalo otra vez en un momento.' : 'No hay internet en este momento. Revisa tu conexión e inténtalo de nuevo.')];
+    const bajar = (suave) => vista.scrollTo({ top: vista.scrollHeight, behavior: suave && !reducido() ? 'smooth' : 'auto' });
+
+    async function revelar(asist, bloques){
+      let i = 0; const anim = !reducido();
+      const nodo = (cls) => { const e = el('div', cls + (anim ? ' rs-in' : '')); e.style.setProperty('--d', (i++ * 110) + 'ms'); asist.appendChild(e); return e; };
+      for(const b of bloques){
+        if(b.t === 'p'){ texto(nodo('rs-p'), b.x); }
+        else if(b.t === 'lista'){ const e = nodo('rs-lista'); if(b.titulo) e.appendChild(el('div', 'rs-lista-t', b.titulo)); b.filas.forEach((f) => { const r = el('div', 'rs-fila'), a = el('div', 'rs-fila-a'); a.appendChild(el('span', 'rs-fila-n', f[0])); if(f[1]) a.appendChild(el('span', 'rs-fila-v', f[1])); r.appendChild(a); if(f[2]) r.appendChild(el('div', 'rs-fila-m', f[2])); e.appendChild(r); }); }
+        else if(b.t === 'pasos'){ const e = nodo('rs-pasos'); if(b.titulo) e.appendChild(el('div', 'rs-lista-t', b.titulo)); b.items.forEach((it, k) => { const r = el('div', 'rs-paso'); r.appendChild(el('span', 'rs-paso-n', String(k + 1))); const c = el('div', 'rs-paso-c'); c.appendChild(el('strong', null, it[0])); c.appendChild(el('span', null, it[1])); r.appendChild(c); e.appendChild(r); }); }
+        else if(b.t === 'chips'){ const e = nodo('rs-chips-i'); b.items.forEach((x) => { const b2 = el('button', 'rs-pill', x.texto); b2.type = 'button'; b2.onclick = () => { if(x.elegir) elegir(x.elegir, asist); else if(x.fn) accion(x.fn); else enviar(x.pregunta); }; e.appendChild(b2); }); }
       }
-      esc.remove(); await mostrarCartas(cartas); ocupado = false; bt.disabled = false; inp.focus({ preventScroll: true });
+      if(anim){ setTimeout(() => contar(asist), 150); await dormir(Math.min(i * 110 + 500, 1800)); } else contar(asist);
     }
-    async function iniciar(){ msgs.textContent = ''; if(cfg.saludo){ try { await mostrarCartas(await cfg.saludo()); } catch(e){ console.error(e); } } }
+    function opinion(asist, meta){
+      if(!cfg.aprende || !meta || !meta.frase || meta.aclarar) return;
+      const f = el('div', 'rs-op'); f.appendChild(el('span', 'rs-op-q', '¿Te sirvió?'));
+      const si = el('button', 'rs-op-b'); si.type = 'button'; si.setAttribute('aria-label', 'Sí me sirvió'); si.appendChild(icono('si')); si.appendChild(el('span', null, 'Sí'));
+      const no = el('button', 'rs-op-b'); no.type = 'button'; no.setAttribute('aria-label', 'No era lo que preguntaba'); no.appendChild(icono('no')); no.appendChild(el('span', null, 'No era eso'));
+      si.onclick = () => { registrarAprendizaje(meta.frase, meta.intent, true); f.textContent = ''; f.appendChild(el('span', 'rs-op-g', 'Gracias, así aprendo.')); };
+      no.onclick = () => {
+        registrarAprendizaje(meta.frase, meta.intent, false); f.textContent = ''; f.appendChild(el('span', 'rs-op-q', '¿Qué querías saber?'));
+        const g = el('div', 'rs-op-temas'); temasPara().filter((i) => i !== meta.intent).forEach((i) => { const b = el('button', 'rs-pill rs-pill-s', ETIQUETA_TEMAS[i]); b.type = 'button'; b.onclick = () => { f.textContent = ''; f.appendChild(el('span', 'rs-op-g', 'Gracias, lo voy a recordar.')); corregir(meta, i); }; g.appendChild(b); });
+        const o = el('button', 'rs-pill rs-pill-s', 'Otra cosa'); o.type = 'button'; o.onclick = () => { f.textContent = ''; f.appendChild(el('span', 'rs-op-g', 'Escríbelo con otras palabras y lo aprendo.')); inp.focus(); }; g.appendChild(o); f.appendChild(g);
+      };
+      f.appendChild(si); f.appendChild(no); asist.appendChild(f);
+    }
+    async function corregir(meta, intent){ registrarAprendizaje(meta.frase, intent, true); pen.abrir(); const ms = await cfg.ejecutar(intent, meta.ctx, estado, (t) => pen.texto(t)); await dormir(reducido() ? 0 : 200); pen.cerrar(); await mostrar(ms); }
+    async function elegir(intent, asist){
+      const meta = asist && asist._meta; if(!meta) return;
+      asist.querySelectorAll('.rs-chips-i button').forEach((b) => { b.disabled = true; });
+      registrarAprendizaje(meta.frase, intent, true); pen.abrir(); const ms = await cfg.ejecutar(intent, meta.ctx, estado, (t) => pen.texto(t)); await dormir(reducido() ? 0 : 200); pen.cerrar(); await mostrar(ms);
+    }
+    async function accion(fn){ try { const r = await fn(); if(r && r.length) await mostrar(r); } catch(e){ console.error(e); } }
+
+    // indicador de "pensando": esfera pequeña y frases que cambian suavemente
+    const pen = { nodo: null, t: null,
+      abrir(){ const n = el('div', 'rs-pensando'); n.appendChild(esfera(30, 'rs-pen-orb')); const t = el('span', 'rs-pen-t', 'Entendiendo tu pregunta…'); n.appendChild(t); this.nodo = n; this.t = t; msgs.appendChild(n); raiz.classList.add('rs-piensa'); bajar(true); },
+      texto(x){ if(!this.t) return; const t = this.t; t.classList.add('rs-out'); setTimeout(() => { t.textContent = x; t.classList.remove('rs-out'); }, 160); },
+      cerrar(){ raiz.classList.remove('rs-piensa'); if(this.nodo){ this.nodo.remove(); this.nodo = null; } } };
+
+    async function mostrar(mensajes){
+      let primero = true;
+      for(const m of mensajes){
+        const asist = el('div', 'rs-asist'); asist._meta = m.meta; msgs.appendChild(asist);
+        if(primero){ vista.scrollTo({ top: Math.max(0, asist.offsetTop - 80), behavior: reducido() ? 'auto' : 'smooth' }); primero = false; }
+        await revelar(asist, m.bloques); opinion(asist, m.meta);
+      }
+    }
+    async function enviar(txt){
+      txt = String(txt || '').trim().slice(0, 240);
+      if(!txt || ocupado) return;
+      ocupado = true; inp.value = ''; bt.disabled = true; raiz.classList.remove('rs-sin-charla'); raiz.classList.add('rs-con-charla');
+      msgs.appendChild(el('div', 'rs-user', txt)); bajar(true); pen.abrir();
+      let ms;
+      try { if(!navigator.onLine) throw new Error('sin conexión'); ms = await cfg.responder(txt, estado, (t) => pen.texto(t)); }
+      catch(e){ console.error(e); ms = [{ bloques: [P(navigator.onLine ? 'Algo falló al buscar la información. Inténtalo otra vez en un momento.' : 'No hay internet en este momento. Revisa tu conexión e inténtalo de nuevo.')], meta: null }]; }
+      await dormir(reducido() ? 0 : 260); pen.cerrar(); await mostrar(ms);
+      ocupado = false; bt.disabled = !inp.value.trim(); if(!reducido()) inp.focus({ preventScroll: true });
+    }
     form.addEventListener('submit', (ev) => { ev.preventDefault(); enviar(inp.value); });
-    nuevo.onclick = () => { if(!ocupado) iniciar(); };
-    iniciar();
-    return { enviar, reiniciar: iniciar };
+    nuevo.onclick = () => { if(ocupado) return; msgs.textContent = ''; Object.keys(estado).forEach((k) => delete estado[k]); raiz.classList.remove('rs-con-charla'); raiz.classList.add('rs-sin-charla'); };
+    return { enviar };
   }
 
-  let montado = false;
+  let montado = false, aprendizajeListo = false;
   function abrir(){
     const cont = document.getElementById('resumenContenedor');
     if(!cont || !enlace.sb) return;
     if(montado && cont.firstChild) return;
     montado = true;
+    if(!aprendizajeListo){ aprendizajeListo = true; cargarAprendizaje(); }
     const e = esCajero();
     crearChat(cont, {
-      titulo: 'PUVE IA', subtitulo: e ? 'Tus ventas del turno, en palabras fáciles' : 'Cómo va tu negocio, en palabras fáciles',
-      placeholder: e ? 'Ej: ¿cuánto llevo hoy?' : 'Ej: ventas de ayer de 2 a 5',
-      chips: e ? ['¿Cuánto llevo vendido hoy?', '¿Qué he vendido más?', '¿Qué se está acabando?'] : ['¿Cómo me fue hoy?', 'Ventas de ayer', '¿Qué se me está acabando?', '¿Qué se vende más?', '¿A qué hora vendo más?', '¿Cómo está mi negocio?', '¿Qué hago para vender más?'],
-      saludo: hAyuda, responder
+      titulo: 'PUVE IA', subtitulo: e ? '¿Cómo va tu turno? Pregúntame con tus palabras.' : '¿Qué quieres saber de tu negocio? Pregúntame con tus palabras.',
+      placeholder: e ? 'Pregunta lo que quieras…' : 'Escribe o di tu pregunta…', aprende: true,
+      chips: e ? ['¿Cuánto llevo vendido hoy?', '¿Qué he vendido más?', '¿Qué se está acabando?'] : ['¿Cómo me fue hoy?', '¿Qué me recomiendas vender más?', '¿En qué no debería invertir?', '¿Qué se me está acabando?', 'Ventas de ayer de 2 a 5 de la tarde', '¿Cómo está mi negocio?'],
+      responder, ejecutar: async (intent, ctx, estado, onPaso) => { if(onPaso) onPaso(PASOS[intent] || 'Pensando…'); const bloques = await ejecutar(intent, ctx); estado.ultimo = { intent, productos: ctx.productos }; return [{ bloques, meta: { intent, p: 1, frase: N.sanear(ctx.texto, enlace.productos().map((x) => x.nombre)), ctx } }]; }
     });
   }
 
   window.PuveResumen = {
-    enlazar(o){ enlace = Object.assign(enlace, o || {}); },
-    abrir,
-    reiniciar(){ montado = false; memoria.clear(); },
-    responder, crearChat, carta, nucleo: { norm, parseTiempo, extraerHoras, detectar, buscarProducto, compara, rangoTexto },
-    ayudas: { cap, lista, veces, fmt, el, icono, dinero: (n) => $d(n) }
+    enlazar(o){ enlace = Object.assign(enlace, o || {}); D.enlazar(enlace); },
+    abrir, responder, ejecutar,
+    reiniciar(){ montado = false; aprendizajeListo = false; D.reiniciar(); },
+    crearChat, ayudas: { P, L, S, C, sug, cap, lista, veces, fmt, dinero: (n) => $d(n), el },
+    registrar: registrarAprendizaje
   };
 })();
