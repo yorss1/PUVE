@@ -341,7 +341,8 @@
     if(hit) return [P(hit[1]), P('¿Quieres que te lo explique con tus números?'), C([sug('¿Cuánto gané este mes?')])];
     return [P('Te explico lo que no se entienda. Dime qué palabra quieres que te explique, por ejemplo:'), C(['ganancia', 'margen', 'ticket promedio', 'dinero parado', 'punto de equilibrio'].map((x) => sug('¿Qué es ' + x + '?')))];
   };
-  H.ayuda = async (c) => {
+  H.ayuda = async (c) => { if(H.capacidades) return H.capacidades(c); return H.ayuda0(c); };
+  H.ayuda0 = async (c) => {
     const t = N.norm(c.texto);
     if(/gracias|perfecto|listo|^ok$/.test(t)) return [P(variante(['¡Con gusto! Aquí estoy para lo que necesites.', 'De nada. Cuando quieras te cuento cómo va todo.'], 3))];
     const e = esCajero(), h = new Date().getHours(), saludo = h < 12 ? 'Buenos días' : (h < 19 ? 'Buenas tardes' : 'Buenas noches');
@@ -349,40 +350,53 @@
   };
 
   // ---------- entender y responder ----------
-  const ETIQUETA_TEMAS = { ventas: 'Cuánto vendí', resumen: 'Cómo me fue', ganancia: 'Cuánto gané', gastos: 'Mis gastos', top: 'Lo que más se vende', lentos: 'Lo que no se vende', stock: 'Lo que se acaba', comprar: 'Qué comprar', no_invertir: 'En qué no gastar', recomendar_vender: 'Qué vender más', subir_ventas: 'Cómo subir mis ventas', precios: 'Mis precios', horas: 'Mejores horas', pagos: 'Cómo me pagan', que_hago: 'Qué me recomiendas', salud: 'Cómo está mi negocio' };
+  const ETIQUETA_TEMAS = { ventas: 'Cuánto vendí', resumen: 'Cómo me fue', ganancia: 'Cuánto gané', gastos: 'Mis gastos', top: 'Lo que más se vende', lentos: 'Lo que no se vende', stock: 'Lo que se acaba', comprar: 'Qué comprar', no_invertir: 'En qué no gastar', recomendar_vender: 'Qué vender más', subir_ventas: 'Cómo subir mis ventas', precios: 'Mis precios', horas: 'Mejores horas', pagos: 'Cómo me pagan', que_hago: 'Qué me recomiendas', salud: 'Cómo está mi negocio', contar_ventas: 'Cuántas ventas llevo', comparar: 'Comparar con antes', por_que: 'Por qué suben o bajan mis ventas', oferta: 'Ofertas y combos', mejor_margen: 'Qué deja más ganancia', meta: 'Mi meta de ventas', proyeccion: 'Cuánto voy a cerrar', ultima_venta: 'Mi última venta', valor_inventario: 'Cuánto vale mi inventario', promedio: 'Mi promedio de ventas', catalogo: 'Mis productos', ayuda_app: 'Cómo usar PUVE', calculo: 'Hacer una cuenta' };
+  const COMUNES = ['ventas', 'resumen', 'ganancia', 'top', 'stock', 'comprar', 'recomendar_vender', 'que_hago'];
   const PASOS = { ventas: 'Revisando tus ventas…', resumen: 'Juntando tu resumen…', ganancia: 'Calculando tu ganancia…', gastos: 'Sumando tus gastos…', top: 'Viendo qué se vende más…', lentos: 'Buscando lo que no sale…', stock: 'Revisando tu inventario…', comprar: 'Calculando qué te conviene comprar…', no_invertir: 'Buscando dinero parado…', recomendar_vender: 'Viendo qué te deja más…', subir_ventas: 'Pensando cómo subir tus ventas…', precios: 'Revisando tus precios…', horas: 'Viendo tus horarios…', dias: 'Viendo tus mejores días…', pagos: 'Viendo cómo te pagan…', cajeros: 'Comparando a tu equipo…', clientes: 'Revisando tus clientes…', riesgo: 'Revisando caducidades…', producto: 'Buscando ese producto…', salud: 'Revisando tu negocio completo…', que_hago: 'Pensando qué te conviene hacer…', equilibrio: 'Haciendo cuentas…', prediccion: 'Mirando tu historial…', glosario: 'Buscando cómo explicártelo…' };
   const UMBRAL_CLARO = 0.55;
   const temasPara = () => Object.keys(ETIQUETA_TEMAS).filter((i) => !(esCajero() && N.SOLO_ENCARGADO.has(i)));
 
   async function ejecutar(intent, ctx){
     if(esCajero() && N.SOLO_ENCARGADO.has(intent)) return [P('Eso lo ve solo el encargado del negocio. Yo te puedo contar de **tus ventas**, lo que más has vendido y lo que se está acabando.')];
-    if(!puedeCostos() && !esCajero() && ['ganancia', 'gastos', 'riesgo', 'clientes', 'equilibrio', 'precios', 'no_invertir', 'comprar'].includes(intent)) return [P('Eso depende de costos y gastos, y solo los ve el encargado del negocio.')];
+    if(!puedeCostos() && !esCajero() && ['ganancia', 'gastos', 'riesgo', 'clientes', 'equilibrio', 'precios', 'no_invertir', 'comprar', 'valor_inventario', 'datos_faltantes', 'oferta', 'mejor_margen'].includes(intent)) return [P('Eso depende de costos y gastos, y solo los ve el encargado del negocio.')];
     return (H[intent] || H.ayuda)(ctx);
   }
 
-  async function responder(texto, estado, onPaso){
-    estado = estado || {};
-    const original = String(texto || '').slice(0, 240), pr = N.buscarProductos(original, enlace.productos()), masc = pr.productos.length ? N.enmascarar(original, pr.palabras) : N.norm(original);
-    const t = N.parseTiempo(original), partes = N.dividir(masc), mensajes = [], nombres = enlace.productos().map((x) => x.nombre);
+  const CHARLA = new Set(['saludo', 'como_estas', 'identidad', 'capacidades', 'gracias', 'despedida', 'animo', 'motivacion', 'chiste', 'queja', 'afirmar', 'negar', 'repetir', 'mas_detalle', 'como_aprendes', 'fuera_tema', 'hora_fecha', 'calculo', 'cambio', 'ayuda', 'ayuda_app']);
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  // si alguien escribe algo que apunta a hacerse daño, no se responde con números: se responde con cuidado
+  H.crisis = () => [P('Lamento mucho que estés pasando por algo así de pesado. Lo que sientes importa más que cualquier venta o número.'), P('No tienes que cargarlo solo: platícalo hoy mismo con alguien de confianza (un familiar, un amigo) o con un profesional. Si sientes que puedes hacerte daño o estás en peligro ahora, llama de inmediato a tu número de emergencias (en México, el 911).'), P('En México también puedes llamar a la Línea de la Vida, gratis y las 24 horas: **800 911 2000**. Si estás en otro país, busca la línea de ayuda emocional de tu zona.'), P('Aquí sigo para lo que necesites, pero primero tú.')];
+
+  async function responder(texto, estado, onPaso, nivel){
+    estado = estado || {}; nivel = nivel || 0;
+    const original = String(texto || '').slice(0, 240), rg = N.reglas(original);
+    if(rg && rg.intent === 'crisis') return [{ bloques: H.crisis(), meta: null }];
+    const pr = N.buscarProductos(original, enlace.productos()), masc = pr.productos.length ? N.enmascarar(original, pr.palabras) : N.norm(original);
+    const t = N.parseTiempo(original), partes = rg ? [masc] : N.dividir(masc), mensajes = [], nombres = enlace.productos().map((x) => x.nombre);
     for(const parte of partes.slice(0, 3)){
       const cl = N.clasificar(parte), top = cl.lista[0], sec = cl.lista[1], frase = N.sanear(parte, nombres);
-      let intent = top && top.p >= UMBRAL_CLARO && (!sec || top.p - sec.p >= 0.12 || cl.conocida) && cl.cobertura > 0.5 ? top.i : null;
+      let intent = rg ? rg.intent : (top && top.p >= UMBRAL_CLARO && (!sec || top.p - sec.p >= 0.12 || cl.conocida) && cl.cobertura > 0.5 ? top.i : null);
       // preguntas cortas de seguimiento: "¿y ayer?", "¿y de la semana pasada?", "¿y de la coca?"
       if(!intent && estado.ultimo && (N.vacia(parte) || cl.cobertura <= 0.5) && (t.explicito || pr.productos.length)) intent = pr.productos.length && ['ventas', 'stock', 'top'].includes(estado.ultimo.intent) ? 'producto' : estado.ultimo.intent;
       if(!intent && pr.productos.length && N.vacia(parte)) intent = 'producto';
-      const ctx = { t, texto: original, productos: pr.productos, intent };
+      // "sí / dale" aceptan lo último que se ofreció; "repite" y "más detalle" vuelven a la pregunta anterior
+      if(intent === 'afirmar' && estado.sugerida && nivel < 2) return responder(estado.sugerida, estado, onPaso, nivel + 1);
+      if(intent === 'repetir' && estado.ultimaPregunta && nivel < 2) return responder(estado.ultimaPregunta, estado, onPaso, nivel + 1);
+      if(intent === 'mas_detalle' && estado.ultimaPregunta && nivel < 2){ estado.mas = true; try { return await responder(estado.ultimaPregunta, estado, onPaso, nivel + 1); } finally { estado.mas = false; } }
+      const ctx = { t, texto: original, productos: pr.productos, intent, estado, mas: !!estado.mas, candidatos: cl.lista.map((x) => x.i) };
       if(!intent){
         const c1 = top && top.p >= 0.25 && cl.cobertura > 0.3 ? top.i : null, c2 = sec && sec.p >= 0.18 && cl.cobertura > 0.3 ? sec.i : null;
         const opciones = [c1, c2].filter(Boolean).filter((i, k, a) => a.indexOf(i) === k).filter((i) => ETIQUETA_TEMAS[i] && !(esCajero() && N.SOLO_ENCARGADO.has(i)));
-        const bl = opciones.length ? [P('Creo que me preguntas por una de estas cosas, ¿cuál es?'), C(opciones.map((i) => ({ texto: ETIQUETA_TEMAS[i], elegir: i })))] : [P('No estoy segura de entenderte. ¿Qué quieres saber?'), C(temasPara().slice(0, 6).map((i) => ({ texto: ETIQUETA_TEMAS[i], elegir: i })))];
+        const bl = opciones.length ? [P('Creo que me preguntas por una de estas cosas, ¿cuál es?'), C(opciones.map((i) => ({ texto: ETIQUETA_TEMAS[i], elegir: i })))] : [P('No te entendí bien. ¿Qué quieres saber?'), C(temasPara().slice(0, 6).map((i) => ({ texto: ETIQUETA_TEMAS[i], elegir: i })))];
         mensajes.push({ bloques: bl, meta: { aclarar: true, frase, parte, original, ctx } });
         registrarAprendizaje(frase, 'desconocido', false);
         continue;
       }
-      if(onPaso) onPaso(PASOS[intent] || 'Pensando…');
-      const bloques = await ejecutar(intent, ctx);
-      mensajes.push({ bloques, meta: { intent, p: top ? top.p : 1, frase, parte, original, ctx } });
-      estado.ultimo = { intent, productos: pr.productos };
+      if(onPaso && !CHARLA.has(intent)) onPaso(PASOS[intent] || 'Pensando…');
+      const bloques = await ejecutar(intent, ctx), charla = CHARLA.has(intent);
+      mensajes.push({ bloques, meta: { intent, p: top ? top.p : 1, frase, parte, original, ctx, charla } });
+      if(!charla){ estado.ultimo = { intent, productos: pr.productos }; estado.ultimaPregunta = original; }
+      const ch = bloques.filter((b) => b.t === 'chips')[0]; estado.sugerida = ch && ch.items[0] && ch.items[0].pregunta ? ch.items[0].pregunta : null;
     }
     return mensajes;
   }
@@ -475,14 +489,14 @@
       if(anim){ setTimeout(() => contar(asist), 150); await dormir(Math.min(i * 110 + 500, 1800)); } else contar(asist);
     }
     function opinion(asist, meta){
-      if(!cfg.aprende || !meta || !meta.frase || meta.aclarar) return;
+      if(!cfg.aprende || !meta || !meta.frase || meta.aclarar || meta.charla) return;
       const f = el('div', 'rs-op'); f.appendChild(el('span', 'rs-op-q', '¿Te sirvió?'));
       const si = el('button', 'rs-op-b'); si.type = 'button'; si.setAttribute('aria-label', 'Sí me sirvió'); si.appendChild(icono('si')); si.appendChild(el('span', null, 'Sí'));
       const no = el('button', 'rs-op-b'); no.type = 'button'; no.setAttribute('aria-label', 'No era lo que preguntaba'); no.appendChild(icono('no')); no.appendChild(el('span', null, 'No era eso'));
       si.onclick = () => { registrarAprendizaje(meta.frase, meta.intent, true); f.textContent = ''; f.appendChild(el('span', 'rs-op-g', 'Gracias, así aprendo.')); };
       no.onclick = () => {
         registrarAprendizaje(meta.frase, meta.intent, false); f.textContent = ''; f.appendChild(el('span', 'rs-op-q', '¿Qué querías saber?'));
-        const g = el('div', 'rs-op-temas'); temasPara().filter((i) => i !== meta.intent).forEach((i) => { const b = el('button', 'rs-pill rs-pill-s', ETIQUETA_TEMAS[i]); b.type = 'button'; b.onclick = () => { f.textContent = ''; f.appendChild(el('span', 'rs-op-g', 'Gracias, lo voy a recordar.')); corregir(meta, i); }; g.appendChild(b); });
+        const g = el('div', 'rs-op-temas'); const orden = ((meta.ctx && meta.ctx.candidatos) || []).concat(COMUNES, temasPara()).filter((i, k, a) => a.indexOf(i) === k && i !== meta.intent && ETIQUETA_TEMAS[i] && !(esCajero() && N.SOLO_ENCARGADO.has(i))).slice(0, 10); orden.forEach((i) => { const b = el('button', 'rs-pill rs-pill-s', ETIQUETA_TEMAS[i]); b.type = 'button'; b.onclick = () => { f.textContent = ''; f.appendChild(el('span', 'rs-op-g', 'Gracias, lo voy a recordar.')); corregir(meta, i); }; g.appendChild(b); });
         const o = el('button', 'rs-pill rs-pill-s', 'Otra cosa'); o.type = 'button'; o.onclick = () => { f.textContent = ''; f.appendChild(el('span', 'rs-op-g', 'Escríbelo con otras palabras y lo aprendo.')); inp.focus(); }; g.appendChild(o); f.appendChild(g);
       };
       f.appendChild(si); f.appendChild(no); asist.appendChild(f);
@@ -546,6 +560,8 @@
     abrir, responder, ejecutar,
     reiniciar(){ montado = false; aprendizajeListo = false; D.reiniciar(); },
     crearChat, ayudas: { P, L, S, C, sug, cap, lista, veces, fmt, dinero: (n) => $d(n), el },
-    registrar: registrarAprendizaje
+    registrar: registrarAprendizaje,
+    registrarTemas(handlers, etiquetas, pasos){ Object.assign(H, handlers || {}); Object.assign(ETIQUETA_TEMAS, etiquetas || {}); Object.assign(PASOS, pasos || {}); },
+    internos: { enlace: () => enlace, D, N, P, L, S, C, sug, cap, lista, veces, fmt, $d, $r, en, dias, compara, periodo, topProductos, esCajero, puedeCostos, stockBajo, estrellas, oportunidades, paraNoInvertir, plan, mediana, pick, porCaducar, variante }
   };
 })();

@@ -74,8 +74,29 @@
   function cargarPeriodo(t, conDetalle){
     return recordar(['p', t.desde.getTime(), t.hasta.getTime(), conDetalle ? 1 : 0, quien()].join('|'), 45000, async () => {
       const [v1, v0, d1] = await Promise.all([traerVentas(t.desde, t.hasta), traerVentas(t.prevDesde, t.prevHasta), conDetalle ? traerDetalle(t.desde, t.hasta) : Promise.resolve(null)]);
-      return { act: calcular(v1, d1), ant: calcular(v0, null) };
+      return { act: calcular(v1, d1), ant: calcular(v0, null), ventas: v1 };
     });
+  }
+  // igual pero también con el detalle del periodo anterior (para explicar por qué subieron o bajaron las ventas)
+  function periodoCompleto(t){
+    return recordar(['pc', t.desde.getTime(), t.hasta.getTime(), quien()].join('|'), 45000, async () => {
+      const [v1, v0, d1, d0] = await Promise.all([traerVentas(t.desde, t.hasta), traerVentas(t.prevDesde, t.prevHasta), traerDetalle(t.desde, t.hasta), traerDetalle(t.prevDesde, t.prevHasta)]);
+      return { act: calcular(v1, d1), ant: calcular(v0, d0), ventas: v1 };
+    });
+  }
+  // ventas sumadas por día (para promedios, mejores días y proyecciones)
+  function diario(dias){
+    return recordar(['di', dias, quien()].join('|'), 300000, async () => {
+      const ahora = new Date(), v = await traerVentas(suma(ahora, -dias), new Date(ahora.getTime() + 60000)), por = new Map();
+      v.forEach((x) => { const k = fechaLocal(new Date(x.created_at)), o = por.get(k) || { fecha: k, total: 0, n: 0 }; o.total += Number(x.total) || 0; o.n++; por.set(k, o); });
+      return [...por.values()].sort((a, b) => a.fecha < b.fecha ? -1 : 1);
+    });
+  }
+  async function ultimaVenta(){
+    let q = enlace.sb.from('ventas').select('created_at,total').order('created_at', { ascending: false }).limit(1);
+    if(esCajero()) q = q.eq('usuario_id', enlace.usuarioId());
+    const { data, error } = await q;
+    return error || !data || !data.length ? null : data[0];
   }
 
   // ---------- análisis de productos (últimos 30 días contra los 30 anteriores) ----------
@@ -123,6 +144,6 @@
   window.PuveIaDatos = {
     enlazar(o){ enlace = Object.assign(enlace, o || {}); },
     reiniciar(){ memoria.clear(); },
-    traerGastos, cargarPeriodo, analisis, compañero, prediccion, calcular, esFisico, esCajero, puedeCostos, fechaLocal
+    traerGastos, cargarPeriodo, periodoCompleto, diario, ultimaVenta, analisis, compañero, prediccion, calcular, esFisico, esCajero, puedeCostos, fechaLocal
   };
 })();

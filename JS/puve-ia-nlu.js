@@ -11,6 +11,7 @@
   const pad = (n) => String(n).padStart(2, '0');
 
   // ---------- frases de ejemplo por tema ----------
+  const K = window.PuveIaConocimiento || { EXTRA: {}, SINONIMOS: {}, MUY_VACIAS: '', FUERA_PALABRAS: '' };
   const SEMILLAS = {
     resumen: ['como me fue hoy', 'como me va', 'como nos fue ayer', 'dame un resumen', 'resumen del dia', 'como va el dia', 'como estuvo el dia', 'que tal el dia', 'como van las cosas', 'como va todo hoy', 'dime como voy', 'reporte del dia', 'como cerramos', 'como estuvo la semana', 'resumen de la semana', 'resumen del mes', 'como me fue esta semana', 'como voy este mes', 'que paso hoy', 'cuentame como va el negocio hoy', 'hazme un resumen', 'como me fue ayer'],
     ventas: ['cuanto vendi', 'cuanto he vendido hoy', 'cuanto llevo vendido', 'ventas de hoy', 'ventas de ayer', 'cuanto vendimos', 'cuanto dinero entro', 'cuanto entro hoy', 'cuanto cobre', 'cuantas ventas hice', 'cuantas ventas llevo', 'de 2 a 5 cuanto vendi', 'cuanto se vendio en la tarde', 'cuanto lleva la caja', 'total vendido', 'cuanto facture', 'ingresos de hoy', 'cuanto he sacado', 'cuantos clientes atendi', 'ticket promedio', 'cuanto gasta cada cliente', 'venta promedio', 'que tal las ventas', 'cuanto vendi esta semana', 'cuanto vendi el mes pasado', 'mis ventas', 'dime las ventas', 'cuanto me han pagado hoy', 'cuanto he cobrado', 'cuanto llevo en la caja', 'como estuvo la venta de ayer', 'cuanto hice hoy', 'cuanta lana hice hoy', 'cuanto dinero hice', 'ventas de la semana pasada', 'mis ventas de la semana', 'mis ventas del mes', 'mis ventas de la semana pasada', 'ventas del mes pasado'],
@@ -36,14 +37,16 @@
     salud: ['como esta mi negocio', 'como va mi negocio', 'salud de mi negocio', 'mi negocio va bien', 'voy bien', 'estoy bien', 'diagnostico del negocio', 'como estoy en general', 'revisa mi negocio', 'chequeo general', 'mi negocio esta sano', 'como ves mi negocio', 'vamos bien'],
     glosario: ['que es margen', 'que significa ganancia', 'que quiere decir ticket promedio', 'explicame que es inventario', 'que es el capital parado', 'que significa stock', 'que es la rotacion', 'que es costo', 'como se calcula la ganancia', 'no entiendo que es', 'que es punto de equilibrio', 'explicame mas facil', 'que significa eso', 'que quiere decir'],
     que_hago: ['que hago', 'que me recomiendas', 'que me aconsejas', 'dame un consejo', 'que deberia hacer hoy', 'por donde empiezo', 'que es lo mas urgente', 'que debo arreglar', 'que hago primero', 'que mejoro', 'dame recomendaciones', 'que me sugieres', 'que cosas debo cuidar', 'dame consejos', 'que me recomiendas hacer', 'que me recomiendas hoy', 'que me recomiendas ahora', 'que hago ahora', 'que hago hoy', 'que hago con mi negocio', 'recomiendame algo', 'dame una recomendacion', 'que me aconsejas hacer', 'que opinas'],
-    ayuda: ['hola', 'buenos dias', 'buenas tardes', 'buenas noches', 'que puedes hacer', 'que sabes hacer', 'como funciona esto', 'ayuda', 'que te puedo preguntar', 'gracias', 'muchas gracias', 'ok', 'listo', 'perfecto', 'quien eres', 'que eres', 'como te llamas', 'ayudame']
   };
+  Object.keys(K.EXTRA).forEach((k) => { SEMILLAS[k] = (SEMILLAS[k] || []).concat(K.EXTRA[k]); });
   const INTENTS = Object.keys(SEMILLAS);
-  const SOLO_ENCARGADO = new Set(['ganancia', 'gastos', 'cajeros', 'clientes', 'riesgo', 'lentos', 'salud', 'no_invertir', 'comprar', 'precios', 'equilibrio', 'recomendar_vender', 'subir_ventas']);
+  const SOLO_ENCARGADO = new Set(['ganancia', 'gastos', 'cajeros', 'clientes', 'riesgo', 'lentos', 'salud', 'no_invertir', 'comprar', 'precios', 'equilibrio', 'recomendar_vender', 'subir_ventas', 'valor_inventario', 'datos_faltantes', 'oferta', 'mejor_margen']);
 
   // ---------- palabras ----------
-  const VACIAS = new Set(['de', 'la', 'el', 'los', 'las', 'un', 'una', 'uno', 'unos', 'unas', 'del', 'al', 'en', 'mi', 'mis', 'tu', 'tus', 'su', 'sus', 'me', 'te', 'se', 'lo', 'le', 'y', 'e', 'o', 'u', 'a', 'por', 'con', 'para', 'es', 'son', 'ser', 'esta', 'este', 'estos', 'esa', 'ese', 'hoy', 'ayer', 'antier', 'ahora', 'pasada', 'pasado', 'ultimos', 'ultimas', 'ultimo', 'ultima', 'entre', 'desde', 'hasta', 'ya', 'muy', 'favor', 'que', 'q', 'porfa', 'oye', 'bro', 'amigo', 'puve', 'ia']);
-  const FAMILIAS = [[/^(vend|vent)/, 'vend'], [/^gan/, 'gana'], [/^gast/, 'gast'], [/^compr/, 'compr'], [/^(inver|invir|invie)/, 'inver'], [/^(inven)/, 'inven'], [/^(recom|recue)/, 'recom'], [/^acab/, 'acab'], [/^agot/, 'agot'], [/^(cadu|venci|venzo|vence)/, 'cadu'], [/^(promo|ofert)/, 'ofert'], [/^(cliente|client)/, 'clien'], [/^(pag|cobr)/, 'pago'], [/^(prec|cost)/, 'prec'], [/^(sobr|demas|exces)/, 'sobra']];
+  const VACIAS = new Set(['de', 'la', 'el', 'los', 'las', 'un', 'una', 'uno', 'unos', 'unas', 'del', 'al', 'en', 'mi', 'mis', 'tus', 'su', 'sus', 'me', 'se', 'lo', 'le', 'y', 'e', 'o', 'u', 'a', 'por', 'con', 'para', 'es', 'son', 'ser', 'esta', 'este', 'estos', 'esa', 'ese', 'hoy', 'ayer', 'antier', 'ahora', 'pasada', 'pasado', 'ultimos', 'ultimas', 'ultimo', 'ultima', 'entre', 'desde', 'hasta', 'ya', 'muy', 'favor', 'que', 'q', 'porfa', 'oye', 'bro', 'amigo', 'puve', 'ia']);
+  K.MUY_VACIAS.split(' ').forEach((w) => { if(w) VACIAS.add(w); });
+  const SIN = K.SINONIMOS, FUERA = new Set(K.FUERA_PALABRAS.split(' ').filter(Boolean));
+  const FAMILIAS = [[/^(cuantos|cuantas)$/, 'cuantos'], [/^(cuanto|cuanta)$/, 'cuanto'], [/^(vend|vent)/, 'vend'], [/^gan/, 'gana'], [/^gast/, 'gast'], [/^compr/, 'compr'], [/^(inver|invir|invie)/, 'inver'], [/^(inven)/, 'inven'], [/^(recom|recue)/, 'recom'], [/^acab/, 'acab'], [/^agot/, 'agot'], [/^(cadu|venci|venzo|vence)/, 'cadu'], [/^(promo|ofert)/, 'ofert'], [/^(cliente|client)/, 'clien'], [/^(pag|cobr)/, 'pago'], [/^(prec|cost)/, 'prec'], [/^(sobr|demas|exces)/, 'sobra']];
   function raiz(w){
     if(/\d/.test(w)) return '#';
     if(w.length <= 4) return w;
@@ -61,6 +64,29 @@
     return prev[b.length];
   }
 
+
+  // ---------- reglas que no necesitan aprender: crisis, cuentas, cambio y temas que no son del negocio ----------
+  const ligero = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9%+*\/.,$\- ]/g, ' ').replace(/\s+/g, ' ').trim();
+  const PALABRA_NUM = { un: 1, uno: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10, quince: 15, veinte: 20, treinta: 30, cuarenta: 40, cincuenta: 50, cien: 100, ciento: 100, doscientos: 200, quinientos: 500 };
+  function numeros(texto){
+    let t = ligero(texto).replace(/(\d),(\d{3})(?!\d)/g, '$1$2').replace(/\$/g, ' ');
+    t = t.replace(/\b(un|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|quince|veinte|treinta|cuarenta|cincuenta|cien|ciento|doscientos|quinientos) (mil|millon|millones)\b/g, (x, w, m) => String(PALABRA_NUM[w] * (m === 'mil' ? 1000 : 1000000)));
+    const r = []; const re = /(\d+(?:\.\d+)?)(\s*(?:k\b|mil\b|millon(?:es)?\b))?/g; let m;
+    while((m = re.exec(t))){ let v = parseFloat(m[1]); if(m[2]){ const u = m[2].trim(); v *= u === 'k' || u === 'mil' ? 1000 : 1000000; } r.push(v); }
+    return r;
+  }
+  function reglas(texto){
+    const t = ligero(texto), nums = numeros(texto), n = norm(texto);
+    if(/(quitarme la vida|quitarse la vida|suicid|me quiero morir|quiero morir|quiero morirme|ya no quiero vivir|no quiero vivir|acabar con mi vida|terminar con mi vida|matarme|hacerme dano|lastimarme|no vale la pena vivir|desaparecer para siempre)/.test(n)) return { intent: 'crisis', p: 1 };
+    if(/(cambio|regreso|devuelvo)/.test(n) && /(paga|pago|dio|pagan|recibi|billete| con )/.test(' ' + n + ' ') && nums.length >= 2) return { intent: 'cambio', p: 0.97 };
+    if(nums.length >= 1 && (/\d\s*(%|por ciento)/.test(t) || /(descuento|rebaja|iva|propina|aumento|incremento|recargo)/.test(n))) return { intent: 'calculo', p: 0.97 };
+    if(/\d\s*(\+|\*|\/|x|mas|menos|por|entre)\s*\d/.test(t) && t.split(' ').length <= 12) return { intent: 'calculo', p: 0.97 };
+    if(nums.length >= 2 && /(suma|resta|multiplica|divide|cuanto es|cuanto son|cuanto da|total de|cuanto sale)/.test(n)) return { intent: 'calculo', p: 0.95 };
+    const f = n.split(' ').filter((w) => FUERA.has(w));
+    if(f.length && !/(vend|vent|gan|gast|stock|inventar|client|negocio|produc|caja|corte|cajer|precio|merc)/.test(n)) return { intent: 'fuera_tema', p: 0.9 };
+    return null;
+  }
+
   // ---------- el modelo que aprende ----------
   const M = { cnt: {}, tot: {}, vocab: new Set(), palabras: new Set(), memoria: new Map(), V: 0 };
   INTENTS.concat(['desconocido']).forEach((i) => { M.cnt[i] = {}; M.tot[i] = 0; });
@@ -73,8 +99,9 @@
     });
   }
   function caracteristicas(texto, sinArreglo){
-    let ws = norm(texto).split(' ').filter(Boolean);
+    let ws = norm(texto).replace(/\b(?:en la|por la|de la|esta|la) manana\b/g, ' ').split(' ').filter(Boolean);
     if(!sinArreglo) ws = arreglarPalabras(ws);
+    ws = ws.map((w) => SIN[w] || w);
     const rs = ws.filter((w) => !VACIAS.has(w)).map(raiz).filter((r) => r !== '#');
     const f = rs.slice(); for(let i = 0; i < rs.length - 1; i++) f.push(rs[i] + '_' + rs[i + 1]);
     return f;
@@ -86,11 +113,16 @@
     caracteristicas(frase, true).forEach((f) => { M.cnt[intent][f] = (M.cnt[intent][f] || 0) + w; M.tot[intent] += w; if(!M.vocab.has(f)){ M.vocab.add(f); M.V++; } });
   }
   INTENTS.forEach((i) => SEMILLAS[i].forEach((f) => entrenar(f, i, 1)));
+  // si la pregunta es exactamente una frase de ejemplo que pertenece a un solo tema, es ese tema (sin dudas)
+  const EXACTAS = new Map(), VISTAS = new Map();
+  INTENTS.forEach((i) => SEMILLAS[i].forEach((f) => { const t = norm(f); if(!VISTAS.has(t)) VISTAS.set(t, new Set()); VISTAS.get(t).add(i); }));
+  VISTAS.forEach((set, t) => { if(set.size === 1) EXACTAS.set(t, [...set][0]); });
 
   function clasificar(texto){
     const t = norm(texto);
     const def = t.match(/^(?:explicame )?(?:que es|que son|que significa|que quiere decir|que quieren decir)(?: el| la| los| las| un| una)? (?!lo\b|mi\b|mis\b|mas\b|menos\b|mejor\b|peor\b|que\b|el\b|la\b)([a-z]+)/);
     if(def) return { lista: [{ i: 'glosario', p: 0.97 }], conocida: true, nFeat: 99, cobertura: 1 };
+    if(EXACTAS.has(t) && !M.memoria.has(t)) return { lista: [{ i: EXACTAS.get(t), p: 0.98 }], conocida: true, nFeat: 99, cobertura: 1 };
     if(M.memoria.has(t)) return { lista: [{ i: M.memoria.get(t), p: 0.99 }], conocida: true, nFeat: 99, cobertura: 1 };
     const todas = caracteristicas(texto), f = todas.filter((x) => M.vocab.has(x)), uni = todas.filter((x) => x.indexOf('_') < 0), cobertura = uni.length ? uni.filter((x) => M.vocab.has(x)).length / uni.length : 0;
     if(!f.length) return { lista: [], conocida: false, nFeat: 0, cobertura: 0 };
@@ -248,7 +280,7 @@
   }
 
   window.PuveIaNlu = {
-    INTENTS, SOLO_ENCARGADO, norm, clasificar, aprender, castigar, olvidar, sanear, dividir, parseTiempo, ultimos, extraerHoras, buscarProductos, enmascarar, rangoTexto, horaFuerteTexto, DIAS_BONITO,
+    INTENTS, SOLO_ENCARGADO, norm, reglas, numeros, ligero, clasificar, aprender, castigar, olvidar, sanear, dividir, parseTiempo, ultimos, extraerHoras, buscarProductos, enmascarar, rangoTexto, horaFuerteTexto, DIAS_BONITO,
     cargarMemoria(lista, peso){ (lista || []).forEach((x) => { if(x && x.f && x.i) { entrenar(x.f, x.i, peso || 3); if((peso || 3) >= 3) M.memoria.set(norm(x.f), x.i); } }); },
     vacia: (t) => caracteristicas(t).filter((x) => x !== 'xprod').length === 0
   };
