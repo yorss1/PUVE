@@ -50,9 +50,11 @@
 <script src="JS/puve-importar.js"></script>
 <script src="JS/puve-prepara.js"></script>
 <script src="JS/puve-decisiones.js"></script>
+<script src="JS/puve-ia-conocimiento.js"></script>
 <script src="JS/puve-ia-nlu.js"></script>
 <script src="JS/puve-ia-datos.js"></script>
 <script src="JS/puve-resumen.js"></script>
+<script src="JS/puve-ia-amigo.js"></script>
 <script src="JS/puve-lotes.js"></script>
 <script src="JS/puve-etiquetas.js"></script>
 <script src="JS/puve-combos.js"></script>
@@ -13537,7 +13539,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   PuveRestaurante.enlazar({ sb: sb, productos: () => productosCache, total: () => carrito.reduce((s, i) => s + subLinea(i), 0), dinero: (n) => formatoDinero(n), aviso: (m) => alert(m) });
   PuveCotizaciones.enlazar({ sb: sb, carrito: () => carrito, negocio: () => { const e = document.getElementById('nombreNegocioBarra'); const t = e ? e.textContent.trim() : ''; return t && t !== '—' ? t : ''; }, dinero: (n) => formatoDinero(n), cargarAlCarrito: cargarCotizacionAlCarrito, aviso: (m) => alert(m) });
   PuveAnaliticaRest.enlazar({ sb: sb, dinero: (n) => formatoDinero(n) });
-  PuveResumen.enlazar({ sb: sb, dinero: (n) => formatoDinero(n), productos: () => productosCache, rol: () => miRol });
+  PuveResumen.enlazar({ sb: sb, dinero: (n) => formatoDinero(n), productos: () => productosCache, rol: () => miRol, faq: (t) => buscarRespuestaFAQ(t), irA: (sec) => cambiarSeccion(sec), faqNoSabe: (t) => registrarPreguntaSinRespuesta(t) });
   PuveDecisiones.enlazar({ sb: sb, giro: () => { const g = giroEspecifico(); return g ? g.id : null; }, dinero: (n) => formatoDinero(n) });
   PuveBitacora.enlazar({ sb: sb });
   PuveProduccion.enlazar({ sb: sb });
