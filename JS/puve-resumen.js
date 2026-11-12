@@ -356,7 +356,10 @@
   const UMBRAL_CLARO = 0.55;
   const temasPara = () => Object.keys(ETIQUETA_TEMAS).filter((i) => !(esCajero() && N.SOLO_ENCARGADO.has(i)));
 
+  // Un módulo puede cambiar el tema según lo que se venía platicando (p. ej. «¿por qué?» después de una idea suya).
+  const REDIRECCIONES = [];
   async function ejecutar(intent, ctx){
+    for(const f of REDIRECCIONES){ let n = null; try { n = f(intent, ctx); } catch(e){ n = null; } if(n && n !== intent){ intent = n; ctx.intent = n; break; } }
     if(esCajero() && N.SOLO_ENCARGADO.has(intent)) return [P('Eso lo ve solo el encargado del negocio. Yo te puedo contar de **tus ventas**, lo que más has vendido y lo que se está acabando.')];
     if(!puedeCostos() && !esCajero() && ['ganancia', 'gastos', 'riesgo', 'clientes', 'equilibrio', 'precios', 'no_invertir', 'comprar', 'valor_inventario', 'datos_faltantes', 'oferta', 'mejor_margen'].includes(intent)) return [P('Eso depende de costos y gastos, y solo los ve el encargado del negocio.')];
     return (H[intent] || H.ayuda)(ctx);
@@ -369,7 +372,7 @@
 
   async function responder(texto, estado, onPaso, nivel){
     estado = estado || {}; nivel = nivel || 0;
-    const original = String(texto || '').slice(0, 240), rg = N.reglas(original);
+    const original = String(texto || '').slice(0, 400), rg = N.reglas(original);
     if(rg && rg.intent === 'crisis') return [{ bloques: H.crisis(), meta: null }];
     const pr = N.buscarProductos(original, enlace.productos()), masc = pr.productos.length ? N.enmascarar(original, pr.palabras) : N.norm(original);
     const t = N.parseTiempo(original), partes = rg ? [masc] : N.dividir(masc), mensajes = [], nombres = enlace.productos().map((x) => x.nombre);
@@ -394,8 +397,8 @@
       }
       if(onPaso && !CHARLA.has(intent)) onPaso(PASOS[intent] || 'Pensando…');
       const bloques = await ejecutar(intent, ctx), charla = CHARLA.has(intent);
-      mensajes.push({ bloques, meta: { intent, p: top ? top.p : 1, frase, parte, original, ctx, charla } });
-      if(!charla){ estado.ultimo = { intent, productos: pr.productos }; estado.ultimaPregunta = original; }
+      const fin = ctx.intent || intent; mensajes.push({ bloques, meta: { intent: fin, p: top ? top.p : 1, frase, parte, original, ctx, charla } });
+      if(!charla){ estado.ultimo = { intent: fin, productos: pr.productos }; estado.ultimaPregunta = original; }
       const ch = bloques.filter((b) => b.t === 'chips')[0]; estado.sugerida = ch && ch.items[0] && ch.items[0].pregunta ? ch.items[0].pregunta : null;
     }
     return mensajes;
@@ -458,7 +461,7 @@
     const inicio = el('div', 'rs-inicio-sugs'); (cfg.chips || []).slice(0, 4).forEach((x, i) => { const b = el('button', 'rs-pill', x); b.type = 'button'; b.style.setProperty('--d', (400 + i * 90) + 'ms'); b.onclick = () => enviar(x); inicio.appendChild(b); }); vacio.appendChild(inicio);
     vista.appendChild(vacio); vista.appendChild(msgs);
     (cfg.chips || []).forEach((x) => { const b = el('button', 'rs-pill', x); b.type = 'button'; b.onclick = () => enviar(x); sugs.appendChild(b); });
-    const inp = el('input', 'rs-input'); inp.type = 'text'; inp.maxLength = 240; inp.placeholder = cfg.placeholder || 'Escribe tu pregunta…'; inp.autocomplete = 'off'; inp.setAttribute('aria-label', 'Tu pregunta'); inp.setAttribute('enterkeyhint', 'send');
+    const inp = el('input', 'rs-input'); inp.type = 'text'; inp.maxLength = 400; inp.placeholder = cfg.placeholder || 'Escribe tu pregunta…'; inp.autocomplete = 'off'; inp.setAttribute('aria-label', 'Tu pregunta'); inp.setAttribute('enterkeyhint', 'send');
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition, mic = el('button', 'rs-mic'); mic.type = 'button'; mic.setAttribute('aria-label', 'Hablar'); mic.appendChild(icono('mic'));
     const bt = el('button', 'rs-enviar'); bt.type = 'submit'; bt.setAttribute('aria-label', 'Enviar pregunta'); bt.appendChild(icono('enviar')); bt.disabled = true;
     form.appendChild(inp); if(SR) form.appendChild(mic); form.appendChild(bt);
@@ -524,7 +527,7 @@
       }
     }
     async function enviar(txt){
-      txt = String(txt || '').trim().slice(0, 240);
+      txt = String(txt || '').trim().slice(0, 400);
       if(!txt || ocupado) return;
       ocupado = true; inp.value = ''; bt.disabled = true; raiz.classList.remove('rs-sin-charla'); raiz.classList.add('rs-con-charla');
       msgs.appendChild(el('div', 'rs-user', txt)); bajar(true); pen.abrir();
@@ -550,14 +553,14 @@
     crearChat(cont, {
       titulo: 'PUVE IA', subtitulo: e ? '¿Cómo va tu turno? Pregúntame con tus palabras.' : '¿Qué quieres saber de tu negocio? Pregúntame con tus palabras.',
       placeholder: e ? 'Pregunta lo que quieras…' : 'Escribe o di tu pregunta…', aprende: true,
-      chips: e ? ['¿Cuánto llevo vendido hoy?', '¿Qué he vendido más?', '¿Qué se está acabando?'] : ['¿Cómo me fue hoy?', '¿Qué me recomiendas vender más?', '¿En qué no debería invertir?', '¿Qué se me está acabando?', 'Ventas de ayer de 2 a 5 de la tarde', '¿Cómo está mi negocio?'],
+      chips: e ? ['¿Cuánto llevo vendido hoy?', '¿Qué he vendido más?', '¿Qué se está acabando?'] : ['¿Cómo me fue hoy?', '¿Cómo puedo hacer crecer mi negocio?', '¿Qué me recomiendas vender más?', '¿En qué no debería invertir?', '¿Qué se me está acabando?', '¿Cómo está mi negocio?'],
       responder, ejecutar: async (intent, ctx, estado, onPaso) => { if(onPaso) onPaso(PASOS[intent] || 'Pensando…'); const bloques = await ejecutar(intent, ctx); estado.ultimo = { intent, productos: ctx.productos }; return [{ bloques, meta: { intent, p: 1, frase: N.sanear(ctx.texto, enlace.productos().map((x) => x.nombre)), ctx } }]; }
     });
   }
 
   window.PuveResumen = {
     enlazar(o){ enlace = Object.assign(enlace, o || {}); D.enlazar(enlace); },
-    abrir, responder, ejecutar,
+    abrir, responder, ejecutar, agregarRedireccion(f){ if(typeof f === 'function') REDIRECCIONES.push(f); },
     reiniciar(){ montado = false; aprendizajeListo = false; D.reiniciar(); },
     crearChat, ayudas: { P, L, S, C, sug, cap, lista, veces, fmt, dinero: (n) => $d(n), el },
     registrar: registrarAprendizaje,
