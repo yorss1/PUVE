@@ -539,6 +539,12 @@
     }
     form.addEventListener('submit', (ev) => { ev.preventDefault(); enviar(inp.value); });
     nuevo.onclick = () => { if(ocupado) return; msgs.textContent = ''; Object.keys(estado).forEach((k) => delete estado[k]); raiz.classList.remove('rs-con-charla'); raiz.classList.add('rs-sin-charla'); };
+    // el asesor puede hablar primero (p. ej. «te pongo al día»), solo si la persona aún no ha escrito nada
+    if(cfg.alAbrir) Promise.resolve().then(() => cfg.alAbrir()).then(async (r) => {
+      if(!r || !r.bloques || !r.bloques.length || ocupado || !raiz.isConnected || !raiz.classList.contains('rs-sin-charla')) return;
+      ocupado = true; raiz.classList.remove('rs-sin-charla'); raiz.classList.add('rs-con-charla');
+      try { await mostrar([{ bloques: r.bloques, meta: null }]); } finally { ocupado = false; bt.disabled = !inp.value.trim(); }
+    }).catch((e) => console.error(e));
     return { enviar };
   }
 
@@ -551,6 +557,7 @@
     if(!aprendizajeListo){ aprendizajeListo = true; cargarAprendizaje(); }
     const e = esCajero();
     crearChat(cont, {
+      alAbrir: () => window.PuveIaAsesorNovedades ? window.PuveIaAsesorNovedades.alAbrir() : null,
       titulo: 'PUVE IA', subtitulo: e ? '¿Cómo va tu turno? Pregúntame con tus palabras.' : '¿Qué quieres saber de tu negocio? Pregúntame con tus palabras.',
       placeholder: e ? 'Pregunta lo que quieras…' : 'Escribe o di tu pregunta…', aprende: true,
       chips: e ? ['¿Cuánto llevo vendido hoy?', '¿Qué he vendido más?', '¿Qué se está acabando?'] : ['¿Cómo me fue hoy?', '¿Cómo puedo hacer crecer mi negocio?', '¿Qué me recomiendas vender más?', '¿En qué no debería invertir?', '¿Qué se me está acabando?', '¿Cómo está mi negocio?'],

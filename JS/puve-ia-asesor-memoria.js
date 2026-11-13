@@ -234,7 +234,7 @@
     await cargar();
     const t = N.norm(c.texto);
     if(!/^si\b|\bconfirmo\b/.test(t)) return [P('Esto borra **tu meta** y el seguimiento de **todas tus ideas**, y no se puede deshacer. ¿Seguro?'), C([sug('Sí, olvida todo lo de mi negocio'), sug('No, déjalo')])];
-    const n = (cache || []).length, r = await borrar(null, null);
+    const n = (cache || []).filter((f) => f.tipo !== 'visita').length, r = await borrar(null, null);
     return [P(n ? 'Listo: olvidé tu meta y el seguimiento de tus ideas (' + veces(n, 'registro', 'registros') + '). Empezamos de cero.' : 'No tenía nada guardado, así que ya estás en cero.')].concat(nota(r));
   };
 
@@ -266,5 +266,5 @@
     return null;
   });
 
-  window.PuveIaAsesorMemoria = { activo, filtrar, encabezado, cargar, evaluar, internos: { progresoMeta, enMarcha, metas, reiniciar(){ cache = null; cargando = null; sinSql = false; usuario = undefined; } } };
+  window.PuveIaAsesorMemoria = { activo, filtrar, encabezado, cargar, evaluar, guardar, fila, hace, sinSql: () => sinSql, internos: { progresoMeta, enMarcha, metas, reiniciar(){ cache = null; cargando = null; sinSql = false; usuario = undefined; } } };
 })();

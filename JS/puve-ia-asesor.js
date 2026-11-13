@@ -303,6 +303,7 @@
     const st = ctx.estado && ctx.estado.asesor; if(!st || !st.ultima) return null;
     const t = N.norm(ctx.texto || '');
     if(intent === 'por_que' && !/(venta|bajar|bajaron|baja\b|subir|subieron|sube\b|cayer|ganancia|gasto|inventario|cliente|ticket)/.test(t)) return 'porque_idea';
+    if(intent === 'como_aprendes' && /(sacas eso|sabes eso|sacaste eso)/.test(t)) return 'porque_idea';
     if((intent === 'ayuda_app' || intent === 'que_hago' || intent === 'subir_ventas') && /\bcomo (lo|la|le|eso|esa|empiezo con|pongo|arranco|hago eso|hago esa)\b/.test(t)) return 'como_hacerlo';
     return null;
   });

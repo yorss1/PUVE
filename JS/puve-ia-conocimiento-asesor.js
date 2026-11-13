@@ -30,7 +30,7 @@
 
   // plan de la semana / plan de acción
   sumar('plan_semana', [
-    'dame un plan para la semana', 'plan de la semana', 'que hago esta semana', 'plan de accion', 'dame un plan de accion', 'armame un plan', 'plan para este mes', 'que hago esta semana para mejorar', 'cual es el plan', 'plan para mejorar mi negocio', 'dame un plan paso a paso', 'hazme un plan',
+    'dame un plan para la semana', 'plan de la semana', 'plan de accion', 'dame un plan de accion', 'armame un plan', 'plan para este mes', 'que hago esta semana para mejorar', 'cual es el plan', 'plan para mejorar mi negocio', 'dame un plan paso a paso', 'hazme un plan',
     'plan semanal', 'plan de trabajo para la semana', 'que hago hoy esta semana y este mes', 'dame un plan para este mes', 'armame un plan de accion', 'quiero un plan', 'necesito un plan', 'preparame un plan', 'plan para mi negocio', 'cual es mi plan de accion', 'ponme tareas para la semana',
     'que tareas tengo esta semana', 'dame tareas para mejorar mi negocio', 'organizame la semana', 'planeame la semana', 'que debo hacer esta semana', 'agenda de mejoras', 'lista de pendientes para mejorar', 'checklist para mejorar mi negocio', 'ordena las ideas en un plan', 'convierte eso en un plan', 'ponlo en un plan'
   ]);
@@ -45,7 +45,7 @@
 
   // seguimiento: ¿por qué me dices eso? / ¿en qué datos te basas?
   sumar('porque_idea', [
-    'por que me recomiendas eso', 'por que me dices eso', 'por que esa idea', 'en que te basas', 'en que datos te basas', 'de donde sacas eso', 'por que crees que funcionaria', 'por que eso', 'como sabes eso', 'con que numeros', 'con que cifras', 'que datos usaste', 'como calculaste eso',
+    'por que me recomiendas eso', 'por que me dices eso', 'por que esa idea', 'en que te basas', 'en que datos te basas', 'por que crees que funcionaria', 'por que eso', 'con que numeros', 'con que cifras', 'que datos usaste', 'como calculaste eso',
     'como llegaste a eso', 'por que lo recomiendas', 'y eso por que', 'explicame por que me lo recomiendas', 'cuanto ganaria con eso', 'cuanto dejaria eso', 'cuanto podria ganar con eso', 'de donde sale ese numero', 'de donde sale esa cifra', 'en que numeros te apoyas', 'que supones para decir eso',
     'por que', 'y por que', 'por que dices eso', 'por que lo dices', 'por que me sugieres eso', 'por que esa y no otra', 'por que primero esa', 'por que esa primero', 'que evidencia tienes', 'demuestramelo', 'como llegaste a ese calculo', 'por que me aconsejas eso', 'en que se basa esa idea', 'que datos respaldan eso', 'cuanto dinero me dejaria esa idea',
     'y de cuanto seria la ganancia', 'cual es la ganancia de esa idea', 'que tan seguro es eso', 'es seguro que funciona', 'seguro que funciona esa idea'
@@ -54,7 +54,7 @@
   // seguimiento: dame otra idea
   sumar('otra_idea', [
     'dame otra idea', 'otra idea', 'otra mas', 'dame otra', 'que otra idea tienes', 'hay mas ideas', 'mas ideas', 'y que otra cosa puedo hacer', 'alguna otra idea', 'otra opcion', 'y otra', 'que mas se te ocurre', 'siguiente idea', 'dame mas ideas', 'tienes mas ideas',
-    'que mas puedo hacer', 'y que mas', 'otra sugerencia', 'otra recomendacion', 'dame otra recomendacion', 'dame otra sugerencia', 'otra alternativa', 'dame otra alternativa', 'que otra opcion hay', 'y la siguiente', 'pasame la siguiente idea', 'cual sigue', 'muestrame otra idea',
+    'que mas puedo hacer', 'otra sugerencia', 'otra recomendacion', 'dame otra recomendacion', 'dame otra sugerencia', 'otra alternativa', 'dame otra alternativa', 'que otra opcion hay', 'y la siguiente', 'pasame la siguiente idea', 'cual sigue', 'muestrame otra idea',
     'dame una idea diferente', 'una idea distinta', 'algo diferente', 'que otras ideas hay', 'dame otras ideas', 'dime otra idea', 'otra idea mas', 'sigue con otra idea', 'dame la siguiente idea', 'tienes otra idea', 'quiero otra idea'
   ]);
 
@@ -63,8 +63,8 @@
     X([['mi meta es', 'mi meta del mes es', 'mi meta mensual es', 'mi meta diaria es', 'mi objetivo es', 'guarda mi meta de', 'recuerda mi meta de', 'fija mi meta en', 'pon mi meta en', 'anota mi meta de', 'establece mi meta en', 'cambia mi meta a', 'actualiza mi meta a', 'mi nueva meta es', 'nueva meta de'], ['80 mil', '5 mil', '100 mil', '3000', '50 mil', '120 mil', '10 mil'], ['', 'al mes', 'por dia', 'diarios', 'mensuales']], 45),
     ['quiero vender 90 mil al mes', 'quiero llegar a 100 mil al mes', 'registra mi meta de ventas', 'mi meta es vender 80 mil al mes', 'guarda mi meta de 50 mil al mes', 'recuerda mi meta de 5 mil diarios', 'mi meta es 5 mil por dia', 'quiero vender 3 mil diarios', 'mi objetivo del mes es 70 mil', 'quiero que mi meta sea 60 mil al mes']));
   sumar('avance_meta', [
-    'como voy con mi meta', 'como voy con la meta', 'voy bien con mi meta', 'llegare a mi meta', 'cuanto me falta para mi meta', 'cuanto me falta para la meta', 'como va mi meta', 'voy a llegar a mi meta', 'ya llegue a mi meta', 'alcanzo mi meta', 'que tal voy con mi meta', 'que tan lejos estoy de mi meta',
-    'avance de mi meta', 'mi meta como va', 'estoy cerca de mi meta', 'cuanto llevo de mi meta', 'progreso de mi meta', 'voy a cumplir mi meta', 'cumplire mi meta este mes', 'como voy con mi meta del mes', 'cual es mi meta', 'recuerdas mi meta', 'cuanto me falta para llegar a mi meta', 'voy a lograr mi meta',
+    'como voy con mi meta', 'como voy con la meta', 'voy bien con mi meta', 'cuanto me falta para la meta', 'como va mi meta', 'voy a llegar a mi meta', 'ya llegue a mi meta', 'alcanzo mi meta', 'que tal voy con mi meta', 'que tan lejos estoy de mi meta',
+    'avance de mi meta', 'mi meta como va', 'estoy cerca de mi meta', 'cuanto llevo de mi meta', 'progreso de mi meta', 'voy a cumplir mi meta', 'cumplire mi meta este mes', 'como voy con mi meta del mes', 'cual es mi meta', 'recuerdas mi meta', 'voy a lograr mi meta',
     'como voy con mi objetivo', 'ya cumpli mi meta', 'estoy llegando a mi meta', 'que tan cerca estoy de mi meta'
   ]);
   sumar('borrar_meta', ['olvida mi meta', 'borra mi meta', 'quita mi meta', 'elimina mi meta', 'ya no quiero esa meta', 'cancela mi meta', 'borra la meta', 'quita la meta', 'deja de recordar mi meta', 'no quiero meta', 'olvida la meta', 'elimina la meta', 'ya no quiero tener meta', 'borra mis metas', 'olvida mis metas']);
@@ -89,5 +89,13 @@
   sumar('olvidar_memoria', [
     'olvida todo lo de mi negocio', 'borra tu memoria de mi negocio', 'borra todo lo que recuerdas', 'olvida todo lo que sabes de mi negocio', 'borra todo lo que guardaste', 'elimina tu memoria', 'reinicia tu memoria', 'olvida mis metas e ideas', 'borra mis metas e ideas', 'si olvida todo lo de mi negocio',
     'si borra todo lo que recuerdas', 'si borra tu memoria de mi negocio', 'si olvida todo', 'si borra todo', 'borra todo lo de mi negocio', 'olvida todo lo que guardaste', 'elimina todo lo que recuerdas', 'quiero que olvides todo lo de mi negocio', 'borra la memoria del negocio', 'olvidalo todo'
+  ]);
+
+  // ===== Etapa 3: te pone al día (qué cambió desde tu última visita) =====
+  sumar('novedades', [
+    'que hay de nuevo', 'que paso mientras no estaba', 'novedades de mi negocio', 'algo que deba saber', 'que me perdi', 'hay algo urgente', 'alguna alerta', 'como amanecio mi negocio', 'hay novedades', 'dame las novedades',
+    'que cambio desde ayer', 'que ha pasado en mi negocio', 'que ha cambiado desde mi ultima visita', 'alertas de mi negocio', 'hay algo que deba atender', 'que hay pendiente', 'mantenme informado', 'que paso desde la ultima vez',
+    'desde la ultima vez que entre que paso', 'que paso desde mi ultima visita', 'que me perdi desde ayer', 'ponme al dia de mi negocio', 'dime las novedades', 'tienes novedades', 'hay algo nuevo en mi negocio', 'que novedades hay',
+    'algo importante que deba saber', 'hay algo importante', 'que necesita mi atencion', 'que requiere mi atencion', 'avisame si hay algo', 'que pendientes tengo en el negocio', 'que paso desde que no entro', 'que paso mientras no entre'
   ]);
 })();
