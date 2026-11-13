@@ -19,6 +19,7 @@
   const hora = (h) => N.horaFuerteTexto(h);
   const suma = (arr, f) => arr.reduce((s, x) => s + (f(x) || 0), 0);
   const MIN_VENTAS = 10;          // con menos ventas en 30 días no se dan ideas con números
+  const ocurrencias = (dow, dias) => { let n = 0; for(let k = 0; k < dias; k++) if(new Date(Date.now() - k * 86400000).getDay() === dow) n++; return n; };
   const VIGENCIA_MS = 5 * 60000;  // las ideas de una charla se recalculan cada 5 minutos
 
   // ---------- el estado de la charla: qué ideas se han mostrado y de cuál se está hablando ----------
@@ -62,6 +63,7 @@
           cuenta: opp.map((x, k) => extras[k] + ' piezas × ' + $d(x.mUnit)).join(' + ') + ' = ' + $r(imp) + ' al mes',
           pasos: [['Dale lugar', 'Ponlo a la vista o junto a la caja y ofrécelo al cobrar: «¿le agrego un ' + opp[0].nombre + '?»'], ['Júntalo con lo que ya se vende', comp ? 'Tu gente compra ' + opp[0].nombre + ' junto con ' + comp.con + ' (' + veces(comp.veces, 'vez', 'veces') + ' este mes). Ofréceles los dos.' : 'Ofrécelo junto con tu estrella' + (est ? ' (' + est.nombre + ')' : '') + '.'], ['Cuida que no se acabe', 'Revisa que tengas suficiente para toda la semana.']],
           primerPaso: 'Poner ' + opp[0].nombre + ' a la vista y ofrecerlo al cobrar',
+          medicion: { k: 'unid', prods: opp.map((x) => x.nombre), base: { u: suma(opp, (x) => x.u30) / 30, i: suma(opp, (x) => x.ing30) / 30 } },
           medir: 'Cuenta las piezas de ' + nombres(opp) + ' que vendes en 2 semanas y compáralas con las ' + fmt(Math.round(suma(opp, (x) => x.u30) * 14 / 30)) + ' que vendías en un periodo igual.',
           evidencia: opp.map((x) => [x.nombre, $d(x.mUnit) + ' por pieza', 'vendiste ' + fmt(x.u30) + ' en 30 días']) });
       }
@@ -75,6 +77,7 @@
         supuesto: 'se venden 10 combos más al mes', cuenta: margen != null && margen > 0 ? '10 combos × ' + $d(margen) + ' que deja cada uno = ' + $r(margen * 10) + ' al mes' : '',
         pasos: [['Crea el combo', 'En Inventario → Combos agrega ' + par.a.nombre + ' y ' + par.b.nombre + ' con precio de ' + $r(precio) + '. Revisa que el precio quede arriba de tu costo.'], ['Avísalo al cobrar', 'A quien lleve uno de los dos: «lleva los dos por ' + $r(precio) + '».'], ['Revísalo a las dos semanas', 'Mira cuántos combos se vendieron y si subió la venta de cada producto.']],
         primerPaso: 'Crear el combo ' + par.a.nombre + ' + ' + par.b.nombre + ' en Inventario → Combos',
+        medicion: { k: 'unid', prods: [par.a.nombre, par.b.nombre], base: { u: (par.a.u30 + par.b.u30) / 30, i: (par.a.ing30 + par.b.ing30) / 30 } },
         medir: 'Cuántos combos vendes en 2 semanas y si subieron las ventas de ' + par.a.nombre + ' y ' + par.b.nombre + '.',
         evidencia: [[par.a.nombre + ' + ' + par.b.nombre, veces(par.p.n, 'vez', 'veces') + ' juntos', 'en 30 días'], ['Precio por separado', $r(par.a.precio + par.b.precio), ''], ['Precio del combo', $r(precio), '8% menos']] });
     }
@@ -90,6 +93,7 @@
           supuesto: 'esa hora vende 20% más', cuenta: $r(v) + ' × 20% = ' + $r(v * 0.2) + ' más al mes',
           pasos: [['Elige una oferta chica', 'Un descuento o un extra solo en ese horario (10% o un complemento de regalo). Que no baje de tu costo.'], ['Avísalo', 'Un cartel en la entrada y un mensaje a tus clientes frecuentes.'], ['Programa el precio si tu giro lo permite', 'En Productos, «Promociones por horario» cambia el precio solo en los días y horas que elijas.']],
           primerPaso: 'Definir una oferta pequeña para ' + hora(valle),
+          medicion: { k: 'hora', h: valle, base: { t: v / 30 } },
           medir: 'Compara cuánto vendes en ' + hora(valle) + ' durante 2 semanas contra los ' + $r(v * 14 / 30) + ' de siempre.',
           evidencia: [['Hora más fuerte', hora(pico), $r(a.porHora[pico]) + ' en 30 días'], ['Hora más floja', hora(valle), $r(v) + ' en 30 días']] });
       }
@@ -105,6 +109,7 @@
           supuesto: 'ese día vende 20% más', cuenta: $r(peor.t) + ' × 20% = ' + $r(peor.t * 0.2) + ' más al mes',
           pasos: [['Dale una razón para venir', 'Una oferta o un producto especial solo ' + dia(peor.d) + '.'], ['Avísalo con tiempo', 'Mensaje o cartel desde ' + dia((peor.d + 5) % 7) + '.'], ['Si no cambia, úsalo para otra cosa', 'Un día que casi no vende puede servir para surtir, limpiar o descansar.']],
           primerPaso: 'Definir una oferta para ' + dia(peor.d),
+          medicion: { k: 'dia', d: peor.d, base: { t: peor.t / Math.max(4, ocurrencias(peor.d, 30)) } },
           medir: 'Compara lo que vendes ' + dia(peor.d) + ' durante 4 semanas contra los ' + $r(peor.t / 4.3) + ' de un día así.',
           evidencia: [['Día más fuerte', N.DIAS_BONITO[mejor.d], $r(mejor.t)], ['Día más flojo', N.DIAS_BONITO[peor.d], $r(peor.t)]] });
       }
@@ -117,6 +122,7 @@
         supuesto: 'cada venta sube 5%', cuenta: $r(a.total) + ' × 5% = ' + $r(a.total * 0.05) + ' al mes',
         pasos: [['Ofrece un complemento', par && par.a && par.b ? 'Cuando alguien lleve ' + par.a.nombre + ', ofrécele ' + par.b.nombre + '.' : 'Pregunta siempre «¿algo más?» con un complemento barato a la vista.'], ['Pon cosas chicas junto a la caja', 'Lo que se compra por impulso: dulces, botanas, accesorios baratos.'], ['Promo por monto', 'Un regalo o descuento al pasar de ' + $r(a.ticket * 1.2) + ' (tu ticket promedio más 20%).']],
         primerPaso: 'Ofrecer un complemento en cada cobro esta semana',
+        medicion: { k: 'ticket', base: { t: a.ticket } },
         medir: 'Mira tu ticket promedio dentro de 2 semanas (hoy es ' + $d(a.ticket) + ').',
         evidencia: [['Ticket promedio', $d(a.ticket), 'en ' + veces(a.n, 'venta', 'ventas') + ' de 30 días'], ['Ventas de 30 días', $r(a.total), '']] });
     }
@@ -131,6 +137,7 @@
           supuesto: 'se vende igual que ahora', cuenta: cand.map((x, k) => '+' + $d(aum[k]) + ' × ' + fmt(x.u30) + ' piezas').join(' + ') + ' = ' + $r(imp) + ' al mes',
           pasos: [['Sube poco', cand.map((x, k) => x.nombre + ' de ' + $r(x.precioReal) + ' a ' + $r(x.precioReal + aum[k])).join('; ') + '.'], ['Pruébalo una semana', 'Mira si se sigue vendiendo parecido.'], ['Si baja mucho, regrésalo', 'Si las ventas caen más de lo que ganas por pieza, el aumento no conviene.']],
           primerPaso: 'Subir ' + cand[0].nombre + ' a ' + $r(cand[0].precioReal + aum[0]),
+          medicion: { k: 'unid', prods: cand.map((x) => x.nombre), base: { u: suma(cand, (x) => x.u30) / 30, i: suma(cand, (x) => x.ing30) / 30, g: suma(cand, (x) => x.margen30) / 30 }, precio: true },
           medir: 'Compara las piezas de ' + cand[0].nombre + ' de esa semana contra tus ' + fmt(Math.round(cand[0].u30 / 4.3)) + ' de siempre.',
           evidencia: cand.map((x) => [x.nombre, $d(x.mUnit) + ' por pieza', 'te queda ' + pct(x.mPct) + ' de lo que cobras · ' + fmt(x.u30) + ' vendidas']) });
       }
@@ -197,24 +204,27 @@
   }
   const POCAS = (r) => [P('Todavía tengo pocas ventas para darte ideas con números (**' + r.ventas + '** en los últimos 30 días). Con menos de ' + MIN_VENTAS + ' ventas cualquier cifra sería inventada.'), P('Registra **todas** tus ventas en PUVE durante 2 o 4 semanas y vuelve a preguntarme: con tus propios datos te digo qué empujar, qué precio subir y a qué hora te conviene hacer ofertas.'), C([sug('¿Cómo está mi negocio?'), sug('¿Qué datos me faltan?')])];
   const SEGUIR = (...x) => C(x.map(sug));
+  const MEM = () => window.PuveIaAsesorMemoria && window.PuveIaAsesorMemoria.activo() ? window.PuveIaAsesorMemoria : null;
+  const visibles = async (r) => { const m = MEM(); return m ? await m.filtrar(r.ideas) : r.ideas; };
 
   // ---------- temas ----------
   H.crecer = async (c) => {
     const st = memoria(c.estado), r = await obtener(st);
     if(r.pocos) return POCAS(r);
-    if(!r.ideas.length) return [P('Con tus números de hoy no veo una mejora que valga la pena empujar: tu negocio va parejo. Si quieres, te digo si ya es buen momento para abrir otra sucursal o te armo un plan.'), SEGUIR('¿Estoy listo para abrir otra sucursal?', 'Dame un plan para la semana')];
-    const top = r.ideas.slice(0, c.mas ? 5 : 3);
+    const vis = await visibles(r), m = MEM(), enc = m ? await m.encabezado() : [];
+    if(!vis.length) return enc.concat([P(r.ideas.length ? 'Ya probaste, aplicaste o descartaste todas las ideas que veo con tus números de hoy. Pregúntame «¿cómo van mis ideas?» para ver qué resultado dieron.' : 'Con tus números de hoy no veo una mejora que valga la pena empujar: tu negocio va parejo. Si quieres, te digo si ya es buen momento para abrir otra sucursal o te armo un plan.'), SEGUIR(r.ideas.length ? '¿Cómo van mis ideas?' : '¿Estoy listo para abrir otra sucursal?', 'Dame un plan para la semana')]);
+    const top = vis.slice(0, c.mas ? 5 : 3);
     st.mostradas = top.map((x) => x.id); st.ultima = top[0];
-    return [P('Esto es lo que yo haría para que tu negocio crezca, en este orden. **Cada idea sale de tus propios números**, no de una receta general:'),
+    return enc.concat([P('Esto es lo que yo haría para que tu negocio crezca, en este orden. **Cada idea sale de tus propios números**, no de una receta general:'),
       S('', top.map((i) => [i.titulo, i.texto + textoImpacto(i)])),
       P('Mi consejo: empieza solo con la primera y mídela dos semanas antes de hacer otra. Si pruebas todo a la vez, no sabrás qué funcionó.'),
-      SEGUIR('¿Cómo hago la primera?', 'Dame otra idea', '¿Por qué me recomiendas eso?', '¿Estoy listo para abrir otra sucursal?')];
+      SEGUIR('¿Cómo hago la primera?', 'Dame otra idea', '¿Por qué me recomiendas eso?', '¿Estoy listo para abrir otra sucursal?')]);
   };
 
   H.otra_idea = async (c) => {
     const st = memoria(c.estado), r = await obtener(st);
     if(r.pocos) return POCAS(r);
-    const sig = r.ideas.find((i) => st.mostradas.indexOf(i.id) < 0);
+    const sig = (await visibles(r)).find((i) => st.mostradas.indexOf(i.id) < 0);
     if(!sig) return [P('Esas son todas las ideas que veo con tus números de hoy. Cuando tengas más ventas, cambies precios o surtas, vuelve a preguntarme y las recalculo.'), SEGUIR('Dame un plan para la semana', '¿Estoy listo para abrir otra sucursal?')];
     st.mostradas.push(sig.id); st.ultima = sig;
     return [P('Otra idea que sale de tus números:'), S('', [[sig.titulo, sig.texto + textoImpacto(sig)]]), SEGUIR('¿Cómo hago esa?', 'Dame otra idea', '¿Por qué me recomiendas eso?')];
@@ -223,7 +233,7 @@
   H.como_hacerlo = async (c) => {
     const st = memoria(c.estado), i = st.ultima;
     if(!i) return [P('¿De cuál idea quieres los pasos? Primero te puedo dar ideas para crecer con tus números y luego te digo cómo hacer la que elijas.'), SEGUIR('¿Cómo puedo hacer crecer mi negocio?')];
-    return [P('Así pondrías en marcha **' + i.titulo + '**:'), S('', i.pasos), i.medir ? P('**Cómo saber si funcionó:** ' + i.medir) : null, SEGUIR('Dame otra idea', '¿Por qué me recomiendas eso?', 'Dame un plan para la semana')].filter(Boolean);
+    return [P('Así pondrías en marcha **' + i.titulo + '**:'), S('', i.pasos), i.medir ? P('**Cómo saber si funcionó:** ' + i.medir) : null, MEM() ? SEGUIR('Voy a probarla', 'Dame otra idea', '¿Por qué me recomiendas eso?') : SEGUIR('Dame otra idea', '¿Por qué me recomiendas eso?', 'Dame un plan para la semana')].filter(Boolean);
   };
 
   H.porque_idea = async (c) => {
@@ -240,9 +250,10 @@
   H.plan_semana = async (c) => {
     const st = memoria(c.estado), r = await obtener(st);
     if(r.pocos) return POCAS(r);
-    if(!r.ideas.length) return [P('Hoy no veo mejoras urgentes, así que tu plan es simple: sigue registrando todas tus ventas y revísame cada semana para detectar cambios a tiempo.')];
+    const vis = await visibles(r);
+    if(!vis.length) return [P(r.ideas.length ? 'Ya tienes todas las ideas que veo en marcha o descartadas. Tu plan: termina de medirlas y pregúntame «¿cómo van mis ideas?».' : 'Hoy no veo mejoras urgentes, así que tu plan es simple: sigue registrando todas tus ventas y revísame cada semana para detectar cambios a tiempo.')];
     const orden = { hoy: 0, semana: 1, mes: 2 }, rot = { hoy: 'Hoy', semana: 'Esta semana', mes: 'Este mes' };
-    const plan = r.ideas.slice(0, 5).sort((x, y) => orden[x.cuando] - orden[y.cuando]);
+    const plan = vis.slice(0, 5).sort((x, y) => orden[x.cuando] - orden[y.cuando]);
     st.ultima = plan[0]; plan.forEach((i) => { if(st.mostradas.indexOf(i.id) < 0) st.mostradas.push(i.id); });
     return [P('Este es tu plan, de lo urgente a lo que puede esperar. Cada paso sale de tus números:'),
       S('', plan.map((i) => [rot[i.cuando] + ': ' + i.primerPaso, i.titulo + (i.impacto != null ? '.' + textoImpacto(i) : '.')])),
@@ -296,5 +307,5 @@
     return null;
   });
 
-  window.PuveIaAsesor = { generarIdeas, internos: { textoImpacto } };
+  window.PuveIaAsesor = { generarIdeas, obtenerIdeas: async (estado) => (await obtener(memoria(estado))), memoria, internos: { textoImpacto, memoriaDe: memoria } };
 })();

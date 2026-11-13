@@ -57,4 +57,37 @@
     'que mas puedo hacer', 'y que mas', 'otra sugerencia', 'otra recomendacion', 'dame otra recomendacion', 'dame otra sugerencia', 'otra alternativa', 'dame otra alternativa', 'que otra opcion hay', 'y la siguiente', 'pasame la siguiente idea', 'cual sigue', 'muestrame otra idea',
     'dame una idea diferente', 'una idea distinta', 'algo diferente', 'que otras ideas hay', 'dame otras ideas', 'dime otra idea', 'otra idea mas', 'sigue con otra idea', 'dame la siguiente idea', 'tienes otra idea', 'quiero otra idea'
   ]);
+
+  // ===== Etapa 2: memoria del negocio (metas e ideas que se prueban) =====
+  sumar('fijar_meta', [].concat(
+    X([['mi meta es', 'mi meta del mes es', 'mi meta mensual es', 'mi meta diaria es', 'mi objetivo es', 'guarda mi meta de', 'recuerda mi meta de', 'fija mi meta en', 'pon mi meta en', 'anota mi meta de', 'establece mi meta en', 'cambia mi meta a', 'actualiza mi meta a', 'mi nueva meta es', 'nueva meta de'], ['80 mil', '5 mil', '100 mil', '3000', '50 mil', '120 mil', '10 mil'], ['', 'al mes', 'por dia', 'diarios', 'mensuales']], 45),
+    ['quiero vender 90 mil al mes', 'quiero llegar a 100 mil al mes', 'registra mi meta de ventas', 'mi meta es vender 80 mil al mes', 'guarda mi meta de 50 mil al mes', 'recuerda mi meta de 5 mil diarios', 'mi meta es 5 mil por dia', 'quiero vender 3 mil diarios', 'mi objetivo del mes es 70 mil', 'quiero que mi meta sea 60 mil al mes']));
+  sumar('avance_meta', [
+    'como voy con mi meta', 'como voy con la meta', 'voy bien con mi meta', 'llegare a mi meta', 'cuanto me falta para mi meta', 'cuanto me falta para la meta', 'como va mi meta', 'voy a llegar a mi meta', 'ya llegue a mi meta', 'alcanzo mi meta', 'que tal voy con mi meta', 'que tan lejos estoy de mi meta',
+    'avance de mi meta', 'mi meta como va', 'estoy cerca de mi meta', 'cuanto llevo de mi meta', 'progreso de mi meta', 'voy a cumplir mi meta', 'cumplire mi meta este mes', 'como voy con mi meta del mes', 'cual es mi meta', 'recuerdas mi meta', 'cuanto me falta para llegar a mi meta', 'voy a lograr mi meta',
+    'como voy con mi objetivo', 'ya cumpli mi meta', 'estoy llegando a mi meta', 'que tan cerca estoy de mi meta'
+  ]);
+  sumar('borrar_meta', ['olvida mi meta', 'borra mi meta', 'quita mi meta', 'elimina mi meta', 'ya no quiero esa meta', 'cancela mi meta', 'borra la meta', 'quita la meta', 'deja de recordar mi meta', 'no quiero meta', 'olvida la meta', 'elimina la meta', 'ya no quiero tener meta', 'borra mis metas', 'olvida mis metas']);
+  sumar('idea_probar', [
+    'voy a probarla', 'la voy a probar', 'voy a probar esa idea', 'ya la aplique', 'ya lo hice', 'ya la hice', 'ya probe esa idea', 'ya empece con esa idea', 'la voy a aplicar', 'voy a aplicarla', 'voy a hacerla', 'me late voy a probarla', 'ya puse el combo', 'ya lo puse', 'empiezo con esa idea', 'empiezo hoy con esa',
+    'ya empece', 'voy a empezar con esa idea', 'la pruebo esta semana', 'ya la estoy probando', 'ya estoy probando esa idea', 'ya lo estoy haciendo', 'anota que la voy a probar', 'registra que la probe', 'recuerda que la voy a probar', 'marca la idea como aplicada', 'la hice ayer', 'la aplique hoy',
+    'voy a probar esa', 'esa si la voy a probar', 'esa si la hago', 'esa idea me gusto la voy a probar', 'ya subi el precio', 'ya hice el combo', 'ya hice la oferta', 'ya cambie el precio', 'empece a probarla', 'voy a empezar a probarla'
+  ]);
+  sumar('idea_descartar', [
+    'descarta esa idea', 'esa idea no', 'no me sirve esa idea', 'no me convence esa idea', 'esa no me late', 'no la voy a hacer', 'no voy a hacer eso', 'esa no aplica en mi negocio', 'no aplica para mi negocio', 'no quiero hacer esa idea', 'esa idea no va conmigo', 'esa no es para mi', 'quita esa idea', 'borra esa idea',
+    'ya no me muestres esa idea', 'no me vuelvas a sugerir eso', 'no me recomiendes eso otra vez', 'descartala', 'descarta la idea', 'no me interesa esa idea', 'esa no me conviene', 'no es viable esa idea', 'esa idea no me sirve', 'no quiero esa idea', 'olvida esa idea', 'esa no la quiero', 'no la quiero hacer'
+  ]);
+  sumar('resultado_idea', [
+    'funciono lo que probe', 'funciono esa idea', 'funciono lo del combo', 'como me fue con la idea', 'como me fue con lo que probe', 'ya funciono', 'que resultado dio la idea', 'que resultado dio eso', 'sirvio la idea que probe', 'sirvio lo del combo', 'mejoraron mis ventas con la idea', 'fue buena idea lo que probe',
+    'dio resultado la idea', 'dio resultado lo que probe', 'cual fue el resultado de la idea', 'resultado de la idea que probe', 'funciono el cambio de precio', 'funciono la oferta', 'funciono la promo', 'funciono lo del precio', 'funciono el combo', 'sirvio el combo', 'como salio la idea', 'ya se noto el cambio', 'se nota el cambio',
+    'funciono lo que hice', 'sirvio lo que hice', 'que tal salio lo que probe', 'ya hay resultados de la idea', 'hubo resultados con la idea'
+  ]);
+  sumar('seguimiento', [
+    'como van mis ideas', 'que ideas he probado', 'que ideas estoy probando', 'mi seguimiento', 'seguimiento de mis ideas', 'estado de mis ideas', 'como van las ideas que probe', 'que recuerdas de mi negocio', 'que tienes guardado de mi negocio', 'que memoria tienes de mi negocio', 'que has guardado de mi negocio', 'dime lo que recuerdas',
+    'resumen de mis ideas', 'muestrame mis ideas', 'mis ideas en marcha', 'cuales ideas probe', 'lista de ideas que probe', 'que ideas descarte', 'que ideas he aplicado', 'avance de mis ideas', 'como van mis pruebas', 'que tienes anotado de mi negocio', 'que ideas llevo probadas', 'cuantas ideas he probado', 'que recuerdas de mis ideas'
+  ]);
+  sumar('olvidar_memoria', [
+    'olvida todo lo de mi negocio', 'borra tu memoria de mi negocio', 'borra todo lo que recuerdas', 'olvida todo lo que sabes de mi negocio', 'borra todo lo que guardaste', 'elimina tu memoria', 'reinicia tu memoria', 'olvida mis metas e ideas', 'borra mis metas e ideas', 'si olvida todo lo de mi negocio',
+    'si borra todo lo que recuerdas', 'si borra tu memoria de mi negocio', 'si olvida todo', 'si borra todo', 'borra todo lo de mi negocio', 'olvida todo lo que guardaste', 'elimina todo lo que recuerdas', 'quiero que olvides todo lo de mi negocio', 'borra la memoria del negocio', 'olvidalo todo'
+  ]);
 })();

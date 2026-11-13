@@ -359,7 +359,7 @@
   // Un módulo puede cambiar el tema según lo que se venía platicando (p. ej. «¿por qué?» después de una idea suya).
   const REDIRECCIONES = [];
   async function ejecutar(intent, ctx){
-    for(const f of REDIRECCIONES){ let n = null; try { n = f(intent, ctx); } catch(e){ n = null; } if(n && n !== intent){ intent = n; ctx.intent = n; break; } }
+    for(const f of REDIRECCIONES){ let n = null; try { n = await f(intent, ctx); } catch(e){ n = null; } if(n && n !== intent){ intent = n; ctx.intent = n; break; } }
     if(esCajero() && N.SOLO_ENCARGADO.has(intent)) return [P('Eso lo ve solo el encargado del negocio. Yo te puedo contar de **tus ventas**, lo que más has vendido y lo que se está acabando.')];
     if(!puedeCostos() && !esCajero() && ['ganancia', 'gastos', 'riesgo', 'clientes', 'equilibrio', 'precios', 'no_invertir', 'comprar', 'valor_inventario', 'datos_faltantes', 'oferta', 'mejor_margen'].includes(intent)) return [P('Eso depende de costos y gastos, y solo los ve el encargado del negocio.')];
     return (H[intent] || H.ayuda)(ctx);
