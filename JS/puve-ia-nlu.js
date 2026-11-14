@@ -7,16 +7,18 @@
 (function(){
   'use strict';
   // abreviaturas de WhatsApp: «q», «xq», «pa», «cm», «porfa»… se leen como las palabras completas
-  const ABREV = { q: 'que', k: 'que', xq: 'por que', pq: 'por que', porq: 'por que', xk: 'por que', pk: 'por que', pa: 'para', cm: 'como', cmo: 'como', cnto: 'cuanto', cuantoo: 'cuanto', tmb: 'tambien', tb: 'tambien', dnd: 'donde', xfa: 'por favor', pf: 'por favor', plis: 'por favor', pls: 'por favor', porfa: 'por favor', porfavor: 'por favor', grax: 'gracias', gracs: 'gracias', graciass: 'gracias',
+  const ABREV = { q: 'que', k: 'que', xq: 'por que', pq: 'por que', porq: 'por que', xk: 'por que', pk: 'por que', pa: 'para', cm: 'como', cmo: 'como', cnto: 'cuanto', cuantoo: 'cuanto', tmb: 'tambien', tb: 'tambien', dnd: 'donde', xfa: 'por favor', pf: 'por favor', plis: 'por favor', pls: 'por favor', porfa: 'por favor', porfavor: 'por favor', d: 'de', x: 'por', grax: 'gracias', gracs: 'gracias', graciass: 'gracias',
     // faltas de ortografía muy comunes
     bendi: 'vendi', bendo: 'vendo', bendimos: 'vendimos', bendio: 'vendio', bender: 'vender', benta: 'venta', bentas: 'ventas', ke: 'que', qe: 'que', kuanto: 'cuanto', kien: 'quien', aora: 'ahora', haora: 'ahora', manna: 'manana', mnana: 'manana', maniana: 'manana' };
-  const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9: ]/g, ' ').replace(/\s+/g, ' ').trim().split(' ').map((w) => ABREV[w] || w).join(' ');
+  const normBase = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9: ]/g, ' ').replace(/\s+/g, ' ').trim();
+  const norm = (s) => normBase(s).split(' ').map((w) => ABREV[w] || w).join(' ');
   // muletillas de cortesía al principio o al final («oye», «me puedes decir», «por favor»…): no cambian lo que se pregunta
   const PREFIJO = /^(?:(?:oye|oiga|disculpa|disculpame|perdon|a ver|una pregunta|tengo una pregunta|una duda|jefe|jefa|patron|amigo|bro|hola|buenas|buen dia|buenas tardes|buenas noches|me puedes decir|me podrias decir|me puede decir|puedes decirme|podrias decirme|me dices|dime|ayudame|necesito saber|quiero saber|quisiera saber|me gustaria saber|por favor|puve|ia)\s+)+/;
   const SUFIJO = /(?:\s+(?:por favor|gracias|jefe|jefa|amigo|bro|puve))+$/;
   function sinRelleno(t){
     const r = t.replace(PREFIJO, '').replace(SUFIJO, '').trim();
-    if(r) return r;
+    if(/^(muchas|mil|muchisimas)$/.test(r)) return t;                       // «muchas gracias» no es «muchas»
+    if(r && !/^(?:por favor|gracias|jefe|jefa|amigo|bro|puve)$/.test(r)) return r;
     const m = t.match(/(hola|buenas tardes|buenas noches|buen dia|buenas|gracias)(?: por favor| jefe| jefa| amigo| bro| puve)*$/);   // todo era cortesía: se queda con el saludo o el agradecimiento
     return m ? m[1] : t;
   }
@@ -104,18 +106,95 @@
   }
 
   // ---------- el modelo que aprende ----------
-  const M = { cnt: {}, tot: {}, vocab: new Set(), palabras: new Set(), memoria: new Map(), V: 0 };
+  const M = { cnt: {}, tot: {}, vocab: new Set(), palabras: new Set(), memoria: new Map(), frec: new Map(), V: 0 };
   INTENTS.concat(['desconocido']).forEach((i) => { M.cnt[i] = {}; M.tot[i] = 0; });
+  // ---------- leer texto muy mal escrito ----------
+  // 1) llave fonética del español: b=v, s=z=c(e,i), k=q=c(a,o,u), j=g(e,i), h muda, ll=y, letras repetidas cuentan una vez
+  function fon(w){
+    let r = w.replace(/ch/g, '#').replace(/h/g, '').replace(/#/g, 'ch');
+    r = r.replace(/qu(?=[ei])/g, 'k').replace(/q/g, 'k').replace(/gu(?=[ei])/g, 'g').replace(/g(?=[ei])/g, 'j').replace(/c(?=[ei])/g, 's').replace(/c(?!h)/g, 'k').replace(/z/g, 's').replace(/v/g, 'b').replace(/w/g, 'u').replace(/ll/g, 'y').replace(/y$/g, 'i').replace(/(.)\1+/g, '$1');
+    return r;
+  }
+  // 2) teclado QWERTY: una letra cambiada por la vecina («granfe» por «grande», «xomo» por «como») cuesta menos que una equivocación cualquiera
+  const POS = {}; ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'].forEach((f, r) => [...f].forEach((c, k) => { POS[c] = [r, k + [0, 0.35, 0.8][r]]; }));
+  const vecina = (a, b) => { const p = POS[a], q = POS[b]; return !!(p && q && Math.abs(p[0] - q[0]) <= 1 && Math.abs(p[1] - q[1]) <= 1.05); };
+  const CONF = new Set(['bv', 'vb', 'sz', 'zs', 'sc', 'cs', 'zc', 'cz', 'ck', 'kc', 'qk', 'kq', 'gj', 'jg', 'yi', 'iy']);
+  function distP(a, b, tope){
+    if(Math.abs(a.length - b.length) > tope) return tope + 1;
+    let prev2 = null, prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for(let i = 1; i <= a.length; i++){
+      const cur = [i]; let min = i;
+      for(let j = 1; j <= b.length; j++){
+        const x = a[i - 1], y = b[j - 1], c = x === y ? 0 : (CONF.has(x + y) ? 0.3 : (vecina(x, y) ? 0.55 : 1));
+        let v = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + c);
+        if(i > 1 && j > 1 && x === b[j - 2] && a[i - 2] === y) v = Math.min(v, prev2[j - 2] + 1);
+        cur[j] = v; if(v < min) min = v;
+      }
+      if(min > tope + 1) return tope + 1; prev2 = prev; prev = cur;
+    }
+    return prev[b.length];
+  }
+  // 3) el léxico contra el que se corrige: todo lo que el motor conoce (más las palabras de relleno), con su llave fonética y qué tan común es
+  const EXTRA = new Set(String(K.PALABRAS_EXTRA || '').split(' ').filter(Boolean));
+  let LEX = null, LEX_N = -1;
+  function lexico(){
+    const n = M.palabras.size + VACIAS.size + EXTRA.size;
+    if(LEX && LEX_N === n) return LEX;
+    LEX = []; LEX_N = n;
+    M.palabras.forEach((w) => { if(w.length >= 2 && !/\d/.test(w)) LEX.push({ w, f: fon(w), frec: M.frec.get(w) || 1 }); });
+    VACIAS.forEach((w) => { if(w.length >= 2 && !M.palabras.has(w)) LEX.push({ w, f: fon(w), frec: 40 }); });
+    EXTRA.forEach((w) => { if(!M.palabras.has(w) && !VACIAS.has(w)) LEX.push({ w, f: fon(w), frec: 3 }); });
+    return LEX;
+  }
+  const esqueleto = (f) => f.replace(/[aeiou]/g, '');
+  // 4) palabras pegadas: «minegocio» → «mi negocio», «comome» → «como me», «utilidadde» → «utilidad de».
+  //    Cada pedazo debe ser una palabra que el motor conoce; entre varias formas de partir gana la que usa palabras más comunes y menos pedazos.
+  const CORTAS = new Set(['he', 'va', 've', 'ha', 'ir', 'da', 'di', 'es', 'ya', 'no', 'si', 'se', 'me', 'te', 'lo', 'la', 'le', 'mi', 'tu', 'su', 'de', 'en', 'el', 'al', 'un', 'ni', 'yo', 'un']);
+  function frecDe(p){ return M.palabras.has(p) ? (M.frec.get(p) || 1) : (VACIAS.has(p) ? 40 : (EXTRA.has(p) ? 3 : 0)); }
+  function partir(w){
+    const bien = (p) => { p = ABREV[p] || p; return p.length >= 2 && frecDe(p) > 0 && (p.length >= 3 || CORTAS.has(p)); };
+    let mejor = null;
+    const probar = (partes0) => { if(!partes0.every(bien)) return; const partes = partes0.map((p) => ABREV[p] || p); const sc = partes.reduce((a, p) => a + Math.log10(frecDe(p) + 1) + 0.3 * p.length, 0) - 1.2 * (partes.length - 1); if(!mejor || sc > mejor.sc) mejor = { p: partes, sc }; };
+    for(let a = 2; a <= w.length - 2; a++){
+      probar([w.slice(0, a), w.slice(a)]);
+      for(let b = a + 2; b <= w.length - 2; b++) probar([w.slice(0, a), w.slice(a, b), w.slice(b)]);
+    }
+    return mejor ? mejor.p : null;
+  }
+  function corregir(w){
+    if(VACIAS.has(w) || M.palabras.has(w) || EXTRA.has(w) || /\d/.test(w) || w.length < 2) return [w];
+    // el plural de una palabra conocida es una palabra conocida («primeros»), salvo la «s» de más al final («ventass»)
+    if(w.length >= 4 && !/ss$/.test(w)){ const sg = w.endsWith('es') ? w.slice(0, -2) : w.slice(0, -1); if(w.endsWith('s') && (M.palabras.has(sg) || EXTRA.has(sg) || VACIAS.has(sg) || M.palabras.has(w.slice(0, -1)) || EXTRA.has(w.slice(0, -1)))) return [w]; }
+    const n = w.length, fw = fon(w), ew = esqueleto(fw), tope = n <= 3 ? 0.6 : (n === 4 ? 1.1 : (n <= 7 ? 1.55 : 2.0));
+    let mejor = null, mejorPts = 1e9, mejorD = 9;
+    for(const v of lexico()){
+      if(Math.abs(v.w.length - n) > tope + 1) continue;
+      // suena igual (0.25) · mismas consonantes (0.5, «zber»→«saber») · una letra de diferencia al sonar (1.2) · o letras vecinas/confundibles/faltantes (distP)
+      const fonico = v.f === fw ? 0.25 : (n >= 4 && ew.length >= 3 && v.w.length >= 4 && Math.abs(v.w.length - n) <= 1 && ew === esqueleto(v.f) && v.f[0] === fw[0] && v.f[v.f.length - 1] === fw[fw.length - 1] ? 0.5 : (n >= 4 && Math.abs(v.f.length - fw.length) <= 1 && distancia(fw, v.f, 1) <= 1 ? 1.2 : 9));
+      const dist = Math.min(fonico, distP(w, v.w, tope));
+      if(dist > tope) continue;
+      const raw = distP(w, v.w, tope), pts = dist + (v.f === fw ? 0 : 0.3 * Math.min(raw, 3)) - 0.45 * Math.log10(v.frec);   // si suena exactamente igual, gana aunque se escriba distinto
+      if(pts < mejorPts){ mejorPts = pts; mejor = v.w; mejorD = dist; }
+    }
+    // palabras pegadas: si hay una forma de partirla en palabras conocidas y no hay una corrección casi segura (suena igual / letra vecina), se parte
+    const p = n >= 4 ? partir(w) : null;
+    if(p && (!mejor || mejorD > 0.6)) return p;
+    if(mejor) return [mejor];
+    return [w];
+  }
   function arreglarPalabras(ws){
-    return ws.map((w) => {
-      if(VACIAS.has(w) || w.length < 4 || M.palabras.has(w) || /\d/.test(w)) return w;
-      const tope = w.length >= 8 ? 2 : 1; let mejor = null, d = tope + 1;
-      M.palabras.forEach((v) => { if(v.length >= 4){ const x = distancia(w, v, tope); if(x < d){ d = x; mejor = v; } } });
-      return mejor && d <= tope ? mejor : w;
-    });
+    return ws.reduce((a, w) => a.concat(corregir(w)), []);
+  }
+  // cuántas palabras hubo que corregir o separar para entender el texto (para avisar «te entendí…» cuando fueron varias)
+  function cambios(texto){
+    return sinRelleno(normBase(texto)).split(' ').filter(Boolean).filter((w) => { if(ABREV[w]) return true; const r = corregir(w); return !(r.length === 1 && r[0] === w); }).length;
   }
   function caracteristicas(texto, sinArreglo){
-    let ws = sinRelleno(norm(texto)).replace(/\b(?:en la|por la|de la|esta|la) manana\b/g, ' ').split(' ').filter(Boolean);
+    // «ayer» y compañía dicen CUÁNDO, no QUÉ se pregunta: «cuánto vendí ayer» es lo mismo que «cuánto vendí hoy» (el periodo lo entiende parseTiempo aparte)
+    let base = sinRelleno(norm(texto)).replace(/\b(?:en la|por la|de la|esta|la) manana\b/g, ' ');
+    const sinAyer = base.replace(/\b(?:de |del |en |por |desde )?(?:ayer|antier|anteayer|anoche)\b/g, ' ').replace(/\s+/g, ' ').trim();
+    if(sinAyer.split(' ').filter(Boolean).length >= 2) base = sinAyer;
+    let ws = base.split(' ').filter(Boolean);
     if(!sinArreglo) ws = arreglarPalabras(ws);
     ws = ws.map((w) => SIN[w] || w);
     const rs = ws.filter((w) => !VACIAS.has(w)).map(raiz).filter((r) => r !== '#');
@@ -125,7 +204,7 @@
   function entrenar(frase, intent, peso){
     if(!M.cnt[intent]) return;
     const w = peso || 1;
-    norm(frase).split(' ').forEach((x) => { if(x && !VACIAS.has(x)) M.palabras.add(x); });
+    norm(frase).split(' ').forEach((x) => { if(x && !VACIAS.has(x)){ M.palabras.add(x); M.frec.set(x, (M.frec.get(x) || 0) + w); } });
     caracteristicas(frase, true).forEach((f) => { M.cnt[intent][f] = (M.cnt[intent][f] || 0) + w; M.tot[intent] += w; if(!M.vocab.has(f)){ M.vocab.add(f); M.V++; } });
   }
   INTENTS.forEach((i) => SEMILLAS[i].forEach((f) => entrenar(f, i, 1)));
@@ -142,11 +221,22 @@
     const tm = [t0, t, corr].find((x) => M.memoria.has(x)) || null, te = [t0, t, corr].find((x) => EXACTAS.has(x)) || null;
     if(te && !tm) return { lista: [{ i: EXACTAS.get(te), p: 0.98 }], conocida: true, nFeat: 99, cobertura: 1 };
     if(tm) return { lista: [{ i: M.memoria.get(tm), p: 0.99 }], conocida: true, nFeat: 99, cobertura: 1 };
-    const todas = caracteristicas(texto), f = todas.filter((x) => M.vocab.has(x)), uni = todas.filter((x) => x.indexOf('_') < 0), cobertura = uni.length ? uni.filter((x) => M.vocab.has(x)).length / uni.length : 0;
+    const todas = caracteristicas(texto), f = todas.filter((x) => M.vocab.has(x)), uni = todas.filter((x) => x.indexOf('_') < 0 && (x.length > 2 || M.vocab.has(x))), cobertura = uni.length ? uni.filter((x) => M.vocab.has(x)).length / uni.length : 0;
     if(!f.length) return { lista: [], conocida: false, nFeat: 0, cobertura: 0 };
     const a = 0.08, ints = INTENTS.slice(), sc = ints.map((i) => { let s = 0; f.forEach((x) => { s += Math.log(((M.cnt[i][x] || 0) + a) / (M.tot[i] + a * M.V)); }); return s / Math.sqrt(f.length); });
     const mx = Math.max(...sc), ex = sc.map((s) => Math.exp((s - mx) * 1.6)), z = ex.reduce((x, y) => x + y, 0);
     return { lista: ints.map((i, k) => ({ i, p: ex[k] / z })).sort((x, y) => y.p - x.p).slice(0, 4), conocida: false, nFeat: f.length, cobertura };
+  }
+
+  // ¿Qué tan seguro hay que estar para contestar en vez de preguntar? Contesta si está claro (55%+ y le saca ventaja al segundo)
+  // o si, aunque haya pocas pistas (texto muy mal escrito), la ventaja sobre el segundo es grande (40%+ y 30 puntos de ventaja).
+  function decidir(cl){
+    const top = cl.lista[0], sec = cl.lista[1];
+    if(!top || cl.cobertura <= 0.5) return null;
+    const margen = top.p - (sec ? sec.p : 0);
+    if(top.p >= 0.55 && (margen >= 0.12 || cl.conocida)) return top.i;
+    if(top.p >= 0.4 && margen >= 0.3) return top.i;
+    return null;
   }
 
   // ---------- aprender ----------
@@ -298,7 +388,7 @@
   }
 
   window.PuveIaNlu = {
-    INTENTS, SOLO_ENCARGADO, norm, reglas, numeros, ligero, clasificar, aprender, castigar, olvidar, sanear, dividir, parseTiempo, ultimos, extraerHoras, buscarProductos, enmascarar, rangoTexto, horaFuerteTexto, DIAS_BONITO,
+    INTENTS, SOLO_ENCARGADO, norm, decidir, cambios, _depurar: { fon, distP, lexico }, interpretar: (t) => arreglarPalabras(sinRelleno(norm(t)).split(' ')).join(' '), reglas, numeros, ligero, clasificar, aprender, castigar, olvidar, sanear, dividir, parseTiempo, ultimos, extraerHoras, buscarProductos, enmascarar, rangoTexto, horaFuerteTexto, DIAS_BONITO,
     cargarMemoria(lista, peso){ (lista || []).forEach((x) => { if(x && x.f && x.i) { entrenar(x.f, x.i, peso || 3); if((peso || 3) >= 3) M.memoria.set(norm(x.f), x.i); } }); },
     vacia: (t) => caracteristicas(t).filter((x) => x !== 'xprod').length === 0
   };

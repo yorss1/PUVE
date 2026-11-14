@@ -57,7 +57,7 @@
   const enOrdenDeMencion = (ps, n) => ps.map((p) => ({ p, i: Math.min(...norm(p.nombre).split(' ').filter((w) => w.length >= 3).map((w) => { const k = n.indexOf(w.slice(0, 4)); return k < 0 ? 1e6 : k; }).concat([1e6])) })).sort((x, y) => x.i - y.i).map((x) => x.p);
   const pideDetalle = (n) => /(deja|ganan|ganancia|margen|utilidad|queda|quedan|stock|existencia|alcanza|vend|cuesta|precio|cobro|como va|como me va|tendencia|sube|baja)/.test(n);
   R.agregarPre((original, estado, pr, t) => {
-    const n = norm(original), pal = n.split(' ').filter(Boolean), ref = estado && estado.ref;
+    const n = N.interpretar(original) || norm(original), pal = n.split(' ').filter(Boolean), ref = estado && estado.ref;   // con los errores de dedo corregidos («el sgundo», «el primro»)
 
     // 1) comparar dos productos: por nombre, o por posición en la lista anterior
     const quiereComparar = /\b(compara\w*|versus|vs|contra|cual (?:de los dos|de ellos|vende|se vende|deja|gana|conviene|es mejor)\w*|que (?:vende|se vende|deja) mas)\b/.test(n) || /\bcual\b.*\bo\b/.test(n);
@@ -73,7 +73,7 @@
     }
 
     // 2) top N: «top 3», «los 5 primeros», «los 8 más vendidos»
-    const mt = n.match(/\b(?:top|los|las)\s+(\d+|un|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|doce)\b(?:\s+(primeros|primeras|mejores|peores|mas vendidos|menos vendidos|productos|que mas|que menos))?/);
+    const mt = n.match(/\b(?:top|los|las)\s+(\d+|un|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|doce)\b(?:\s+(primeros|primeras|primero|primera|mejores|peores|mas vendidos|mas vendido|menos vendidos|productos|que mas|que menos))?/);
     if(mt && (/\btop\b/.test(n) || mt[2]) && !pr.productos.length){
       const num = /^\d+$/.test(mt[1]) ? parseInt(mt[1], 10) : NUMERO[mt[1]];
       const peor = /(peores|menos vendidos|que menos|menos se vend|lentos)/.test(n);

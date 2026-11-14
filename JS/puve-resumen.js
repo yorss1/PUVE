@@ -380,7 +380,7 @@
     if(!rg && partes.length === 1){ for(const f of PRE){ try { pre = f(original, estado, pr, t); } catch(e){ pre = null; } if(pre) break; } if(pre && pre.productos) pr.productos = pre.productos; }
     for(const parte of partes.slice(0, 3)){
       const cl = N.clasificar(parte), top = cl.lista[0], sec = cl.lista[1], frase = N.sanear(parte, nombres);
-      let intent = (pre && pre.intent) || (rg ? rg.intent : (top && top.p >= UMBRAL_CLARO && (!sec || top.p - sec.p >= 0.12 || cl.conocida) && cl.cobertura > 0.5 ? top.i : null));
+      let intent = (pre && pre.intent) || (rg ? rg.intent : N.decidir(cl));
       // preguntas cortas de seguimiento: "¿y ayer?", "¿y de la semana pasada?", "¿y de la coca?"
       const seg = /^y\b/.test(N.norm(original)) && N.norm(original).split(' ').length <= 7;   // «¿y el mes pasado?», «¿y con tarjeta?»
       let esSeg = false;
@@ -401,6 +401,8 @@
       }
       if(onPaso && !CHARLA.has(intent)) onPaso(PASOS[intent] || 'Pensando…');
       const bloques = await ejecutar(intent, ctx), charla = CHARLA.has(intent);
+      // texto muy mal escrito: se dice cómo se entendió, para que la persona vea que no se contestó a ciegas
+      if(!charla && !rg && partes.length === 1 && !(pre && pre.intent) && N.cambios(original) >= 3) bloques.unshift(P('Te entendí: «' + N.interpretar(original) + '». Si no era eso, escríbelo de otra forma y lo vuelvo a intentar.'));
       const fin = ctx.intent || intent; try { POST.forEach((f) => f(fin, ctx, bloques)); } catch(e){ /* recordar es un extra */ }
       mensajes.push({ bloques, meta: { intent: fin, p: top ? top.p : 1, frase, parte, original, ctx, charla } });
       if(!charla){ estado.ultimo = { intent: fin, productos: pr.productos }; estado.ultimaPregunta = original; }
