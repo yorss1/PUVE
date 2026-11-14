@@ -98,4 +98,8 @@
     'desde la ultima vez que entre que paso', 'que paso desde mi ultima visita', 'que me perdi desde ayer', 'ponme al dia de mi negocio', 'dime las novedades', 'tienes novedades', 'hay algo nuevo en mi negocio', 'que novedades hay',
     'algo importante que deba saber', 'hay algo importante', 'que necesita mi atencion', 'que requiere mi atencion', 'avisame si hay algo', 'que pendientes tengo en el negocio', 'que paso desde que no entro', 'que paso mientras no entre'
   ]);
+
+  // ===== Etapa 4: ajustes de comprensión (frases que la gente dice y fallaban) =====
+  sumar('comparar_productos', ['compara dos productos', 'comparar un producto con otro', 'cual vende mas de dos productos', 'cual es mejor entre dos productos', 'comparame dos productos', 'cual de estos dos productos me conviene mas', 'quiero comparar productos', 'producto contra producto', 'cual deja mas de dos productos', 'comparar el rendimiento de dos productos']);
+  sumar('ventas', ['como vamos de ventas', 'como vamos de ventas hoy', 'como vamos con las ventas', 'como vamos en ventas hoy', 'como andamos de ventas', 'como andamos de ventas hoy', 'como vamos hoy de ventas', 'como vamos de venta']);
 })();

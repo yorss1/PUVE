@@ -6,7 +6,20 @@
  */
 (function(){
   'use strict';
-  const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9: ]/g, ' ').replace(/\s+/g, ' ').trim();
+  // abreviaturas de WhatsApp: «q», «xq», «pa», «cm», «porfa»… se leen como las palabras completas
+  const ABREV = { q: 'que', k: 'que', xq: 'por que', pq: 'por que', porq: 'por que', xk: 'por que', pk: 'por que', pa: 'para', cm: 'como', cmo: 'como', cnto: 'cuanto', cuantoo: 'cuanto', tmb: 'tambien', tb: 'tambien', dnd: 'donde', xfa: 'por favor', pf: 'por favor', plis: 'por favor', pls: 'por favor', porfa: 'por favor', porfavor: 'por favor', grax: 'gracias', gracs: 'gracias', graciass: 'gracias',
+    // faltas de ortografía muy comunes
+    bendi: 'vendi', bendo: 'vendo', bendimos: 'vendimos', bendio: 'vendio', bender: 'vender', benta: 'venta', bentas: 'ventas', ke: 'que', qe: 'que', kuanto: 'cuanto', kien: 'quien', aora: 'ahora', haora: 'ahora', manna: 'manana', mnana: 'manana', maniana: 'manana' };
+  const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9: ]/g, ' ').replace(/\s+/g, ' ').trim().split(' ').map((w) => ABREV[w] || w).join(' ');
+  // muletillas de cortesía al principio o al final («oye», «me puedes decir», «por favor»…): no cambian lo que se pregunta
+  const PREFIJO = /^(?:(?:oye|oiga|disculpa|disculpame|perdon|a ver|una pregunta|tengo una pregunta|una duda|jefe|jefa|patron|amigo|bro|hola|buenas|buen dia|buenas tardes|buenas noches|me puedes decir|me podrias decir|me puede decir|puedes decirme|podrias decirme|me dices|dime|ayudame|necesito saber|quiero saber|quisiera saber|me gustaria saber|por favor|puve|ia)\s+)+/;
+  const SUFIJO = /(?:\s+(?:por favor|gracias|jefe|jefa|amigo|bro|puve))+$/;
+  function sinRelleno(t){
+    const r = t.replace(PREFIJO, '').replace(SUFIJO, '').trim();
+    if(r) return r;
+    const m = t.match(/(hola|buenas tardes|buenas noches|buen dia|buenas|gracias)(?: por favor| jefe| jefa| amigo| bro| puve)*$/);   // todo era cortesía: se queda con el saludo o el agradecimiento
+    return m ? m[1] : t;
+  }
   const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const pad = (n) => String(n).padStart(2, '0');
 
@@ -55,15 +68,18 @@
   }
   function distancia(a, b, tope){
     if(Math.abs(a.length - b.length) > tope) return tope + 1;
-    let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    let prev2 = null, prev = Array.from({ length: b.length + 1 }, (_, i) => i);
     for(let i = 1; i <= a.length; i++){
       const cur = [i]; let min = i;
-      for(let j = 1; j <= b.length; j++){ const v = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); cur[j] = v; if(v < min) min = v; }
-      if(min > tope) return tope + 1; prev = cur;
+      for(let j = 1; j <= b.length; j++){
+        let v = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+        if(i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) v = Math.min(v, prev2[j - 2] + 1);   // dos letras cambiadas de lugar cuentan como un solo error
+        cur[j] = v; if(v < min) min = v;
+      }
+      if(min > tope + 1) return tope + 1; prev2 = prev; prev = cur;
     }
     return prev[b.length];
   }
-
 
   // ---------- reglas que no necesitan aprender: crisis, cuentas, cambio y temas que no son del negocio ----------
   const ligero = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9%+*\/.,$\- ]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -99,7 +115,7 @@
     });
   }
   function caracteristicas(texto, sinArreglo){
-    let ws = norm(texto).replace(/\b(?:en la|por la|de la|esta|la) manana\b/g, ' ').split(' ').filter(Boolean);
+    let ws = sinRelleno(norm(texto)).replace(/\b(?:en la|por la|de la|esta|la) manana\b/g, ' ').split(' ').filter(Boolean);
     if(!sinArreglo) ws = arreglarPalabras(ws);
     ws = ws.map((w) => SIN[w] || w);
     const rs = ws.filter((w) => !VACIAS.has(w)).map(raiz).filter((r) => r !== '#');
@@ -119,11 +135,13 @@
   VISTAS.forEach((set, t) => { if(set.size === 1) EXACTAS.set(t, [...set][0]); });
 
   function clasificar(texto){
-    const t = norm(texto);
+    const t0 = norm(texto), t = sinRelleno(t0);
     const def = t.match(/^(?:explicame )?(?:que es|que son|que significa|que quiere decir|que quieren decir)(?: el| la| los| las| un| una)? (?!lo\b|mi\b|mis\b|mas\b|menos\b|mejor\b|peor\b|que\b|el\b|la\b)([a-z]+)/);
     if(def) return { lista: [{ i: 'glosario', p: 0.97 }], conocida: true, nFeat: 99, cobertura: 1 };
-    if(EXACTAS.has(t) && !M.memoria.has(t)) return { lista: [{ i: EXACTAS.get(t), p: 0.98 }], conocida: true, nFeat: 99, cobertura: 1 };
-    if(M.memoria.has(t)) return { lista: [{ i: M.memoria.get(t), p: 0.99 }], conocida: true, nFeat: 99, cobertura: 1 };
+    const corr = arreglarPalabras(t.split(' ')).join(' ');   // con los errores de dedo corregidos también puede ser una frase conocida
+    const tm = [t0, t, corr].find((x) => M.memoria.has(x)) || null, te = [t0, t, corr].find((x) => EXACTAS.has(x)) || null;
+    if(te && !tm) return { lista: [{ i: EXACTAS.get(te), p: 0.98 }], conocida: true, nFeat: 99, cobertura: 1 };
+    if(tm) return { lista: [{ i: M.memoria.get(tm), p: 0.99 }], conocida: true, nFeat: 99, cobertura: 1 };
     const todas = caracteristicas(texto), f = todas.filter((x) => M.vocab.has(x)), uni = todas.filter((x) => x.indexOf('_') < 0), cobertura = uni.length ? uni.filter((x) => M.vocab.has(x)).length / uni.length : 0;
     if(!f.length) return { lista: [], conocida: false, nFeat: 0, cobertura: 0 };
     const a = 0.08, ints = INTENTS.slice(), sc = ints.map((i) => { let s = 0; f.forEach((x) => { s += Math.log(((M.cnt[i][x] || 0) + a) / (M.tot[i] + a * M.V)); }); return s / Math.sqrt(f.length); });

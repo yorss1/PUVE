@@ -129,7 +129,7 @@
   H.top = async (c) => {
     const { p, t, nota } = await periodo(c, true), a = p.act;
     if(!a.n) return [P('Todavía no hay ventas ' + en(t) + ' para decirte qué se vende más.')];
-    const top = topProductos(a, 4), out = []; if(nota) out.push(P(nota));
+    const top = topProductos(a, Math.max(1, Math.min(10, c.n || 4))), out = []; if(nota) out.push(P(nota));
     out.push(P('Lo que más se vendió ' + en(t) + ' fue **' + top[0].nombre + '** (' + fmt(top[0].cant) + ').'), L('Los más vendidos', top.map((x) => [x.nombre, fmt(x.cant) + ' vendidos', puedeCostos() && x.margen ? 'te dejó ' + $d(x.margen) + ' de ganancia' : ''])));
     if(puedeCostos() && a.margen != null){ const m = Object.entries(a.productos).map(([nombre, v]) => ({ nombre, margen: v.margen })).sort((x, y) => y.margen - x.margen)[0]; if(m && m.margen > 0 && m.nombre !== top[0].nombre) out.push(P('El que más ganancia te dejó fue **' + m.nombre + '** (' + $d(m.margen) + '), aunque no es el que más sale: ponlo más a la vista.')); }
     out.push(P('Procura que nunca te falte ' + top[0].nombre + '.'));
@@ -138,9 +138,9 @@
   H.lentos = async (c) => {
     const { p, t } = await periodo(c, true, 30), a = p.act, sin = enlace.productos().filter((q) => D.esFisico(q) && Number(q.stock) > 0 && !a.productos[q.nombre]);
     if(!sin.length) return [P('Todo se está moviendo: ' + en(t) + ' se vendió casi todo lo que tienes.')];
-    const ord = sin.sort((x, y) => Number(y.stock) * Number(y.costo || 0) - Number(x.stock) * Number(x.costo || 0)).slice(0, 6);
+    const nmax = Math.max(1, Math.min(12, c.n || 6)), ord = sin.sort((x, y) => Number(y.stock) * Number(y.costo || 0) - Number(x.stock) * Number(x.costo || 0)).slice(0, nmax);
     const out = [P('Esto no se vendió ' + en(t) + ':'), L('', ord.map((q) => [q.nombre, 'tienes ' + fmt(q.stock), Number(q.costo) > 0 ? $r(q.stock * q.costo) + ' guardados' : '']))];
-    if(sin.length > 6) out.push(P('Y ' + (sin.length - 6) + ' más.'));
+    if(sin.length > nmax) out.push(P('Y ' + (sin.length - nmax) + ' más.'));
     out.push(P('Mi consejo: ponlos en oferta, júntalos con algo que sí se vende o acomódalos en un lugar más visible. Y por ahora **no compres más** de estos.'), C([sug('¿En qué no debería invertir?')]));
     return out;
   };
@@ -357,7 +357,7 @@
   const temasPara = () => Object.keys(ETIQUETA_TEMAS).filter((i) => !(esCajero() && N.SOLO_ENCARGADO.has(i)));
 
   // Un módulo puede cambiar el tema según lo que se venía platicando (p. ej. «¿por qué?» después de una idea suya).
-  const REDIRECCIONES = [];
+  const REDIRECCIONES = [], PRE = [], POST = [];   // PRE: entender referencias («el segundo», «ese») antes de clasificar · POST: recordar qué se contestó
   async function ejecutar(intent, ctx){
     for(const f of REDIRECCIONES){ let n = null; try { n = await f(intent, ctx); } catch(e){ n = null; } if(n && n !== intent){ intent = n; ctx.intent = n; break; } }
     if(esCajero() && N.SOLO_ENCARGADO.has(intent)) return [P('Eso lo ve solo el encargado del negocio. Yo te puedo contar de **tus ventas**, lo que más has vendido y lo que se está acabando.')];
@@ -376,17 +376,21 @@
     if(rg && rg.intent === 'crisis') return [{ bloques: H.crisis(), meta: null }];
     const pr = N.buscarProductos(original, enlace.productos()), masc = pr.productos.length ? N.enmascarar(original, pr.palabras) : N.norm(original);
     const t = N.parseTiempo(original), partes = rg ? [masc] : N.dividir(masc), mensajes = [], nombres = enlace.productos().map((x) => x.nombre);
+    let pre = null;
+    if(!rg && partes.length === 1){ for(const f of PRE){ try { pre = f(original, estado, pr, t); } catch(e){ pre = null; } if(pre) break; } if(pre && pre.productos) pr.productos = pre.productos; }
     for(const parte of partes.slice(0, 3)){
       const cl = N.clasificar(parte), top = cl.lista[0], sec = cl.lista[1], frase = N.sanear(parte, nombres);
-      let intent = rg ? rg.intent : (top && top.p >= UMBRAL_CLARO && (!sec || top.p - sec.p >= 0.12 || cl.conocida) && cl.cobertura > 0.5 ? top.i : null);
+      let intent = (pre && pre.intent) || (rg ? rg.intent : (top && top.p >= UMBRAL_CLARO && (!sec || top.p - sec.p >= 0.12 || cl.conocida) && cl.cobertura > 0.5 ? top.i : null));
       // preguntas cortas de seguimiento: "¿y ayer?", "¿y de la semana pasada?", "¿y de la coca?"
-      if(!intent && estado.ultimo && (N.vacia(parte) || cl.cobertura <= 0.5) && (t.explicito || pr.productos.length)) intent = pr.productos.length && ['ventas', 'stock', 'top'].includes(estado.ultimo.intent) ? 'producto' : estado.ultimo.intent;
+      const seg = /^y\b/.test(N.norm(original)) && N.norm(original).split(' ').length <= 7;   // «¿y el mes pasado?», «¿y con tarjeta?»
+      let esSeg = false;
+      if(!intent && estado.ultimo && (N.vacia(parte) || cl.cobertura <= 0.5 || seg) && (t.explicito || pr.productos.length)){ intent = pr.productos.length && ['ventas', 'stock', 'top'].includes(estado.ultimo.intent) ? 'producto' : estado.ultimo.intent; esSeg = true; }
       if(!intent && pr.productos.length && N.vacia(parte)) intent = 'producto';
       // "sí / dale" aceptan lo último que se ofreció; "repite" y "más detalle" vuelven a la pregunta anterior
       if(intent === 'afirmar' && estado.sugerida && nivel < 2) return responder(estado.sugerida, estado, onPaso, nivel + 1);
       if(intent === 'repetir' && estado.ultimaPregunta && nivel < 2) return responder(estado.ultimaPregunta, estado, onPaso, nivel + 1);
       if(intent === 'mas_detalle' && estado.ultimaPregunta && nivel < 2){ estado.mas = true; try { return await responder(estado.ultimaPregunta, estado, onPaso, nivel + 1); } finally { estado.mas = false; } }
-      const ctx = { t, texto: original, productos: pr.productos, intent, estado, mas: !!estado.mas, candidatos: cl.lista.map((x) => x.i) };
+      const ctx = { t, texto: original, productos: pr.productos.length ? pr.productos : (esSeg && intent === 'producto' && estado.ultimo && estado.ultimo.productos ? estado.ultimo.productos : pr.productos), intent, estado, mas: !!estado.mas, n: pre && pre.n, candidatos: cl.lista.map((x) => x.i) };
       if(!intent){
         const c1 = top && top.p >= 0.25 && cl.cobertura > 0.3 ? top.i : null, c2 = sec && sec.p >= 0.18 && cl.cobertura > 0.3 ? sec.i : null;
         const opciones = [c1, c2].filter(Boolean).filter((i, k, a) => a.indexOf(i) === k).filter((i) => ETIQUETA_TEMAS[i] && !(esCajero() && N.SOLO_ENCARGADO.has(i)));
@@ -397,7 +401,8 @@
       }
       if(onPaso && !CHARLA.has(intent)) onPaso(PASOS[intent] || 'Pensando…');
       const bloques = await ejecutar(intent, ctx), charla = CHARLA.has(intent);
-      const fin = ctx.intent || intent; mensajes.push({ bloques, meta: { intent: fin, p: top ? top.p : 1, frase, parte, original, ctx, charla } });
+      const fin = ctx.intent || intent; try { POST.forEach((f) => f(fin, ctx, bloques)); } catch(e){ /* recordar es un extra */ }
+      mensajes.push({ bloques, meta: { intent: fin, p: top ? top.p : 1, frase, parte, original, ctx, charla } });
       if(!charla){ estado.ultimo = { intent: fin, productos: pr.productos }; estado.ultimaPregunta = original; }
       const ch = bloques.filter((b) => b.t === 'chips')[0]; estado.sugerida = ch && ch.items[0] && ch.items[0].pregunta ? ch.items[0].pregunta : null;
     }
@@ -567,7 +572,7 @@
 
   window.PuveResumen = {
     enlazar(o){ enlace = Object.assign(enlace, o || {}); D.enlazar(enlace); },
-    abrir, responder, ejecutar, agregarRedireccion(f){ if(typeof f === 'function') REDIRECCIONES.push(f); },
+    abrir, responder, ejecutar, agregarRedireccion(f){ if(typeof f === 'function') REDIRECCIONES.push(f); }, agregarPre(f){ if(typeof f === 'function') PRE.push(f); }, agregarPost(f){ if(typeof f === 'function') POST.push(f); },
     reiniciar(){ montado = false; aprendizajeListo = false; D.reiniciar(); },
     crearChat, ayudas: { P, L, S, C, sug, cap, lista, veces, fmt, dinero: (n) => $d(n), el },
     registrar: registrarAprendizaje,
