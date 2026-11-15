@@ -48,6 +48,7 @@
   const SEG = /^ y (?:a|con|si fuera|si son|de|en) (?:un )?\d/;
   const UP = /\b(subo|subir|subirle|sube|subiendo|aumento|aumentar|aumentarle|aumentando|incremento|incrementar|levanto|encarezco|encarecer)\b/;
   const DOWN = /\b(bajo|bajar|bajarle|bajando|reduzco|reducir|rebajo|rebajar|rebajando|disminuyo|disminuir|abarato|abaratar)\b/;
+  const FIJAR = /\b(regreso|regresar|vuelvo|volver|dejo|dejar|pongo|poner|cambio|cambiar|fijo|fijar|ajusto|ajustar|cobro|cobrar|vendo|vender|pasa|pasar)\b/;   // «lo dejo a $25», «regreso X a $45»
   const DESC = /\b(descuento|descuentos|rebaja|rebajas|promocion|promociones|promo|oferta|ofertas|ofertar)\b/;
   const QUITAR = /\b(quito|quitar|quitando|elimino|eliminar|eliminando|saco|sacar|retiro|retirar|dejo de vender|dejar de vender|deje de vender|ya no vendo|descontinuo|descontinuar|borro|borrar|doy de baja|dar de baja)\b/;
   const COMPRAR = /\b(compro|comprar|comprando|pido|pedir|pidiendo|surto|surtir|abasto|abastecer|invierto|invertir|traigo|traer)\b/;
@@ -65,7 +66,7 @@
     const hip = HIPOT.test(t) || /^ si /.test(t), ult = sim && sim.ult, segCifra = !!(ult && SEG.test(t));
     let productos = (prods || []).slice(0, 8), seguimiento = false;
     if(!hip && !segCifra) return null;
-    const hayVerbo = UP.test(t) || DOWN.test(t) || DESC.test(t) || QUITAR.test(t) || COMPRAR.test(t) || CONTRATAR.test(t) || HORARIO.test(t) || /\bcombo\b/.test(t) || lx.x2 || lx.x3;
+    const hayVerbo = UP.test(t) || DOWN.test(t) || DESC.test(t) || QUITAR.test(t) || COMPRAR.test(t) || CONTRATAR.test(t) || HORARIO.test(t) || /\bcombo\b/.test(t) || lx.x2 || lx.x3 || (FIJAR.test(t) && /\ba \d/.test(t));
     // «¿y a $24?», «¿y si es 5%?»: solo una cifra nueva sobre la última simulación de precio
     if(ult && ult.tipo === 'precio' && !hayVerbo && !productos.length && (lx.pct != null || lx.nums.length)){
       seguimiento = true; t = ' ' + (ult.dir === 'baja' ? 'bajo' : 'subo') + (ult.todos ? ' todos los precios ' : ' el precio ') + t; lx.t = t;
@@ -81,7 +82,7 @@
     if(QUITAR.test(t)) return Object.assign(base, { tipo: 'quitar', productos: conUlt() ? productos : [], falta: conUlt() ? null : 'producto' });
     if(HORARIO.test(t) && FRANJA.test(t) && !productos.length) return Object.assign(base, { tipo: 'horario', productos: [] });
     if(COMPRAR.test(t) && conUlt()) return Object.assign(base, { tipo: 'compra', productos });
-    const sube = UP.test(t), baja = DOWN.test(t) || DESC.test(t) || lx.x2 || lx.x3 || /\b(a la mitad|mitad de precio)\b/.test(t);
+    const fijar = FIJAR.test(t) && /\ba \d/.test(t) && !UP.test(t) && !DOWN.test(t) && !DESC.test(t), sube = UP.test(t) || fijar, baja = DOWN.test(t) || DESC.test(t) || lx.x2 || lx.x3 || /\b(a la mitad|mitad de precio)\b/.test(t);
     if(!sube && !baja) return null;
     const rotulo = DESC.test(t) || lx.x2 || lx.x3 ? 'descuento' : 'precio', dir = sube && !baja ? 'sube' : 'baja';
     const todos = !productos.length && (/\bprecios\b/.test(t) || /\b(todo|toda|todos|todas)\b/.test(t)) && lx.pct != null;
@@ -129,6 +130,12 @@
     return { eps: eps > 0.05 ? Math.min(3, eps) : null, pLo, pHi, qLo, qHi, diasLo: lo.dias, diasHi: hi.dias };
   }
 
+  // si cambiaste el precio hace poco, el promedio de 30 días mezcla los dos precios: para simular se usa el precio y el ritmo de los últimos 7 días
+  async function precioReciente(x){
+    let lin; try { lin = await D.detalleLineas(14); } catch(e){ return null; }
+    const corte = Date.now() - 7 * 86400000, l = lin.filter((y) => y.id === x.id && y.cant > 0 && y.f.getTime() >= corte), u = suma(l, (y) => y.cant), ing = suma(l, (y) => y.sub);
+    return u >= 3 ? { pu: ing / u, u7: u } : null;
+  }
   // «sube 10%», «a $25», «de 20 a 24», «5 pesos más»: cuánto cambia el precio (como proporción)
   function leerDelta(e, x){
     const p0 = x.precioReal, t = e.t, dentro = (p1) => p1 > 0.3 * p0 && p1 < 4 * p0, sg = e.dir === 'baja' ? -1 : 1;
@@ -148,9 +155,16 @@
     let items = e.todos ? an.lista.filter((x) => x.u30 > 0) : e.productos.map((p) => hallar(an, p)).filter(Boolean);
     const flojos = items.filter((x) => x.u30 < MIN_U); items = items.filter((x) => x.u30 >= MIN_U);
     if(!items.length) return [P((flojos.length ? '**' + nom(flojos) + '** casi no se ' + (flojos.length === 1 ? 'vende' : 'venden') + ' (menos de ' + MIN_U + ' piezas en 30 días)' : 'No encontré productos con ventas') + ': con tan pocas ventas cualquier simulación sería inventada. Elige uno que sí se mueva.'), SEGUIR('¿Cuáles son mis productos más vendidos?')];
-    const unico = items.length === 1 && !e.todos ? items[0] : null;
-    let delta, nota = '';
-    if(unico) ({ delta, nota } = leerDelta(e, unico));
+    let unico = items.length === 1 && !e.todos ? items[0] : null, nota = '';
+    if(unico && unico.precioReal > 0){
+      const rc = await precioReciente(unico);
+      if(rc && Math.abs(rc.pu / unico.precioReal - 1) >= 0.03){
+        const k = 30 / 7, ant = unico.precioReal; unico = Object.assign({}, unico, { precioReal: rc.pu, u30: rc.u7 * k, ing30: rc.pu * rc.u7 * k, mUnit: unico.costo != null ? rc.pu - unico.costo : unico.mUnit, margen30: unico.costo != null ? (rc.pu - unico.costo) * rc.u7 * k : unico.margen30 });
+        items = [unico]; nota = 'Usé el precio y el ritmo de los últimos 7 días (' + $d(rc.pu) + '), no el promedio de 30 días (' + $d(ant) + '), porque cambiaste el precio hace poco.';
+      }
+    }
+    let delta;
+    if(unico){ const ld = leerDelta(e, unico); delta = ld.delta; nota = (ld.nota ? ld.nota + ' ' : '') + nota; }
     else { delta = (e.dir === 'baja' ? -1 : 1) * (e.pct != null ? e.pct : 10) / 100; if(e.pct == null) nota = 'Como no me dijiste cuánto, usé 10%.'; }
     if(!isFinite(delta) || delta <= -0.9 || delta > 3) return [P('Esa cifra no me cuadra. Dime cuánto cambiarías el precio, por ejemplo «sube 10%» o «a $25».')];
     if(Math.abs(delta) < 0.005) return [P('Ese precio es casi igual al de hoy: no cambia nada.')];

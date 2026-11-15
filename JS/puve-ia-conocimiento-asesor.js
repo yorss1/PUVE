@@ -127,4 +127,16 @@
     'y si cambio algo', 'y si hago un cambio', 'que tal si cambio algo', 'dime que pasaria si', 'antes de hacer un cambio quiero ver cuanto ganaria', 'como saber si un cambio me conviene antes de hacerlo', 'como se cuanto ganaria con un cambio', 'calcula que pasaria si',
     'quiero calcular que pasaria', 'escenarios para mi negocio', 'hazme escenarios', 'dame escenarios', 'escenario conservador y optimista', 'dame un escenario optimista y uno pesimista', 'que me conviene cambiar antes de hacerlo', 'prueba un cambio en numeros', 'simulacion de mi negocio', 'simulacion de ventas'
   ]);
+
+  // ¿por qué cambió mi ganancia, mi ticket o mis clientes? (van al investigador, igual que «¿por qué vendo menos?»)
+  sumar('por_que', [
+    'por que bajo mi ganancia', 'por que gano menos', 'por que estoy ganando menos', 'por que bajo mi utilidad', 'por que vienen menos clientes', 'por que ya no viene gente', 'por que viene menos gente', 'por que bajo mi ticket promedio', 'por que mi ticket promedio bajo',
+    'por que cada cliente gasta menos', 'por que mi ticket es menor', 'que paso con mis ventas', 'que le paso a mis ventas', 'a que se debe la caida de ventas', 'por que se cayeron las ventas', 'por que se cayo mi negocio', 'por que bajo mi ganancia esta semana', 'por que baje en clientes', 'por que me esta yendo peor', 'por que me va peor que antes'
+  ]);
+  // ===== Etapa 3-4 del plan: «¿cómo lo averiguaste?» (el orquestador explica sus pasos y qué tan seguro está) =====
+  sumar('como_averiguaste', [
+    'como lo averiguaste', 'como llegaste a esa conclusion', 'en que te basas', 'de donde sacas eso', 'como sacaste esa conclusion', 'que revisaste', 'que fue lo que revisaste', 'muestrame como lo averiguaste',
+    'explicame como llegaste a eso', 'que datos usaste', 'como supiste eso', 'que pasos seguiste', 'como lo descubriste', 'en que datos te apoyas', 'como llegaste a eso', 'que tan seguro estas de eso', 'que tan seguro estas',
+    'por que crees eso que investigaste', 'como investigaste eso', 'que investigaste', 'dime como lo averiguaste', 'como hiciste ese analisis', 'cuales fueron tus pasos', 'que tan confiable es eso'
+  ]);
 })();

@@ -578,6 +578,7 @@
     reiniciar(){ montado = false; aprendizajeListo = false; D.reiniciar(); },
     crearChat, ayudas: { P, L, S, C, sug, cap, lista, veces, fmt, dinero: (n) => $d(n), el },
     registrar: registrarAprendizaje,
+    handler(nombre){ return H[nombre]; },
     registrarTemas(handlers, etiquetas, pasos){ Object.assign(H, handlers || {}); Object.assign(ETIQUETA_TEMAS, etiquetas || {}); Object.assign(PASOS, pasos || {}); },
     internos: { enlace: () => enlace, D, N, P, L, S, C, sug, cap, lista, veces, fmt, $d, $r, en, dias, compara, periodo, topProductos, esCajero, puedeCostos, stockBajo, estrellas, oportunidades, paraNoInvertir, plan, mediana, pick, porCaducar, variante }
   };

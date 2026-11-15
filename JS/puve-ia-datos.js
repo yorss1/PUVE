@@ -149,9 +149,16 @@
     });
   }
 
+  // nombres de las personas del equipo (solo para quien administra; el cajero no ve a los demás)
+  async function nombresUsuarios(ids){
+    const o = {}; if(!ids || !ids.length || esCajero() || !enlace.sb) return o;
+    try { const r = await enlace.sb.from('perfiles').select('id,nombre').in('id', ids); (r.data || []).forEach((x) => { o[x.id] = x.nombre; }); } catch(e){}
+    return o;
+  }
+
   window.PuveIaDatos = {
     enlazar(o){ enlace = Object.assign(enlace, o || {}); },
     reiniciar(){ memoria.clear(); },
-    traerGastos, cargarPeriodo, periodoCompleto, diario, detalleLineas, ultimaVenta, analisis, compañero, prediccion, calcular, esFisico, esCajero, puedeCostos, fechaLocal
+    traerGastos, cargarPeriodo, periodoCompleto, diario, detalleLineas, nombresUsuarios, ultimaVenta, analisis, compañero, prediccion, calcular, esFisico, esCajero, puedeCostos, fechaLocal
   };
 })();
