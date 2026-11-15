@@ -119,4 +119,12 @@
   sumar('lentos', ['lo que menos vendo', 'lo que menos se vende', 'lo que menos vendi', 'lo que casi no vendo', 'lo que menos sale', 'lo que menos se mueve']);
   sumar('ganancia', ['estoy ganando o nomas trabajando', 'estoy ganando dinero', 'estoy ganando o perdiendo', 'estoy ganando o nomas gastando', 'de verdad estoy ganando', 'si estoy ganando']);
   sumar('venta_mayor', ['mi mejor venta del dia', 'mi venta mas grande del dia', 'cual fue mi mejor venta de hoy', 'mi venta mas grande de hoy']);
+
+  // ===== Etapa 5: simulador «¿y si…?» (cuando la frase no trae el detalle, el simulador pregunta o da ejemplos) =====
+  sumar('simular', [
+    'quiero simular un cambio', 'quiero hacer una simulacion', 'haz una simulacion', 'hazme una simulacion', 'simulador', 'abre el simulador', 'usa el simulador', 'simula un cambio en mi negocio', 'simula algo', 'simula un escenario', 'quiero simular un escenario',
+    'que pasaria si cambio algo', 'que pasaria si hago un cambio', 'que pasa si hago un cambio en mi negocio', 'quiero probar un cambio antes de hacerlo', 'quiero ver que pasaria si', 'que pasaria si cambio el precio', 'que pasa si cambio el precio de un producto',
+    'y si cambio algo', 'y si hago un cambio', 'que tal si cambio algo', 'dime que pasaria si', 'antes de hacer un cambio quiero ver cuanto ganaria', 'como saber si un cambio me conviene antes de hacerlo', 'como se cuanto ganaria con un cambio', 'calcula que pasaria si',
+    'quiero calcular que pasaria', 'escenarios para mi negocio', 'hazme escenarios', 'dame escenarios', 'escenario conservador y optimista', 'dame un escenario optimista y uno pesimista', 'que me conviene cambiar antes de hacerlo', 'prueba un cambio en numeros', 'simulacion de mi negocio', 'simulacion de ventas'
+  ]);
 })();

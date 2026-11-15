@@ -377,7 +377,7 @@
     const pr = N.buscarProductos(original, enlace.productos()), masc = pr.productos.length ? N.enmascarar(original, pr.palabras) : N.norm(original);
     const t = N.parseTiempo(original), partes = rg ? [masc] : N.dividir(masc), mensajes = [], nombres = enlace.productos().map((x) => x.nombre);
     let pre = null;
-    if(!rg && partes.length === 1){ for(const f of PRE){ try { pre = f(original, estado, pr, t); } catch(e){ pre = null; } if(pre) break; } if(pre && pre.productos) pr.productos = pre.productos; }
+    if((!rg || rg.intent === 'calculo' || rg.intent === 'fuera_tema') && partes.length === 1){ for(const f of PRE){ try { pre = f(original, estado, pr, t); } catch(e){ pre = null; } if(pre) break; } if(pre && pre.productos) pr.productos = pre.productos; }
     for(const parte of partes.slice(0, 3)){
       const cl = N.clasificar(parte), top = cl.lista[0], sec = cl.lista[1], frase = N.sanear(parte, nombres);
       let intent = (pre && pre.intent) || (rg ? rg.intent : N.decidir(cl));

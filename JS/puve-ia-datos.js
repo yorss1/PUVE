@@ -141,9 +141,17 @@
     });
   }
 
+  // líneas del detalle de ventas con su fecha (para ver a qué precio se ha vendido cada producto)
+  function detalleLineas(dias){
+    return recordar(['dl', dias, quien()].join('|'), 300000, async () => {
+      const ahora = new Date(), det = await traerDetalle(suma(ahora, -dias), new Date(ahora.getTime() + 60000));
+      return det.map((d) => ({ id: d.producto_id, nombre: d.producto_nombre, cant: Number(d.cantidad) || 0, sub: Number(d.subtotal) || 0, f: new Date(d.ventas && d.ventas.created_at) }));
+    });
+  }
+
   window.PuveIaDatos = {
     enlazar(o){ enlace = Object.assign(enlace, o || {}); },
     reiniciar(){ memoria.clear(); },
-    traerGastos, cargarPeriodo, periodoCompleto, diario, ultimaVenta, analisis, compañero, prediccion, calcular, esFisico, esCajero, puedeCostos, fechaLocal
+    traerGastos, cargarPeriodo, periodoCompleto, diario, detalleLineas, ultimaVenta, analisis, compañero, prediccion, calcular, esFisico, esCajero, puedeCostos, fechaLocal
   };
 })();
