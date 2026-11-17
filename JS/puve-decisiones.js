@@ -159,6 +159,7 @@
     fechas(bloque(cont, 'Fechas pico', 'Las fechas fuertes de tu giro en los próximos 5 meses y qué vendiste en esa temporada el año pasado, para preparar producto con tiempo.'));
   }
   window.PuveDecisiones = {
+    calendario: { FECHAS, POR_GIRO, BASE },   // fuente única del calendario de fechas fuertes (la pantalla y la IA leen el mismo)
     enlazar(o){ enlace = Object.assign(enlace, o || {}); },
     abrir(){ const c = document.getElementById('vistaAnaliticaInteligencia'); if(c) return pintar(c); }
   };

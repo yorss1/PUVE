@@ -68,7 +68,10 @@
     const completos = delMes.filter((x) => x.fecha < hoyF), previos = d.filter((x) => x.fecha < hoyF).slice(-14);
     const ritmo = completos.length >= 3 ? suma(completos, (x) => x.total) / completos.length : (previos.length ? suma(previos, (x) => x.total) / previos.length : 0);
     const restantes = diasMes - pasados, proy = llevo + ritmo * restantes + Math.max(0, ritmo - hoy);
-    return { tipo: 'mes', monto, llevo, falta: Math.max(0, monto - llevo), ritmo, proy, restantes: restantes + 1, necesito: Math.max(0, monto - llevo) / (restantes + 1) };
+    const res = { tipo: 'mes', monto, llevo, falta: Math.max(0, monto - llevo), ritmo, proy, restantes: restantes + 1, necesito: Math.max(0, monto - llevo) / (restantes + 1) };
+    const PF = window.PuveIaPronostico;   // pronóstico por día de la semana con rango calculado (si el módulo está cargado; si no, queda el cálculo de siempre)
+    if(PF && PF.mes){ try { const p = PF.mes({ serie: await D.diario(60), llevo, monto, ahora }); if(p) Object.assign(res, { proy: p.esperado, ritmo: p.ritmoEsperado, necesito: p.necesito, bajo: p.bajo, alto: p.alto, prob: p.prob, veredicto: p.veredicto, brecha: p.brechaDia, acciones: p.acciones, base: p.base }); } catch(e){ /* sin pronóstico nuevo, se queda el de siempre */ } }
+    return res;
   }
   function bloquesMeta(g){
     if(g.tipo === 'dia'){
@@ -78,6 +81,13 @@
     }
     const o = [P('**Meta del mes: ' + $r(g.monto) + '.** Llevas **' + $r(g.llevo) + '**' + (g.falta > 0 ? ' y te faltan **' + $r(g.falta) + '**.' : ': ¡ya la lograste! Todo lo demás es ganancia extra.'))];
     if(g.falta > 0 && g.ritmo > 0){
+      if(g.bajo != null){   // pronóstico nuevo: rango calculado de tus datos, veredicto, brecha por día y ejemplos para cerrarla
+        const PF = window.PuveIaPronostico;
+        o.push(P('A tu ritmo cerrarías cerca de **' + $r(g.proy) + '** (rango probable: ' + $r(g.bajo) + ' a ' + $r(g.alto) + '; confianza ' + (g.base === 'alta' ? 'buena' : (g.base === 'media' ? 'media' : 'baja')) + '). ' + PF.verdictoTxt(g, $r)));
+        if(g.brecha > 0 && g.veredicto !== 'sin_sustento') o.push(P('Necesitas unos **' + $r(g.necesito) + ' al día** y a tu ritmo esperas ' + $r(g.ritmo) + ': te faltan unos **' + $r(g.brecha) + ' al día** (' + pct(g.brecha / Math.max(1, g.ritmo)) + ' más que tu ritmo).'));
+        if(g.acciones && g.acciones.length) o.push(L('Para cerrar esa brecha, por ejemplo (no son promesas)', g.acciones.map((x) => [PF.textoAccion(x, $r).replace(/^./, (m) => m.toUpperCase())])));
+        return o;
+      }
       o.push(P('A tu ritmo de ' + $r(g.ritmo) + ' al día cerrarías cerca de **' + $r(g.proy) + '** (entre ' + $r(g.proy * 0.88) + ' y ' + $r(g.proy * 1.12) + '). ' + (g.proy >= g.monto ? 'Vas en camino.' : 'Te quedarías ' + $r(g.monto - g.proy) + ' corto.')));
       if(g.proy < g.monto) o.push(P('Para llegar necesitas vender unos **' + $r(g.necesito) + ' al día** lo que resta del mes (' + veces(g.restantes, 'día', 'días') + ' contando hoy).'));
     }
@@ -266,5 +276,8 @@
     return null;
   });
 
-  window.PuveIaAsesorMemoria = { activo, filtrar, encabezado, cargar, evaluar, guardar, fila, hace, sinSql: () => sinSql, internos: { progresoMeta, enMarcha, metas, reiniciar(){ cache = null; cargando = null; sinSql = false; usuario = undefined; } } };
+  // avisos silenciados que siguen vigentes (preferencias «silencio:<categoría>» con fecha de término; SQL 135)
+  const silenciados = () => new Set((cache || []).filter((f) => f.tipo === 'preferencia' && /^silencio:/.test(f.clave) && f.datos && f.datos.hasta && new Date(f.datos.hasta) > new Date()).map((f) => f.clave.slice(9)));
+  const filas = (tipo) => (cache || []).filter((f) => f.tipo === tipo);
+  window.PuveIaAsesorMemoria = { activo, filtrar, encabezado, cargar, evaluar, guardar, borrar, fila, filas, hace, silenciados, sinSql: () => sinSql, internos: { progresoMeta, enMarcha, metas, reiniciar(){ cache = null; cargando = null; sinSql = false; usuario = undefined; } } };
 })();

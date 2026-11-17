@@ -40,7 +40,7 @@
         else if(r <= 0.75){ texto += ': ' + pct(1 - r) + ' menos de lo normal para ese tiempo.'; prio = 70; chip = '¿Por qué bajaron mis ventas?'; }
         else texto += ': dentro de lo normal.';
       } else texto += '.';
-      items.push({ prio, titulo: 'Ventas desde tu última visita (' + tiempo(horas) + ')', texto, chip });
+      items.push({ cat: 'ventas', prio, titulo: 'Ventas desde tu última visita (' + tiempo(horas) + ')', texto, chip });
     }
 
     // ayer contra un mismo día de la semana normal (solo se avisa si es raro y solo una vez)
@@ -49,7 +49,7 @@
       const antes = [7, 14, 21, 28].map((k) => { const x = new Date(ayer); x.setDate(x.getDate() - k); return total(D.fechaLocal(x)); }).filter((t) => t > 0);
       if(antes.length >= 3){
         const prom = suma(antes, (t) => t) / antes.length, y = total(ayerF), r = y / prom, dn = N.DIAS_BONITO[ayer.getDay()];
-        if(r <= 0.7 || r >= 1.3) items.push({ prio: r <= 0.7 ? 80 : 55, titulo: 'Ayer ' + (r <= 0.7 ? 'vendiste menos de lo normal' : 'vendiste más de lo normal'),
+        if(r <= 0.7 || r >= 1.3) items.push({ cat: 'ayer', prio: r <= 0.7 ? 80 : 55, titulo: 'Ayer ' + (r <= 0.7 ? 'vendiste menos de lo normal' : 'vendiste más de lo normal'),
           texto: y === 0 ? 'No registraste ventas ayer; un ' + dn + ' normal vendes unos ' + $r(prom) + '.' : 'Vendiste ' + $r(y) + ', ' + pct(r - 1) + (r < 1 ? ' menos' : ' más') + ' que un ' + dn + ' normal (' + $r(prom) + ').', chip: r <= 0.7 ? '¿Por qué bajaron mis ventas?' : '¿Cómo me fue ayer?' });
       }
     }
@@ -57,30 +57,33 @@
     // inventario: se agotó o se está acabando algo que sí vendes
     const bajos = an.lista.filter((x) => x.fisico && x.u30 > 0 && (x.stock <= 0 || x.dias <= 3)), yaBajos = new Set(prev.bajos || []), nuevos = bajos.filter((x) => !yaBajos.has(corto(x.nombre)));
     const agot = nuevos.filter((x) => x.stock <= 0), pocos = nuevos.filter((x) => x.stock > 0);
-    if(agot.length) items.push({ prio: 90, titulo: agot.length === 1 ? 'Se agotó un producto que sí vendes' : 'Se agotaron ' + agot.length + ' productos que sí vendes', texto: lista(agot.slice(0, 4).map((x) => x.nombre)) + '. Lo que se agota no se vende.', chip: '¿Qué se me está acabando?' });
-    if(pocos.length) items.push({ prio: 75, titulo: pocos.length === 1 ? 'Se te está acabando un producto' : 'Se te están acabando ' + pocos.length + ' productos', texto: pocos.slice(0, 4).map((x) => x.nombre + ' (alcanza para ~' + Math.max(1, Math.round(x.dias)) + (Math.round(x.dias) <= 1 ? ' día' : ' días') + ')').join(', ') + '.', chip: '¿Qué se me está acabando?' });
+    if(agot.length) items.push({ cat: 'inventario', prio: 90, titulo: agot.length === 1 ? 'Se agotó un producto que sí vendes' : 'Se agotaron ' + agot.length + ' productos que sí vendes', texto: lista(agot.slice(0, 4).map((x) => x.nombre)) + '. Lo que se agota no se vende.', chip: '¿Qué se me está acabando?' });
+    if(pocos.length) items.push({ cat: 'inventario', prio: 75, titulo: pocos.length === 1 ? 'Se te está acabando un producto' : 'Se te están acabando ' + pocos.length + ' productos', texto: pocos.slice(0, 4).map((x) => x.nombre + ' (alcanza para ~' + Math.max(1, Math.round(x.dias)) + (Math.round(x.dias) <= 1 ? ' día' : ' días') + ')').join(', ') + '.', chip: '¿Qué se me está acabando?' });
 
     // por caducar en 7 días
     const hoy0 = new Date(ahora); hoy0.setHours(0, 0, 0, 0);
     const cad = I.enlace().productos().filter((p) => p.fecha_caducidad && D.esFisico(p) && Number(p.stock) > 0).map((p) => ({ n: p.nombre, dias: Math.ceil((new Date(p.fecha_caducidad + 'T00:00:00').getTime() - hoy0.getTime()) / DIA_MS) })).filter((x) => x.dias <= 7).sort((x, y) => x.dias - y.dias);
     const yaCad = new Set(prev.caduc || []), nuevasC = cad.filter((x) => !yaCad.has(corto(x.n)));
-    if(nuevasC.length) items.push({ prio: nuevasC.some((x) => x.dias <= 3) ? 85 : 60, titulo: nuevasC.length === 1 ? 'Un producto está por caducar' : nuevasC.length + ' productos están por caducar', texto: nuevasC.slice(0, 4).map((x) => x.n + (x.dias <= 0 ? ' (ya caducó)' : (x.dias === 1 ? ' (mañana)' : ' (en ' + x.dias + ' días)'))).join(', ') + '.', chip: '¿Qué está por caducar?' });
+    if(nuevasC.length) items.push({ cat: 'caducidad', prio: nuevasC.some((x) => x.dias <= 3) ? 85 : 60, titulo: nuevasC.length === 1 ? 'Un producto está por caducar' : nuevasC.length + ' productos están por caducar', texto: nuevasC.slice(0, 4).map((x) => x.n + (x.dias <= 0 ? ' (ya caducó)' : (x.dias === 1 ? ' (mañana)' : ' (en ' + x.dias + ' días)'))).join(', ') + '.', chip: '¿Qué está por caducar?' });
 
     // ideas que ya se pueden medir (una sola vez cada una)
     const avisadas = new Set(prev.avisadas || []), marcha = M.internos.enMarcha(), listas = marcha.filter((f) => Math.floor((ahora - new Date(f.datos.inicio)) / DIA_MS) >= 14 && !avisadas.has(f.clave));
-    if(listas.length) items.push({ prio: 78, titulo: 'Ya puedes ver si funcionó lo que probaste', texto: 'Pasaron al menos 14 días de ' + lista(listas.slice(0, 2).map((f) => '«' + f.datos.titulo + '»')) + '. Pregúntame si funcionó y comparo antes y después.', chip: '¿Funcionó lo que probé?' });
+    if(listas.length) items.push({ cat: 'ideas', prio: 78, titulo: 'Ya puedes ver si funcionó lo que probaste', texto: 'Pasaron al menos 14 días de ' + lista(listas.slice(0, 2).map((f) => '«' + f.datos.titulo + '»')) + '. Pregúntame si funcionó y comparo antes y después.', chip: '¿Funcionó lo que probé?' });
 
     // meta del mes (una vez al día)
     const mm = M.internos.metas().find((f) => f.clave === 'ventas_mes'); let metaLograda = prev.metaLograda || null, metaAviso = prev.metaAviso || null;
     if(mm){
       const g = await M.internos.progresoMeta(mm), mes = hoyF.slice(0, 7);
-      if(g.llevo >= g.monto){ if(metaLograda !== mes){ items.push({ prio: 60, titulo: '¡Lograste tu meta del mes!', texto: 'Llevas ' + $r(g.llevo) + ' de ' + $r(g.monto) + '. Lo que sigue ya es ganancia extra.', chip: null }); metaLograda = mes; } }
-      else if(g.ritmo > 0 && g.proy < g.monto * 0.9 && ahora.getDate() >= 7 && metaAviso !== hoyF){ items.push({ prio: 65, titulo: 'Tu meta del mes va corta', texto: 'A tu ritmo cerrarías cerca de ' + $r(g.proy) + ', unos ' + $r(g.monto - g.proy) + ' abajo de tu meta de ' + $r(g.monto) + '. Necesitas vender unos ' + $r(g.necesito) + ' al día.', chip: '¿Cómo voy con mi meta?' }); metaAviso = hoyF; }
+      if(g.llevo >= g.monto){ if(metaLograda !== mes){ items.push({ cat: 'meta', prio: 60, titulo: '¡Lograste tu meta del mes!', texto: 'Llevas ' + $r(g.llevo) + ' de ' + $r(g.monto) + '. Lo que sigue ya es ganancia extra.', chip: null }); metaLograda = mes; } }
+      else if(g.ritmo > 0 && g.proy < g.monto * 0.9 && ahora.getDate() >= 7 && metaAviso !== hoyF){ items.push({ cat: 'meta', prio: 65, titulo: 'Tu meta del mes va corta', texto: 'A tu ritmo cerrarías cerca de ' + $r(g.proy) + ', unos ' + $r(g.monto - g.proy) + ' abajo de tu meta de ' + $r(g.monto) + '. Necesitas vender unos ' + $r(g.necesito) + ' al día.', chip: '¿Cómo voy con mi meta?' }); metaAviso = hoyF; }
     }
 
+    // avisos que el dueño pidió silenciar (preferencias, SQL 135): no se muestran y, más abajo, tampoco se marcan como «ya avisados», para que al terminar el silencio sí se avisen
+    const callados = M.silenciados ? M.silenciados() : new Set();
+    for(let k = items.length - 1; k >= 0; k--) if(callados.has(items[k].cat)) items.splice(k, 1);
     items.sort((x, y) => y.prio - x.prio);
     const keys = marcha.map((f) => f.clave);
-    const nuevaSnap = { en: ahora.toISOString(), bajos: bajos.slice(0, 12).map((x) => corto(x.nombre)), caduc: cad.slice(0, 12).map((x) => corto(x.n)), avisadas: Array.from(new Set((prev.avisadas || []).concat(listas.map((f) => f.clave)))).filter((k) => keys.indexOf(k) >= 0).slice(0, 12), ayer: ayerF, metaLograda, metaAviso };
+    const nuevaSnap = { en: ahora.toISOString(), bajos: callados.has('inventario') ? (prev.bajos || []) : bajos.slice(0, 12).map((x) => corto(x.nombre)), caduc: callados.has('caducidad') ? (prev.caduc || []) : cad.slice(0, 12).map((x) => corto(x.n)), avisadas: callados.has('ideas') ? (prev.avisadas || []) : Array.from(new Set((prev.avisadas || []).concat(listas.map((f) => f.clave)))).filter((k) => keys.indexOf(k) >= 0).slice(0, 12), ayer: callados.has('ayer') ? prev.ayer : ayerF, metaLograda: callados.has('meta') ? prev.metaLograda : metaLograda, metaAviso: callados.has('meta') ? prev.metaAviso : metaAviso };
     return { items, horas, snap: nuevaSnap };
   }
 

@@ -133,6 +133,8 @@
     'por que bajo mi ganancia', 'por que gano menos', 'por que estoy ganando menos', 'por que bajo mi utilidad', 'por que vienen menos clientes', 'por que ya no viene gente', 'por que viene menos gente', 'por que bajo mi ticket promedio', 'por que mi ticket promedio bajo',
     'por que cada cliente gasta menos', 'por que mi ticket es menor', 'que paso con mis ventas', 'que le paso a mis ventas', 'a que se debe la caida de ventas', 'por que se cayeron las ventas', 'por que se cayo mi negocio', 'por que bajo mi ganancia esta semana', 'por que baje en clientes', 'por que me esta yendo peor', 'por que me va peor que antes'
   ]);
+  // ===== Etapa 4 del plan: diagnóstico general con puntuación (van al tema «salud»). Solo lo que el NLU NO entendía solo: «califica / dame un diagnóstico / qué tan sano» ya se entienden =====
+  sumar('salud', ['dame una puntuacion de mi negocio', 'cual es la puntuacion de mi negocio', 'como van todas las areas de mi negocio']);
   // ===== Etapa 3-4 del plan: «¿cómo lo averiguaste?» (el orquestador explica sus pasos y qué tan seguro está) =====
   sumar('como_averiguaste', [
     'como lo averiguaste', 'como llegaste a esa conclusion', 'en que te basas', 'de donde sacas eso', 'como sacaste esa conclusion', 'que revisaste', 'que fue lo que revisaste', 'muestrame como lo averiguaste',
