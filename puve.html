@@ -62,6 +62,12 @@
 <script src="JS/puve-ia-razonamiento.js"></script>
 <script src="JS/puve-ia-herramientas.js"></script>
 <script src="JS/puve-ia-orquestador.js"></script>
+<script src="JS/puve-ia-diagnostico.js"></script>
+<script src="JS/puve-ia-pronostico.js"></script>
+<script src="JS/puve-ia-experimentos.js"></script>
+<script src="JS/puve-ia-giros-datos.js"></script>
+<script src="JS/puve-ia-giros.js"></script>
+<script src="JS/puve-ia-resultados.js"></script>
 <script src="JS/puve-ia-simulador.js"></script>
 <script src="JS/puve-ia-asesor-contexto.js"></script>
 <script src="JS/puve-lotes.js"></script>
@@ -13548,7 +13554,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   PuveRestaurante.enlazar({ sb: sb, productos: () => productosCache, total: () => carrito.reduce((s, i) => s + subLinea(i), 0), dinero: (n) => formatoDinero(n), aviso: (m) => alert(m) });
   PuveCotizaciones.enlazar({ sb: sb, carrito: () => carrito, negocio: () => { const e = document.getElementById('nombreNegocioBarra'); const t = e ? e.textContent.trim() : ''; return t && t !== '—' ? t : ''; }, dinero: (n) => formatoDinero(n), cargarAlCarrito: cargarCotizacionAlCarrito, aviso: (m) => alert(m) });
   PuveAnaliticaRest.enlazar({ sb: sb, dinero: (n) => formatoDinero(n) });
-  PuveResumen.enlazar({ sb: sb, dinero: (n) => formatoDinero(n), productos: () => productosCache, rol: () => miRol, faq: (t) => buscarRespuestaFAQ(t), irA: (sec) => cambiarSeccion(sec), faqNoSabe: (t) => registrarPreguntaSinRespuesta(t) });
+  PuveResumen.enlazar({ sb: sb, giro: () => { const g = giroEspecifico(); return g ? g.id : null; }, dinero: (n) => formatoDinero(n), productos: () => productosCache, rol: () => miRol, faq: (t) => buscarRespuestaFAQ(t), irA: (sec) => cambiarSeccion(sec), faqNoSabe: (t) => registrarPreguntaSinRespuesta(t) });
   PuveDecisiones.enlazar({ sb: sb, giro: () => { const g = giroEspecifico(); return g ? g.id : null; }, dinero: (n) => formatoDinero(n) });
   PuveBitacora.enlazar({ sb: sb });
   PuveProduccion.enlazar({ sb: sb });
