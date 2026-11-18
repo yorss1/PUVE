@@ -67,7 +67,7 @@
         const ords = [...n.matchAll(/\b(primer[oa]?|segund[oa]?|tercer[oa]?|cuart[oa]?|quint[oa]?|ultim[oa]?)\b/g)].map((m) => m[1]);
         const idx = ords.map((w) => /^ultim/.test(w) ? ref.lista.length - 1 : ORDINAL[Object.keys(ORDINAL).find((o) => w.indexOf(o) === 0)]).filter((i, k, a) => i != null && i < ref.lista.length && a.indexOf(i) === k);
         if(idx.length >= 2) return { intent: 'comparar_productos', productos: [ref.lista[idx[0]], ref.lista[idx[1]]] };
-        if(/\b(los dos|los 2|ambos|los primeros|los dos primeros)\b/.test(n)) return { intent: 'comparar_productos', productos: ref.lista.slice(0, 2) };
+        if(/\b(los dos|los 2|ambos|los primeros|los dos primeros|(es[eo]s|est[eo]s|aquell[oa]s) (dos|2))\b/.test(n)) return { intent: 'comparar_productos', productos: ref.lista.slice(0, 2) };
         if(idx.length === 1 && ref.foco && ref.lista[idx[0]] !== ref.foco) return { intent: 'comparar_productos', productos: [ref.foco, ref.lista[idx[0]]] };
       }
     }

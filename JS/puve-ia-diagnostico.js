@@ -13,7 +13,7 @@
   'use strict';
   const R = window.PuveResumen, RZ = window.PuveIaRazonamiento, T = window.PuveIaHerramientas, O = window.PuveIaOrquestador;
   if(!R || !R.internos || !RZ || !T || !O || !R.registrarTemas) return;
-  const I = R.internos, { D, N, P, L, S, C, sug, veces, $r, en } = I, enlace = () => I.enlace();
+  const I = R.internos, { D, N, P, L, S, C, sug, veces, fmt, $r, en } = I, enlace = () => I.enlace();
   const ADMIN = ['admin'], EQUIPO = ['admin', 'analista'], acota = RZ.acota;
   const pct = (x) => Math.round(x * 100) + '%';
   const sgn = (x) => (x >= 0 ? '+' : '−') + Math.abs(Math.round(x * 100)) + '%';
@@ -179,7 +179,8 @@
       add(mt.veredicto === 'poco_probable' ? 'ALTO' : 'MEDIO', mt.veredicto === 'poco_probable' ? 'Tu meta del mes va lejos' : 'Tu meta del mes está ajustada', 'Llevas ' + $r(mt.llevo) + ' de ' + $r(mt.monto) + ' y a tu ritmo cerrarías cerca de ' + $r(mt.esperado), acc, { impacto: mt.falta, esfuerzo: 3, confianza: mt.base === 'alta' ? 0.8 : (mt.base === 'media' ? 0.65 : 0.5), chip: '¿Cómo voy con mi meta?' });
     }
     (m.pat || []).forEach((q) => {
-      if(q.tipo === 'ticket_vs_ops') add('MEDIO', 'Tu reto es traer más gente, no subir el gasto por persona', q.titulo, 'Enfócate en atraer clientes (visibilidad, promoción, horario) más que en subir precios.', { impacto: ing * Math.abs(q.opsPct) * 0.3, esfuerzo: 3, confianza: Math.min(0.75, 0.4 + q.confianza * 0.35) });
+      const agotImp = (iv ? iv.agotados : []).filter((x) => ing && x.ventaDiaria * 30 / ing >= 0.05);   // si se agotó algo importante, el ticket sube solo (desaparece lo barato) y NO conviene recomendar «traer más gente»
+      if(q.tipo === 'ticket_vs_ops' && !agotImp.length) add('MEDIO', 'Tu reto es traer más gente, no subir el gasto por persona', q.titulo, 'Enfócate en atraer clientes (visibilidad, promoción, horario) más que en subir precios.', { impacto: ing * Math.abs(q.opsPct) * 0.3, esfuerzo: 3, confianza: Math.min(0.75, 0.4 + q.confianza * 0.35) });
       else if(q.tipo === 'dia' && q.dif < 0) add('OPORTUNIDAD', 'Anima tus ' + plural(q.dia), q.titulo, 'Prueba una promoción solo ese día durante unas semanas y mide si sube.', { impacto: ing * 0.04, esfuerzo: 2, confianza: Math.min(0.7, 0.3 + q.confianza * 0.4) });
     });
     return it.sort((a, b) => b.peso - a.peso || (b.impacto * b.confianza / b.esfuerzo) - (a.impacto * a.confianza / a.esfuerzo));
@@ -239,6 +240,8 @@
         else out.global.veredicto += ', y hay algo crítico que atender hoy';
       }
       const cp = (mem.cambios || []).filter((x) => x.veredicto).map((x) => ({ x, m: x.metricas.find((y) => y.k === x.principal), et: x.principal === 'utilidad' ? 'la ganancia por día' : 'las ventas por día' }));
+      const agotP = (mem.inv ? mem.inv.agotados : []).filter((x) => mem.estado && mem.estado.ingresos30 && x.ventaDiaria * 30 / mem.estado.ingresos30 >= 0.05);
+      (mem.pat || []).forEach((q) => { if(q.tipo === 'ticket_vs_ops' && agotP.length && !/ojo:/.test(q.titulo)) q.titulo += ' (ojo: puede deberse a que se agotó ' + agotP[0].nombre + ')'; });
       out.patrones = cp.filter((y) => y.x.veredicto === 'favorable').map((y) => ({ tipo: 'cambio_precio', fuerza: 1, confianza: 0.8, titulo: 'Tu cambio de precio de ' + y.x.nombre + ' ($' + Math.round(y.x.de) + ' → $' + Math.round(y.x.a) + ') está funcionando: ' + y.et + ' subió ' + pct(y.m.relativo) + ' más que el resto de tu negocio' })).concat(mem.pat || []).slice(0, 3); out.objetivo = mem.meta && mem.meta.hayMeta && mem.meta.veredicto ? mem.meta : null; out.giro = mem.giro || null;
       out.incompleto = mem.pasos.some((x) => !x.ok);
       out.confianza = mem.real ? mem.real.confianza : 0;
@@ -288,6 +291,23 @@
     base.push(P('Cada puntuación parte de una base y suma o resta por lo que encontré; no es una calificación inventada. Si falta información, el área queda sin calificar en vez de adivinarla.'));
     return base;
   };
-  R.registrarTemas({ salud: H.salud, como_averiguaste: H.como_averiguaste }, {}, { salud: 'Revisando todo tu negocio…' });
+  // «mis ventas bajaron pero mi ticket subió» (MD §56): se miran las TRES cifras (ventas, número de ventas y ticket) y se dice qué es lo más probable, como hipótesis
+  const previoPorQue = R.handler && R.handler('por_que'), RE_TICKET = /(ticket|compra promedio|gasto (por|de cada) (cliente|persona)|cuanto gasta cada)/, RE_BAJAN = /(ventas?|vendo|vendi|ingresos?).*(baj|cay|menos|disminu)/, RE_SUBE = /(subi|sube|subio|aument|crec|mejor)/;
+  H.por_que = async (c) => {
+    const t = N.norm(c.texto || c.original || ''), rol = enlace().rol();
+    if(!(RE_TICKET.test(t) && RE_BAJAN.test(t) && RE_SUBE.test(t)) || !EQUIPO.includes(rol)) return previoPorQue ? previoPorQue(c) : [P('No pude revisar eso ahora.')];
+    const per = c.t && c.t.explicito ? c.t : N.ultimos(30), cm = await T.llamar('comparar_periodos', { periodo: per }, {}), iv = await T.llamar('analizar_inventario', {}, {});
+    if(!cm.ok || !cm.datos.act.n || !cm.datos.ant.n) return [P('Todavía no tengo ventas suficientes ' + en(per) + ' y en el periodo anterior para comparar ventas, número de ventas y ticket.')];
+    const a = cm.datos.act, b = cm.datos.ant, pv = a.total / b.total - 1, po = a.n / b.n - 1, ta = a.total / a.n, tb = b.total / b.n, pt = ta / tb - 1, sg = (x) => (x >= 0 ? '+' : '−') + Math.round(Math.abs(x) * 100) + '%', ing = a.total * 30 / (a.dias || 30);
+    const ag = iv.ok ? iv.datos.agotados.filter((x) => ing && x.ventaDiaria * 30 / ing >= 0.05) : [], o = [P('**Lo que pasó** ' + en(per) + ': ventas ' + sg(pv) + ' (' + $r(b.total) + ' → ' + $r(a.total) + '), número de ventas ' + sg(po) + ' (' + fmt(b.n) + ' → ' + fmt(a.n) + ') y ticket promedio ' + sg(pt) + ' (' + $r(tb) + ' → ' + $r(ta) + ').')];
+    if(pv < -0.03 && po <= -0.05 && pt >= 0.03){
+      o.push(P('Con estas cifras, lo más probable es que **tu cambio venga de cuántas ventas haces, no de cuánto gasta cada quien**: cada cliente gasta más, pero hay menos clientes comprando. Es lo más probable con estos números, no una certeza.'));
+      o.push(P(ag.length ? 'Ojo: se agotó **' + ag[0].nombre + '**. Cuando se acaba un producto barato el ticket sube solo y bajan las ventas, así que primero revisa eso antes de pensar en atraer más gente.' : 'Lo que conviene revisar es qué días u horas se movió menos gente. Pregúntame «¿en qué días vendo menos?».'));
+    } else if(pv < -0.03 && pt < 0) o.push(P('Aquí el ticket **no** subió: bajó, y las ventas también. Con estos números cada cliente gasta menos' + (po <= -0.05 ? ' y además hay menos clientes' : '') + '.'));
+    else if(pv < -0.03) o.push(P('El ticket subió, pero el número de ventas casi no cambió, así que la baja de ventas no se explica por menos clientes; conviene revisar qué productos se dejaron de vender.'));
+    else o.push(P('Con estos números las ventas no bajaron de forma clara ' + en(per) + '.'));
+    o.push(C([sug('¿Por qué estoy vendiendo menos?'), sug('¿Cómo está mi negocio?')])); return o;
+  };
+  R.registrarTemas({ salud: H.salud, como_averiguaste: H.como_averiguaste, por_que: H.por_que }, {}, { salud: 'Revisando todo tu negocio…' });
   window.PuveIaDiagnostico = { puntuar, priorizar, presentar, internos: { META, NV } };
 })();
