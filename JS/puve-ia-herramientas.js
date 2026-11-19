@@ -188,7 +188,7 @@
     nombre: 'estado_negocio', descripcion: 'Foto rápida del negocio: cuántos datos hay para razonar con seguridad', produce: ['estado'], entrada: {},
     async ejecutar(){
       const an = await D.analisis(), d = await D.diario(30), rol = enlace().rol(), con = an.lista.filter((x) => x.costo != null && x.ing30 > 0), ing = an.lista.reduce((s, x) => s + (x.ing30 || 0), 0);
-      return { rol, ventas30: an.ventas30, dias30: d.length, productosConVentas: an.lista.filter((x) => x.u30 > 0).length, ingresos30: an.ing30, coberturaCostos: ing ? con.reduce((s, x) => s + x.ing30, 0) / ing : 0, suficiente: an.ventas30 >= 10 && d.length >= 5 };
+      return { rol, ventas30: an.ventas30, dias30: d.length, productosConVentas: an.lista.filter((x) => x.u30 > 0).length, ingresos30: an.ing30, coberturaCostos: ing ? con.reduce((s, x) => s + x.ing30, 0) / ing : 0, suficiente: an.ventas30 >= 10 && d.length >= 5, incompleto: !!(D.truncado && D.truncado()) };   // incompleto: hay tantas ventas que una lectura se cortó en el tope de páginas
     }
   });
 

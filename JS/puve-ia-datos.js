@@ -13,26 +13,45 @@
   const puedeCostos = () => enlace.rol() === 'admin';
   const esFisico = (p) => (p.tipo || 'producto') === 'producto' && Number(p.stock) < 900000;
 
+  const MAX_PAGINAS = 14; let truncadoEn = 0;   // truncadoEn: cuándo fue la última vez que una lectura se cortó por llegar al tope de páginas (las cifras de ese negocio pueden estar incompletas)
   async function paginar(armar){
     const salida = [];
-    for(let pag = 0; pag < 14; pag++){
+    for(let pag = 0; pag < MAX_PAGINAS; pag++){
       const { data, error } = await armar().range(pag * 1000, pag * 1000 + 999);
       if(error) throw new Error(error.message || 'Error de consulta');
       salida.push(...(data || []));
       if(!data || data.length < 1000) break;
+      if(pag === MAX_PAGINAS - 1) truncadoEn = Date.now();
     }
     return salida;
   }
-  const traerVentas = (d, h) => paginar(() => {
+  // Caché de rangos: una lectura de 25 días o más se amplía a los 90 días anteriores a su final, y toda lectura cuyo rango cabe dentro de una ya hecha (y vigente) se responde
+  // en memoria (periodo anterior, 60 días, 90 días…). Mismo resultado, muchas menos consultas. Si una lectura ampliada llega al tope de páginas, no se vuelve a ampliar durante un rato
+  // (para no empeorar el recorte en negocios muy grandes). Se puede apagar con configurar({ cacheRangos: false }).
+  const rangos = { ventas: [], detalle: [] }, TTL_RANGO = 45000, DIA_MS = 86400000; let cacheRangos = true, noAmpliarHasta = 0;
+  const instante = (tipo, f) => new Date(tipo === 'detalle' ? (f.ventas && f.ventas.created_at) : f.created_at).getTime();
+  function conRangos(tipo, d, h, leer){
+    if(!cacheRangos) return leer(d, h);
+    const k = quien(), ahora = Date.now(), lista = (rangos[tipo] = rangos[tipo].filter((r) => ahora - r.t < TTL_RANGO && r.k === k));
+    const dentro = (filas) => filas.filter((f) => { const x = instante(tipo, f); return x >= d.getTime() && x < h.getTime(); });
+    const hit = lista.find((r) => r.d <= d.getTime() && r.h + 60000 >= h.getTime());   // 60 s de holgura: «ahora» cambia unos milisegundos entre una lectura y otra
+    if(hit) return hit.p.then(dentro);
+    let d2 = d; if(ahora >= noAmpliarHasta && h.getTime() - d.getTime() >= 25 * DIA_MS && h.getTime() - 90 * DIA_MS < d.getTime()) d2 = new Date(h.getTime() - 90 * DIA_MS);
+    const antes = truncadoEn, p = leer(d2, h), e = { k, d: d2.getTime(), h: h.getTime(), t: ahora, p };
+    lista.push(e); if(lista.length > 8) lista.shift();
+    p.then(() => { if(d2 !== d && truncadoEn !== antes) noAmpliarHasta = Date.now() + 5 * 60000; }, () => { const i = lista.indexOf(e); if(i >= 0) lista.splice(i, 1); });
+    return d2 === d ? p : p.then(dentro);
+  }
+  const traerVentas = (d, h) => conRangos('ventas', d, h, (d, h) => paginar(() => {
     let q = enlace.sb.from('ventas').select('id,total,created_at,usuario_id,metodo_pago').gte('created_at', d.toISOString()).lt('created_at', h.toISOString()).order('created_at', { ascending: true }).order('id', { ascending: true });
     if(esCajero()) q = q.eq('usuario_id', enlace.usuarioId());
     return q;
-  });
-  const traerDetalle = (d, h) => paginar(() => {
+  }));
+  const traerDetalle = (d, h) => conRangos('detalle', d, h, (d, h) => paginar(() => {
     let q = enlace.sb.from('detalle_ventas').select('id,venta_id,producto_id,producto_nombre,cantidad,subtotal,ventas!inner(created_at,usuario_id)').gte('ventas.created_at', d.toISOString()).lt('ventas.created_at', h.toISOString()).order('id', { ascending: true });
     if(esCajero()) q = q.eq('ventas.usuario_id', enlace.usuarioId());
     return q;
-  });
+  }));
   async function traerGastos(d, h){
     if(enlace.rol() !== 'admin') return null;
     const { data, error } = await enlace.sb.from('gastos').select('monto,fecha,categoria').gte('fecha', fechaLocal(d)).lte('fecha', fechaLocal(h));
@@ -158,7 +177,9 @@
 
   window.PuveIaDatos = {
     enlazar(o){ enlace = Object.assign(enlace, o || {}); },
-    reiniciar(){ memoria.clear(); },
+    reiniciar(){ memoria.clear(); rangos.ventas = []; rangos.detalle = []; noAmpliarHasta = 0; truncadoEn = 0; },
+    configurar(o){ if(o && 'cacheRangos' in o) cacheRangos = !!o.cacheRangos; },
+    truncado: () => Date.now() - truncadoEn < 300000 && truncadoEn > 0,   // ¿una lectura reciente se cortó por ser demasiado grande? (las cifras pueden estar incompletas)
     traerGastos, cargarPeriodo, periodoCompleto, diario, detalleLineas, nombresUsuarios, ultimaVenta, analisis, compañero, prediccion, calcular, esFisico, esCajero, puedeCostos, fechaLocal
   };
 })();

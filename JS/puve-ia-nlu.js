@@ -54,13 +54,17 @@
     que_hago: ['que hago', 'que me recomiendas', 'que me aconsejas', 'dame un consejo', 'que deberia hacer hoy', 'por donde empiezo', 'que es lo mas urgente', 'que debo arreglar', 'que hago primero', 'que mejoro', 'dame recomendaciones', 'que me sugieres', 'que cosas debo cuidar', 'dame consejos', 'que me recomiendas hacer', 'que me recomiendas hoy', 'que me recomiendas ahora', 'que hago ahora', 'que hago hoy', 'que hago con mi negocio', 'recomiendame algo', 'dame una recomendacion', 'que me aconsejas hacer', 'que opinas'],
   };
   Object.keys(K.EXTRA).forEach((k) => { SEMILLAS[k] = (SEMILLAS[k] || []).concat(K.EXTRA[k]); });
+  // corpus propio (puve-ia-corpus.js): más frases en muchos registros; solo se suman a temas que el NLU ya conoce y se ignora si el archivo no está
+  const C = window.PuveIaCorpus || { ENTRENAMIENTO: {}, RUIDO: '', SINONIMOS: {} };
+  Object.keys(C.ENTRENAMIENTO || {}).forEach((k) => { if(SEMILLAS[k]) SEMILLAS[k] = SEMILLAS[k].concat(C.ENTRENAMIENTO[k]); });
   const INTENTS = Object.keys(SEMILLAS);
   const SOLO_ENCARGADO = new Set(['ganancia', 'gastos', 'cajeros', 'clientes', 'riesgo', 'lentos', 'salud', 'no_invertir', 'comprar', 'precios', 'equilibrio', 'recomendar_vender', 'subir_ventas', 'valor_inventario', 'datos_faltantes', 'oferta', 'mejor_margen']);
 
   // ---------- palabras ----------
   const VACIAS = new Set(['de', 'la', 'el', 'los', 'las', 'un', 'una', 'uno', 'unos', 'unas', 'del', 'al', 'en', 'mi', 'mis', 'tus', 'su', 'sus', 'me', 'se', 'lo', 'le', 'y', 'e', 'o', 'u', 'a', 'por', 'con', 'para', 'es', 'son', 'ser', 'esta', 'este', 'estos', 'esa', 'ese', 'hoy', 'ayer', 'antier', 'ahora', 'pasada', 'pasado', 'ultimos', 'ultimas', 'ultimo', 'ultima', 'entre', 'desde', 'hasta', 'ya', 'muy', 'favor', 'que', 'q', 'porfa', 'oye', 'bro', 'amigo', 'puve', 'ia']);
   K.MUY_VACIAS.split(' ').forEach((w) => { if(w) VACIAS.add(w); });
-  const SIN = K.SINONIMOS, FUERA = new Set(K.FUERA_PALABRAS.split(' ').filter(Boolean));
+  String(C.RUIDO || '').split(' ').forEach((w) => { if(w) VACIAS.add(w); });
+  const SIN = Object.assign({}, K.SINONIMOS, C.SINONIMOS || {}), FUERA = new Set(K.FUERA_PALABRAS.split(' ').filter(Boolean));
   const FAMILIAS = [[/^(cuantos|cuantas)$/, 'cuantos'], [/^(cuanto|cuanta)$/, 'cuanto'], [/^(vend|vent)/, 'vend'], [/^gan/, 'gana'], [/^gast/, 'gast'], [/^compr/, 'compr'], [/^(inver|invir|invie)/, 'inver'], [/^(inven)/, 'inven'], [/^(recom|recue)/, 'recom'], [/^acab/, 'acab'], [/^agot/, 'agot'], [/^(cadu|venci|venzo|vence)/, 'cadu'], [/^(promo|ofert)/, 'ofert'], [/^(cliente|client)/, 'clien'], [/^(pag|cobr)/, 'pago'], [/^(prec|cost)/, 'prec'], [/^(sobr|demas|exces)/, 'sobra']];
   function raiz(w){
     if(/\d/.test(w)) return '#';

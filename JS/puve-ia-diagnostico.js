@@ -208,7 +208,7 @@
     integrar(mem, c, r){
       if(!r.ok){ mem.avisos.push('No pude revisar ' + c.porque.replace(/^(ver|comparar|buscar) /, '') + ' (' + r.error + ')'); return 'no disponible'; }
       const d = r.datos;
-      if(c.id === 'estado'){ mem.estado = d; if(!d.suficiente) mem.parar = 'sin_datos'; return d.ventas30 + ' ventas en 30 días, ' + d.dias30 + ' días con ventas'; }
+      if(c.id === 'estado'){ mem.estado = d; if(!d.suficiente) mem.parar = 'sin_datos'; if(d.incompleto) mem.avisos.push('Tienes tantas ventas que solo pude leer una parte de ellas: las cifras pueden estar incompletas.'); return d.ventas30 + ' ventas en 30 días, ' + d.dias30 + ' días con ventas'; }
       if(c.id === 'cmp'){
         mem.cmp = d; mem.real = RZ.esReal({ totalAct: d.act.total, totalAnt: d.ant.total, diasAct: d.act.dias, diasAnt: d.ant.dias, sigmaDia: d.sigmaDia });
         if(d.incompleto){ mem.real.confianza *= 0.85; mem.avisos.push('El periodo todavía no termina, así que las cifras pueden moverse.'); }
