@@ -212,6 +212,27 @@
     caracteristicas(frase, true).forEach((f) => { M.cnt[intent][f] = (M.cnt[intent][f] || 0) + w; M.tot[intent] += w; if(!M.vocab.has(f)){ M.vocab.add(f); M.V++; } });
   }
   INTENTS.forEach((i) => SEMILLAS[i].forEach((f) => entrenar(f, i, 1)));
+  // ---------- modelo generado (puve-ia-modelo.js; lo produce herramientas/generar_corpus.js) ----------
+  // Guarda los CONTEOS de cientos de miles de frases generadas, no las frases. Cada tema recibe una masa igual a «lambda» veces la de sus frases reales:
+  // más frases generadas = mejor estimación de cómo se dice, no más peso frente a lo que escribió la gente.
+  // lambda 0.6: medido (ver PROGRESO_ARQUITECTURA_IA.md, décimo y undécimo paso). Con 1 el acierto sube 0.5 puntos pero con 1.5 se rompe «Ero zber d noz bentaz»: se deja lejos del borde
+  const AJ = Object.assign({ lambda: 0.6, usarModelo: true, palabras: false }, window.PuveIaNluAjustes || {});
+  function exportarModelo(){ return { cnt: JSON.parse(JSON.stringify(M.cnt)), tot: Object.assign({}, M.tot), palabras: Array.from(M.palabras) }; }
+  function importarModelo(mod, lambda){
+    if(!mod || !mod.cnt) return 0;
+    const L = lambda == null ? AJ.lambda : lambda; let n = 0;
+    Object.keys(mod.cnt).forEach((i) => {
+      if(!M.cnt[i]) return;
+      const g = mod.cnt[i]; let tg = 0; Object.keys(g).forEach((f) => { tg += g[f]; });
+      if(!tg) return;
+      const k = L * Math.max(M.tot[i], 1) / tg;
+      Object.keys(g).forEach((f) => { M.cnt[i][f] = (M.cnt[i][f] || 0) + g[f] * k; if(!M.vocab.has(f)){ M.vocab.add(f); M.V++; } n++; });
+      M.tot[i] += tg * k;
+    });
+    if(AJ.palabras) (mod.palabras || []).forEach((w) => { if(!M.palabras.has(w)){ M.palabras.add(w); if(!M.frec.has(w)) M.frec.set(w, 1); } });   // apagado por defecto: ampliar el léxico de corrección ortográfica empeoró las faltas extremas
+    return n;
+  }
+  if(AJ.usarModelo && window.PuveIaModelo) importarModelo(window.PuveIaModelo);
   // si la pregunta es exactamente una frase de ejemplo que pertenece a un solo tema, es ese tema (sin dudas)
   const EXACTAS = new Map(), VISTAS = new Map();
   INTENTS.forEach((i) => SEMILLAS[i].forEach((f) => { const t = norm(f); if(!VISTAS.has(t)) VISTAS.set(t, new Set()); VISTAS.get(t).add(i); }));
@@ -393,6 +414,7 @@
 
   window.PuveIaNlu = {
     INTENTS, SOLO_ENCARGADO, norm, decidir, cambios, _depurar: { fon, distP, lexico }, interpretar: (t) => arreglarPalabras(sinRelleno(norm(t)).split(' ')).join(' '), reglas, numeros, ligero, clasificar, aprender, castigar, olvidar, sanear, dividir, parseTiempo, ultimos, extraerHoras, buscarProductos, enmascarar, rangoTexto, horaFuerteTexto, DIAS_BONITO,
+    exportarModelo, importarModelo,
     cargarMemoria(lista, peso){ (lista || []).forEach((x) => { if(x && x.f && x.i) { entrenar(x.f, x.i, peso || 3); if((peso || 3) >= 3) M.memoria.set(norm(x.f), x.i); } }); },
     vacia: (t) => caracteristicas(t).filter((x) => x !== 'xprod').length === 0
   };

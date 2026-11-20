@@ -74,7 +74,7 @@
   };
 
   // Palabras que no cambian lo que se pregunta (apelativos, muletillas y fórmulas de cortesía): el clasificador las ignora.
-  const RUIDO = 'literal literalmente carnal compa compadre wey guey mijo mija hijo hija onda solicito deseo desearia requiero indiqueme indique informeme informarme conocer';
+  const RUIDO = 'dime literal literalmente carnal compa compadre wey guey mijo mija hijo hija onda solicito deseo desearia requiero indiqueme indique informeme informarme conocer';
 
   // Jerga y spanglish → la palabra que ya entiende el clasificador (una sola palabra a la vez).
   const SINONIMOS = {
