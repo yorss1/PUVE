@@ -104,6 +104,13 @@
     if(nums.length >= 1 && (/\d\s*(%|por ciento)/.test(t) || /(descuento|rebaja|iva|propina|aumento|incremento|recargo)/.test(n))) return { intent: 'calculo', p: 0.97 };
     if(/\d\s*(\+|\*|\/|x|mas|menos|por|entre)\s*\d/.test(t) && t.split(' ').length <= 12) return { intent: 'calculo', p: 0.97 };
     if(nums.length >= 2 && /(suma|resta|multiplica|divide|cuanto es|cuanto son|cuanto da|total de|cuanto sale)/.test(n)) return { intent: 'calculo', p: 0.95 };
+    // pasado + día de la semana («cuánto vendí el sábado pasado») es una consulta de lo ya ocurrido, no una predicción
+    const dsem = /(^| )(lunes|martes|miercoles|jueves|viernes|sabado|domingo)( |$)/.test(n), futuro = /(voy a|vamos a|vendere|ganare|gastare|crees|va a|vaya|proxim|pronostic|predic|estim|espero|manana|siguiente)/.test(n);
+    if(dsem && !futuro){
+      if(/(^| )(gane|ganamos|ganancia|utilidad|saque limpio)( |$)/.test(n)) return { intent: 'ganancia', p: 0.95 };
+      if(/(^| )(gaste|gastamos|gastos|pague|pagamos)( |$)/.test(n)) return { intent: 'gastos', p: 0.95 };
+      if(/(^| )(vendi|vendimos|vendio|hice|hicimos|facture|cobre|cobramos|entro|entraron|jale|ventas|venta|fue)( |$)/.test(n) || /(lunes|martes|miercoles|jueves|viernes|sabado|domingo) pasado/.test(n)) return { intent: 'ventas', p: 0.95 };
+    }
     const f = n.split(' ').filter((w) => FUERA.has(w));
     if(f.length && !/(vend|vent|gan|gast|stock|inventar|client|negocio|produc|caja|corte|cajer|precio|merc)/.test(n)) return { intent: 'fuera_tema', p: 0.9 };
     return null;
@@ -216,7 +223,7 @@
   // Guarda los CONTEOS de cientos de miles de frases generadas, no las frases. Cada tema recibe una masa igual a «lambda» veces la de sus frases reales:
   // más frases generadas = mejor estimación de cómo se dice, no más peso frente a lo que escribió la gente.
   // lambda 0.6: medido (ver PROGRESO_ARQUITECTURA_IA.md, décimo y undécimo paso). Con 1 el acierto sube 0.5 puntos pero con 1.5 se rompe «Ero zber d noz bentaz»: se deja lejos del borde
-  const AJ = Object.assign({ lambda: 0.6, usarModelo: true, palabras: false }, window.PuveIaNluAjustes || {});
+  const AJ = Object.assign({ lambda: 0.6, usarModelo: true, palabras: false, knn: 0, knnBeta: 12, rescate: true, rescateSim: 0.5, rescateMargen: 0.3, rescateCobertura: 0.9 }, window.PuveIaNluAjustes || {});
   function exportarModelo(){ return { cnt: JSON.parse(JSON.stringify(M.cnt)), tot: Object.assign({}, M.tot), palabras: Array.from(M.palabras) }; }
   function importarModelo(mod, lambda){
     if(!mod || !mod.cnt) return 0;
@@ -238,6 +245,26 @@
   INTENTS.forEach((i) => SEMILLAS[i].forEach((f) => { const t = norm(f); if(!VISTAS.has(t)) VISTAS.set(t, new Set()); VISTAS.get(t).add(i); }));
   VISTAS.forEach((set, t) => { if(set.size === 1) EXACTAS.set(t, [...set][0]); });
 
+  // ---------- segundo clasificador: parecido con frases conocidas (TF-IDF + coseno, vecino más cercano por tema) ----------
+  // El Naive Bayes mira qué rasgos suelen aparecer en cada tema; este mira a qué frase conocida se parece más la pregunta. Se fusionan (producto de expertos):
+  // cuando uno duda y el otro está seguro, gana el seguro. Se construye la primera vez que se usa (unos milisegundos).
+  let KNN = null;
+  function knnIndice(){
+    if(KNN) return KNN;
+    const docs = [], df = new Map();
+    INTENTS.forEach((i) => SEMILLAS[i].forEach((f) => { const fs = new Set(caracteristicas(f, true).filter((x) => x.length > 2 || x.indexOf('_') >= 0)); if(!fs.size) return; docs.push({ i, f: fs }); fs.forEach((x) => df.set(x, (df.get(x) || 0) + 1)); }));
+    const N = docs.length, idf = new Map(); df.forEach((c, x) => idf.set(x, Math.log((N + 1) / (c + 1)) + 1));
+    const inv = new Map();
+    docs.forEach((d, k) => { let n2 = 0; d.f.forEach((x) => { const w = idf.get(x); n2 += w * w; }); d.nrm = Math.sqrt(n2); d.f.forEach((x) => { (inv.get(x) || inv.set(x, []).get(x)).push([k, idf.get(x)]); }); });
+    KNN = { docs, idf, inv }; return KNN;
+  }
+  function knnPuntajes(texto){
+    const K = knnIndice(), q = new Set(caracteristicas(texto).filter((x) => K.idf.has(x))); if(!q.size) return null;
+    let qn = 0; q.forEach((x) => { const w = K.idf.get(x); qn += w * w; }); qn = Math.sqrt(qn);
+    const acum = new Map(); q.forEach((x) => { const w = K.idf.get(x); (K.inv.get(x) || []).forEach(([k, wd]) => { acum.set(k, (acum.get(k) || 0) + w * wd); }); });
+    const mejor = {}; acum.forEach((dot, k) => { const d = K.docs[k], sim = dot / (qn * d.nrm); if(sim > (mejor[d.i] || 0)) mejor[d.i] = sim; });
+    return mejor;
+  }
   function clasificar(texto){
     const t0 = norm(texto), t = sinRelleno(t0);
     const def = t.match(/^(?:explicame )?(?:que es|que son|que significa|que quiere decir|que quieren decir)(?: el| la| los| las| un| una)? (?!lo\b|mi\b|mis\b|mas\b|menos\b|mejor\b|peor\b|que\b|el\b|la\b)([a-z]+)/);
@@ -250,12 +277,26 @@
     if(!f.length) return { lista: [], conocida: false, nFeat: 0, cobertura: 0 };
     const a = 0.08, ints = INTENTS.slice(), sc = ints.map((i) => { let s = 0; f.forEach((x) => { s += Math.log(((M.cnt[i][x] || 0) + a) / (M.tot[i] + a * M.V)); }); return s / Math.sqrt(f.length); });
     const mx = Math.max(...sc), ex = sc.map((s) => Math.exp((s - mx) * 1.6)), z = ex.reduce((x, y) => x + y, 0);
-    return { lista: ints.map((i, k) => ({ i, p: ex[k] / z })).sort((x, y) => y.p - x.p).slice(0, 4), conocida: false, nFeat: f.length, cobertura };
+    let pr = ex.map((e) => e / z);
+    if(AJ.knn > 0){
+      const ks = knnPuntajes(texto);
+      if(ks){ const lg = pr.map((p, k) => (1 - AJ.knn) * Math.log(p + 1e-9) + AJ.knn * AJ.knnBeta * (ks[ints[k]] || 0)), m2 = Math.max(...lg), e2 = lg.map((l) => Math.exp(l - m2)), z2 = e2.reduce((x, y) => x + y, 0); pr = e2.map((e) => e / z2); }
+    }
+    const lista = ints.map((i, k) => ({ i, p: pr[k] })).sort((x, y) => y.p - x.p).slice(0, 4), res = { lista, conocida: false, nFeat: f.length, cobertura };
+    if(AJ.rescate && cobertura >= AJ.rescateCobertura){   // rescate: si el clasificador principal duda pero la pregunta se parece mucho a UNA frase conocida de un tema que él también ve entre sus 3 primeros, contesta ese
+      const ks = knnPuntajes(texto);
+      if(ks){ const o = Object.entries(ks).sort((x, y) => y[1] - x[1]); if(o[0] && o[0][1] >= AJ.rescateSim && o[0][1] - (o[1] ? o[1][1] : 0) >= AJ.rescateMargen && lista.slice(0, 3).some((x) => x.i === o[0][0])) res.parecido = { i: o[0][0], sim: o[0][1] }; }
+    }
+    return res;
   }
 
   // ¿Qué tan seguro hay que estar para contestar en vez de preguntar? Contesta si está claro (55%+ y le saca ventaja al segundo)
   // o si, aunque haya pocas pistas (texto muy mal escrito), la ventaja sobre el segundo es grande (40%+ y 30 puntos de ventaja).
   function decidir(cl){
+    const r = decidirBase(cl);
+    return r || (cl.parecido ? cl.parecido.i : null);
+  }
+  function decidirBase(cl){
     const top = cl.lista[0], sec = cl.lista[1];
     if(!top || cl.cobertura <= 0.5) return null;
     const margen = top.p - (sec ? sec.p : 0);
@@ -414,7 +455,7 @@
 
   window.PuveIaNlu = {
     INTENTS, SOLO_ENCARGADO, norm, decidir, cambios, _depurar: { fon, distP, lexico }, interpretar: (t) => arreglarPalabras(sinRelleno(norm(t)).split(' ')).join(' '), reglas, numeros, ligero, clasificar, aprender, castigar, olvidar, sanear, dividir, parseTiempo, ultimos, extraerHoras, buscarProductos, enmascarar, rangoTexto, horaFuerteTexto, DIAS_BONITO,
-    exportarModelo, importarModelo,
+    exportarModelo, importarModelo, parecidos: knnPuntajes,
     cargarMemoria(lista, peso){ (lista || []).forEach((x) => { if(x && x.f && x.i) { entrenar(x.f, x.i, peso || 3); if((peso || 3) >= 3) M.memoria.set(norm(x.f), x.i); } }); },
     vacia: (t) => caracteristicas(t).filter((x) => x !== 'xprod').length === 0
   };

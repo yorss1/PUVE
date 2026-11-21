@@ -54,7 +54,8 @@
   }));
   async function traerGastos(d, h){
     if(enlace.rol() !== 'admin') return null;
-    const { data, error } = await enlace.sb.from('gastos').select('monto,fecha,categoria').gte('fecha', fechaLocal(d)).lte('fecha', fechaLocal(h));
+    const finExclusivo = h.getHours() === 0 && h.getMinutes() === 0 && h.getSeconds() === 0 && h.getMilliseconds() === 0 && h.getTime() > d.getTime();   // «hasta el 1 de noviembre a las 00:00» no incluye el 1 de noviembre
+    const { data, error } = await enlace.sb.from('gastos').select('monto,fecha,categoria').gte('fecha', fechaLocal(d)).lte('fecha', fechaLocal(finExclusivo ? suma(h, -1) : h));
     return error ? null : (data || []);
   }
 
@@ -106,7 +107,7 @@
   // ventas sumadas por día (para promedios, mejores días y proyecciones)
   function diario(dias){
     return recordar(['di', dias, quien()].join('|'), 300000, async () => {
-      const ahora = new Date(), v = await traerVentas(suma(ahora, -dias), new Date(ahora.getTime() + 60000)), por = new Map();
+      const ahora = new Date(), v = await traerVentas(new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() - (dias - 1)), new Date(ahora.getTime() + 60000)), por = new Map();   // desde la MEDIANOCHE de hace (dias-1) días: así el primer día no sale recortado
       v.forEach((x) => { const k = fechaLocal(new Date(x.created_at)), o = por.get(k) || { fecha: k, total: 0, n: 0 }; o.total += Number(x.total) || 0; o.n++; por.set(k, o); });
       return [...por.values()].sort((a, b) => a.fecha < b.fecha ? -1 : 1);
     });

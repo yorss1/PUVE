@@ -15,13 +15,33 @@
   const esPesos = (t) => /(\$|pesos|peso|lana|feria|dinero|cobr|cuesta|precio|cuenta|total|cambio|paga)/.test(t);
 
   // ---------- plática ----------
-  H.saludo = async () => {
-    const h = new Date().getHours(), sal = h < 12 ? '¡Buenos días!' : (h < 19 ? '¡Buenas tardes!' : '¡Buenas noches!');
-    const out = [P(pick([sal + ' ¿Cómo estás?', sal + ' Qué gusto verte por aquí.', '¡Hola! ' + sal.replace('¡', '').replace('!', '') + '.', sal + ' Aquí estoy para lo que necesites.']))];
+  H.saludo = async (c) => {
+    // Saludo que se adapta (como te hablan, hora del día, tu nombre) y que ya trae lo que importa: cómo vas y lo más urgente.
+    const tx = N.norm((c && c.texto) || ''), h = new Date().getHours(), parte = h < 12 ? 'Buenos días' : (h < 19 ? 'Buenas tardes' : 'Buenas noches');
+    let nombre = ''; try { const e = enlace(), r = await e.sb.from('perfiles').select('nombre').eq('id', e.usuarioId()); const nm = r && r.data && r.data[0] && r.data[0].nombre; if(nm) nombre = String(nm).trim().split(/\s+/)[0]; } catch(err){}
+    const con = nombre ? ', ' + nombre : '';
+    const informal = /\b(quiubo|quihubo|que hubo|que onda|que pasa|epa|ey|hey|wey|carnal|compa|bro|que tal)\b/.test(tx), formal = /\b(estimado|estimada|cordial|cordiales|saludos|buen dia tenga|usted)\b/.test(tx);
+    const sal = informal ? pick(['¡Quiubo' + con + '!', '¡Qué onda' + con + '!', '¡Ey' + con + '!']) : (formal ? 'Buen día' + con + ', un gusto saludarle.' : '¡' + parte + con + '!');
+    const out = [P(sal)];
+    if(esCajero()){
+      try { const p = await D.cargarPeriodo(N.parseTiempo('hoy'), false), a = p.act; out.push(P(a.n ? 'Hoy llevas **' + $d(a.total) + '** en ' + veces(a.n, 'venta', 'ventas') + '.' : 'Hoy todavía no hay ventas, pero el día apenas empieza.')); } catch(err){}
+      out.push(P('¿En qué te ayudo?')); return out;
+    }
     try {
+      const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'], hoyF = D.fechaLocal(new Date()), dow = new Date().getDay();
+      const serie = await D.diario(60), mismos = serie.filter((x) => x.fecha !== hoyF && x.total > 0 && new Date(x.fecha + 'T12:00:00').getDay() === dow), normal = mismos.length >= 2 ? mismos.reduce((t, x) => t + x.total, 0) / mismos.length : null;
       const p = await D.cargarPeriodo(N.parseTiempo('hoy'), false), a = p.act;
-      out.push(P(a.n ? 'Por cierto, hoy llevas **' + $d(a.total) + '** en ' + veces(a.n, 'venta', 'ventas') + '. ' + compara(a.total, p.ant.total, 'ayer a esta misma hora') : 'Hoy todavía no hay ventas, pero el día apenas empieza.'));
-    } catch(e){}
+      if(h < 12){
+        const ay = await D.cargarPeriodo(N.parseTiempo('ayer'), false), b = ay.act;
+        if(b.n) out.push(P('Ayer cerraste en **' + $d(b.total) + '** (' + veces(b.n, 'venta', 'ventas') + '). ' + compara(b.total, ay.ant.total, 'antier')));
+        if(normal) out.push(P('Un ' + DIAS[dow] + ' normal vendes unos **' + $r(normal) + '**. ¡Vamos por eso!'));
+      } else if(a.n){
+        out.push(P('Hoy llevas **' + $d(a.total) + '** en ' + veces(a.n, 'venta', 'ventas') + '. ' + compara(a.total, p.ant.total, 'ayer a esta misma hora')));
+        if(normal && h >= 19) out.push(P('Un ' + DIAS[dow] + ' normal cierras en unos ' + $r(normal) + ': llevas ' + Math.round(a.total / normal * 100) + ' de cada 100.'));
+      } else out.push(P('Hoy todavía no hay ventas, pero el día apenas empieza.'));
+      const urgentes = (await I.plan()).filter((x) => x.prio >= 70).slice(0, 2);
+      if(urgentes.length){ out.push(P('Lo más importante ahora:')); urgentes.forEach((x) => out.push(P('**' + x.titulo + '.** ' + x.texto))); out.push(C([sug('¿Qué debo comprar?'), sug('¿Cómo me fue hoy?'), sug('Dame el plan de la semana')])); return out; }
+    } catch(err){}
     out.push(P('¿En qué te ayudo?'));
     return out;
   };
@@ -124,11 +144,18 @@
     const may = v.reduce((x, y) => Number(y.total) > Number(x.total) ? y : x), men = v.reduce((x, y) => Number(y.total) < Number(x.total) ? y : x);
     return [P('Tu venta más grande ' + en(t) + ' fue de **' + $d(may.total) + '** (a las ' + hora12(new Date(may.created_at)) + ').'), P('La más chica fue de ' + $d(men.total) + ' y el promedio es ' + $d(p.act.ticket) + '.'), P(Number(may.total) > p.act.ticket * 3 ? 'Esa venta fue más de 3 veces tu promedio: ¿qué se llevó el cliente? Ofrecerlo seguido te subiría el ticket.' : 'Tus ventas son bastante parejas.')];
   };
-  H.promedio = async () => {
-    const d = await D.diario(30), con = d.filter((x) => x.total > 0);
+  H.promedio = async (c) => {
+    if(/\b(ticket|por venta|por cliente|cada cliente|un cliente|cliente en promedio)\b/.test(N.norm((c && c.texto) || ''))){      // ticket promedio: lo que deja cada venta
+      const pc = await D.periodoCompleto(N.ultimos(30)), a = pc.act, b = pc.ant;
+      if(!a.n) return [P('Todavía no hay ventas en los últimos 30 días para sacar el ticket promedio.')];
+      const dif = b.n ? a.ticket - b.ticket : 0;
+      return [P('Tu ticket promedio de los últimos 30 días es **' + $d(a.ticket) + '**: cada venta te deja eso en promedio (' + veces(a.n, 'venta', 'ventas') + ').' + (b.n ? ' Los 30 días anteriores era ' + $d(b.ticket) + ': ' + (Math.abs(dif) < 1 ? 'casi igual.' : (dif > 0 ? 'ahora gastan ' + $d(dif) + ' más por venta.' : 'ahora gastan ' + $d(-dif) + ' menos por venta.')) : '')),
+        P('Para subirlo: ofrece un producto extra al cobrar o arma combos con lo que ya se compra junto.'), C([sug('¿Qué combos me convienen?')])];
+    }
+    const d = await D.diario(30), hoy = D.fechaLocal(new Date()), con = d.filter((x) => x.total > 0 && x.fecha !== hoy);   // solo días COMPLETOS en que abriste: el de hoy sigue corriendo y bajaría el promedio
     if(con.length < 3) return [P('Todavía tengo pocos días de ventas para sacar un promedio. Con unos días más te lo digo.')];
-    const prom = con.reduce((s, x) => s + x.total, 0) / con.length, tot = con.map((x) => x.total).sort((a, b) => a - b), bueno = tot[Math.floor(tot.length * 0.8)], flojo = tot[Math.floor(tot.length * 0.2)], hoy = D.fechaLocal(new Date()), de = d.find((x) => x.fecha === hoy);
-    const out = [P('En los últimos 30 días vendes en promedio **' + $r(prom) + '** al día. Un día flojo ronda los ' + $r(flojo) + ' y uno bueno los ' + $r(bueno) + '.')];
+    const prom = con.reduce((s, x) => s + x.total, 0) / con.length, tot = con.map((x) => x.total).sort((a, b) => a - b), bueno = tot[Math.floor(tot.length * 0.8)], flojo = tot[Math.floor(tot.length * 0.2)], de = d.find((x) => x.fecha === hoy);
+    const out = [P('En los últimos 30 días vendes en promedio **' + $r(prom) + '** al día (cuento los días completos en que abriste). Un día flojo ronda los ' + $r(flojo) + ' y uno bueno los ' + $r(bueno) + '.')];
     if(de) out.push(P('Hoy llevas **' + $r(de.total) + '**, que es ' + (de.total >= prom ? 'más' : 'menos') + ' de lo normal (' + Math.round(de.total / prom * 100) + ' de cada 100 de tu promedio), y todavía puede subir.'));
     return out;
   };
@@ -245,9 +272,13 @@
     else out.push(P('Antes de lanzar cualquier oferta, revisa que el precio nuevo siga arriba de tu costo.'));
     return out;
   };
-  H.mejor_margen = async () => {
+  H.mejor_margen = async (c) => {
     const an = await D.analisis();
     if(!an.hayCostos) return [P('Para decirte qué te deja más necesito el costo de tus productos. Anótalo en **Productos** y lo calculo.')];
+    if(/\b(bajo|bajos|baja|bajas|poco|pocos|menos|peor|peores|minimo|pierdo|regalo|regalando|insuficiente)\b/.test(N.norm((c && c.texto) || ''))){      // «margen bajo», «los que menos dejan»: el reverso de la lista
+      const flojos = an.lista.filter((x) => x.mPct != null && x.u30 >= 3).sort((a, b) => a.mPct - b.mPct).slice(0, 5);
+      if(flojos.length) return [P('Estos son los que **menos te dejan** en proporción a lo que cobras:'), L('', flojos.map((x) => [x.nombre, Math.round(x.mPct * 100) + '% de margen', $d(x.mUnit) + ' por pieza · vendiste ' + fmt(x.u30) + ' este mes'])), P('Si se venden bien, subirles un poco el precio es lo más rápido. Pregúntame **¿qué precio le subo?** y te digo cuánto.'), C([sug('¿Qué precio le subo?')])];
+    }
     const con = an.lista.filter((x) => x.mUnit != null && x.mUnit > 0), porPieza = con.slice().sort((a, b) => b.mUnit - a.mUnit).slice(0, 5), porCiento = con.filter((x) => x.u30 >= 3).sort((a, b) => b.mPct - a.mPct).slice(0, 3);
     return [P('Estos son los que **más te dejan por cada pieza**:'), L('', porPieza.map((x) => [x.nombre, $d(x.mUnit), 'vendiste ' + fmt(x.u30) + ' este mes'])), porCiento.length ? P('Y en proporción (de cada $100 que cobras, cuánto es ganancia), los mejores son ' + lista(porCiento.map((x) => x.nombre + ' (' + Math.round(x.mPct * 100) + ')')) + '.') : P(''), P('Los que dejan mucho y se venden poco son tu mejor oportunidad: ofrécelos más.')].filter((b) => b.t !== 'p' || b.x !== '');
   };

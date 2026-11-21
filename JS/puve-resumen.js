@@ -109,6 +109,8 @@
     if(!a.n) return [P(cap(en(t)) + ' todavía no hay ventas, así que no hay ganancia que contar.')];
     if(a.margen == null) return [P('Para decirte cuánto ganas necesito saber cuánto te cuesta cada producto.'), P('Entra a **Productos** y anota el costo de cada uno. Con eso te calculo todo.')];
     const out = [P('De **' + $d(a.total) + '** que vendiste ' + en(t) + ', **' + $d(a.margen) + '** son ganancia. Es lo que te queda después de pagar la mercancía: por cada $100 que vendes, te quedan ' + $r(a.margen / a.total * 100) + '.')];
+    const sinCosto = enlace.productos().filter((q) => !(Number(q.costo) > 0) && a.productos[q.nombre] && a.productos[q.nombre].monto > 0);
+    if(sinCosto.length){ const monto = sinCosto.reduce((s, q) => s + a.productos[q.nombre].monto, 0); out.push(P('Ojo: **' + lista(sinCosto.slice(0, 3).map((q) => q.nombre)) + '** ' + (sinCosto.length === 1 ? 'no tiene' : 'no tienen') + ' costo anotado, así que sus ' + $r(monto) + ' vendidos no cuentan en esta ganancia (la real puede ser un poco mayor).')); }
     if(t.tipo === 'horas'){ out.push(P('Los gastos se anotan por día, no por hora. Pregúntame por el día completo y te digo tu ganancia real.')); return out; }
     const g = await D.traerGastos(t.desde, t.hasta);
     if(g){ const tot = g.reduce((s, x) => s + Number(x.monto), 0), real = a.margen - tot; out.push(P(tot ? 'Gastaste **' + $d(tot) + '** en cosas del negocio, así que tu ganancia de verdad es **' + $d(real) + '**.' + (real < 0 ? ' Estás gastando más de lo que ganas: revisa tus gastos.' : '') : 'No anotaste gastos en ese periodo, así que tu ganancia real es **' + $d(real) + '**.')); }
@@ -121,13 +123,19 @@
     const total = g.reduce((s, x) => s + Number(x.monto), 0);
     if(!total) return [P('No anotaste gastos ' + en(t) + '.'), P('Anótalos (renta, luz, sueldos…) para saber tu ganancia de verdad.')];
     const por = {}; g.forEach((x) => { por[x.categoria] = (por[x.categoria] || 0) + Number(x.monto); });
+    const CATS = [['renta', /\b(renta|alquiler)\b/], ['luz', /\b(luz|electricidad|cfe)\b/], ['agua', /\bagua\b/], ['internet', /\b(internet|wifi)\b/], ['sueldos', /\b(sueldos?|nomina|salarios?|empleados?)\b/], ['mantenimiento', /\b(mantenimiento|reparacion|reparaciones)\b/], ['proveedores', /\b(proveedor|proveedores)\b/], ['publicidad', /\bpublicidad\b/]];
+    const pedida = CATS.find(([k, re]) => re.test(N.norm(c.texto || '')));
+    if(pedida && /\b(en|de|por)\b/.test(N.norm(c.texto || ''))){      // «¿cuánto gasté EN RENTA?»: la cifra de esa categoría, no el total
+      const v = por[pedida[0]] || 0;
+      return [P(v ? 'En **' + pedida[0] + '** gastaste **' + $d(v) + '** ' + en(t) + ' (' + Math.round(v / total * 100) + ' de cada 100 pesos que gastaste).' : 'No anotaste gastos de **' + pedida[0] + '** ' + en(t) + '.'), P('En total gastaste ' + $d(total) + ' ' + en(t) + '.')];
+    }
     const orden = Object.entries(por).sort((x, y) => y[1] - x[1]).slice(0, 4), prev = (gA || []).reduce((s, x) => s + Number(x.monto), 0);
     const out = [P(cap(en(t)) + ' gastaste **' + $d(total) + '**. ' + (prev ? (total > prev ? 'Es ' + $d(total - prev) + ' más que ' + t.etPrev + '.' : (total < prev ? 'Es ' + $d(prev - total) + ' menos que ' + t.etPrev + '.' : 'Igual que ' + t.etPrev + '.')) : '')), L('En qué se fue', orden.map(([k, v]) => [cap(k), $d(v), Math.round(v / total * 100) + ' de cada 100 pesos']))];
     if(orden[0][1] > total * 0.5) out.push(P('Más de la mitad se va en **' + orden[0][0] + '**: ahí es donde más puedes ahorrar.'));
     return out;
   };
   H.top = async (c) => {
-    const { p, t, nota } = await periodo(c, true), a = p.act;
+    const { p, t, nota } = await periodo(c, true, 30), a = p.act;
     if(!a.n) return [P('Todavía no hay ventas ' + en(t) + ' para decirte qué se vende más.')];
     const top = topProductos(a, Math.max(1, Math.min(10, c.n || 4))), out = []; if(nota) out.push(P(nota));
     out.push(P('Lo que más se vendió ' + en(t) + ' fue **' + top[0].nombre + '** (' + fmt(top[0].cant) + ').'), L('Los más vendidos', top.map((x) => [x.nombre, fmt(x.cant) + ' vendidos', puedeCostos() && x.margen ? 'te dejó ' + $d(x.margen) + ' de ganancia' : ''])));
@@ -137,6 +145,11 @@
   };
   H.lentos = async (c) => {
     const { p, t } = await periodo(c, true, 30), a = p.act, sin = enlace.productos().filter((q) => D.esFisico(q) && Number(q.stock) > 0 && !a.productos[q.nombre]);
+    let poco = []; try { const an = await D.analisis(); poco = an.lista.filter((x) => x.fisico && x.stock > 0 && x.u30 > 0 && x.dias > 90 && x.u30 <= Math.max(3, x.stock * 0.1)).sort((x, y) => (y.capital || 0) - (x.capital || 0)).slice(0, 5); } catch(e){}
+    if(!sin.length && poco.length){
+      return [P('Nada se quedó sin venderse, pero esto **casi no se mueve** contra lo que tienes:'), L('', poco.map((x) => [x.nombre, 'vendiste ' + fmt(x.u30) + ' en 30 días y tienes ' + fmt(x.stock), x.capital != null ? $r(x.capital) + ' guardados · te dura unos ' + Math.round(x.dias) + ' días' : ''])),
+        P('Mi consejo: ponlos en oferta o júntalos con algo que sí se vende, y por ahora **no compres más** de estos.'), C([sug('¿En qué no debería invertir?')])];
+    }
     if(!sin.length) return [P('Todo se está moviendo: ' + en(t) + ' se vendió casi todo lo que tienes.')];
     const nmax = Math.max(1, Math.min(12, c.n || 6)), ord = sin.sort((x, y) => Number(y.stock) * Number(y.costo || 0) - Number(x.stock) * Number(x.costo || 0)).slice(0, nmax);
     const out = [P('Esto no se vendió ' + en(t) + ':'), L('', ord.map((q) => [q.nombre, 'tienes ' + fmt(q.stock), Number(q.costo) > 0 ? $r(q.stock * q.costo) + ' guardados' : '']))];
@@ -146,10 +159,13 @@
   };
   H.stock = async () => {
     const prods = enlace.productos().filter(D.esFisico), agot = prods.filter((p) => Number(p.stock) <= 0), bajos = prods.filter((p) => Number(p.stock) > 0 && Number(p.stock) <= 5).sort((a, b) => Number(a.stock) - Number(b.stock));
+    let pronto = []; try { const an = await D.analisis(); pronto = an.lista.filter((x) => x.fisico && x.stock > 0 && x.vel >= 0.3 && x.dias < 3).sort((x, y) => x.dias - y.dias); } catch(e){}
+    const ya = new Set(bajos.map((x) => x.id)); pronto.forEach((x) => { if(!ya.has(x.id)){ const pr = prods.find((q) => q.id === x.id); if(pr){ bajos.push(pr); ya.add(x.id); } } });
+    const diasDe = {}; pronto.forEach((x) => { diasDe[x.id] = x.dias; });
     if(!agot.length && !bajos.length) return [P('Tu inventario está bien: no tienes nada agotado ni a punto de acabarse.')];
     const out = [];
     if(agot.length) out.push(P('Ya se acabó: **' + lista(agot.slice(0, 8).map((p) => p.nombre)) + '**' + (agot.length > 8 ? ' y ' + (agot.length - 8) + ' más' : '') + '.'));
-    if(bajos.length) out.push(P('Te quedan pocos de:'), L('', bajos.slice(0, 8).map((p) => [p.nombre, fmt(p.stock) + ' ' + (Number(p.stock) === 1 ? 'pieza' : 'piezas'), ''])));
+    if(bajos.length) out.push(P('Te quedan pocos de:'), L('', bajos.slice(0, 8).map((p) => [p.nombre, fmt(p.stock) + ' ' + (Number(p.stock) === 1 ? 'pieza' : 'piezas'), diasDe[p.id] != null ? 'con lo que vendes te dura ' + (diasDe[p.id] < 1 ? 'menos de un día' : (diasDe[p.id] < 1.5 ? 'un día' : 'unos ' + Math.round(diasDe[p.id]) + ' días')) : ''])));
     out.push(P(esCajero() ? 'Avísale al encargado para que los pida.' : 'Si quieres, te armo la lista de lo que te conviene comprar.'));
     if(!esCajero()) out.push(C([sug('¿Qué debo comprar?')]));
     return out;
@@ -239,15 +255,15 @@
     return out;
   };
   H.pagos = async (c) => {
-    const { p, t, nota } = await periodo(c, false), a = p.act;
+    const { p, t, nota } = await periodo(c, false, 30), a = p.act;
     if(!a.n) return [P('Todavía no hay ventas ' + en(t) + ' para ver cómo te pagan.')];
     const orden = Object.entries(a.porMetodo).sort((x, y) => y[1] - x[1]), out = []; if(nota) out.push(P(nota));
-    out.push(P('De cada $100 que cobras ' + en(t) + ': ' + lista(orden.map(([k, v]) => '**' + $r(v / a.total * 100) + '** son en ' + (NOMBRE_PAGO[k] || k))) + '.'));
+    out.push(P(cap(en(t)) + ' cobraste **' + $r(a.total) + '**: ' + lista(orden.map(([k, v]) => '**' + $r(v) + '** en ' + (NOMBRE_PAGO[k] || k) + ' (' + Math.round(v / a.total * 100) + '%)')) + '.'));
     if(orden[0][0] === 'efectivo' && orden[0][1] / a.total > 0.85) out.push(P('Casi todo es efectivo: ofrece también tarjeta o transferencia para no perder clientes que no traen cambio.'));
     return out;
   };
   H.cajeros = async (c) => {
-    const { p, t, nota } = await periodo(c, false), a = p.act, ids = Object.keys(a.porCajero);
+    const { p, t, nota } = await periodo(c, false, 30), a = p.act, ids = Object.keys(a.porCajero);
     if(!ids.length) return [P('Todavía no hay ventas ' + en(t) + ' para comparar a tu equipo.')];
     const nombres = {}; try { const r = await enlace.sb.from('perfiles').select('id,nombre').in('id', ids); (r.data || []).forEach((x) => { nombres[x.id] = x.nombre; }); } catch(e){}
     const orden = ids.map((id) => ({ nombre: nombres[id] || 'Un cajero', n: a.porCajero[id].n, total: a.porCajero[id].total })).sort((x, y) => y.total - x.total), out = []; if(nota) out.push(P(nota));
