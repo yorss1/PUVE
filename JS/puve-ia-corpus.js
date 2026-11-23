@@ -63,6 +63,7 @@
     ],
     // contraejemplos: «top» de CLIENTES no es «top» de productos (lo encontró la regresión de prueba_contexto)
     clientes: ['top 10 de mis clientes', 'ranking de mis clientes', 'mis 3 mejores clientes', 'lista de mis mejores clientes', 'cuales son mis clientes top'],
+    producto: ['cuanto me dura xprod', 'para cuantos dias me alcanza xprod', 'cuanto tiempo me dura xprod', 'me alcanza xprod para la semana', 'cuanto me queda de xprod', 'cuantos dias me dura xprod'],
     promedio: ['cual es mi ticket promedio', 'ticket promedio', 'cuanto me deja cada cliente en promedio', 'cuanto gasta en promedio cada cliente', 'venta promedio por cliente', 'cuanto compra en promedio un cliente', 'cual es mi ticket medio', 'cuanto es el ticket promedio de hoy', 'ticket promedio del mes', 'cuanto me deja cada venta'],
     comprar: [
       'que tengo que surtir esta semana', 'que me toca comprar', 'que le pido al proveedor', 'que compro hoy', 'que debo adquirir', 'que mercancia me conviene comprar',

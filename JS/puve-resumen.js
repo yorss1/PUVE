@@ -238,10 +238,16 @@
     if(!pr.n) return [P('Todavía no tengo suficientes ' + nombre + 's para calcularlo. Con unas semanas de ventas ya te lo digo.')];
     return [P('Un ' + nombre + ' normal vendes alrededor de **' + $r(pr.prom) + '**. Los ' + nombre + 's de las últimas semanas fueron desde ' + $r(pr.min) + ' hasta ' + $r(pr.max) + '.'), P('Es solo un cálculo con tu historial: si hay lluvia, quincena o fiesta, puede cambiar.')];
   };
+  const MENOS = /\b(menos|peor|peores|flojo|flojos|floja|flojas|minimo|ultimo|bajo|bajos)\b/;      // «¿a qué hora vendo MENOS?»: se contesta lo que se preguntó, no lo contrario
   H.horas = async (c) => {
     const { p, t } = await periodo(c, false, 30), a = p.act;
     if(a.n < 3) return [P('Todavía hay muy pocas ventas para saber a qué hora vendes más.')];
-    const hs = a.porHora.map((v, h) => ({ h, v })).filter((x) => x.v > 0), fu = hs.slice().sort((x, y) => y.v - x.v).slice(0, 3), out = [P('Vendes más en el horario **' + N.horaFuerteTexto(fu[0].h) + '** (' + $r(fu[0].v) + ' en ' + t.etiqueta + ').'), L('Tus horas fuertes', fu.map((x) => [N.horaFuerteTexto(x.h), $r(x.v), '']))];
+    const hs = a.porHora.map((v, h) => ({ h, v })).filter((x) => x.v > 0), fu = hs.slice().sort((x, y) => y.v - x.v).slice(0, 3);
+    if(MENOS.test(N.norm((c && c.texto) || '')) && hs.length >= 5){
+      const i0 = hs[0].h, f0 = hs[hs.length - 1].h, fl3 = hs.filter((x) => x.h >= i0 && x.h <= f0).sort((x, y) => x.v - y.v).slice(0, 3);
+      return [P('Vendes menos en el horario **' + N.horaFuerteTexto(fl3[0].h) + '** (' + $r(fl3[0].v) + ' en ' + t.etiqueta + ').'), L('Tus horas más flojas', fl3.map((x) => [N.horaFuerteTexto(x.h), $r(x.v), ''])), P('Ahí prueba una oferta relámpago. Tu hora más fuerte es ' + N.horaFuerteTexto(fu[0].h) + '.')];
+    }
+    const out = [P('Vendes más en el horario **' + N.horaFuerteTexto(fu[0].h) + '** (' + $r(fu[0].v) + ' en ' + t.etiqueta + ').'), L('Tus horas fuertes', fu.map((x) => [N.horaFuerteTexto(x.h), $r(x.v), '']))];
     const ini = hs[0].h, fin = hs[hs.length - 1].h, fl = hs.filter((x) => x.h >= ini && x.h <= fin).sort((x, y) => x.v - y.v).slice(0, 2);
     if(fl.length && hs.length >= 5) out.push(P('Tus horas más flojas son ' + lista(fl.map((x) => N.horaFuerteTexto(x.h))) + '. Ahí prueba una oferta relámpago.'));
     out.push(P('En tu hora fuerte ten listo lo que más vendes y, si puedes, otra persona en caja.'));
@@ -250,7 +256,9 @@
   H.dias = async (c) => {
     const { p, t } = await periodo(c, false, 30), a = p.act;
     if(a.n < 5) return [P('Todavía hay muy pocas ventas para saber qué día vendes más.')];
-    const dd = a.porDia.map((v, d) => ({ d, v })).filter((x) => x.v > 0).sort((x, y) => y.v - x.v), out = [P('Tu mejor día es el **' + N.DIAS_BONITO[dd[0].d] + '** (' + $r(dd[0].v) + ' en ' + t.etiqueta + ')' + (dd[1] ? ' y después el ' + N.DIAS_BONITO[dd[1].d] + '.' : '.'))];
+    const dd = a.porDia.map((v, d) => ({ d, v })).filter((x) => x.v > 0).sort((x, y) => y.v - x.v);
+    if(MENOS.test(N.norm((c && c.texto) || '')) && dd.length > 2){ const w = dd[dd.length - 1], w2 = dd[dd.length - 2]; return [P('Tu día más flojo es el **' + N.DIAS_BONITO[w.d] + '** (' + $r(w.v) + ' en ' + t.etiqueta + ') y antes el ' + N.DIAS_BONITO[w2.d] + '.'), P('Tu mejor día es el ' + N.DIAS_BONITO[dd[0].d] + ' (' + $r(dd[0].v) + '). Haz una promoción en tu día flojo para llenarlo.')]; }
+    const out = [P('Tu mejor día es el **' + N.DIAS_BONITO[dd[0].d] + '** (' + $r(dd[0].v) + ' en ' + t.etiqueta + ')' + (dd[1] ? ' y después el ' + N.DIAS_BONITO[dd[1].d] + '.' : '.'))];
     if(dd.length > 2) out.push(P('El más flojo es el ' + N.DIAS_BONITO[dd[dd.length - 1].d] + ' (' + $r(dd[dd.length - 1].v) + '). Haz una promoción ese día para llenarlo.'));
     return out;
   };
@@ -267,6 +275,9 @@
     if(!ids.length) return [P('Todavía no hay ventas ' + en(t) + ' para comparar a tu equipo.')];
     const nombres = {}; try { const r = await enlace.sb.from('perfiles').select('id,nombre').in('id', ids); (r.data || []).forEach((x) => { nombres[x.id] = x.nombre; }); } catch(e){}
     const orden = ids.map((id) => ({ nombre: nombres[id] || 'Un cajero', n: a.porCajero[id].n, total: a.porCajero[id].total })).sort((x, y) => y.total - x.total), out = []; if(nota) out.push(P(nota));
+    const tx = N.norm((c && c.texto) || ''), palabras = tx.split(' '), buscado = orden.find((x) => palabras.indexOf(N.norm(String(x.nombre).split(' ')[0])) >= 0);
+    if(buscado && orden.length > 1){ const pos = orden.indexOf(buscado) + 1; out.push(P('**' + buscado.nombre + '** vendió **' + $r(buscado.total) + '** ' + en(t) + ' en ' + veces(buscado.n, 'venta', 'ventas') + ' (' + Math.round(buscado.total / orden.reduce((s, x) => s + x.total, 0) * 100) + ' de cada 100 pesos del equipo; va en el lugar ' + pos + ' de ' + orden.length + ').')); out.push(L('Todo el equipo', orden.map((x) => [x.nombre, $r(x.total), veces(x.n, 'venta', 'ventas')]))); return out; }
+    if(MENOS.test(tx) && orden.length > 1){ const w = orden[orden.length - 1]; out.push(P('**' + w.nombre + '** vendió menos ' + en(t) + ': ' + $r(w.total) + ' en ' + veces(w.n, 'venta', 'ventas') + '.')); out.push(L('Todo el equipo', orden.map((x) => [x.nombre, $r(x.total), veces(x.n, 'venta', 'ventas')]))); return out; }
     out.push(P('**' + orden[0].nombre + '** vendió más ' + en(t) + ': ' + $r(orden[0].total) + ' en ' + veces(orden[0].n, 'venta', 'ventas') + '.'));
     if(orden.length > 1) out.push(L('Todo el equipo', orden.map((x) => [x.nombre, $r(x.total), veces(x.n, 'venta', 'ventas')])));
     return out;

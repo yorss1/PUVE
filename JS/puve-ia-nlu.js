@@ -58,7 +58,7 @@
   const C = window.PuveIaCorpus || { ENTRENAMIENTO: {}, RUIDO: '', SINONIMOS: {} };
   Object.keys(C.ENTRENAMIENTO || {}).forEach((k) => { if(SEMILLAS[k]) SEMILLAS[k] = SEMILLAS[k].concat(C.ENTRENAMIENTO[k]); });
   const INTENTS = Object.keys(SEMILLAS);
-  const SOLO_ENCARGADO = new Set(['ganancia', 'gastos', 'cajeros', 'clientes', 'riesgo', 'lentos', 'salud', 'no_invertir', 'comprar', 'precios', 'equilibrio', 'recomendar_vender', 'subir_ventas', 'valor_inventario', 'datos_faltantes', 'oferta', 'mejor_margen']);
+  const SOLO_ENCARGADO = new Set(['ganancia', 'gastos', 'cajeros', 'clientes', 'riesgo', 'lentos', 'salud', 'no_invertir', 'comprar', 'precios', 'equilibrio', 'recomendar_vender', 'subir_ventas', 'valor_inventario', 'datos_faltantes', 'oferta', 'mejor_margen', 'ruta_optima']);
 
   // ---------- palabras ----------
   const VACIAS = new Set(['de', 'la', 'el', 'los', 'las', 'un', 'una', 'uno', 'unos', 'unas', 'del', 'al', 'en', 'mi', 'mis', 'tus', 'su', 'sus', 'me', 'se', 'lo', 'le', 'y', 'e', 'o', 'u', 'a', 'por', 'con', 'para', 'es', 'son', 'ser', 'esta', 'este', 'estos', 'esa', 'ese', 'hoy', 'ayer', 'antier', 'ahora', 'pasada', 'pasado', 'ultimos', 'ultimas', 'ultimo', 'ultima', 'entre', 'desde', 'hasta', 'ya', 'muy', 'favor', 'que', 'q', 'porfa', 'oye', 'bro', 'amigo', 'puve', 'ia']);
@@ -104,6 +104,10 @@
     if(nums.length >= 1 && (/\d\s*(%|por ciento)/.test(t) || /(descuento|rebaja|iva|propina|aumento|incremento|recargo)/.test(n))) return { intent: 'calculo', p: 0.97 };
     if(/\d\s*(\+|\*|\/|x|mas|menos|por|entre)\s*\d/.test(t) && t.split(' ').length <= 12) return { intent: 'calculo', p: 0.97 };
     if(nums.length >= 2 && /(suma|resta|multiplica|divide|cuanto es|cuanto son|cuanto da|total de|cuanto sale)/.test(n)) return { intent: 'calculo', p: 0.95 };
+    // dinero o tiempo + «qué hago / qué me conviene / en qué lo invierto»: es pedir la mejor decisión (ruta óptima)
+    if(/(^| )(tengo|cuento con|dispongo de|presupuesto de|invertir|puedo mover|con) \d/.test(n) && /(que hago|que me conviene|en que|como lo|como los|invert|usar|uso|decidir|conviene|que debo hacer)/.test(n)) return { intent: 'ruta_optima', p: 0.93 };
+    // «cuánto vendió Luis» / «cuánto vendió Marta ayer»: la palabra después del verbo es un nombre (no un periodo): es de cajeros
+    { const mc = n.match(/^(?:cuanto|que tanto) (?:ha )?(?:vendio|vende|hizo|facturo) ([a-z]+)( |$)/); if(mc && !/^(hoy|ayer|antier|anteayer|la|el|en|mi|mis|de|del|esta|este|todo|total|ya|tanto|cada|un|una|los|las|por|con|para|al|mas|menos|vendido|cobrado|hecho|ganado|de|a)$/.test(mc[1])) return { intent: 'cajeros', p: 0.93 }; }
     // pasado + día de la semana («cuánto vendí el sábado pasado») es una consulta de lo ya ocurrido, no una predicción
     const dsem = /(^| )(lunes|martes|miercoles|jueves|viernes|sabado|domingo)( |$)/.test(n), futuro = /(voy a|vamos a|vendere|ganare|gastare|crees|va a|vaya|proxim|pronostic|predic|estim|espero|manana|siguiente)/.test(n);
     if(dsem && !futuro){
@@ -382,7 +386,8 @@
     return null;
   }
   function parseTiempo(texto, ahoraRef){
-    const t = norm(texto), ahora = ahoraRef || new Date(), hoy0 = inicioDia(ahora), r = { tipo: 'dia', explicito: false };
+    let t = norm(texto); { const m0 = t.match(/^(.*?(?:este mes|esta semana|hoy|ayer|este ano|semana pasada|mes pasado)) (?:con|contra|vs|versus|comparad[oa] con|comparad[oa] contra|frente a) .*$/); if(m0) t = m0[1]; }   // «este mes con el mes pasado»: el periodo es el primero; el segundo ya es su comparación
+    const ahora = ahoraRef || new Date(), hoy0 = inicioDia(ahora), r = { tipo: 'dia', explicito: false };
     let dia = null, diaEt = null, m;
     if(/(^| )(antier|anteayer)( |$)/.test(t)){ dia = suma(hoy0, -2); diaEt = 'antier'; }
     else if(/(^| )ayer( |$)/.test(t)){ dia = suma(hoy0, -1); diaEt = 'ayer'; }

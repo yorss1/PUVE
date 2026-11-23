@@ -10,6 +10,18 @@
   const X = K.X, E = K.EXTRA;
   const sumar = (tema, frases) => { E[tema] = (E[tema] || []).concat(frases); };
 
+  // ¿cuál es el MEJOR camino? (decisión óptima entre varias acciones, con tu dinero y tu tiempo como límites)
+  sumar('ruta_optima', [
+    'cual es el mejor camino para crecer', 'cual es la ruta optima', 'cual es la mejor ruta para crecer', 'dame la ruta optima', 'cual es la mejor decision que puedo tomar', 'que decision me conviene mas',
+    'que me conviene mas hacer', 'cual es la mejor estrategia para mi negocio', 'cual es la estrategia optima', 'dime la mejor opcion para crecer', 'que camino me conviene tomar',
+    'en que invierto mi dinero', 'en que me conviene invertir', 'tengo dinero para invertir en que lo uso', 'en que uso mi dinero para ganar mas', 'a donde meto mi dinero para crecer',
+    'ayudame a decidir que hacer primero', 'que debo hacer primero para crecer', 'prioriza lo que debo hacer', 'ordena lo que debo hacer por lo que mas conviene', 'que me conviene mas subir precios o comprar mas',
+    'que accion me deja mas crecimiento', 'cual es la decision mas rentable', 'como hago crecer mi ganancia de la mejor manera', 'cual es el camino mas rentable', 'elige por mi lo que mas me conviene',
+    'optimiza mi negocio', 'optimizame el negocio', 'optimiza mis decisiones', 'dame la mejor combinacion de acciones', 'que acciones debo hacer para crecer lo mas posible', 'cual es el plan que mas me hace crecer',
+    'tomame la decision', 'ayudame a tomar la mejor decision', 'que hago para maximizar mi ganancia', 'como maximizo mi ganancia', 'cual es la mejor jugada para mi negocio', 'que jugada me conviene',
+    'con tres mil pesos que hago', 'tengo cinco mil pesos que hago con ellos', 'tengo diez mil pesos en que los invierto', 'tengo tiempo y dinero que hago primero'
+  ]);
+
   // ¿cómo hago crecer mi negocio? (ideas y ruta de crecimiento con los datos del negocio)
   sumar('crecer', [].concat(
     X([['como puedo', 'como logro', 'como le hago para', 'que hago para', 'quiero', 'necesito', 'ayudame a', 'dame ideas para', 'ideas para', 'que puedo hacer para'], ['hacer crecer', 'crecer', 'expandir', 'expandirme', 'agrandar', 'hacer mas grande'], ['mi negocio', 'el negocio', 'mi tienda', 'mi local', 'mi empresa', '']], 40),

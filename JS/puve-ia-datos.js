@@ -122,7 +122,7 @@
   // ---------- análisis de productos (últimos 30 días contra los 30 anteriores) ----------
   function analisis(){
     return recordar(['a', quien()].join('|'), 120000, async () => {
-      const ahora = new Date(), fin = new Date(ahora.getTime() + 60000), d30 = suma(ahora, -30), d60 = suma(ahora, -60);
+      const ahora = new Date(), fin = new Date(ahora.getTime() + 60000), d30 = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() - 29), d60 = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() - 59);   // desde la medianoche: 30 días completos, sin recortar el primero
       const detalle = await traerDetalle(d60, fin), prods = enlace.productos();
       const por = new Map(), ventasPor = new Map();
       detalle.forEach((d) => {
