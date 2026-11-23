@@ -83,6 +83,8 @@
 <script src="JS/puve-reparto.js"></script>
 <script src="JS/puve-gestion.js"></script>
 <script src="JS/puve-clientes.js"></script>
+<script src="JS/puve-herramientas.js"></script>
+<script src="JS/puve-restricciones.js"></script>
 <script src="JS/puve-citas.js"></script>
 <script src="JS/puve-catalogo.js"></script>
 <script src="JS/puve-recibos.js"></script>
@@ -2402,6 +2404,7 @@
         <button data-vista="combos" onclick="cambiarVistaInventario('combos')">Combos</button>
         <button data-vista="etiquetas" onclick="cambiarVistaInventario('etiquetas')">Etiquetas</button>
         <button data-vista="catalogo" onclick="cambiarVistaInventario('catalogo')">Catálogo</button>
+        <button data-vista="herramientas" onclick="cambiarVistaInventario('herramientas')">Herramientas</button>
       </div>
 
       <div id="vistaInventarioOrdenes">
@@ -2458,6 +2461,7 @@
       <div id="vistaInventarioBitacora" style="display:none;"></div>
       <div id="vistaInventarioCombos" style="display:none;"></div>
       <div id="vistaInventarioEtiquetas" style="display:none;"></div>
+      <div id="vistaInventarioHerramientas" style="display:none;"></div>
       <div id="vistaInventarioCatalogo" style="display:none;"></div>
       <div id="vistaInventarioProveedores" style="display:none;">
       <div class="bloque-analitica" style="margin-bottom:20px;">
@@ -2749,6 +2753,7 @@
             
           </div>
           <div id="bloqueConfigSellos"></div>
+          <div id="bloqueConfigRestricciones"></div>
           <div class="fila-config">
             <div>
               <div style="font-weight:600; font-size:14px;">Directorio de clientes y ventas a crédito</div>
@@ -6736,6 +6741,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         valor_punto: Number(document.getElementById('cfgValorPunto').value) || 0
       },
       clientes: document.getElementById('cfgClientesActivo').checked,
+      restricciones: configNegocio.restricciones || undefined,
       tipo_negocio: (document.getElementById('cfgTipoNegocio').value === valorSelectGiro()) ? (configNegocio.tipo_negocio || null) : (baseDeGiro(document.getElementById('cfgTipoNegocio').value) || null),
       // el giro específico solo cambia si la persona lo cambia (así nadie recibe funciones nuevas sin pedirlas)
       subgiro: (document.getElementById('cfgTipoNegocio').value === valorSelectGiro()) ? (configNegocio.subgiro || null) : (document.getElementById('cfgTipoNegocio').value || null)
@@ -8348,8 +8354,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     agregarAlCarrito(tarjeta.dataset.productoId);
   });
 
-  function agregarAlCarrito(id){
+  function agregarAlCarrito(id, restriccionesRevisadas){
     const p0 = productosCache.find(x => x.id === id);
+    if(!restriccionesRevisadas && p0 && window.PuveRestricciones && PuveRestricciones.alAgregar(p0, () => agregarAlCarrito(id, true))) return;
     if(document.body.classList.contains('giro-servicios') && esServicioProd(p0)){ pedirEmpleado(p0); return; }
     if(p0 && esCafeteria() && gruposDe(p0).length){ abrirPersonalizarPos(p0); return; }
     if(p0 && usaUnidades() && necesitaHojaPap(p0)){ abrirVentaPap(p0); return; }
@@ -8424,6 +8431,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const vacio = document.getElementById('carritoVacio');
     const btnCobrar = document.getElementById('btnCobrar');
     if(!carrito.length){
+      try { if(window.PuveRestricciones) PuveRestricciones.nuevaVenta(); } catch(e){}
       contenedor.innerHTML = '';
       vacio.classList.remove('oculto');
       btnCobrar.disabled = true;
@@ -8625,6 +8633,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   
   async function cobrar(){
     if(!carrito.length) return;
+    if(!window.__restriccionesOk && window.PuveRestricciones && PuveRestricciones.alCobrar(carrito.map(i => productosCache.find(x => x.id === i.id)), () => { window.__restriccionesOk = true; try { cobrar(); } finally { window.__restriccionesOk = false; } })) return;
     const btn = document.getElementById('btnCobrar');
     btn.disabled = true; btn.textContent = 'Procesando...';
     ocultarMensaje('mensajeVenta');
@@ -9298,7 +9307,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       const codigo = inp.value.trim(); if(!codigo) return;
       if(RUTA_VALE.test(codigo.toUpperCase())){ ev.preventDefault(); inp.value = ''; aplicarValeCodigo(codigo); return; }
       if(PuveHW.esEtiquetaPeso(codigo)){ ev.preventDefault(); inp.value = ''; agregarPorEtiquetaPeso(codigo); renderizarListaVenta(); return; }
-      const prod = productosCache.find(p => mismoCodigoBarras(p.sku, codigo));
+      const prod = productosCache.find(p => mismoCodigoBarras(p.sku, codigo) || (Array.isArray(p.codigos_extra) && p.codigos_extra.some(c => mismoCodigoBarras(c, codigo))));
       if(prod){ ev.preventDefault(); agregarAlCarrito(prod.id); inp.value = ''; renderizarListaVenta(); }
       else if(/^\d{6,}$/.test(codigo)){ ev.preventDefault(); inp.value = ''; renderizarListaVenta(); mostrarMensaje('mensajeVenta', 'No existe un producto con el código ' + codigo + '.', 'error'); }
     });
@@ -10458,11 +10467,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       b.classList.toggle('activo', b.dataset.vista === vista);
     });
     if(vista === 'invita') cargarPanelReferidos();
-    if(vista === 'funciones'){ cargarEstadoPinAutorizacion(); cargarAnalistas(); try { PuveSellos.montarConfig(document.getElementById('bloqueConfigSellos')); } catch(e){ console.error(e); } }
+    if(vista === 'funciones'){ cargarEstadoPinAutorizacion(); cargarAnalistas(); try { PuveSellos.montarConfig(document.getElementById('bloqueConfigSellos')); } catch(e){ console.error(e); } try { PuveRestricciones.montarConfig(document.getElementById('bloqueConfigRestricciones')); } catch(e){ console.error(e); } }
   }
 
   function cambiarVistaInventario(vista){
-    ['ordenes','mermas','proveedores','recetas','prepara','caducidad','lotes','compras','reparto','precios','conteo','clientes','reportes','produccion','bitacora','combos','etiquetas','catalogo'].forEach(v => {
+    ['ordenes','mermas','proveedores','recetas','prepara','caducidad','lotes','compras','reparto','precios','conteo','clientes','reportes','produccion','bitacora','combos','etiquetas','catalogo','herramientas'].forEach(v => {
       document.getElementById('vistaInventario' + v.charAt(0).toUpperCase() + v.slice(1)).style.display = (v === vista ? '' : 'none');
     });
     if(vista === 'recetas' || vista === 'caducidad'){ try { PuveInsumos.abrir(vista); } catch(e){ console.error(e); } }
@@ -10479,6 +10488,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(vista === 'combos'){ try { PuveCombos.abrir(); } catch(e){ console.error(e); } }
     if(vista === 'etiquetas'){ try { PuveEtiquetas.abrir(); } catch(e){ console.error(e); } }
     if(vista === 'catalogo'){ try { PuveCatalogo.abrir(); } catch(e){ console.error(e); } }
+    if(vista === 'herramientas'){ try { PuveHerramientas.abrir(); } catch(e){ console.error(e); } }
     if(vista === 'prepara'){ try { PuvePrepara.abrir(); } catch(e){ console.error(e); } }
     document.querySelectorAll('#tabsInventario button[data-vista]').forEach(b => {
       b.classList.toggle('activo', b.dataset.vista === vista);
@@ -13561,6 +13571,13 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   PuveDecisiones.enlazar({ sb: sb, giro: () => { const g = giroEspecifico(); return g ? g.id : null; }, dinero: (n) => formatoDinero(n) });
   PuveBitacora.enlazar({ sb: sb });
   PuveProduccion.enlazar({ sb: sb });
+  PuveHerramientas.enlazar({ sb: sb, productos: () => productosCache, esEncargado: () => miRol === 'admin', dinero: (n) => formatoDinero(n), negocio: () => { const e = document.getElementById('nombreNegocioBarra'); const t = e ? e.textContent.trim() : ''; return t && t !== '—' ? t : ''; } });
+  PuveRestricciones.enlazar({
+    leer: () => configNegocio.restricciones || null,
+    guardar: async (r) => { const nueva = Object.assign({}, configNegocio, { restricciones: r }); const { error } = await sb.from('negocios').update({ configuracion: nueva }).eq('id', negocioId); if(error) throw error; configNegocio = nueva; lsSet('puve_config_negocio', JSON.stringify(configNegocio)); },
+    categorias: () => categoriasCache, rol: () => miRol, tienePin: () => __tengoPinConfigurado, pedirPin: (motivo, accion) => pedirAutorizacionAdmin(motivo, accion),
+    avisar: (t) => mostrarMensaje('mensajeVenta', t, 'exito')
+  });
   PuveClientes.enlazar({ sb: sb, dinero: (n) => formatoDinero(n), negocio: () => { const e = document.getElementById('nombreNegocioBarra'); const t = e ? e.textContent.trim() : ''; return t && t !== '—' ? t : ''; } });
   PuveGestion.enlazar({ sb: sb, dinero: (n) => formatoDinero(n), esAdmin: () => esAdminActual, negocio: () => { const e = document.getElementById('nombreNegocioBarra'); const t = e ? e.textContent.trim() : ''; return t && t !== '—' ? t : ''; } });
   PuveReparto.enlazar({ sb: sb, dinero: (n) => formatoDinero(n), negocio: () => { const e = document.getElementById('nombreNegocioBarra'); const t = e ? e.textContent.trim() : ''; return t && t !== '—' ? t : ''; } });
@@ -13589,7 +13606,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   function escanearParaVender(codigo){
     if(RUTA_VALE.test(String(codigo).trim().toUpperCase())){ aplicarValeCodigo(codigo); return; }
     if(PuveHW.esEtiquetaPeso(codigo)){ agregarPorEtiquetaPeso(codigo); return; }
-    const producto = productosCache.find(p => mismoCodigoBarras(p.sku, codigo));
+    const producto = productosCache.find(p => mismoCodigoBarras(p.sku, codigo) || (Array.isArray(p.codigos_extra) && p.codigos_extra.some(c => mismoCodigoBarras(c, codigo))));
     if(producto){
       agregarAlCarrito(producto.id);
       mostrarMensaje('mensajeVenta', 'Agregado: ' + producto.nombre, 'exito');
@@ -15174,7 +15191,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   // --- Buscador por palabras: "cart azul" encuentra "Cartulina azul"; sin acentos ni mayúsculas; cualquier orden ---
   const normBusq = (s) => String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   function coincideBusqueda(p, termino){
-    if(p.__q === undefined || p.__qn !== p.nombre) { p.__q = normBusq(p.nombre + ' ' + (p.sku || '') + ' ' + (p.modelo || '')); p.__qn = p.nombre; }
+    const llaveQ = p.nombre + '|' + (p.sinonimos || '') + '|' + (p.codigos_extra ? p.codigos_extra.join(',') : '');
+    if(p.__q === undefined || p.__qn !== llaveQ) { p.__q = normBusq(p.nombre + ' ' + (p.sku || '') + ' ' + (p.modelo || '') + ' ' + (p.sinonimos || '') + ' ' + (p.codigos_extra ? p.codigos_extra.join(' ') : '')); p.__qn = llaveQ; }
     const toks = normBusq(termino).split(/\s+/).filter(Boolean);
     return toks.every(t => p.__q.includes(t));
   }
@@ -15201,10 +15219,24 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const cant = el('input', 'input-mini'); cant.type = 'number'; cant.min = paso; cant.step = paso; cant.value = paso; cant.style.cssText = 'width:100%; font-size:20px; text-align:center; margin:8px 0;'; cant.setAttribute('aria-label', 'Cantidad en ' + uni);
     caja.appendChild(el('div', 'cr-etq', 'Cantidad (' + uni + ')')); caja.appendChild(cant);
     const fila = el('div', 'filtro-cats'); fila.style.flexWrap = 'wrap'; caja.appendChild(fila);
-    const sumar = (n) => { cant.value = redondear3((parseFloat(cant.value) || 0) + n); refrescar(); };
+    let pedidoImporte = null;
+    const sumar = (n) => { pedidoImporte = null; cant.value = redondear3((parseFloat(cant.value) || 0) + n); refrescar(); };
     try { PuveHW.montarBascula(caja, uni, (n) => { cant.value = n; refrescar(); }); } catch(e){}
     const b1 = el('button', 'chip-cat', '+' + paso + ' ' + uni); b1.type = 'button'; b1.onclick = () => sumar(paso); fila.appendChild(b1);
     pres.slice().sort((a, b) => a.unidades - b.unidades).forEach(r => { const b = el('button', 'chip-cat', '+ ' + r.nombre + ' (' + r.unidades + ')'); b.type = 'button'; b.onclick = () => sumar(r.unidades); fila.appendChild(b); });
+    // Peso rápido (fracciones) e importe rápido («$20 de tortilla»): la cantidad siempre cae en un múltiplo del paso, que es lo que el servidor acepta.
+    const multiplo = (x) => Math.abs(x / paso - Math.round(x / paso)) < 1e-6;
+    if(paso < 1 || /^(kilo|kg|litro|l|lt|metro|m)$/i.test(uni)){
+      const fr = [[0.25, '¼'], [0.5, '½'], [0.75, '¾'], [1, '1'], [1.5, '1½'], [2, '2'], [3, '3']].filter(([x]) => multiplo(x) && x <= disp + 1e-9);
+      if(fr.length){ caja.appendChild(el('div', 'cr-etq', 'Peso rápido (' + uni + ')')); const rf = el('div', 'filtro-cats'); rf.style.flexWrap = 'wrap'; fr.forEach(([x, t]) => { const b = el('button', 'chip-cat', t); b.type = 'button'; b.onclick = () => { pedidoImporte = null; cant.value = x; refrescar(); }; rf.appendChild(b); }); caja.appendChild(rf); }
+    }
+    if(paso < 1){
+      caja.appendChild(el('div', 'cr-etq', 'Por importe ($)')); const ri = el('div', 'filtro-cats'); ri.style.cssText = 'flex-wrap:wrap; align-items:center;';
+      const porImporte = (m) => { m = parseFloat(m); if(!(m > 0)) return; const base = Number(p.precio) || 0; if(!(base > 0)) return; let q = m / precioUnitPap(p, yaEnCarrito + m / base); q = Math.max(paso, Math.round(q / paso) * paso); while(q > disp + 1e-9 && q > paso) q = redondear3(q - paso); pedidoImporte = m; cant.value = redondear3(q); refrescar(); };
+      [10, 20, 50, 100].forEach((m) => { const b = el('button', 'chip-cat', '$' + m); b.type = 'button'; b.onclick = () => porImporte(m); ri.appendChild(b); });
+      const oi = el('input', 'input-mini'); oi.type = 'number'; oi.min = '1'; oi.step = 'any'; oi.placeholder = 'Otro $'; oi.style.cssText = 'width:84px;'; oi.setAttribute('aria-label', 'Importe en pesos'); oi.onkeydown = (ev) => { if(ev.key === 'Enter'){ ev.preventDefault(); porImporte(oi.value); } }; ri.appendChild(oi);
+      const bo = el('button', 'chip-cat', 'Calcular'); bo.type = 'button'; bo.onclick = () => porImporte(oi.value); ri.appendChild(bo); caja.appendChild(ri);
+    }
     const info = el('div', 'nota'); info.style.margin = '10px 0'; caja.appendChild(info);
     const ok = el('button', 'principal', 'Agregar'); ok.type = 'button'; ok.style.cssText = 'width:100%;';
     const valida = () => { let n = redondear3(parseFloat(cant.value)); if(!(n > 0)) return 0; if(paso !== 1) n = redondear3(Math.max(paso, Math.round(n / paso) * paso)); return n; };
@@ -15214,9 +15246,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       const sobra = total > Number(p.stock) + 1e-9; ok.disabled = sobra;
       const base = Number(p.precio), esDescuento = pu < base - 1e-9;
       info.textContent = sobra ? 'No alcanza: solo hay ' + disp + ' ' + uni + '.' : '$' + fmtPU(pu) + ' c/u' + (esDescuento ? ' (precio de mayoreo)' : '') + ' · ' + (yaEnCarrito ? 'con lo que ya llevas (' + redondear3(total) + ') = $' + (Math.round(pu * total * 100) / 100).toFixed(2) : n + ' ' + uni + ' = $' + (Math.round(pu * n * 100) / 100).toFixed(2));
+      if(pedidoImporte && !sobra){ const real = pu * n; info.textContent += ' · pediste $' + fmtPU(pedidoImporte) + (Math.abs(real - pedidoImporte) > 0.005 ? ' (lo más cercano que alcanza el paso de ' + paso + ' ' + uni + ')' : ''); }
       ok.textContent = 'Agregar ' + n + ' ' + uni;
     }
-    cant.oninput = refrescar;
+    cant.oninput = () => { pedidoImporte = null; refrescar(); };
     ok.onclick = () => {
       const n = valida(); if(!n) return;
       const ex = carrito.find(i => i.id === p.id);
