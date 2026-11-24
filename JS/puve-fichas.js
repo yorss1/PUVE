@@ -14,6 +14,8 @@
     carnicerias: { tipo: 'persona', et: 'Cliente', plural: 'Clientes', campos: ['Cortes favoritos', 'Alergias o restricciones', 'Cómo lo prefiere'], ev: [E('Pedido'), E('Nota')] },
     regalos: { tipo: 'persona', et: 'Persona', plural: 'Personas', campos: ['Gustos', 'Talla', 'Presupuesto usual'], ev: [E('Ocasión', { prox: 1 }), E('Regalo'), E('Nota')] }
   };
+  GIROS.ropa = { tipo: 'persona', et: 'Cliente', plural: 'Clientes', campos: ['Talla de camisa o blusa', 'Talla de pantalón', 'Talla de calzado', 'Colores y marcas que le gustan', 'Cumpleaños'], ev: [E('Compra'), E('Cambio'), E('Nota')] };
+  GIROS.ferreteria = { tipo: 'persona', et: 'Cliente', plural: 'Clientes', campos: ['Obra o proyecto', 'Tipo de trabajo', 'Cómo paga'], ev: [E('Fórmula de pintura'), E('Compra'), E('Nota')] };
   GIROS.talleres = Object.assign({}, GIROS.refaccionarias);
   const cfg = () => GIROS[enlace.giro()] || { tipo: 'persona', et: 'Cliente', plural: 'Clientes', campos: ['Preferencias', 'Alergias'], ev: [E('Nota')] };
   function h(tag, cls, txt, estilo){ const e = document.createElement(tag); if(cls) e.className = cls; if(txt != null) e.textContent = txt; if(estilo) e.style.cssText = estilo; return e; }

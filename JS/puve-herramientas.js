@@ -42,10 +42,12 @@
   let raiz = null, tab = 'buscar', zona = null;
   function abrir(){
     raiz = raiz || document.getElementById('vistaInventarioHerramientas'); if(!raiz) return; raiz.textContent = '';
-    subtabs(raiz, [['buscar', 'Buscar y datos'], ['consigna', 'Consigna'], ['metales', 'Metales'], ['ropa', 'Ropa y calzado'], ['calc', 'Calculadoras']], tab, (k) => { tab = k; pinta(); });
+    subtabs(raiz, [['buscar', 'Buscar y datos'], ['consigna', 'Consigna'], ['metales', 'Metales'], ['ropa', 'Ropa y calzado'], ['libretas', 'Libretas'], ['herr', 'Más herramientas'], ['calc', 'Calculadoras']], tab, (k) => { tab = k; pinta(); });
     zona = h('div'); raiz.appendChild(zona); pinta();
   }
-  function pinta(){ zona.textContent = ''; ({ buscar, consigna, metales, ropa, calc })[tab](zona); }
+  function pinta(){ zona.textContent = ''; ({ buscar, consigna, metales, ropa, libretas, herr, calc })[tab](zona); }
+  function libretas(z){ if(window.PuveLibretas) PuveLibretas.abrir(z); else z.appendChild(h('p', 'nota', 'No se cargó el módulo de libretas.')); }
+  function herr(z){ if(window.PuveHerr2) PuveHerr2.abrir(z); else z.appendChild(h('p', 'nota', 'No se cargó el módulo de herramientas.')); }
   function ropa(z){ if(window.PuveRopa) PuveRopa.abrir(z); else z.appendChild(h('p', 'nota', 'No se cargó el módulo de ropa.')); }
 
   // ================= BUSCAR Y DATOS =================
@@ -190,8 +192,8 @@
   let subCalc = 'rend';
   function calc(z){
     z.appendChild(h('p', 'nota', 'Calculadoras para planear precios y compras. No guardan nada ni cambian tu inventario: son cuentas rápidas con tus números. Los gramos por persona y demás datos de arranque son solo una referencia; cámbialos por lo que tú conoces de tu negocio.'));
-    const zz = h('div'); const dibuja = (k) => { zz.textContent = ''; ({ rend: rendimiento, bote, asador, fiesta, rebanada })[k](zz); };
-    subtabs(z, [['rend', 'Rendimiento por pieza'], ['bote', 'Porciones por bote'], ['asador', 'Asador'], ['fiesta', 'Fiesta'], ['rebanada', 'Costo por rebanada']], subCalc, (k) => { subCalc = k; dibuja(k); }); z.appendChild(zz); dibuja(subCalc);
+    const zz = h('div'); const dibuja = (k) => { zz.textContent = ''; ({ rend: rendimiento, bote, asador, fiesta, rebanada, escala, caja2, kilo, porcion, dosis })[k](zz); };
+    subtabs(z, [['rend', 'Rendimiento por pieza'], ['bote', 'Porciones por bote'], ['asador', 'Asador'], ['fiesta', 'Fiesta'], ['rebanada', 'Costo por rebanada'], ['escala', 'Escalar receta'], ['caja2', 'Compra por caja o reja'], ['kilo', 'Costo por kilo producido'], ['porcion', 'Precio por porción'], ['dosis', 'Dosis por peso']], subCalc, (k) => { subCalc = k; dibuja(k); }); z.appendChild(zz); dibuja(subCalc);
   }
   function caja(z, titulo, ayuda){ const b = h('div', 'bloque-analitica'); b.appendChild(h('h3', null, titulo)); if(ayuda) b.appendChild(h('p', 'nota', ayuda)); z.appendChild(b); return b; }
   function filaCampos(b, cs){ const f = h('div', null, null, 'display:flex; gap:10px; flex-wrap:wrap; margin-bottom:8px;'); cs.forEach((c) => f.appendChild(c)); b.appendChild(f); return f; }
@@ -251,6 +253,40 @@
       const c1 = pz * (Number(cd.value) || 0), c2 = (Number(pi.value) || 0) * (Number(cp.value) || 0), C = c1 + c2; if(!(C > 0)) return; linea(s, 'Costo: bolsitas ' + din(c1) + (c2 ? ' + piñata ' + din(c2) : '') + ' = ' + din(C), true);
       const m = Math.min(Number(mg.value) || 0, 95), P = C / (1 - m / 100); linea(s, 'Para ganar ' + fmt(m, 0) + '% cobra ' + din(P) + ' en total (' + din(P / N) + ' por niño) · ganas ' + din(P - C) + '.', true); };
     [ni, ex, dp, cd, pi, cp, mg].forEach((e) => { e.oninput = calcula; }); calcula();
+  }
+
+  function escala(z){
+    const b = caja(z, 'Escalar receta o insumos', 'Escribe tu receta, un ingrediente por renglón con la cantidad al inicio (ej. «500 g harina»). Dices para cuántos pasteles o tandas la quieres y te multiplica todo.');
+    const tx = h('textarea', 'input-mini'); tx.rows = 6; tx.style.width = '100%'; tx.placeholder = '500 g harina\n250 g mantequilla\n4 huevos\n1/2 taza de leche'; const de = num('1', 'receta base rinde', 0, 'any'), pa = num('3', 'quiero hacer', 0, 'any'); filaCampos(b, [campo('Ingredientes', tx, 320), campo('La receta base rinde', de, 150), campo('Quiero hacer', pa, 120)]);
+    const s = salida(b); const calcula = () => { s.textContent = ''; const d = Number(de.value) || 0, p = Number(pa.value) || 0; if(!(d > 0 && p > 0)){ linea(s, 'Escribe cuánto rinde la receta y cuánto quieres hacer.'); return; } const f = p / d; linea(s, 'Multiplicador: ×' + fmt(f, 2), true);
+      tx.value.split('\n').map((x) => x.trim()).filter(Boolean).forEach((r) => { const m = r.match(/^(\d+\s+\d+\/\d+|\d+\/\d+|\d+(?:[.,]\d+)?)\s*(.*)$/); if(!m){ linea(s, r + ' (sin cantidad: sin cambios)'); return; } const c = m[1].trim(); let v; if(c.indexOf('/') >= 0){ const pp = c.split(/\s+/); v = pp.length === 2 ? Number(pp[0]) + eval2(pp[1]) : eval2(pp[0]); } else v = Number(c.replace(',', '.')); linea(s, fmt(v * f, 2) + ' ' + m[2]); }); };
+    function eval2(q){ const a = q.split('/'); return Number(a[0]) / Number(a[1]); }
+    [tx, de, pa].forEach((e) => { e.oninput = calcula; }); calcula();
+  }
+  function caja2(z){
+    const b = caja(z, 'Compra por caja o reja', 'Compras por caja, reja o costal: calcula lo que te cuesta cada kilo vendible considerando lo que se echa a perder.');
+    const pc = num('', '$', 0, '0.01'), kc = num('', 'kg', 0, 'any'), me = num('10', '%', 0, 'any'), mg = num('35', '%', 0, 'any'); filaCampos(b, [campo('Precio de la caja $', pc, 130), campo('Kilos por caja', kc, 110), campo('Merma esperada %', me, 130), campo('Margen que quieres %', mg, 140)]);
+    const s = salida(b); const calcula = () => { s.textContent = ''; const P = Number(pc.value) || 0, K = Number(kc.value) || 0; if(!(P > 0 && K > 0)){ linea(s, 'Escribe el precio y los kilos de la caja.'); return; } const m = Math.min(Number(me.value) || 0, 90), util = K * (1 - m / 100), ck = P / K, real = P / util, g = Math.min(Number(mg.value) || 0, 95), pv = real / (1 - g / 100); linea(s, 'Costo por kilo comprado: ' + din(ck) + ' · costo por kilo vendible: ' + din(real), true); linea(s, 'De ' + fmt(K, 1) + ' kg salen ' + fmt(util, 1) + ' kg vendibles.'); linea(s, 'Para ganar ' + fmt(g, 0) + '% vende a ' + din(pv) + ' el kilo (redondeado a ' + din(Math.ceil(pv)) + ').', true); };
+    [pc, kc, me, mg].forEach((e) => { e.oninput = calcula; }); calcula();
+  }
+  function kilo(z){
+    const b = caja(z, 'Costo por kilo producido', 'Tortillerías, molinos y todo lo que se produce por kilos: suma lo que gastas en el periodo y divídelo entre los kilos producidos.');
+    const ks = num('', 'kg producidos', 0, 'any'), g1 = num('', '$ maíz o materia prima', 0, '0.01'), g2 = num('', '$ gas, luz y agua', 0, '0.01'), g3 = num('', '$ sueldos', 0, '0.01'), g4 = num('', '$ otros', 0, '0.01'), pv = num('', '$ por kilo', 0, '0.01');
+    filaCampos(b, [campo('Kilos producidos', ks, 120), campo('Materia prima $', g1, 130), campo('Gas, luz y agua $', g2, 130), campo('Sueldos $', g3, 120), campo('Otros $', g4, 110), campo('Tu precio por kilo $ (opcional)', pv, 170)]);
+    const s = salida(b); const calcula = () => { s.textContent = ''; const K = Number(ks.value) || 0, T = (Number(g1.value) || 0) + (Number(g2.value) || 0) + (Number(g3.value) || 0) + (Number(g4.value) || 0); if(!(K > 0 && T > 0)){ linea(s, 'Escribe los kilos y al menos un gasto.'); return; } linea(s, 'Te cuesta ' + din(T / K) + ' cada kilo (gastos totales ' + din(T) + ').', true); [['Materia prima', g1], ['Gas, luz y agua', g2], ['Sueldos', g3], ['Otros', g4]].forEach(([t, e]) => { if(Number(e.value) > 0) linea(s, t + ': ' + din(Number(e.value) / K) + ' por kilo (' + fmt(Number(e.value) / T * 100, 0) + '%)'); }); const P = Number(pv.value) || 0; if(P > 0) linea(s, 'Con tu precio de ' + din(P) + ' ganas ' + din(P - T / K) + ' por kilo (' + fmt((P - T / K) / P * 100, 1) + '%).', true); };
+    [ks, g1, g2, g3, g4, pv].forEach((e) => { e.oninput = calcula; }); calcula();
+  }
+  function porcion(z){
+    const b = caja(z, 'Precio por porción', 'Suplementos, proteínas y cualquier producto que vendes por porción o muestra: pasa del precio del bote al precio de cada porción.');
+    const pb = num('', '$', 0, '0.01'), cb = num('', '$ costo', 0, '0.01'), po = num('', 'porciones', 0, '1'), mg = num('40', '%', 0, 'any'); filaCampos(b, [campo('Precio del bote $', pb, 130), campo('Costo del bote $ (opcional)', cb, 160), campo('Porciones por bote', po, 120), campo('Margen para la porción %', mg, 150)]);
+    const s = salida(b); const calcula = () => { s.textContent = ''; const P = Number(pb.value) || 0, R = Math.floor(Number(po.value) || 0); if(!(P > 0 && R > 0)){ linea(s, 'Escribe el precio y las porciones del bote.'); return; } linea(s, 'Cada porción equivale a ' + din(P / R) + ' del precio del bote.', true); const C = Number(cb.value) || 0; if(C > 0){ const m = Math.min(Number(mg.value) || 0, 95), pr = C / R / (1 - m / 100); linea(s, 'Costo por porción: ' + din(C / R) + '. Para ganar ' + fmt(m, 0) + '% cobra ' + din(pr) + ' (redondeado a ' + din(Math.ceil(pr)) + ').', true); linea(s, 'Vendiendo las ' + R + ' porciones a ese precio sacas ' + din(Math.ceil(pr) * R) + ' contra ' + din(P) + ' del bote.'); } };
+    [pb, cb, po, mg].forEach((e) => { e.oninput = calcula; }); calcula();
+  }
+  function dosis(z){
+    const b = caja(z, 'Dosis por peso', 'Cuenta de apoyo: dosis (mg por kg) × peso ÷ concentración del producto. La dosis la indica el veterinario o el instructivo del medicamento; esta calculadora no la recomienda ni la valida.');
+    const pe = num('', 'kg', 0, 'any'), ds = num('', 'mg por kg', 0, 'any'), co = num('', 'mg por ml', 0, 'any'), tb = num('', 'mg por tableta', 0, 'any'); filaCampos(b, [campo('Peso de la mascota (kg)', pe, 150), campo('Dosis indicada (mg por kg)', ds, 170), campo('Concentración (mg por ml)', co, 170), campo('o mg por tableta', tb, 130)]);
+    const s = salida(b); const calcula = () => { s.textContent = ''; const W = Number(pe.value) || 0, D = Number(ds.value) || 0; if(!(W > 0 && D > 0)){ linea(s, 'Escribe el peso y la dosis que indicó el veterinario.'); return; } const mg = W * D; linea(s, 'Dosis total: ' + fmt(mg, 2) + ' mg', true); if(Number(co.value) > 0) linea(s, 'Son ' + fmt(mg / Number(co.value), 2) + ' ml de un producto de ' + fmt(Number(co.value), 2) + ' mg/ml.', true); if(Number(tb.value) > 0) linea(s, 'Son ' + fmt(mg / Number(tb.value), 2) + ' tableta(s) de ' + fmt(Number(tb.value), 2) + ' mg (si no sale exacto, consulta al veterinario antes de partir).', true); linea(s, 'Confirma siempre con el veterinario o el instructivo antes de dar el medicamento.'); };
+    [pe, ds, co, tb].forEach((e) => { e.oninput = calcula; }); calcula();
   }
   function rebanada(z){
     const b = caja(z, 'Costo por rebanada', 'Pasteles y postres: pasa del costo del pastel entero al precio de cada rebanada.');

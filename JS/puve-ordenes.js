@@ -56,7 +56,7 @@
     cab.appendChild(h('h2', null, 'Órdenes y garantías', 'margin:0; flex:1 1 auto;')); cab.appendChild(boton('+ Nueva orden', () => nueva('reparacion'), 'principal', 'padding:9px 14px;')); cab.appendChild(boton('+ Garantía de venta', () => nueva('garantia'))); raiz.appendChild(cab);
     const barra = h('div', null, null, 'display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;');
     [['abiertas', 'Abiertas'], ['garantias', 'Garantías vigentes'], ['todas', 'Todas']].forEach(([v, t]) => barra.appendChild(boton(t, () => { filtro = v; lista(); }, 'texto' + (filtro === v ? ' activo' : ''))));
-    barra.appendChild(boton('Tablero y fila', tablero)); barra.appendChild(boton('Eficiencia', eficiencia)); raiz.appendChild(barra);
+    barra.appendChild(boton('Tablero y fila', tablero)); barra.appendChild(boton('Eficiencia', eficiencia)); barra.appendChild(boton('Sin recoger', sinRecoger)); raiz.appendChild(barra);
     const b = input(q, 'Buscar por cliente, equipo, serie, teléfono o folio…', 40); b.style.marginBottom = '10px'; let tm = 0; b.oninput = () => { clearTimeout(tm); tm = setTimeout(() => { q = b.value; cargar(z); }, 250); }; raiz.appendChild(b);
     const z = h('div'); raiz.appendChild(z); cargar(z);
   }
@@ -129,6 +129,16 @@
       if(L.length) caja.appendChild(boton('Usar el total como costo de la orden', async () => { try { await rpc('orden_usar_total', { p_id: d.id }); detalle(d.id); } catch(e){ msg(est, errTxt(e)); } }, 'texto', 'margin-top:8px;'));
       caja.appendChild(h('p', 'nota', 'Los renglones son informativos: no cobran ni descuentan existencias. El cobro y la salida del inventario se hacen en la caja.')); }
     caja.appendChild(est); z.appendChild(caja);
+  }
+  // Lo que está listo y nadie ha recogido: recordatorio escalonado (3, 7 y 15 días) y «olvidados» a partir de 30 días.
+  async function sinRecoger(){
+    raiz.textContent = ''; raiz.appendChild(boton('← Volver', lista)); raiz.appendChild(h('h2', null, 'Sin recoger', 'margin:10px 0 4px;')); raiz.appendChild(h('p', 'nota', 'Órdenes listas que el cliente no ha pasado a recoger. El mensaje cambia según los días que lleva (3, 7 y 15) y a partir de 30 días quedan como olvidadas. El aviso lo envías tú por WhatsApp; PUVE no manda nada sola.')); const z = h('div'); raiz.appendChild(z);
+    let d; try { d = await rpc('ordenes_lista', { p_filtro: 'abiertas', p_q: null }); } catch(e){ msg(z, errTxt(e)); return; } const ahora = new Date(d.ahora || Date.now()).getTime();
+    const it = (d.items || []).filter((x) => x.estado === 'listo').map((x) => Object.assign({ dias: Math.floor((ahora - new Date(x.listo_en || x.creado_en).getTime()) / 864e5) }, x)).sort((a, b) => b.dias - a.dias);
+    if(!it.length){ z.appendChild(h('p', 'nota', 'No hay órdenes listas esperando. Todo lo que terminaste ya se entregó.')); return; }
+    const texto = (x) => { const base = 'Hola ' + x.cliente + ', tu ' + x.equipo + ' (folio ' + folio(x.folio) + ') '; if(x.dias >= 30) return base + 'lleva ' + x.dias + ' días listo en el negocio. Te pedimos pasar a recogerlo; si hay algún problema, dinos y lo vemos.'; if(x.dias >= 15) return base + 'lleva ' + x.dias + ' días listo. ¿Cuándo puedes pasar por él? Necesitamos liberar el espacio.'; if(x.dias >= 7) return base + 'sigue listo desde hace ' + x.dias + ' días. ¡Te esperamos para entregártelo!'; return base + 'ya está listo para recoger. ¡Te esperamos!'; };
+    const grupo = (t, l) => { if(!l.length) return; z.appendChild(h('h3', null, t + ' (' + l.length + ')', 'margin:14px 0 6px;')); l.forEach((x) => { const c = h('div', 'bloque-analitica', null, 'margin-bottom:6px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:space-between;'); const tx = h('div'); tx.appendChild(h('strong', null, folio(x.folio) + ' · ' + x.equipo)); tx.appendChild(h('div', 'nota', x.cliente + ' · lleva ' + x.dias + ' día(s) listo' + (x.costo ? ' · ' + enlace.dinero(Number(x.costo)) : ''))); c.appendChild(tx); const ac = h('div', null, null, 'display:flex; gap:6px;'); ac.appendChild(boton('Ver', () => detalle(x.id))); if(x.telefono) ac.appendChild(boton('Recordar por WhatsApp', () => wa(x.telefono, texto(x)))); c.appendChild(ac); z.appendChild(c); }); };
+    grupo('Olvidadas (30 días o más)', it.filter((x) => x.dias >= 30)); grupo('15 a 29 días', it.filter((x) => x.dias >= 15 && x.dias < 30)); grupo('7 a 14 días', it.filter((x) => x.dias >= 7 && x.dias < 15)); grupo('3 a 6 días', it.filter((x) => x.dias >= 3 && x.dias < 7)); grupo('Recién listas (menos de 3 días)', it.filter((x) => x.dias < 3));
   }
   async function tablero(){
     raiz.textContent = ''; raiz.appendChild(boton('← Volver', lista)); raiz.appendChild(h('h2', null, 'Tablero y fila', 'margin:10px 0 4px;')); raiz.appendChild(h('p', 'nota', 'Órdenes abiertas por cajón y la fila de las que esperan turno (las «Recibido», de la más antigua a la más nueva). Asigna el cajón y el técnico dentro de cada orden.')); const z = h('div'); raiz.appendChild(z);
