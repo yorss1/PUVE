@@ -84,6 +84,7 @@
 <script src="JS/puve-gestion.js"></script>
 <script src="JS/puve-clientes.js"></script>
 <script src="JS/puve-herramientas.js"></script>
+<script src="JS/puve-ropa.js"></script>
 <script src="JS/puve-restricciones.js"></script>
 <script src="JS/puve-citas.js"></script>
 <script src="JS/puve-catalogo.js"></script>
@@ -9347,6 +9348,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const fondo = el('div', 'modal-puve-fondo'), caja = el('div', 'modal-puve'); caja.style.maxWidth = '420px'; fondo.appendChild(caja);
     const cerrar = () => fondo.remove(); fondo.onclick = (e) => { if(e.target === fondo) cerrar(); };
     caja.appendChild(el('h2', '', modelo));
+    if(window.PuveRopa) PuveRopa.guiaDe(modelo).then(t => { if(t && caja.isConnected){ const g = el('div', 'nota', t); g.style.cssText = 'white-space:pre-wrap; margin:4px 0 10px;'; caja.insertBefore(g, caja.children[1] || null); } });
     const buscar = (t, c) => vars.find(v => (v.talla || '') === (t || '') && (v.color || '') === (c || ''));
     const hayStock = (t, c) => vars.some(v => (t == null || (v.talla || '') === t) && (c == null || (v.color || '') === c) && Number(v.stock) > 0);
     const resumen = el('div', 'nota'), msg = el('div', 'mensaje'), ok = el('button', 'principal', 'Agregar al carrito'); ok.type = 'button'; ok.style.cssText = 'width:100%; margin-top:12px;';
@@ -13571,6 +13573,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   PuveDecisiones.enlazar({ sb: sb, giro: () => { const g = giroEspecifico(); return g ? g.id : null; }, dinero: (n) => formatoDinero(n) });
   PuveBitacora.enlazar({ sb: sb });
   PuveProduccion.enlazar({ sb: sb });
+  PuveRopa.enlazar({ sb: sb, productos: () => productosCache, esEncargado: () => miRol === 'admin', dinero: (n) => formatoDinero(n) });
   PuveHerramientas.enlazar({ sb: sb, productos: () => productosCache, esEncargado: () => miRol === 'admin', dinero: (n) => formatoDinero(n), negocio: () => { const e = document.getElementById('nombreNegocioBarra'); const t = e ? e.textContent.trim() : ''; return t && t !== '—' ? t : ''; } });
   PuveRestricciones.enlazar({
     leer: () => configNegocio.restricciones || null,
@@ -13591,7 +13594,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   PuveRecibos.enlazar({ sb: sb, negocioId: () => negocioId });
   PuveCuentas.enlazar({ sb: sb, negocioId: () => negocioId, dinero: (n) => formatoDinero(n) });
   PuvePrepagos.enlazar({ sb: sb, giro: () => { const g = giroEspecifico(); return g ? g.id : null; }, dinero: (n) => formatoDinero(n) });
-  PuveOrdenes.enlazar({ sb: sb, negocioId: () => negocioId, giro: () => { const g = giroEspecifico(); return g ? g.id : null; }, dinero: (n) => formatoDinero(n) });
+  PuveOrdenes.enlazar({ sb: sb, negocioId: () => negocioId, giro: () => { const g = giroEspecifico(); return g ? g.id : null; }, dinero: (n) => formatoDinero(n), productos: () => productosCache.filter(x => x.activo !== false && x.tipo !== 'servicio') });
   PuveFichas.enlazar({ sb: sb, giro: () => { const g = giroEspecifico(); return g ? g.id : null; } });
   PuveSellos.enlazar({ sb: sb, dinero: (n) => formatoDinero(n), aviso: (m) => alert(m), escanear: (cb) => abrirEscaner(cb), escaner: () => escanerDisponible(), negocio: () => negocioId });
   PuvePrepara.enlazar({ sb: sb, categorias: () => categoriasCache, aviso: (m) => alert(m) });
