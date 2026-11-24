@@ -42,10 +42,11 @@
   let raiz = null, tab = 'buscar', zona = null;
   function abrir(){
     raiz = raiz || document.getElementById('vistaInventarioHerramientas'); if(!raiz) return; raiz.textContent = '';
-    subtabs(raiz, [['buscar', 'Buscar y datos'], ['consigna', 'Consigna'], ['metales', 'Metales'], ['calc', 'Calculadoras']], tab, (k) => { tab = k; pinta(); });
+    subtabs(raiz, [['buscar', 'Buscar y datos'], ['consigna', 'Consigna'], ['metales', 'Metales'], ['ropa', 'Ropa y calzado'], ['calc', 'Calculadoras']], tab, (k) => { tab = k; pinta(); });
     zona = h('div'); raiz.appendChild(zona); pinta();
   }
-  function pinta(){ zona.textContent = ''; ({ buscar, consigna, metales, calc })[tab](zona); }
+  function pinta(){ zona.textContent = ''; ({ buscar, consigna, metales, ropa, calc })[tab](zona); }
+  function ropa(z){ if(window.PuveRopa) PuveRopa.abrir(z); else z.appendChild(h('p', 'nota', 'No se cargó el módulo de ropa.')); }
 
   // ================= BUSCAR Y DATOS =================
   const textoBusq = (p) => norm([p.nombre, p.sku, p.modelo, p.sinonimos, (p.codigos_extra || []).join(' '), p.ubicacion, Object.keys(p.datos || {}).join(' '), Object.values(p.datos || {}).join(' ')].join(' '));
