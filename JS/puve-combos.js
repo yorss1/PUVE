@@ -5,7 +5,7 @@
 (function(){
   'use strict';
   let enlace = { sb: null, giro: () => null, dinero: (n) => '$' + Number(n).toFixed(2) };
-  const EJ = { taquerias: 'Combo 3 tacos + refresco', pizzerias: 'Pizza grande + bebida', abarrotes: 'Despensa básica', dulcerias: 'Bolsita surtida', fruterias: 'Caja surtida', pollerias: 'Paquete familiar', papelerias: 'Paquete escolar', suplementos: 'Combo proteína + shaker', heladerias: 'Paquete de cumpleaños', regalos: 'Caja de regalo', panaderia: 'Paquete de 6 piezas', restaurantes: 'Combo del día', cafeterias: 'Café + pan' };
+  const EJ = { taquerias: 'Combo 3 tacos + refresco', pizzerias: 'Pizza grande + bebida', abarrotes: 'Despensa básica', dulcerias: 'Bolsita surtida', fruterias: 'Caja surtida', pollerias: 'Paquete familiar', papelerias: 'Paquete escolar', suplementos: 'Combo proteína + shaker', heladerias: 'Paquete de cumpleaños', regalos: 'Caja de regalo', panaderia: 'Paquete de 6 piezas', restaurantes: 'Combo del día', cafeterias: 'Café + pan', refaccionarias: 'Kit de afinación (filtros + bujías + aceite)', ferreteria: 'Kit de plomería básico', talleres: 'Paquete de servicio completo' };
   function h(tag, cls, txt, estilo){ const e = document.createElement(tag); if(cls) e.className = cls; if(txt != null) e.textContent = txt; if(estilo) e.style.cssText = estilo; return e; }
   function boton(txt, fn, cls, estilo){ const b = h('button', cls || 'texto', txt, 'width:auto; padding:7px 12px;' + (estilo || '')); b.type = 'button'; b.onclick = fn; return b; }
   function campo(et, el, ancho){ const w = h('label', null, et, 'display:flex; flex-direction:column; gap:4px; font-size:13px; font-weight:500;' + (ancho ? 'flex:1 1 ' + ancho + 'px;' : '')); w.appendChild(el); return w; }

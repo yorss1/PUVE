@@ -4,7 +4,7 @@
  */
 (function(){
   'use strict';
-  let enlace = { sb: null, giro: () => null, negocioId: () => null, dinero: (n) => '$' + Number(n).toFixed(2) };
+  let enlace = { qr: null, sb: null, giro: () => null, negocioId: () => null, dinero: (n) => '$' + Number(n).toFixed(2) };
   const GIROS = {
     electronicos: { equipo: 'Equipo', id: 'IMEI o número de serie', previo: 'Estado al recibirlo (golpes, pantalla, accesorios que deja)', problema: 'Falla reportada', dias: 90 },
     talleres: { equipo: 'Vehículo (marca, modelo, año)', id: 'Placa', previo: 'Estado previo del vehículo (golpes, rayones, nivel de gasolina, objetos)', problema: 'Servicio solicitado o falla', dias: 30 },
@@ -80,6 +80,11 @@
       .filter((r) => r[1]).forEach((r) => { const f = h('div', null, null, 'font-size:14px; padding:3px 0;'); f.appendChild(h('strong', null, r[0] + ': ')); f.appendChild(document.createTextNode(r[1])); z.appendChild(f); });
     const ac = h('div', null, null, 'display:flex; gap:8px; flex-wrap:wrap; margin:12px 0;'); ac.appendChild(boton(d.tipo === 'garantia' ? 'Certificado PDF' : 'Orden / comprobante PDF', () => pdf(d)));
     if(d.estado === 'listo') ac.appendChild(boton('Avisar por WhatsApp', () => wa(d.telefono, 'Hola ' + d.cliente + ', tu ' + d.equipo + ' (folio ' + folio(d.folio) + ') ya está listo para recoger.' + (Number(d.costo) > 0 ? ' Total: ' + enlace.dinero(d.costo) + '.' : '')))); z.appendChild(ac);
+    if(d.tipo !== 'garantia' && enlace.qr) ac.appendChild(boton('Etiquetas con QR', () => {
+      const n = Math.floor(Number(window.prompt('¿Cuántas etiquetas (una por prenda o pieza)?', '1'))); if(!(n >= 1 && n <= 60)) return; let u; try { u = enlace.qr('PUVE ' + folio(d.folio), 180); } catch(e){ window.alert('No se pudo generar el QR.'); return; }
+      const w = window.open('', '_blank'); if(!w){ window.alert('Permite ventanas emergentes para imprimir.'); return; } const esc = (x) => String(x == null ? '' : x).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); let c = '';
+      for(let i = 1; i <= n; i++) c += '<div class="e"><img alt="QR" src="' + u + '"><div><div class="f">' + esc(folio(d.folio)) + '</div><div>' + esc(d.cliente) + '</div><div class="s">' + esc(d.equipo) + '</div><div class="s">Pieza ' + i + ' de ' + n + (d.promesa ? ' · Entrega ' + esc(fechaL(d.promesa)) : '') + '</div></div></div>';
+      w.document.write('<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Etiquetas ' + esc(folio(d.folio)) + '</title><style>body{margin:8px;font-family:Arial,sans-serif}.g{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}.e{display:flex;gap:8px;align-items:center;border:1px dashed #888;padding:6px;break-inside:avoid}.e img{width:78px}.f{font-size:18px;font-weight:800}.s{font-size:11px;color:#444}</style></head><body><div class="g">' + c + '</div><script>window.onload=function(){window.print()}<\/script></body></html>'); w.document.close(); }));
     const est = h('div'); z.appendChild(est);
     if(d.tipo !== 'garantia') taller(z, d);
     if(!['entregado', 'cancelado'].includes(d.estado)){

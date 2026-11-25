@@ -82,6 +82,7 @@
     if(t.resumen){ let rs = []; try { rs = t.resumen(todos, ctx) || []; } catch(e){} if(rs.length){ const rb = h('div', 'bloque-analitica', null, 'margin-bottom:10px;'); rs.forEach((x) => rb.appendChild(h('div', null, x, 'font-size:13px; margin:2px 0;'))); zl.appendChild(rb); } }
     let vis = todos.filter((r) => !filtroEstado || r.estado === filtroEstado); if(t.orden) vis = vis.slice().sort((a, b) => t.orden(a, b));
     if(!vis.length){ zl.appendChild(h('p', 'nota', q ? 'No hay registros con esa búsqueda.' : 'Todavía no hay registros aquí.')); return; }
+    if(t.rutaMapa){ const paradas = vis.filter((r) => r.estado === 'Pendiente' && (r.datos || {})[t.mapa]).map((r) => r.datos[t.mapa]); if(paradas.length >= 1){ const bm = boton('Abrir la ruta del día en Google Maps (' + Math.min(paradas.length, 10) + ' parada' + (paradas.length === 1 ? '' : 's') + ')', () => { const p = paradas.slice(0, 10); const u = 'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=' + encodeURIComponent(p[p.length - 1]) + (p.length > 1 ? '&waypoints=' + encodeURIComponent(p.slice(0, -1).join('|')) : ''); window.open(u, '_blank', 'noopener'); }, 'primario'); bm.style.marginBottom = '8px'; zl.appendChild(bm); } }
     vis.forEach((r) => zl.appendChild(fila(t, r, ctx, () => lista(t, q))));
   }
   function fila(t, r, ctx, recarga){
@@ -100,6 +101,7 @@
     if(t.abonos) ac.appendChild(boton('Abonos', () => abonos(t, r, c, recarga)));
     const tel = (r.datos || {})[t.tel]; if(t.wa && tel) ac.appendChild(boton('WhatsApp', () => wa(tel, t.wa(r, ctx, enlace.dinero))));
     if(t.imprime) ac.appendChild(boton(t.imprimeEt || 'Imprimir', () => imprimir(r.titulo, t.imprime(r, { esc, tablaDatos, fechaL, din }))));
+    if(t.mapa && (r.datos || {})[t.mapa]) ac.appendChild(boton('Ver en mapa', () => window.open('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(r.datos[t.mapa]), '_blank', 'noopener')));
     if(t.repetir) ac.appendChild(boton('Repetir', async () => { try { const d = Object.assign({}, r.datos); delete d._final; delete d.recibio; await rpc('registro_guardar', { p_id: null, p_tipo: t.id, p_titulo: r.titulo, p_estado: t.estados[0], p_fecha: hoy(), p_monto: Number(r.monto) || 0, p_datos: d }); recarga(); } catch(e){ window.alert(errTxt(e)); } }));
     if(enlace.esEncargado()) ac.appendChild(boton('Borrar', async () => { if(!window.confirm('¿Borrar «' + r.titulo + '»? No se puede deshacer.')) return; try { await rpc('registro_eliminar', { p_id: r.id }); recarga(); } catch(e){ window.alert(errTxt(e)); } }));
     c.appendChild(ac); return c;

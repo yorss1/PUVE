@@ -9,7 +9,7 @@
  */
 (function(){
   'use strict';
-  let enlace = { sb: null, productos: () => [], esEncargado: () => false, dinero: (n) => '$' + Number(n).toFixed(2), negocio: () => '' };
+  let enlace = { giro: () => '', sb: null, productos: () => [], esEncargado: () => false, dinero: (n) => '$' + Number(n).toFixed(2), negocio: () => '' };
   function h(tag, cls, txt, estilo){ const e = document.createElement(tag); if(cls) e.className = cls; if(txt != null) e.textContent = txt; if(estilo) e.style.cssText = estilo; return e; }
   function boton(txt, fn, cls, estilo){ const b = h('button', cls || 'texto', txt, 'width:auto; padding:7px 12px;' + (estilo || '')); b.type = 'button'; b.onclick = fn; return b; }
   function campo(et, el, ancho){ const w = h('label', null, et, 'display:flex; flex-direction:column; gap:4px; font-size:13px; font-weight:500;' + (ancho ? 'flex:1 1 ' + ancho + 'px;' : '')); w.appendChild(el); return w; }
@@ -87,7 +87,7 @@
   function editor(p, alTerminar){
     const w = h('div', 'bloque-analitica', null, 'margin:8px 0;'), sn = input(p.sinonimos || '', 'Otras formas de pedirlo, separadas por coma', 300), co = input((p.codigos_extra || []).join(', '), 'Otro código de barras o número de parte, separados por coma', 400), ub = input(p.ubicacion || '', 'Ej. Pasillo 3, estante B', 60), est = h('div');
     const f1 = h('div', null, null, 'display:flex; gap:10px; flex-wrap:wrap;'); [campo('Sinónimos', sn, 260), campo('Códigos extra o números de parte (hasta 10)', co, 260), campo('Ubicación', ub, 180)].forEach((c) => f1.appendChild(c)); w.appendChild(f1);
-    const usados = new Set(); listaProductos().forEach((x) => Object.keys(x.datos || {}).forEach((k) => usados.add(k))); const dl = h('datalist'); dl.id = 'dlDatosProd'; usados.forEach((k) => { const o = h('option'); o.value = k; dl.appendChild(o); }); w.appendChild(dl);
+    const usados = new Set(); listaProductos().forEach((x) => Object.keys(x.datos || {}).forEach((k) => usados.add(k))); const SUG = { suplementos: ['Porción', 'Porciones por envase', 'Proteína por porción', 'Sabor', 'Contenido neto', 'Lote', 'Caducidad', 'Ingredientes'], refaccionarias: ['Vehículos', 'Número de parte', 'Marca'], electronicos: ['Compatible con', 'Garantía', 'Marca'], farmacias: ['Sustancia activa', 'Presentación', 'Laboratorio'], veterinarias: ['Especie', 'Etapa de vida', 'Peso del envase'] }; let gg = ''; try { gg = enlace.giro(); } catch(e){} (SUG[gg] || []).forEach((k) => usados.add(k)); const dl = h('datalist'); dl.id = 'dlDatosProd'; usados.forEach((k) => { const o = h('option'); o.value = k; dl.appendChild(o); }); w.appendChild(dl);
     w.appendChild(h('div', 'nota', 'Datos propios (hasta 10): por ejemplo «Medida: 1/2"», «Grado de alcohol: 40%», «Compatible con: Nissan Tsuru 2010».', 'margin:10px 0 4px;'));
     const zd = h('div'); w.appendChild(zd); const pares = [];
     const agrega = (k, v) => { if(pares.length >= 10) return; const a = input(k || '', 'Dato', 30), b = input(v || '', 'Valor', 120); a.setAttribute('list', 'dlDatosProd'); const fl = h('div', null, null, 'display:flex; gap:8px; margin-bottom:6px; flex-wrap:wrap;'); a.style.flex = '1 1 140px'; b.style.flex = '2 1 200px'; const par = { a, b, fl }; fl.appendChild(a); fl.appendChild(b); fl.appendChild(boton('Quitar', () => { fl.remove(); pares.splice(pares.indexOf(par), 1); })); pares.push(par); zd.appendChild(fl); };
@@ -192,8 +192,8 @@
   let subCalc = 'rend';
   function calc(z){
     z.appendChild(h('p', 'nota', 'Calculadoras para planear precios y compras. No guardan nada ni cambian tu inventario: son cuentas rápidas con tus números. Los gramos por persona y demás datos de arranque son solo una referencia; cámbialos por lo que tú conoces de tu negocio.'));
-    const zz = h('div'); const dibuja = (k) => { zz.textContent = ''; ({ rend: rendimiento, bote, asador, fiesta, rebanada, escala, caja2, kilo, porcion, dosis })[k](zz); };
-    subtabs(z, [['rend', 'Rendimiento por pieza'], ['bote', 'Porciones por bote'], ['asador', 'Asador'], ['fiesta', 'Fiesta'], ['rebanada', 'Costo por rebanada'], ['escala', 'Escalar receta'], ['caja2', 'Compra por caja o reja'], ['kilo', 'Costo por kilo producido'], ['porcion', 'Precio por porción'], ['dosis', 'Dosis por peso']], subCalc, (k) => { subCalc = k; dibuja(k); }); z.appendChild(zz); dibuja(subCalc);
+    const zz = h('div'); const dibuja = (k) => { zz.textContent = ''; ({ rend: rendimiento, bote, asador, fiesta, rebanada, escala, caja2, kilo, porcion, dosis, cuna, medida })[k](zz); };
+    subtabs(z, [['rend', 'Rendimiento por pieza'], ['bote', 'Porciones por bote'], ['asador', 'Asador'], ['fiesta', 'Fiesta'], ['rebanada', 'Costo por rebanada'], ['escala', 'Escalar receta'], ['caja2', 'Compra por caja o reja'], ['kilo', 'Costo por kilo producido'], ['porcion', 'Precio por porción'], ['dosis', 'Dosis por peso'], ['cuna', 'Cuñas y rebanadas'], ['medida', 'Venta por medida']], subCalc, (k) => { subCalc = k; dibuja(k); }); z.appendChild(zz); dibuja(subCalc);
   }
   function caja(z, titulo, ayuda){ const b = h('div', 'bloque-analitica'); b.appendChild(h('h3', null, titulo)); if(ayuda) b.appendChild(h('p', 'nota', ayuda)); z.appendChild(b); return b; }
   function filaCampos(b, cs){ const f = h('div', null, null, 'display:flex; gap:10px; flex-wrap:wrap; margin-bottom:8px;'); cs.forEach((c) => f.appendChild(c)); b.appendChild(f); return f; }
@@ -287,6 +287,20 @@
     const pe = num('', 'kg', 0, 'any'), ds = num('', 'mg por kg', 0, 'any'), co = num('', 'mg por ml', 0, 'any'), tb = num('', 'mg por tableta', 0, 'any'); filaCampos(b, [campo('Peso de la mascota (kg)', pe, 150), campo('Dosis indicada (mg por kg)', ds, 170), campo('Concentración (mg por ml)', co, 170), campo('o mg por tableta', tb, 130)]);
     const s = salida(b); const calcula = () => { s.textContent = ''; const W = Number(pe.value) || 0, D = Number(ds.value) || 0; if(!(W > 0 && D > 0)){ linea(s, 'Escribe el peso y la dosis que indicó el veterinario.'); return; } const mg = W * D; linea(s, 'Dosis total: ' + fmt(mg, 2) + ' mg', true); if(Number(co.value) > 0) linea(s, 'Son ' + fmt(mg / Number(co.value), 2) + ' ml de un producto de ' + fmt(Number(co.value), 2) + ' mg/ml.', true); if(Number(tb.value) > 0) linea(s, 'Son ' + fmt(mg / Number(tb.value), 2) + ' tableta(s) de ' + fmt(Number(tb.value), 2) + ' mg (si no sale exacto, consulta al veterinario antes de partir).', true); linea(s, 'Confirma siempre con el veterinario o el instructivo antes de dar el medicamento.'); };
     [pe, ds, co, tb].forEach((e) => { e.oninput = calcula; }); calcula();
+  }
+
+  function cuna(z){
+    const b = caja(z, 'Cuñas y rebanadas', 'Vendes una pieza de queso, jamón o salchichón en cuñas o rebanadas: cuánto pesa cada una, a cuánto cobrarla y cuánto ganas si la pieza se vende completa.');
+    const pk = num('', 'kg', 0, 'any'), cp = num('', '$', 0, '0.01'), nc = num('8', 'cortes', 0, '1'), mg = num('35', '%', 0, 'any'), me = num('3', '%', 0, 'any'); filaCampos(b, [campo('Peso de la pieza (kg)', pk, 130), campo('Lo que te costó la pieza $', cp, 150), campo('Cuñas o rebanadas', nc, 120), campo('Merma al cortar %', me, 120), campo('Margen que quieres %', mg, 130)]);
+    const s = salida(b); const calcula = () => { s.textContent = ''; const K = Number(pk.value) || 0, C = Number(cp.value) || 0, N2 = Math.floor(Number(nc.value) || 0); if(!(K > 0 && C > 0 && N2 > 0)){ linea(s, 'Escribe el peso, el costo y en cuántas partes la cortas.'); return; } const m = Math.min(Number(me.value) || 0, 60), util = K * (1 - m / 100), g = Math.min(Number(mg.value) || 0, 95), pv = C / (1 - g / 100);
+      linea(s, 'Cada cuña pesa unos ' + fmt(util / N2 * 1000, 0) + ' g (' + fmt(util, 2) + ' kg vendibles).', true); linea(s, 'Cada una te cuesta ' + din(C / N2) + '. Para ganar ' + fmt(g, 0) + '% cóbrala a ' + din(pv / N2) + ' (redondeado a ' + din(Math.ceil(pv / N2)) + ').', true); linea(s, 'Precio por kilo equivalente: ' + din(Math.ceil(pv / N2) * N2 / util) + '.'); };
+    [pk, cp, nc, me, mg].forEach((e) => { e.oninput = calcula; }); calcula();
+  }
+  function medida(z){
+    const b = caja(z, 'Venta por medida', 'Cable, manguera, tubo, lámina: cuánto cobrar por la medida que pide el cliente y cuánto sobra del rollo o la pieza. Lo que sobra puedes anotarlo en Libretas → Retazos.');
+    const pm = num('', '$ por metro', 0, '0.01'), tp = num('', 'm', 0, 'any'), pe = num('', 'm', 0, 'any'), mi = num('', 'm', 0, 'any'); filaCampos(b, [campo('Precio por metro $', pm, 130), campo('Largo de la pieza o rollo (m)', tp, 170), campo('Lo que pide el cliente (m)', pe, 170), campo('Retazo mínimo que sí vendes (m)', mi, 190)]);
+    const s = salida(b); const calcula = () => { s.textContent = ''; const P = Number(pm.value) || 0, T = Number(tp.value) || 0, Q = Number(pe.value) || 0; if(!(P > 0 && Q > 0)){ linea(s, 'Escribe el precio por metro y la medida que pide.'); return; } linea(s, 'Cobra ' + din(P * Q) + ' por ' + fmt(Q, 2) + ' m.', true); if(T > 0){ if(Q > T){ linea(s, 'La pieza solo tiene ' + fmt(T, 2) + ' m: faltan ' + fmt(Q - T, 2) + ' m.'); return; } const r = T - Q, mn = Number(mi.value) || 0; linea(s, 'Sobran ' + fmt(r, 2) + ' m (' + din(r * P) + ' a precio completo)' + (r > 0 && r < mn ? ': es menos que tu retazo mínimo, conviene ofrecérselo al cliente.' : '.')); } };
+    [pm, tp, pe, mi].forEach((e) => { e.oninput = calcula; }); calcula();
   }
   function rebanada(z){
     const b = caja(z, 'Costo por rebanada', 'Pasteles y postres: pasa del costo del pastel entero al precio de cada rebanada.');

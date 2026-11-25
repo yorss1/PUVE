@@ -40,7 +40,7 @@
   // alAgregar: se llama al tocar un producto. Devuelve true si se hizo cargo (bloqueó o está preguntando) y la caja NO debe agregar todavía.
   let recordado = false;
   function alAgregar(p, continuar){
-    const rs = reglasDe(p); if(!rs.length) return false; const ahora = ahoraMX();
+    const rs = reglasDe(p); if(!rs.length) return false; const ahora = ahoraMX(); rs.forEach((r) => { if(r.aviso) enlace.avisar(r.aviso); });
     for(const r of rs){ const m = motivoBloqueo(r, ahora); if(!m) continue;
       if(r.accion === 'avisar'){ enlace.avisar(m + ' Solo es un aviso.'); continue; }
       return bloquear(m, continuar); }
@@ -54,8 +54,9 @@
   }
 
   // alCobrar: revisa todo el carrito (cubre cualquier forma de haber agregado). Devuelve true si se hizo cargo y el cobro NO debe seguir todavía.
-  function alCobrar(prods, continuar){
+  function alCobrar(prods, continuar, sinAviso){
     const lista = prods.filter(Boolean); const ahora = ahoraMX(); let bloqueada = null, edad = 0, nombresEdad = [];
+    if(!sinAviso){ const avs = []; lista.forEach((p) => reglasDe(p).forEach((r) => { if(r.aviso && avs.indexOf(r.aviso) < 0) avs.push(r.aviso); })); if(avs.length){ aviso('Antes de cobrar', avs.join(' '), [['Cancelar'], ['Listo, continuar', () => { if(alCobrar(prods, continuar, true) === false) continuar(); }, 'principal']]); return true; } }
     lista.forEach((p) => reglasDe(p).forEach((r) => { const m = motivoBloqueo(r, ahora); if(m && r.accion !== 'avisar' && !bloqueada) bloqueada = m; if(r.edad){ edad = Math.max(edad, r.edad_min || 18); if(!nombresEdad.includes(p.nombre)) nombresEdad.push(p.nombre); } }));
     const pedirEdad = () => { if(!edad){ continuar(); return; } aviso('Verifica la edad', 'La venta lleva ' + nombresEdad.slice(0, 3).join(', ') + (nombresEdad.length > 3 ? ' y ' + (nombresEdad.length - 3) + ' más' : '') + '. ¿Revisaste una identificación y el cliente tiene ' + edad + ' años o más?', [['No, cancelar'], ['Sí, es mayor de edad', () => { recordado = false; continuar(); }, 'principal']]); };
     if(!bloqueada){ if(!edad) return false; pedirEdad(); return true; }
@@ -72,9 +73,10 @@
     caja.appendChild(zl); const ac = h('div', null, null, 'display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;');
     ac.appendChild(boton('+ Alcohol', () => { estado.push({ nombre: 'Alcohol', categorias: [], edad: true, edad_min: 18, desde: '10:00', hasta: '22:00', dias: [], fechas: [], accion: 'bloquear' }); pinta(); }));
     ac.appendChild(boton('+ Tabaco', () => { estado.push({ nombre: 'Tabaco', categorias: [], edad: true, edad_min: 18, desde: '', hasta: '', dias: [], fechas: [], accion: 'bloquear' }); pinta(); }));
+    ac.appendChild(boton('+ Receta médica', () => { estado.push({ nombre: 'Receta médica', categorias: [], edad: false, edad_min: 18, desde: '', hasta: '', dias: [], fechas: [], accion: 'avisar', aviso: 'Pide la receta médica antes de vender.' }); pinta(); }));
     ac.appendChild(boton('+ Otra regla', () => { estado.push({ nombre: 'Regla nueva', categorias: [], edad: false, edad_min: 18, desde: '', hasta: '', dias: [], fechas: [], accion: 'bloquear' }); pinta(); }));
     ac.appendChild(boton('Guardar reglas', async () => { if(estado.length > 8){ est.textContent = 'Máximo 8 reglas.'; return; } for(const r of estado){ if(!r.nombre.trim()){ est.textContent = 'Cada regla necesita un nombre.'; return; } if(!r.categorias.length){ est.textContent = 'La regla «' + r.nombre + '» no tiene categorías. Elige al menos una.'; return; } if((r.desde && !r.hasta) || (!r.desde && r.hasta)){ est.textContent = 'En «' + r.nombre + '» llena la hora de inicio y la de fin, o deja las dos vacías.'; return; } }
-      try { await enlace.guardar({ reglas: estado.map((r) => ({ nombre: r.nombre.trim().slice(0, 40), categorias: r.categorias, edad: !!r.edad, edad_min: Math.min(Math.max(Number(r.edad_min) || 18, 1), 99), desde: r.desde || '', hasta: r.hasta || '', dias: r.dias, fechas: r.fechas.slice(0, 60), accion: r.accion === 'avisar' ? 'avisar' : 'bloquear' })) }); est.textContent = 'Guardado.'; est.style.color = '#16a34a'; } catch(e){ est.textContent = 'No se pudo guardar: ' + ((e && e.message) || e); est.style.color = 'var(--error,#b91c1c)'; } }, 'principal'));
+      try { await enlace.guardar({ reglas: estado.map((r) => ({ nombre: r.nombre.trim().slice(0, 40), categorias: r.categorias, edad: !!r.edad, edad_min: Math.min(Math.max(Number(r.edad_min) || 18, 1), 99), desde: r.desde || '', hasta: r.hasta || '', dias: r.dias, fechas: r.fechas.slice(0, 60), accion: r.accion === 'avisar' ? 'avisar' : 'bloquear', aviso: String(r.aviso || '').trim().slice(0, 140) })) }); est.textContent = 'Guardado.'; est.style.color = '#16a34a'; } catch(e){ est.textContent = 'No se pudo guardar: ' + ((e && e.message) || e); est.style.color = 'var(--error,#b91c1c)'; } }, 'principal'));
     caja.appendChild(ac); est.style.cssText = 'font-size:13px; margin:8px 0; color:var(--error,#b91c1c);'; caja.appendChild(est); div.appendChild(caja);
     function pinta(){
       zl.textContent = ''; if(!estado.length) zl.appendChild(h('p', 'nota', 'No hay reglas. Agrega una con los botones de abajo.'));
@@ -88,7 +90,7 @@
         b.appendChild(h('div', 'nota', 'Días en que SÍ se puede vender (ninguno marcado = todos):', 'margin:8px 0 4px;')); const dd = h('div', null, null, 'display:flex; gap:10px; flex-wrap:wrap;'); DIAS.forEach((n, i) => { const l = h('label', null, null, 'display:flex; gap:4px; align-items:center; font-size:13.5px;'), k = h('input'); k.type = 'checkbox'; k.checked = r.dias.includes(i); k.style.cssText = 'width:16px; height:16px; margin:0;'; k.onchange = () => { r.dias = k.checked ? r.dias.concat(i) : r.dias.filter((x) => x !== i); }; l.appendChild(k); l.appendChild(h('span', null, n)); dd.appendChild(l); }); b.appendChild(dd);
         b.appendChild(h('div', 'nota', 'Fechas sin venta (ley seca, elecciones):', 'margin:8px 0 4px;')); const zf = h('div', null, null, 'display:flex; gap:6px; flex-wrap:wrap; align-items:center;'); const pf = () => { zf.textContent = ''; r.fechas.slice().sort().forEach((f) => { const ch = h('span', null, null, 'display:inline-flex; gap:4px; align-items:center; background:#e2e8f0; color:#0f172a; border-radius:6px; padding:2px 8px; font-size:12.5px;'); ch.appendChild(h('span', null, f)); const x = h('button', null, '×', 'border:0; background:transparent; cursor:pointer; font-size:15px; padding:0 2px;'); x.type = 'button'; x.setAttribute('aria-label', 'Quitar ' + f); x.onclick = () => { r.fechas = r.fechas.filter((y) => y !== f); pf(); }; ch.appendChild(x); zf.appendChild(ch); });
           const fi = input('', '', 10, 'date'); zf.appendChild(fi); zf.appendChild(boton('Agregar fecha', () => { if(fi.value && !r.fechas.includes(fi.value)) { r.fechas.push(fi.value); pf(); } }, 'texto', 'padding:4px 10px;')); }; pf(); b.appendChild(zf);
-        const ac2 = sel2(r); b.appendChild(campo('Si se intenta vender fuera de la regla', ac2, 300)); zl.appendChild(b);
+        const ac2 = sel2(r); b.appendChild(campo('Si se intenta vender fuera de la regla', ac2, 300)); const av = input(r.aviso || '', 'Ej. Pide la receta médica', 140); av.oninput = () => { r.aviso = av.value; }; const fav = campo('Recordatorio en caja (opcional): se muestra al agregar y antes de cobrar', av, 300); fav.style.marginTop = '10px'; b.appendChild(fav); zl.appendChild(b);
       });
     }
     function sel2(r){ const s = h('select', 'input-mini'); [['bloquear', 'Bloquear (el cajero necesita el PIN del encargado)'], ['avisar', 'Solo avisar y dejar vender']].forEach(([v, t]) => { const o = h('option', null, t); o.value = v; s.appendChild(o); }); s.value = r.accion === 'avisar' ? 'avisar' : 'bloquear'; s.onchange = () => { r.accion = s.value; }; return s; }
