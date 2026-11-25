@@ -13607,7 +13607,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   PuveOrdenes.enlazar({ qr: generarQRDataURL });
   PuveEspera.enlazar({ carrito: () => carrito, poner: (a) => { carrito = a; renderizarCarrito(); }, negocio: () => negocioId || 'x', dinero: (n) => formatoDinero(n) });
   try { PuveHerramientas.enlazar({ giro: () => { const g = giroEspecifico(); return g ? g.id : ''; } }); } catch(e){}
-  PuveHerr3.enlazar({ sb: sb, productos: () => productosCache, categorias: () => categoriasCache, dinero: (n) => formatoDinero(n) });
+  PuveHerr3.enlazar({ qr: generarQRDataURL, sb: sb, productos: () => productosCache, categorias: () => categoriasCache, dinero: (n) => formatoDinero(n), negocioId: () => negocioId, esEncargado: () => miRol === 'admin', giro: () => { const g = giroEspecifico(); return g ? g.id : ''; }, alCambiar: () => { try { cargarProductos(); } catch(e){} } });
   PuveHerr2.enlazar({ qr: generarQRDataURL, escanear: (cb) => abrirEscaner(cb), mismoCodigo: (a, b) => mismoCodigoBarras(a, b), sb: sb, productos: () => productosCache, categorias: () => categoriasCache, esEncargado: () => miRol === 'admin', dinero: (n) => formatoDinero(n), giro: () => { const g = giroEspecifico(); return g ? g.id : ''; }, alActualizar: () => { try { actualizarCrossSell(); } catch(e){} } });
   PuveLibretas.enlazar({ sb: sb, productos: () => productosCache, esEncargado: () => miRol === 'admin', dinero: (n) => formatoDinero(n), giro: () => { const g = giroEspecifico(); return g ? g.id : ''; } });
   PuveRopa.enlazar({ sb: sb, productos: () => productosCache, esEncargado: () => miRol === 'admin', dinero: (n) => formatoDinero(n) });
