@@ -3784,10 +3784,13 @@
         <div class="emb-avatar" id="embAvatar">E</div>
         <div><div class="emb-hola">Hola,</div><div class="emb-nombre" id="embSaludoNombre">Embajador</div></div>
       </div>
-      <button class="texto" onclick="cerrarSesion()">Cerrar sesión</button>
+      <div style="display:flex; gap:4px; align-items:center;">
+        <button class="texto" id="btnEmbConfig" onclick="abrirConfigEmbajador()">Configuración</button>
+        <button class="texto" onclick="cerrarSesion()">Cerrar sesión</button>
+      </div>
     </div>
 
-    <div class="emb-cuerpo">
+    <div class="emb-cuerpo" id="embPrincipal">
     <div class="emb-columna-izquierda">
     <div class="emb-hero">
       <div class="emb-etq">Saldo disponible</div>
@@ -3796,10 +3799,6 @@
       <p class="emb-nota" id="embNotaRetiro"></p>
     </div>
 
-    <div class="emb-metricas">
-      <div><div class="num" id="embNegociosActivosHero">0</div><div class="etq">Negocios activos</div></div>
-      <div><div class="num" id="embComisionesPendientesHero">$0.00</div><div class="etq">Comisiones pendientes</div></div>
-    </div>
     </div>
 
     <div class="emb-columna-derecha">
@@ -3813,6 +3812,33 @@
       <p class="emb-micro">No necesitas negocio propio para ganar. Ganas cuando el negocio que refieres hace su primer pago; probar gratis no cuenta.</p>
     </div>
 
+    <div class="emb-seccion">
+      <p class="emb-titulo">Movimientos</p>
+      <div id="embCuerpoMovs"><div class="emb-vacio">Todavía no tienes movimientos.</div></div>
+    </div>
+    </div>
+    </div>
+    <div id="embConfigVista" class="emb-columna-derecha" style="display:none; flex-direction:column; gap:16px;">
+      <div style="display:flex; align-items:center; gap:10px; margin:6px 0 16px;">
+        <button class="texto" onclick="cerrarConfigEmbajador()" style="width:auto;">← Volver</button>
+        <h2 style="margin:0; font-size:20px;">Configuración</h2>
+      </div>
+      <div class="emb-metricas" style="margin:0;">
+      <div><div class="num" id="embNegociosActivosHero">0</div><div class="etq">Negocios activos</div></div>
+      <div><div class="num" id="embComisionesPendientesHero">$0.00</div><div class="etq">Comisiones pendientes</div></div>
+    </div>
+    <div class="emb-seccion" id="embSeccionBanco">
+        <p class="emb-titulo">Mis datos bancarios</p>
+        <p class="nota" style="margin:0 0 10px;" id="embBancoResumen">Aquí se depositan tus retiros por transferencia (SPEI). Solo necesitas tu CLABE; no pedimos número de tarjeta.</p>
+        <div id="mensajeBancoCfg" class="mensaje"></div>
+        <form onsubmit="return guardarDatosBancariosEmbajador(event, 'Cfg')">
+          <div class="campo"><label for="bancoTitularCfg">Nombre del beneficiario (como aparece en tu cuenta)</label><input id="bancoTitularCfg" type="text" maxlength="100" required></div>
+          <div class="campo"><label for="bancoBancoCfg">Banco</label><input id="bancoBancoCfg" type="text" maxlength="60" required></div>
+          <div class="campo"><label for="bancoClabeCfg">CLABE interbancaria (18 dígitos)</label><input id="bancoClabeCfg" type="text" inputmode="numeric" maxlength="18" autocomplete="off" required></div>
+          <div class="campo"><label for="bancoRfcCfg">RFC (opcional)</label><input id="bancoRfcCfg" type="text" maxlength="13" autocapitalize="characters"></div>
+          <button class="principal" type="submit" style="width:100%;">Guardar datos</button>
+        </form>
+      </div>
     <div class="emb-seccion">
       <p class="emb-titulo">Recursos para compartir</p>
       <div class="emb-acciones">
@@ -3850,11 +3876,6 @@
     </div>
 
     <div class="emb-seccion">
-      <p class="emb-titulo">Retiros</p>
-      <div id="embCuerpoRetiros"><div class="emb-vacio">Todavía no has solicitado retiros.</div></div>
-    </div>
-
-    <div class="emb-seccion">
       <p class="emb-titulo">Por zona</p>
       <div id="embCuerpoZonas"><div class="emb-vacio">Sin datos todavía.</div></div>
     </div>
@@ -3864,6 +3885,21 @@
       <div id="embCuerpoClientes"><div class="emb-vacio">Todavía no has traído negocios.</div></div>
     </div>
     </div>
+
+    <div id="embBancoObligatorio" class="oculto" style="position:fixed; inset:0; z-index:9000; background:var(--fondo, #fff); overflow:auto; padding:24px 16px;">
+      <div style="max-width:440px; margin:0 auto;">
+        <h2 style="margin:0 0 6px;">Antes de continuar, tus datos bancarios</h2>
+        <p class="nota" style="margin:0 0 16px;">Los retiros ahora se pagan por transferencia a tu cuenta. Captura una sola vez los datos del beneficiario; después puedes cambiarlos en Configuración. No pedimos número de tarjeta: con la CLABE la transferencia llega completa, sin límites de tarjeta.</p>
+        <div id="mensajeBancoObl" class="mensaje"></div>
+        <form onsubmit="return guardarDatosBancariosEmbajador(event, 'Obl')">
+          <div class="campo"><label for="bancoTitularObl">Nombre del beneficiario (como aparece en tu cuenta)</label><input id="bancoTitularObl" type="text" maxlength="100" required></div>
+          <div class="campo"><label for="bancoBancoObl">Banco</label><input id="bancoBancoObl" type="text" maxlength="60" required></div>
+          <div class="campo"><label for="bancoClabeObl">CLABE interbancaria (18 dígitos)</label><input id="bancoClabeObl" type="text" inputmode="numeric" maxlength="18" autocomplete="off" required></div>
+          <div class="campo"><label for="bancoRfcObl">RFC (opcional)</label><input id="bancoRfcObl" type="text" maxlength="13" autocapitalize="characters"></div>
+          <button class="principal" type="submit" style="width:100%;">Guardar y continuar</button>
+        </form>
+        <button class="texto" onclick="cerrarSesion()" style="width:100%; margin-top:10px;">Cerrar sesión</button>
+      </div>
     </div>
 
     <div class="modal-puve-fondo oculto" id="modalRetiroEmbajador" onclick="if(event.target===this) cerrarModalRetiroEmbajador()">
@@ -3876,9 +3912,12 @@
         <div id="mensajeRetiroEmbajador" class="mensaje"></div>
         <form onsubmit="return solicitarRetiroEmbajador(event)">
           <div class="campo"><label for="retiroMonto">Monto a retirar (MXN)</label><input id="retiroMonto" type="number" min="1" step="0.01" required></div>
+          <div id="retiroResumenBanco" class="nota oculto" style="margin:0 0 12px;"></div>
+          <div id="retiroCamposBanco">
           <div class="campo"><label for="retiroBanco">Banco</label><input id="retiroBanco" type="text" required></div>
           <div class="campo"><label for="retiroTitular">Nombre del titular</label><input id="retiroTitular" type="text" required></div>
           <div class="campo"><label for="retiroClabe">CLABE interbancaria (18 dígitos)</label><input id="retiroClabe" type="text" inputmode="numeric" maxlength="18" required></div>
+          </div>
           <button class="principal" type="submit" id="btnEnviarRetiroEmbajador" style="width:100%;">Enviar solicitud</button>
         </form>
       </div>
@@ -4978,8 +5017,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       </div>`;
     }).join('') : '<div class="emb-vacio">Todavía no has traído negocios.</div>';
 
+    await cargarDatosBancariosEmbajador();
     await cargarEstadoCuentaEmbajador();
-    await cargarEstadoStripeEmbajador();
+    if(window.__embajadorModoRetiros !== 'manual') await cargarEstadoStripeEmbajador();
   }
 
   
@@ -5036,16 +5076,61 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       ? 'Tienes ' + formatoDinero(saldo.solicitado_pendiente) + ' en una solicitud de retiro en trámite.'
       : (saldo.disponible <= 0 ? 'Todavía no tienes saldo disponible para retirar.' : '');
 
-    const cuerpo = document.getElementById('embCuerpoRetiros');
-    const retiros = rRetiros.data || [];
-    const etiquetas = { solicitado: 'En trámite', pagado: 'Pagado', rechazado: 'Rechazado' };
-    const clases = { solicitado: 'bajo', pagado: 'activo-si', rechazado: 'baneado' };
-    cuerpo.innerHTML = retiros.length ? retiros.map(x => `
-      <div class="emb-fila">
-        <div class="l"><div class="t">${escapar(x.banco)} · ${escapar(x.titular)}</div><div class="s">${new Date(x.creado_en).toLocaleDateString('es-MX')}</div></div>
-        <div class="r">${formatoDinero(x.monto)}<span class="badge ${clases[x.estado] || ''}">${etiquetas[x.estado] || x.estado}</span></div>
-      </div>
-    `).join('') : '<div class="emb-vacio">Todavía no has solicitado retiros.</div>';
+    await pintarMovimientosEmbajador();
+  }
+
+  // Movimientos como estado de cuenta bancario: + comisiones que entran, − retiros que salen
+  async function pintarMovimientosEmbajador(){
+    const cuerpo = document.getElementById('embCuerpoMovs'); if(!cuerpo) return;
+    const { data, error } = await sb.rpc('mis_movimientos_embajador');
+    if(error){ cuerpo.innerHTML = '<div class="emb-vacio">No se pudieron cargar tus movimientos.</div>'; console.error('Movimientos:', error.message); return; }
+    const etiquetas = { solicitado: 'En trámite', pagado: 'Pagado', rechazado: 'Rechazado' }, clases = { solicitado: 'bajo', pagado: 'activo-si', rechazado: 'baneado' };
+    const movs = data || [];
+    cuerpo.innerHTML = movs.length ? movs.map(m => {
+      const entra = Number(m.monto) > 0, esRetiro = m.tipo === 'retiro', tachado = esRetiro && m.estado === 'rechazado';
+      const monto = (entra ? '+' : '−') + formatoDinero(Math.abs(Number(m.monto)));
+      return `<div class="emb-fila">
+        <div class="l"><div class="t">${escapar(m.titulo)}</div><div class="s">${new Date(m.fecha).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}${m.referencia ? ' · Ref. ' + escapar(m.referencia) : ''}</div></div>
+        <div class="r" style="${entra ? 'color:#15803d;' : ''}${tachado ? 'text-decoration:line-through; opacity:.6;' : ''}">${monto}${esRetiro ? `<span class="badge ${clases[m.estado] || ''}">${etiquetas[m.estado] || m.estado}</span>` : ''}</div>
+      </div>`;
+    }).join('') : '<div class="emb-vacio">Todavía no tienes movimientos. Aquí aparecerán tus comisiones y tus retiros.</div>';
+  }
+
+  // Configuración del embajador: datos bancarios y todo lo demás que no va en la primera pantalla
+  function abrirConfigEmbajador(){
+    document.getElementById('embPrincipal').style.display = 'none'; document.getElementById('embConfigVista').style.display = 'flex'; document.getElementById('btnEmbConfig').style.display = 'none'; window.scrollTo(0, 0);
+    ocultarMensaje('mensajeBancoCfg');
+  }
+  function cerrarConfigEmbajador(){
+    document.getElementById('embConfigVista').style.display = 'none'; document.getElementById('embPrincipal').style.display = ''; document.getElementById('btnEmbConfig').style.display = '';
+  }
+  function pintarDatosBancariosEmbajador(){
+    const db = window.__embajadorBanco, modoManual = window.__embajadorModoRetiros === 'manual';
+    ['Cfg', 'Obl'].forEach(pf => { document.getElementById('bancoTitular' + pf).value = db ? db.titular : ''; document.getElementById('bancoBanco' + pf).value = db ? db.banco : ''; document.getElementById('bancoClabe' + pf).value = db ? db.clabe : ''; document.getElementById('bancoRfc' + pf).value = db && db.rfc ? db.rfc : ''; });
+    document.getElementById('embBancoResumen').textContent = db ? 'Tus retiros se depositan a ' + db.banco + ' · ' + db.titular + ' · CLABE ••••' + db.clabe.slice(-4) + '. Puedes cambiarla cuando quieras.' : 'Aquí se depositan tus retiros por transferencia (SPEI). Solo necesitas tu CLABE; no pedimos número de tarjeta.';
+    document.getElementById('embBancoObligatorio').classList.toggle('oculto', !(modoManual && !db));
+  }
+  function clabeEsValida(c){
+    if(!/^\d{18}$/.test(c)) return false; const w = [3, 7, 1]; let sum = 0; for(let i = 0; i < 17; i++) sum += (Number(c[i]) * w[i % 3]) % 10; return ((10 - (sum % 10)) % 10) === Number(c[17]);
+  }
+  async function guardarDatosBancariosEmbajador(e, pf){
+    e.preventDefault(); const msgId = 'mensajeBanco' + pf, btn = e.target.querySelector('button[type=submit]');
+    const g = (id) => document.getElementById(id + pf).value.trim();
+    const clabe = g('bancoClabe').replace(/\s/g, '');
+    if(!clabeEsValida(clabe)){ mostrarMensaje(msgId, 'La CLABE no es válida. Revisa que sean 18 dígitos sin espacios.', 'error'); return false; }
+    btn.disabled = true;
+    const { error } = await sb.rpc('guardar_datos_bancarios_embajador', { p_titular: g('bancoTitular'), p_banco: g('bancoBanco'), p_clabe: clabe, p_rfc: g('bancoRfc') || null });
+    btn.disabled = false;
+    if(error){ mostrarMensaje(msgId, /does not exist|schema cache|Could not find/i.test(error.message || '') ? 'Falta ejecutar el SQL 149 en Supabase.' : error.message, 'error'); return false; }
+    await cargarDatosBancariosEmbajador();
+    mostrarMensaje('mensajeBancoCfg', 'Datos guardados.', 'exito');
+    return false;
+  }
+  async function cargarDatosBancariosEmbajador(){
+    const [m, d] = await Promise.all([sb.rpc('mi_modo_retiros_embajador'), sb.rpc('mis_datos_bancarios_embajador')]);
+    window.__embajadorModoRetiros = (!m.error && m.data) ? m.data : 'ambos'; window.__embajadorBanco = (!d.error && d.data) ? d.data : null;
+    const es = document.getElementById('embEstadoStripe'); if(es) es.classList.toggle('oculto', window.__embajadorModoRetiros === 'manual');
+    pintarDatosBancariosEmbajador();
   }
 
   function abrirModalRetiroEmbajador(){
@@ -5056,6 +5141,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     document.getElementById('retiroMonto').max = saldo.disponible;
     document.getElementById('retiroMonto').value = saldo.disponible;
     ocultarMensaje('mensajeRetiroEmbajador');
+    const db = window.__embajadorBanco, campos = document.getElementById('retiroCamposBanco'), res = document.getElementById('retiroResumenBanco');
+    ['retiroBanco', 'retiroTitular', 'retiroClabe'].forEach(id => { document.getElementById(id).required = !db; });
+    if(db){ campos.classList.add('oculto'); res.classList.remove('oculto'); res.textContent = 'Se depositará a ' + db.banco + ' · ' + db.titular + ' · CLABE ••••' + db.clabe.slice(-4) + '. Puedes cambiarla en Configuración.'; }
+    else { campos.classList.remove('oculto'); res.classList.add('oculto'); }
   }
 
   function cerrarModalRetiroEmbajador(){
@@ -5066,9 +5155,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     e.preventDefault();
     const btn = document.getElementById('btnEnviarRetiroEmbajador');
     const monto = Number(document.getElementById('retiroMonto').value);
-    const banco = document.getElementById('retiroBanco').value.trim();
-    const titular = document.getElementById('retiroTitular').value.trim();
-    const clabe = document.getElementById('retiroClabe').value.trim();
+    const db = window.__embajadorBanco;
+    const banco = db ? db.banco : document.getElementById('retiroBanco').value.trim();
+    const titular = db ? db.titular : document.getElementById('retiroTitular').value.trim();
+    const clabe = db ? db.clabe : document.getElementById('retiroClabe').value.trim();
     if(!/^\d{18}$/.test(clabe)){
       mostrarMensaje('mensajeRetiroEmbajador', 'La CLABE debe tener 18 dígitos.', 'error');
       return false;
