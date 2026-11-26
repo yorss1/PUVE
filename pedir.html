@@ -207,6 +207,7 @@
   // Título, descripción y metas cambian según el giro del negocio (lo que ve el cliente en la pestaña, al guardar en inicio o al compartir)
   var PERFIL = {
     restaurante:{ titulo:'Menú', desc:'Mira el menú de {n} y haz tu pedido desde tu celular.' },
+    dulcerias:{ titulo:'Arma tu bolsa', desc:'Elige tus dulces en {n} y arma tu bolsa desde tu celular.' },
     cafeteria:{ titulo:'Menú', desc:'Pide tu café, bebidas y alimentos en {n} desde tu celular.' },
     recoger:{ titulo:'Pide y recoge', desc:'{n}: arma tu pedido desde tu celular y elige a qué hora pasar por él.' },
     papeleria:{ titulo:'Imprime y pide', desc:'{n}: sube tus archivos para imprimir y programa tu pedido para recogerlo sin hacer fila.' },
@@ -420,13 +421,13 @@
       if(gs.length) cu.appendChild($('div', 'mtit', 'Extras y opciones'));
     }
     gs.forEach(function(g){
-      var bl = $('div', 'grp'); bl.appendChild($('div', 'gt', g.nombre + (g.tipo === 'varios' ? ' · elige las que quieras' : ''))); var fila = $('div', 'opts');
+      var bl = $('div', 'grp'); bl.appendChild($('div', 'gt', g.nombre + (g.tipo === 'varios' ? (g.max ? ' · elige hasta ' + g.max : ' · elige las que quieras') : ''))); var fila = $('div', 'opts');
       g.opciones.forEach(function(o){ var b = $('button', 'chip', o.nombre + (Number(o.extra) > 0 ? ' +' + money(o.extra) : '')); b.type = 'button'; b.onclick = function(){ alternar(g, o); }; btns[o.id] = b; fila.appendChild(b); });
       bl.appendChild(fila); cu.appendChild(bl);
     });
     function alternar(g, o){
       var s = sel[g.id], i = s.indexOf(o.id);
-      if(g.tipo === 'uno') sel[g.id] = (i >= 0 && !g.requerido) ? [] : [o.id]; else if(i >= 0){ if(!(g.requerido && s.length === 1)) s.splice(i, 1); } else if(s.length < 6) s.push(o.id);
+      if(g.tipo === 'uno') sel[g.id] = (i >= 0 && !g.requerido) ? [] : [o.id]; else if(i >= 0){ if(!(g.requerido && s.length === 1)) s.splice(i, 1); } else if(s.length < (g.max || 6)) s.push(o.id);
       refrescar();
     }
     function refrescar(){

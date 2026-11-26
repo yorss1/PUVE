@@ -999,7 +999,8 @@
   .cr-cambio{ display:flex; justify-content:space-between; align-items:baseline; margin-top:10px; font-size:13px; color:var(--texto-suave); } .cr-cambio:empty{ display:none; } .cr-cambio b{ font:400 36px var(--serif); color:var(--texto); }
 
   /* ===== Ropa: vales de saldo a favor ===== */
-  .bloque-vale{ display:none; margin:0 0 10px; } body.giro-ropa .bloque-vale{ display:block; }
+  #btnConvenio{ display:none; } body.convenios-on #btnConvenio{ display:block; }
+  .bloque-vale{ display:none; margin:0 0 10px; } body.giro-ropa .bloque-vale, body.vales-on .bloque-vale{ display:block; }
   .vale-aplicado{ display:flex; justify-content:space-between; align-items:center; gap:8px; padding:10px 12px; border-radius:14px; background:var(--exito-bg); color:var(--exito); font-size:13px; font-weight:600; }
   .vale-pendiente{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:10px 0; padding:12px 14px; border-radius:16px; background:var(--vid2); border:1px solid var(--borde); font-size:13px; }
 
@@ -1949,7 +1950,8 @@
         <div class="cr-cambio" id="cambioCobroRapido"></div>
       </div>
       <div class="bloque-vale cart-opcion" id="bloqueVale">
-        <button type="button" class="texto" id="btnAbrirVale" onclick="abrirEntradaVale()" style="width:100%; text-align:left; padding:6px 0; font-size:13px; color:var(--texto-suave);">+ Canjear vale de saldo a favor</button>
+        <button type="button" class="texto" id="btnAbrirVale" onclick="abrirEntradaVale()" style="width:100%; text-align:left; padding:6px 0; font-size:13px; color:var(--texto-suave);">+ Canjear vale o cupón</button>
+        <button type="button" class="texto" id="btnConvenio" onclick="abrirConvenioCaja()" style="width:100%; text-align:left; padding:6px 0; font-size:13px; color:var(--texto-suave);">+ Convenio de empresa</button>
         <div class="oculto" id="entradaVale"><div class="form-agregar-admin"><input id="valeFolio" type="text" placeholder="V-XXXXXXXX" maxlength="10" style="text-transform:uppercase;" onkeydown="if(event.key==='Enter'){event.preventDefault();aplicarValeDesdeInput();}"><button type="button" class="principal" style="width:auto;" onclick="aplicarValeDesdeInput()">Aplicar</button></div></div>
         <div class="vale-aplicado oculto" id="valeAplicado"><span id="valeAplicadoTxt"></span><button type="button" class="texto" onclick="quitarValeAplicado()">Quitar</button></div>
       </div>
@@ -3408,6 +3410,15 @@
         <div class="bloque-analitica oculto" id="bloqueRetirosEmbajadores" style="margin-bottom:20px; border-color:var(--foco); background:#EFF6FF;">
           <h3 style="margin-bottom:10px;">Solicitudes de retiro pendientes</h3>
           <div id="listaRetirosPendientesAdmin"></div>
+        </div>
+
+        <div class="bloque-analitica" style="margin-bottom:20px;">
+          <h3 style="margin-bottom:4px;">Cómo se pagan los retiros</h3>
+          <p class="nota" style="margin:0 0 10px;">Ningún pago sale solo: tú aceptas cada solicitud. Si Stripe falla o prefieres no usarlo, déjalo en «Solo transferencia manual» y paga desde tu banco.</p>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+            <select id="selModoRetiros" style="max-width:320px;"><option value="ambos">Stripe o transferencia manual</option><option value="manual">Solo transferencia manual</option></select>
+            <span class="nota" id="msgModoRetiros" style="margin:0;"></span>
+          </div>
         </div>
 
         <div class="bloque-analitica">
@@ -6746,7 +6757,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       recompensas: {
         activo: document.getElementById('cfgRecompensasActivo').checked,
         pesos_por_punto: Number(document.getElementById('cfgPesosPorPunto').value) || 10,
-        valor_punto: Number(document.getElementById('cfgValorPunto').value) || 0
+        valor_punto: Number(document.getElementById('cfgValorPunto').value) || 0,
+        bono_categorias: (configNegocio.recompensas && configNegocio.recompensas.bono_categorias) || undefined   // se edita en Herramientas → Puntos por categoría; aquí solo se conserva
       },
       clientes: document.getElementById('cfgClientesActivo').checked,
       restricciones: configNegocio.restricciones || undefined,
@@ -8868,7 +8880,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(!negocioId) return;
     const { data, error } = await sb.from('negocios').select('pedidos_qr_activo').eq('id', negocioId).maybeSingle();
     if(error) return;
-    const activo = !!(data && data.pedidos_qr_activo) && ['restaurante', 'cafeteria'].includes(configNegocio.tipo_negocio);
+    const activo = !!(data && data.pedidos_qr_activo) && (['restaurante', 'cafeteria'].includes(configNegocio.tipo_negocio) || configNegocio.subgiro === 'dulcerias');
     document.getElementById('navPedidos').classList.toggle('oculto', !activo);
     if(activo){ pedidosQrActivo = true; abrirCanalPedidosQr(); } else { cerrarCanalPedidosQr(); pedidosQrActivo = false; }
   }
@@ -8993,7 +9005,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   // ----- Configuración: activar y generar QR de mesas (solo encargado, giro Restaurante) -----
   async function actualizarBloquePedidosQr(){
     const b = document.getElementById('bloquePedidosQr'); if(!b) return;
-    const esRest = ['restaurante', 'cafeteria'].includes(baseDeGiro(document.getElementById('cfgTipoNegocio').value));
+    const esRest = ['restaurante', 'cafeteria'].includes(baseDeGiro(document.getElementById('cfgTipoNegocio').value)) || document.getElementById('cfgTipoNegocio').value === 'dulcerias';
     b.classList.toggle('oculto', !(esRest && miRol === 'admin' && !esAdminActual));
     if(!esRest) return;
     const { data } = await sb.from('negocios').select('pedidos_qr_activo, configuracion').eq('id', negocioId).maybeSingle();
@@ -9200,6 +9212,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const nl = document.getElementById('navEnlinea'); if(nl) nl.classList.toggle('oculto', !(usaPedProg() && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
     const ne = document.getElementById('navEncargos'); if(ne) ne.classList.toggle('oculto', !(usaEncargos() && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
     const nf = document.getElementById('navFichas'); if(nf) nf.classList.toggle('oculto', !(usaFichas() && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
+    document.body.classList.toggle('vales-on', featGiro('vales') || featGiro('convenios')); document.body.classList.toggle('convenios-on', featGiro('convenios'));
     const nct = document.getElementById('navCuentas'); if(nct) nct.classList.toggle('oculto', !(usaCuentas() && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
     const nb = document.getElementById('navBonos'); if(nb) nb.classList.toggle('oculto', !(usaBonos() && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
     const no = document.getElementById('navOrdenes'); if(no) no.classList.toggle('oculto', !(usaOrdenes() && (miRol === 'admin' || miRol === 'vendedor') && !esAdminActual));
@@ -9440,7 +9453,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     caja.appendChild(el('h2', '', 'Vale de saldo a favor')); const f = el('div', '', v.folio); f.style.cssText = 'font:400 38px var(--serif); letter-spacing:.06em; margin:8px 0;'; caja.appendChild(f);
     const m = el('div', '', dineroVale(v.monto)); m.style.cssText = 'font:400 30px var(--serif);'; caja.appendChild(m);
     caja.appendChild(el('p', 'nota', 'Válido hasta el ' + new Date(v.vence_en).toLocaleDateString('es-MX') + '. Un solo uso.'));
-    const d = el('button', 'principal', 'Descargar vale (PDF)'); d.type = 'button'; d.style.cssText = 'width:100%; margin-top:10px;'; d.onclick = () => valePdf(v); caja.appendChild(d);
+    // Cambio exprés: pasa directo a la caja con el vale ya puesto (el cliente solo elige la prenda nueva)
+    const ex = el('button', 'principal', 'Cambio exprés: ir a la caja con este vale'); ex.type = 'button'; ex.style.cssText = 'width:100%; margin-top:10px;';
+    ex.onclick = async () => { fondo.remove(); try { cambiarSeccion('vender'); } catch(e){} await aplicarValeCodigo(v.folio); };
+    caja.appendChild(ex);
+    const d = el('button', 'texto', 'Descargar vale (PDF)'); d.type = 'button'; d.style.cssText = 'width:100%; margin-top:6px;'; d.onclick = () => valePdf(v); caja.appendChild(d);
     const c = el('button', 'texto', 'Cerrar'); c.type = 'button'; c.style.cssText = 'width:100%; margin-top:6px;'; c.onclick = () => fondo.remove(); caja.appendChild(c); document.body.appendChild(fondo);
   }
   function valePdf(v){
@@ -9470,6 +9487,22 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if(data.estado !== 'vigente'){ mostrarMensaje('mensajeVenta', data.estado === 'usado' ? 'Ese vale ya fue utilizado.' : 'Ese vale ya venció.', 'error'); return; }
     valeAplicado = { folio: data.folio, monto: Number(data.monto) }; document.getElementById('valeFolio').value = ''; document.getElementById('entradaVale').classList.add('oculto');
     const sel = document.getElementById('metodoPagoVenta'); if(sel.value !== 'efectivo'){ sel.value = 'efectivo'; actualizarBloqueMetodoPago(); } actualizarBloqueVale();
+  }
+  // --- Caja: convenio de empresa (SQL 147). Pide el vale del convenio con el total actual y lo aplica ---
+  async function abrirConvenioCaja(){
+    ocultarMensaje('mensajeVenta'); const total = totalCarritoVale();
+    if(total < 1){ mostrarMensaje('mensajeVenta', 'Agrega primero los artículos: el descuento se calcula sobre el total.', 'error'); return; }
+    const { data, error } = await sb.rpc('convenios_lista', { p_solo_activos: true });
+    if(error){ mostrarMensaje('mensajeVenta', /does not exist|schema cache|Could not find/i.test(error.message || '') ? 'Falta ejecutar el SQL 147 en Supabase.' : 'No se pudieron leer los convenios: ' + error.message, 'error'); return; }
+    if(!data || !data.length){ mostrarMensaje('mensajeVenta', 'No hay convenios activos. El encargado los crea en Inventario → Herramientas → Convenios por empresa.', 'error'); return; }
+    const fondo = el('div', 'modal-puve-fondo'), caja = el('div', 'modal-puve'); caja.style.cssText = 'max-width:380px;'; fondo.appendChild(caja);
+    caja.appendChild(el('h2', '', 'Convenio de empresa')); caja.appendChild(el('p', 'nota', 'Total actual ' + dineroVale(total) + '. El descuento se paga en efectivo y se usa una sola vez.'));
+    const sl = document.createElement('select'); sl.style.cssText = 'width:100%; margin:8px 0;'; data.forEach((c) => { const o = document.createElement('option'); o.value = c.id; o.textContent = c.empresa + ' · ' + c.porcentaje + '% (máx. ' + dineroVale(c.tope_monto) + ')'; sl.appendChild(o); }); caja.appendChild(sl);
+    const ok = el('button', 'principal', 'Aplicar descuento'); ok.type = 'button'; ok.style.cssText = 'width:100%;';
+    ok.onclick = async () => { ok.disabled = true; const r = await sb.rpc('convenio_vale', { p_convenio: sl.value, p_total: total });
+      if(r.error || !r.data){ ok.disabled = false; mostrarMensaje('mensajeVenta', (r.error && r.error.message) || 'No se pudo aplicar el convenio', 'error'); fondo.remove(); return; }
+      fondo.remove(); await aplicarValeCodigo(r.data.folio); };
+    caja.appendChild(ok); const c = el('button', 'texto', 'Cancelar'); c.type = 'button'; c.style.cssText = 'width:100%; margin-top:6px;'; c.onclick = () => fondo.remove(); caja.appendChild(c); document.body.appendChild(fondo);
   }
   function aplicarValeDesdeInput(){ aplicarValeCodigo(document.getElementById('valeFolio').value); }
   function quitarValeAplicado(){ valeAplicado = null; document.getElementById('entradaVale').classList.add('oculto'); document.getElementById('btnAbrirVale').classList.remove('oculto'); actualizarBloqueVale(); }
@@ -11102,7 +11135,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     await cargarRetirosAdmin();
   }
 
+  let modoRetirosActual = 'ambos', retirosPendientesCache = [];
   async function cargarRetirosAdmin(){
+    try { const m = await sb.rpc('admin_retiros_modo'); if(!m.error && m.data){ modoRetirosActual = m.data; const se = document.getElementById('selModoRetiros'); if(se){ se.value = m.data; se.onchange = guardarModoRetiros; } } } catch(e){}
     const { data, error } = await sb.rpc('admin_listar_retiros_embajadores');
     const bloquePendientes = document.getElementById('bloqueRetirosEmbajadores');
     const listaPendientes = document.getElementById('listaRetirosPendientesAdmin');
@@ -11117,28 +11152,29 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     const resueltos = todos.filter(x => x.estado !== 'solicitado');
 
     bloquePendientes.classList.toggle('oculto', pendientes.length === 0);
+    const soloManual = modoRetirosActual === 'manual';
     listaPendientes.innerHTML = pendientes.map(x => `
       <div class="disp-item" style="background:var(--superficie); margin-bottom:8px;">
         <div class="info-disp">
           <div class="n">${escapar(x.nombre || x.correo || '—')} · ${formatoDinero(x.monto)}</div>
-          <div class="f">${escapar(x.banco)} · ${escapar(x.titular)} · CLABE ${escapar(x.clabe)}</div>
           <div class="f">Solicitado el ${new Date(x.creado_en).toLocaleDateString('es-MX')}</div>
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          ${x.stripe_payouts_habilitados
+          <button class="principal" style="width:auto;" onclick="aceptarTransferenciaRetiro(${jsAttr(x.id)})">Aceptar transferencia</button>
+          ${(x.stripe_payouts_habilitados && !soloManual)
             ? `<button class="principal" style="width:auto; background:#635BFF;" onclick="pagarRetiroConStripe(${jsAttr(x.id)})">Pagar con Stripe</button>`
             : ''}
-          <button class="reactivar" onclick="resolverRetiroEmbajador(${jsAttr(x.id)}, true)">Marcar pagado (manual)</button>
           <button class="eliminar" onclick="resolverRetiroEmbajador(${jsAttr(x.id)}, false)">Rechazar</button>
         </div>
       </div>
     `).join('');
+    retirosPendientesCache = pendientes;
 
     cuerpoResueltos.innerHTML = resueltos.length ? resueltos.map(x => `
       <tr>
         <td>${escapar(x.nombre || x.correo || '—')}</td>
         <td class="num">${formatoDinero(x.monto)}</td>
-        <td>${escapar(x.banco)} · ${escapar(x.titular)} · CLABE ${escapar(x.clabe)}</td>
+        <td>${escapar(x.banco)} · ${escapar(x.titular)} · CLABE ${escapar(x.clabe)}${x.referencia ? '<br><span class="nota" style="display:inline;">Ref. ' + escapar(x.referencia) + '</span>' : ''}</td>
         <td><span class="badge ${x.estado === 'pagado' ? 'activo-si' : 'baneado'}">${x.estado === 'pagado' ? 'Pagado' : 'Rechazado'}</span> ${x.estado === 'pagado' ? '<span class="nota" style="display:inline;">· ' + (x.metodo === 'stripe' ? 'Stripe' : 'manual') + '</span>' : ''}</td>
         <td>${x.resuelto_en ? new Date(x.resuelto_en).toLocaleDateString('es-MX') : '—'}</td>
       </tr>
@@ -11146,13 +11182,40 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
 
+  async function guardarModoRetiros(){
+    const se = document.getElementById('selModoRetiros'), ms = document.getElementById('msgModoRetiros');
+    const { error } = await sb.rpc('admin_retiros_modo_guardar', { p_modo: se.value });
+    if(error){ ms.textContent = /does not exist|schema cache|Could not find/i.test(error.message || '') ? 'Falta ejecutar el SQL 148 en Supabase.' : 'No se pudo guardar: ' + error.message; se.value = modoRetirosActual; return; }
+    modoRetirosActual = se.value; ms.textContent = 'Guardado.'; cargarRetirosAdmin();
+  }
+
+  // Aceptar transferencia: muestra los datos bancarios para que el superadmin transfiera desde su banco y deje la referencia
+  function aceptarTransferenciaRetiro(id){
+    const x = retirosPendientesCache.find(r => r.id === id); if(!x) return;
+    const fondo = el('div', 'modal-puve-fondo'), caja = el('div', 'modal-puve'); caja.style.cssText = 'max-width:440px;'; fondo.appendChild(caja);
+    caja.appendChild(el('h2', '', 'Transferir a ' + (x.nombre || x.correo || 'embajador')));
+    const fila = (et, val, copiable) => { const d = el('div', ''); d.style.cssText = 'display:flex; justify-content:space-between; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--borde);';
+      const t = el('div', ''); t.appendChild(el('div', 'nota', et)); const v = el('strong', '', val); v.style.cssText = 'font-family:"IBM Plex Mono", monospace; word-break:break-all;'; t.appendChild(v); d.appendChild(t);
+      if(copiable){ const b = el('button', 'texto', 'Copiar'); b.type = 'button'; b.style.cssText = 'width:auto; padding:4px 10px;'; b.onclick = async () => { try { await navigator.clipboard.writeText(copiable); b.textContent = 'Copiado'; } catch(e){ b.textContent = 'No se pudo'; } }; d.appendChild(b); }
+      caja.appendChild(d); };
+    fila('Monto a transferir', formatoDinero(x.monto), String(Number(x.monto).toFixed(2)));
+    fila('Titular', x.titular, x.titular); fila('Banco', x.banco, null); fila('CLABE', x.clabe, x.clabe);
+    const ref = document.createElement('input'); ref.type = 'text'; ref.maxLength = 60; ref.placeholder = 'Clave de rastreo o folio de tu banco (opcional)'; ref.style.cssText = 'width:100%; margin:12px 0 6px;'; caja.appendChild(ref);
+    caja.appendChild(el('p', 'nota', 'Haz la transferencia en tu banco y después presiona el botón. Solo entonces el retiro queda como pagado.'));
+    const ok = el('button', 'principal', 'Ya hice la transferencia'); ok.type = 'button'; ok.style.cssText = 'width:100%;';
+    ok.onclick = async () => { ok.disabled = true; const { error } = await sb.rpc('admin_pagar_retiro_manual', { p_retiro_id: id, p_referencia: ref.value.trim() || null, p_notas: null });
+      if(error){ ok.disabled = false; alert(/does not exist|schema cache|Could not find/i.test(error.message || '') ? 'Falta ejecutar el SQL 148 en Supabase.' : 'No se pudo registrar: ' + error.message); return; }
+      fondo.remove(); await cargarAdminEmbajadores(); };
+    caja.appendChild(ok); const c = el('button', 'texto', 'Cancelar'); c.type = 'button'; c.style.cssText = 'width:100%; margin-top:6px;'; c.onclick = () => fondo.remove(); caja.appendChild(c); document.body.appendChild(fondo);
+  }
+
   async function pagarRetiroConStripe(id){
     if(!confirm('¿Enviar este pago por Stripe ahora mismo? El dinero sale de tu balance de Stripe hacia la cuenta del embajador.')) return;
     const { data, error } = await sb.functions.invoke('stripe-pagar-retiro-embajador', { body: { retiro_id: id } });
     if(error || data?.error){
       let msg = data?.error || error?.message || 'Error desconocido';
       try { const j = await error.context.json(); msg = j.error || msg; } catch(e){}
-      alert('No se pudo pagar: ' + msg);
+      alert('No se pudo pagar con Stripe: ' + msg + '\n\nPuedes pagarlo con «Aceptar transferencia».');
       return;
     }
     await cargarAdminEmbajadores();
@@ -13607,7 +13670,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   PuveOrdenes.enlazar({ qr: generarQRDataURL });
   PuveEspera.enlazar({ carrito: () => carrito, poner: (a) => { carrito = a; renderizarCarrito(); }, negocio: () => negocioId || 'x', dinero: (n) => formatoDinero(n) });
   try { PuveHerramientas.enlazar({ giro: () => { const g = giroEspecifico(); return g ? g.id : ''; } }); } catch(e){}
-  PuveHerr3.enlazar({ qr: generarQRDataURL, sb: sb, productos: () => productosCache, categorias: () => categoriasCache, dinero: (n) => formatoDinero(n), negocioId: () => negocioId, esEncargado: () => miRol === 'admin', giro: () => { const g = giroEspecifico(); return g ? g.id : ''; }, alCambiar: () => { try { cargarProductos(); } catch(e){} } });
+  PuveHerr3.enlazar({ qr: generarQRDataURL, sb: sb, productos: () => productosCache, categorias: () => categoriasCache, dinero: (n) => formatoDinero(n), negocioId: () => negocioId, esEncargado: () => miRol === 'admin', giro: () => { const g = giroEspecifico(); return g ? g.id : ''; }, subirFoto: async (archivo) => { const blob = await procesarImagenPuve(archivo, { lado: 720, cuadrada: false, tipo: 'image/jpeg', calidad: 0.78 }); const ruta = negocioId + '/' + crypto.randomUUID() + '.jpg'; await subirImagenPuve(ruta, blob); return ruta; }, quitarFoto: (ruta) => quitarArchivoPuve(ruta), urlFoto: (ruta) => sb.storage.from(BUCKET_IMG).getPublicUrl(ruta).data.publicUrl, aplicarVale: (folio) => { try { cambiarSeccion('vender'); } catch(e){} return aplicarValeCodigo(folio); }, totalCarrito: () => totalCarritoVale(), alCambiar: () => { try { cargarProductos(); } catch(e){} } });
   PuveHerr2.enlazar({ qr: generarQRDataURL, escanear: (cb) => abrirEscaner(cb), mismoCodigo: (a, b) => mismoCodigoBarras(a, b), sb: sb, productos: () => productosCache, categorias: () => categoriasCache, esEncargado: () => miRol === 'admin', dinero: (n) => formatoDinero(n), giro: () => { const g = giroEspecifico(); return g ? g.id : ''; }, alActualizar: () => { try { actualizarCrossSell(); } catch(e){} } });
   PuveLibretas.enlazar({ sb: sb, productos: () => productosCache, esEncargado: () => miRol === 'admin', dinero: (n) => formatoDinero(n), giro: () => { const g = giroEspecifico(); return g ? g.id : ''; } });
   PuveRopa.enlazar({ sb: sb, productos: () => productosCache, esEncargado: () => miRol === 'admin', dinero: (n) => formatoDinero(n) });
@@ -16050,7 +16113,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   // ===== Giros de PUVE: grupos, giros y las funciones que cada uno enciende =====
   // tipo_negocio guarda la FAMILIA (tienda, restaurante, cafeteria, ferreteria, ropa, farmacia, papeleria, servicios): así todo lo que ya existe sigue funcionando.
   // subgiro guarda el giro específico y decide el lenguaje y las funciones extra (unidades/granel, encargos, pedidos en línea, caducidad).
-  const GRUPOS_GIRO = [{"id":"comida","nombre":"Comida y bebida","desc":"Comandas, mesas y cocina.","giros":[{"id":"restaurantes","nombre":"Restaurantes y fondas","base":"restaurante","feats":["cuentas","mesas","fotos","camara"],"ph":"Tacos al pastor","catPh":"Ej. Entradas, Platos fuertes, Bebidas, Postres...","extra":["Foto de cada platillo en tu menú"]},{"id":"taquerias","nombre":"Taquerías","base":"restaurante","feats":["cuentas","mesas","fotos","encargos"],"ph":"Orden de pastor (5 tacos)","catPh":"Ej. Tacos, Órdenes, Bebidas, Extras...","extra":["Menú con precios por orden o por pieza"]},{"id":"pizzerias","nombre":"Pizzerías y comida rápida","base":"restaurante","feats":["cuentas","mesas","fotos","encargos"],"ph":"Pizza grande pepperoni","catPh":"Ej. Pizzas, Hamburguesas, Complementos, Bebidas...","extra":["Menú con fotos para vender más"]},{"id":"bares","nombre":"Bares y cantinas","base":"restaurante","feats":["cuentas","mesas","encargos"],"ph":"Cerveza clara","catPh":"Ej. Cervezas, Cocteles, Botanas, Promociones...","extra":["Pedidos por mesa con QR"]},{"id":"cafeterias","nombre":"Cafeterías","base":"cafeteria","feats":["unidades","cuentas","fotos","camara","encargos","bonos"],"ph":"Latte mediano","catPh":"Ej. Café, Té, Postres, Alimentos...","extra":["Personaliza cada bebida con opciones y extras","Pedidos por QR en barra"]},{"id":"heladerias","nombre":"Heladerías y paleterías","base":"cafeteria","feats":["unidades","fotos","encargos"],"ph":"Helado de vainilla (2 bolas)","catPh":"Ej. Helados, Paletas, Aguas, Toppings...","extra":["Opciones de sabor, tamaño y toppings"]},{"id":"panaderia","nombre":"Panadería y repostería","base":"cafeteria","feats":["unidades","horario","encargos","pedprog","fotos","caducidad"],"ph":"Concha de vainilla","catPh":"Ej. Pan dulce, Pan salado, Pasteles, Galletas...","extra":["Encargos de pasteles con anticipo y fecha de entrega","Pedidos en línea para recoger"]}]},{"id":"abarrotes","nombre":"Abarrotes y alimentos","desc":"Venta a granel, caducidad y fiado.","giros":[{"id":"abarrotes","nombre":"Abarrotes y tiendas de conveniencia","base":"tienda","feats":["unidades","caducidad","fiado","pedprog","camara"],"ph":"Refresco 600 ml","catPh":"Ej. Botanas, Bebidas, Lácteos, Limpieza...","extra":[]},{"id":"licorerias","nombre":"Licorerías y cervecerías","base":"tienda","feats":["unidades","horario","pedprog","camara"],"ph":"Cerveza clara (six)","catPh":"Ej. Cervezas, Tequila, Whisky, Refrescos...","extra":["Precio por caja o por pieza con descuento por volumen"]},{"id":"carnicerias","nombre":"Carnicerías","base":"tienda","feats":["horario","fichas","unidades","caducidad","pedprog"],"ph":"Bistec de res (kg)","catPh":"Ej. Res, Cerdo, Pollo, Embutidos...","extra":["Cortes y empaques por kilo"]},{"id":"dulcerias","nombre":"Dulcerías","base":"tienda","feats":["unidades","caducidad","pedprog","encargos"],"ph":"Gomitas a granel (100 g)","catPh":"Ej. Dulces, Chocolates, Botanas, Fiestas...","extra":["Venta a granel y por bolsita"]},{"id":"cremerias","nombre":"Cremerías y salchichonerías","base":"tienda","feats":["horario","unidades","caducidad","fiado","encargos"],"ph":"Queso Oaxaca (kg)","catPh":"Ej. Quesos, Cremas, Jamones, Lácteos...","extra":["Quesos y embutidos por kilo"]},{"id":"fruterias","nombre":"Fruterías y verdulerías","base":"tienda","feats":["horario","unidades","pedprog"],"ph":"Jitomate (kg)","catPh":"Ej. Frutas, Verduras, Hierbas, Abarrotes...","extra":["Venta por kilo, pieza o manojo"]},{"id":"pollerias","nombre":"Pollerías y pescaderías","base":"tienda","feats":["horario","unidades","caducidad","pedprog"],"ph":"Pechuga de pollo (kg)","catPh":"Ej. Pollo, Pescado, Mariscos, Congelados...","extra":["Pedidos para recoger por la tarde"]},{"id":"tortillerias","nombre":"Tortillerías y molinos","base":"tienda","feats":["unidades","fiado","bonos","encargos"],"ph":"Tortilla de maíz (kg)","catPh":"Ej. Tortillas, Masa, Totopos, Abarrotes...","extra":["Cobro por kilo y por pieza"]}]},{"id":"especialidad","nombre":"Tienda y especialidad","desc":"Tallas, colores y productos sin código.","giros":[{"id":"ropa","nombre":"Ropa y zapatos","base":"ropa","feats":["tallas","vales","encargos","camara","fichas","unidades"],"ph":"Playera básica","catPh":"Ej. Playeras, Jeans, Calzado, Accesorios...","extra":["Tallas y colores por cada modelo","Vales de saldo a favor para cambios"]},{"id":"joyeria","nombre":"Joyería y relojería","base":"tienda","feats":["ordenes","fichas","encargos","camara"],"ph":"Cadena de plata 45 cm","catPh":"Ej. Anillos, Cadenas, Relojes, Aretes...","extra":["Apartados con anticipo y fecha límite"]},{"id":"ferreteria","nombre":"Ferreterías y tlapalerías","base":"ferreteria","feats":["unidades","encargos","pedprog","camara","fichas"],"ph":"Tornillo 1/4 x 2 (pieza)","catPh":"Ej. Tornillería, Herramientas, Plomería, Electricidad...","extra":["Precio por volumen: más barato al llevar más"]},{"id":"electronicos","nombre":"Electrónicos y celulares","base":"tienda","feats":["ordenes","encargos","camara"],"ph":"Cargador USB-C 20 W","catPh":"Ej. Celulares, Accesorios, Cables, Audio...","extra":["Apartados y pedidos de equipos"]},{"id":"papelerias","nombre":"Papelerías y copias","base":"papeleria","feats":["unidades","encargos","pedprog","impresion","caducidad_no"],"ph":"Cartulina azul","catPh":"Ej. Escolar, Oficina, Arte, Regalos...","extra":["Imprime y pide: tus clientes suben archivos con un QR","Lista escolar por texto o foto"]},{"id":"refaccionarias","nombre":"Refaccionarias","base":"ferreteria","feats":["ordenes","fichas","unidades","encargos","camara"],"ph":"Balata delantera (juego)","catPh":"Ej. Frenos, Motor, Suspensión, Eléctrico...","extra":["Pedido de piezas que no tienes, con anticipo"]},{"id":"floristerias","nombre":"Florerías","base":"tienda","feats":["encargos","pedprog","fotos","bonos"],"ph":"Ramo de rosas (12)","catPh":"Ej. Ramos, Arreglos, Plantas, Detalles...","extra":["Encargos con fecha, hora y anticipo"]},{"id":"regalos","nombre":"Regalos y novedades","base":"tienda","feats":["fichas","encargos","pedprog","camara","bonos"],"ph":"Taza personalizada","catPh":"Ej. Tazas, Peluches, Detalles, Fiestas...","extra":["Pedidos para recoger en tu tienda"]}]},{"id":"salud","nombre":"Salud y servicios","desc":"Inventario actualizado y tienda en línea.","giros":[{"id":"farmacias","nombre":"Farmacias","base":"farmacia","feats":["caducidad","pedprog","camara"],"ph":"Paracetamol 500 mg (caja)","catPh":"Ej. Medicamentos, Genéricos, Cuidado personal, Bebés...","extra":["Caducidad en cada producto"]},{"id":"estetica","nombre":"Estética, barbería y spa","base":"servicios","feats":["bonos","fichas","citas"],"ph":"Corte de cabello","catPh":"Ej. Cabello, Uñas, Barba, Tratamientos...","extra":["Agenda de citas","Cada servicio con su duración"]},{"id":"suplementos","nombre":"Tiendas de suplementos","base":"tienda","feats":["bonos","caducidad","pedprog","encargos","camara"],"ph":"Proteína 2 lb vainilla","catPh":"Ej. Proteínas, Vitaminas, Pre-entreno, Accesorios...","extra":["Puntos de recompensa para clientes frecuentes"]},{"id":"veterinarias","nombre":"Veterinarias y tiendas de mascotas","base":"servicios","feats":["fichas","citas","unidades","caducidad","pedprog","bonos"],"ph":"Croquetas adulto (kg)","catPh":"Ej. Alimento, Accesorios, Higiene, Consultas...","extra":["Alimento a granel por kilo"]},{"id":"talleres","nombre":"Talleres y lavado de autos","base":"servicios","feats":["ordenes","bonos","fichas","citas"],"ph":"Cambio de aceite","catPh":"Ej. Mantenimiento, Lavado, Frenos, Refacciones...","extra":["Agenda por servicio y duración"]},{"id":"lavanderias","nombre":"Lavanderías y tintorerías","base":"servicios","feats":["ordenes","bonos","citas","encargos","unidades"],"ph":"Lavado por kilo","catPh":"Ej. Lavado, Planchado, Tintorería, Edredones...","extra":["Pedidos con anticipo y fecha de entrega"]}]}];
+  const GRUPOS_GIRO = [{"id":"comida","nombre":"Comida y bebida","desc":"Comandas, mesas y cocina.","giros":[{"id":"restaurantes","nombre":"Restaurantes y fondas","base":"restaurante","feats":["cuentas","mesas","fotos","camara"],"ph":"Tacos al pastor","catPh":"Ej. Entradas, Platos fuertes, Bebidas, Postres...","extra":["Foto de cada platillo en tu menú"]},{"id":"taquerias","nombre":"Taquerías","base":"restaurante","feats":["cuentas","mesas","fotos","encargos"],"ph":"Orden de pastor (5 tacos)","catPh":"Ej. Tacos, Órdenes, Bebidas, Extras...","extra":["Menú con precios por orden o por pieza"]},{"id":"pizzerias","nombre":"Pizzerías y comida rápida","base":"restaurante","feats":["cuentas","mesas","fotos","encargos","vales"],"ph":"Pizza grande pepperoni","catPh":"Ej. Pizzas, Hamburguesas, Complementos, Bebidas...","extra":["Menú con fotos para vender más"]},{"id":"bares","nombre":"Bares y cantinas","base":"restaurante","feats":["cuentas","mesas","encargos"],"ph":"Cerveza clara","catPh":"Ej. Cervezas, Cocteles, Botanas, Promociones...","extra":["Pedidos por mesa con QR"]},{"id":"cafeterias","nombre":"Cafeterías","base":"cafeteria","feats":["unidades","cuentas","fotos","camara","encargos","bonos"],"ph":"Latte mediano","catPh":"Ej. Café, Té, Postres, Alimentos...","extra":["Personaliza cada bebida con opciones y extras","Pedidos por QR en barra"]},{"id":"heladerias","nombre":"Heladerías y paleterías","base":"cafeteria","feats":["unidades","fotos","encargos"],"ph":"Helado de vainilla (2 bolas)","catPh":"Ej. Helados, Paletas, Aguas, Toppings...","extra":["Opciones de sabor, tamaño y toppings"]},{"id":"panaderia","nombre":"Panadería y repostería","base":"cafeteria","feats":["unidades","horario","encargos","pedprog","fotos","caducidad"],"ph":"Concha de vainilla","catPh":"Ej. Pan dulce, Pan salado, Pasteles, Galletas...","extra":["Encargos de pasteles con anticipo y fecha de entrega","Pedidos en línea para recoger"]}]},{"id":"abarrotes","nombre":"Abarrotes y alimentos","desc":"Venta a granel, caducidad y fiado.","giros":[{"id":"abarrotes","nombre":"Abarrotes y tiendas de conveniencia","base":"tienda","feats":["unidades","caducidad","fiado","pedprog","camara"],"ph":"Refresco 600 ml","catPh":"Ej. Botanas, Bebidas, Lácteos, Limpieza...","extra":[]},{"id":"licorerias","nombre":"Licorerías y cervecerías","base":"tienda","feats":["unidades","horario","pedprog","camara"],"ph":"Cerveza clara (six)","catPh":"Ej. Cervezas, Tequila, Whisky, Refrescos...","extra":["Precio por caja o por pieza con descuento por volumen"]},{"id":"carnicerias","nombre":"Carnicerías","base":"tienda","feats":["horario","fichas","unidades","caducidad","pedprog"],"ph":"Bistec de res (kg)","catPh":"Ej. Res, Cerdo, Pollo, Embutidos...","extra":["Cortes y empaques por kilo"]},{"id":"dulcerias","nombre":"Dulcerías","base":"tienda","feats":["unidades","caducidad","pedprog","encargos"],"ph":"Gomitas a granel (100 g)","catPh":"Ej. Dulces, Chocolates, Botanas, Fiestas...","extra":["Venta a granel y por bolsita"]},{"id":"cremerias","nombre":"Cremerías y salchichonerías","base":"tienda","feats":["horario","unidades","caducidad","fiado","encargos"],"ph":"Queso Oaxaca (kg)","catPh":"Ej. Quesos, Cremas, Jamones, Lácteos...","extra":["Quesos y embutidos por kilo"]},{"id":"fruterias","nombre":"Fruterías y verdulerías","base":"tienda","feats":["horario","unidades","pedprog"],"ph":"Jitomate (kg)","catPh":"Ej. Frutas, Verduras, Hierbas, Abarrotes...","extra":["Venta por kilo, pieza o manojo"]},{"id":"pollerias","nombre":"Pollerías y pescaderías","base":"tienda","feats":["horario","unidades","caducidad","pedprog"],"ph":"Pechuga de pollo (kg)","catPh":"Ej. Pollo, Pescado, Mariscos, Congelados...","extra":["Pedidos para recoger por la tarde"]},{"id":"tortillerias","nombre":"Tortillerías y molinos","base":"tienda","feats":["unidades","fiado","bonos","encargos"],"ph":"Tortilla de maíz (kg)","catPh":"Ej. Tortillas, Masa, Totopos, Abarrotes...","extra":["Cobro por kilo y por pieza"]}]},{"id":"especialidad","nombre":"Tienda y especialidad","desc":"Tallas, colores y productos sin código.","giros":[{"id":"ropa","nombre":"Ropa y zapatos","base":"ropa","feats":["tallas","vales","encargos","camara","fichas","unidades"],"ph":"Playera básica","catPh":"Ej. Playeras, Jeans, Calzado, Accesorios...","extra":["Tallas y colores por cada modelo","Vales de saldo a favor para cambios"]},{"id":"joyeria","nombre":"Joyería y relojería","base":"tienda","feats":["ordenes","fichas","encargos","camara","vales"],"ph":"Cadena de plata 45 cm","catPh":"Ej. Anillos, Cadenas, Relojes, Aretes...","extra":["Apartados con anticipo y fecha límite"]},{"id":"ferreteria","nombre":"Ferreterías y tlapalerías","base":"ferreteria","feats":["unidades","encargos","pedprog","camara","fichas"],"ph":"Tornillo 1/4 x 2 (pieza)","catPh":"Ej. Tornillería, Herramientas, Plomería, Electricidad...","extra":["Precio por volumen: más barato al llevar más"]},{"id":"electronicos","nombre":"Electrónicos y celulares","base":"tienda","feats":["ordenes","encargos","camara"],"ph":"Cargador USB-C 20 W","catPh":"Ej. Celulares, Accesorios, Cables, Audio...","extra":["Apartados y pedidos de equipos"]},{"id":"papelerias","nombre":"Papelerías y copias","base":"papeleria","feats":["unidades","encargos","pedprog","impresion","caducidad_no"],"ph":"Cartulina azul","catPh":"Ej. Escolar, Oficina, Arte, Regalos...","extra":["Imprime y pide: tus clientes suben archivos con un QR","Lista escolar por texto o foto"]},{"id":"refaccionarias","nombre":"Refaccionarias","base":"ferreteria","feats":["ordenes","fichas","unidades","encargos","camara"],"ph":"Balata delantera (juego)","catPh":"Ej. Frenos, Motor, Suspensión, Eléctrico...","extra":["Pedido de piezas que no tienes, con anticipo"]},{"id":"floristerias","nombre":"Florerías","base":"tienda","feats":["encargos","pedprog","fotos","bonos"],"ph":"Ramo de rosas (12)","catPh":"Ej. Ramos, Arreglos, Plantas, Detalles...","extra":["Encargos con fecha, hora y anticipo"]},{"id":"regalos","nombre":"Regalos y novedades","base":"tienda","feats":["fichas","encargos","pedprog","camara","bonos"],"ph":"Taza personalizada","catPh":"Ej. Tazas, Peluches, Detalles, Fiestas...","extra":["Pedidos para recoger en tu tienda"]}]},{"id":"salud","nombre":"Salud y servicios","desc":"Inventario actualizado y tienda en línea.","giros":[{"id":"farmacias","nombre":"Farmacias","base":"farmacia","feats":["caducidad","pedprog","camara","convenios"],"ph":"Paracetamol 500 mg (caja)","catPh":"Ej. Medicamentos, Genéricos, Cuidado personal, Bebés...","extra":["Caducidad en cada producto"]},{"id":"estetica","nombre":"Estética, barbería y spa","base":"servicios","feats":["bonos","fichas","citas"],"ph":"Corte de cabello","catPh":"Ej. Cabello, Uñas, Barba, Tratamientos...","extra":["Agenda de citas","Cada servicio con su duración"]},{"id":"suplementos","nombre":"Tiendas de suplementos","base":"tienda","feats":["bonos","caducidad","pedprog","encargos","camara"],"ph":"Proteína 2 lb vainilla","catPh":"Ej. Proteínas, Vitaminas, Pre-entreno, Accesorios...","extra":["Puntos de recompensa para clientes frecuentes"]},{"id":"veterinarias","nombre":"Veterinarias y tiendas de mascotas","base":"servicios","feats":["fichas","citas","unidades","caducidad","pedprog","bonos"],"ph":"Croquetas adulto (kg)","catPh":"Ej. Alimento, Accesorios, Higiene, Consultas...","extra":["Alimento a granel por kilo"]},{"id":"talleres","nombre":"Talleres y lavado de autos","base":"servicios","feats":["ordenes","bonos","fichas","citas"],"ph":"Cambio de aceite","catPh":"Ej. Mantenimiento, Lavado, Frenos, Refacciones...","extra":["Agenda por servicio y duración"]},{"id":"lavanderias","nombre":"Lavanderías y tintorerías","base":"servicios","feats":["ordenes","bonos","citas","encargos","unidades"],"ph":"Lavado por kilo","catPh":"Ej. Lavado, Planchado, Tintorería, Edredones...","extra":["Pedidos con anticipo y fecha de entrega"]}]}];
   const GIRO_POR_ID = {}; GRUPOS_GIRO.forEach(gr => gr.giros.forEach(x => { x.grupo = gr.id; GIRO_POR_ID[x.id] = x; }));
   const GIRO_BASE_DEFECTO = { tienda: 'abarrotes', servicios: 'estetica', restaurante: 'restaurantes', cafeteria: 'cafeterias', farmacia: 'farmacias', papeleria: 'papelerias', ropa: 'ropa', ferreteria: 'ferreteria' };
   const baseDeGiro = (id) => (GIRO_POR_ID[id] ? GIRO_POR_ID[id].base : id);

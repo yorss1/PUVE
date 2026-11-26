@@ -3,6 +3,7 @@ Allow: /
 Disallow: /pedir.html
 Disallow: /reservar.html
 Disallow: /cotizacion.html
+Disallow: /regalos.html
 Disallow: /cocina.html
 
 # /games/ ya NO se bloquea aqui: las redes sociales (Facebook, WhatsApp, X) necesitan leer la pagina para armar la vista previa al compartir el enlace.
