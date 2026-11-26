@@ -362,7 +362,164 @@
     } catch(e){ msg(m, 'No se pudo unir: ' + ((e && e.message) || e) + (/encrypt/i.test((e && e.message) || '') ? ' (algún PDF tiene contraseña)' : '')); } }, 'primario')); z.appendChild(m);
   }
 
-  const TABS = [['fiado', 'Corte de fiado', fiado], ['oferta', 'Oferta del día', oferta], ['temporada', 'Temporada', temporada], ['sustitutos', 'Sustitutos', sustitutos], ['vin', 'Decodificar VIN', vin], ['codigo', 'Datos por código de barras', codigo], ['credencial', 'Fotos credencial', credencial], ['escaner', 'Escáner a PDF', escaner], ['cumple', 'Regalo de cumpleaños', cumple], ['masa', 'Venta de masa', masa], ['copias', 'Copias e impresiones', copias], ['proyecto', 'Plantillas de proyecto', proyecto], ['caja', 'Arma tu caja', caja], ['vitrina', 'Cierre de vitrina', vitrina], ['alta', 'Alta rápida', altaRapida], ['porcion', 'Venta por porción', porcionMuestra], ['promo', 'Promoción de temporada', promo], ['pedido', 'Pedido a proveedor', pedidoProv], ['frecuentes', 'Clientes frecuentes', frecuentes], ['gasta', 'Producto que gasta el servicio', gastaServicio], ['reservas', 'Reservas por QR', reservas], ['resenas', 'Reseñas privadas', resenas], ['cotlink', 'Cotización por enlace', cotLink], ['bloqueos', 'Bloquear horario', bloqueos], ['unir', 'Unir PDFs e imágenes', unirPdf]];
+  // ---------- Horario de corte para pedidos (SQL 145 y función pedido-programado) ----------
+  function corte(z){
+    z.appendChild(h('p', 'nota', 'Pon la hora hasta la que recibes pedidos para el mismo día. Después de esa hora, el cliente que pida por la página ya no puede elegir entrega o recolección para hoy y verá un aviso para escoger otro día. Aplica a los pedidos programados por la página pública.'));
+    const act = h('input'); act.type = 'checkbox'; const hor = input('15:00', '', 5, 'time'), m = h('div'), la = h('label', null, null, 'display:flex; gap:8px; align-items:center; margin:8px 0; font-size:14px;'); la.appendChild(act); la.appendChild(document.createTextNode('Activar horario de corte'));
+    z.appendChild(la); z.appendChild(campo('Hora de corte', hor, 140)); z.appendChild(h('div', null, null, 'height:8px'));
+    z.appendChild(boton('Guardar', async () => { if(!hor.value){ msg(m, 'Elige la hora.'); return; } try { await rpc('corte_config_guardar', { p_hora: hor.value, p_activo: act.checked }); msg(m, act.checked ? 'Guardado. Hoy se reciben pedidos hasta las ' + hor.value + '.' : 'Guardado. El horario de corte está apagado.', true); } catch(e){ msg(m, /does not exist|schema cache|Could not find/i.test((e && e.message) || '') ? 'Falta ejecutar el SQL 145 en Supabase (y desplegar pedido-programado).' : errTxt(e)); } }, 'primario')); z.appendChild(m);
+    rpc('corte_config_obtener').then((c) => { if(c){ hor.value = c.hora || '15:00'; act.checked = !!c.activo; } }).catch(() => {});
+  }
+
+  // ---------- Lista de regalos por QR (SQL 145, página regalos.html) ----------
+  function regalos(z){
+    z.appendChild(h('p', 'nota', 'Arma una lista de regalos (boda, bebé, cumpleaños) y comparte su enlace o código. Los invitados apartan cada regalo con su nombre para que no se repitan. El pago lo arreglas tú con ellos.'));
+    const neg = (() => { try { return enlace.negocioId(); } catch(e){ return ''; } })(), tit = input('', 'Ej. Boda de Ana y Luis', 80), filas = [], cont = h('div'), m = h('div'), zl = h('div', null, null, 'margin-top:14px;');
+    z.appendChild(campo('Título de la lista', tit, 320));
+    const nueva = (n, p, c) => { const r = h('div', null, null, 'display:flex; gap:6px; flex-wrap:wrap; margin:6px 0;'), a = input(n || '', 'Regalo', 80), b = input(p || '', 'Precio', 8, 'number'), d = input(c || '1', '', 2, 'number'); a.style.flex = '1 1 180px'; b.style.width = '90px'; d.style.width = '60px'; d.min = '1'; r.appendChild(a); r.appendChild(b); r.appendChild(d); r.appendChild(boton('✕', () => { filas.splice(filas.findIndex((x) => x.r === r), 1); r.remove(); }, 'texto', 'padding:2px 8px;')); filas.push({ r, a, b, d }); cont.appendChild(r); };
+    nueva(); nueva(); nueva(); z.appendChild(h('div', 'nota', 'Cada renglón: regalo, precio (opcional) y cuántos quieres.')); z.appendChild(cont);
+    const sp = sel([['', 'Agregar desde mi inventario…']].concat(lista().filter((p) => p.tipo !== 'extra').slice(0, 200).map((p) => [p.id, p.nombre])), ''); sp.onchange = () => { const p = lista().find((x) => x.id === sp.value); if(p) nueva(p.nombre, p.precio, 1); sp.value = ''; }; z.appendChild(sp); z.appendChild(h('div', null, null, 'height:8px'));
+    z.appendChild(boton('Crear lista', async () => { const it = filas.map((f) => ({ nombre: f.a.value.trim(), precio: f.b.value === '' ? null : N(f.b.value), cantidad: Math.max(1, Math.floor(N(f.d.value)) || 1) })).filter((x) => x.nombre); if(!tit.value.trim() || !it.length){ msg(m, 'Escribe el título y al menos un regalo.'); return; }
+      try { await rpc('lista_regalo_crear', { p_titulo: tit.value.trim(), p_items: it }); msg(m, 'Lista creada.', true); tit.value = ''; cont.textContent = ''; filas.length = 0; nueva(); nueva(); nueva(); carga(); } catch(e){ msg(m, /does not exist|schema cache|Could not find/i.test((e && e.message) || '') ? 'Falta ejecutar el SQL 145 en Supabase (y desplegar pedido-qr).' : errTxt(e)); } }, 'primario')); z.appendChild(m); z.appendChild(zl);
+    const carga = async () => { zl.textContent = ''; let l; try { l = await rpc('lista_regalo_listas'); } catch(e){ return; } if(!l.length) return; zl.appendChild(h('h3', null, 'Tus listas', 'margin:6px 0;'));
+      l.forEach((x) => { const url = base() + 'regalos.html#n=' + neg + '&l=' + x.id, c = h('div', null, null, 'border-top:1px solid var(--borde); padding:8px 0;'); const apar = x.items.reduce((s, i) => s + i.apartados, 0), tot = x.items.reduce((s, i) => s + i.cantidad, 0); c.appendChild(h('strong', null, x.titulo + ' · ' + apar + ' de ' + tot + ' apartados'));
+        if(x.apartados.length) c.appendChild(h('div', 'nota', x.apartados.map((a) => a.quien + ': ' + a.articulo + (a.cantidad > 1 ? ' ×' + a.cantidad : '')).join(' · '), 'margin:4px 0;'));
+        enlaceQR(c, 'Enlace de la lista', url); c.appendChild(boton('Borrar lista', async () => { if(!window.confirm('¿Borrar la lista «' + x.titulo + '»? El enlace dejará de funcionar.')) return; try { await rpc('lista_regalo_borrar', { p_id: x.id }); carga(); } catch(e){ msg(m, errTxt(e)); } }, 'texto', 'padding:3px 8px;')); zl.appendChild(c); }); };
+    carga();
+  }
+
+  // ---------- Cupones y descuentos autorizados (SQL 146, usan el sistema de vales) ----------
+  function cupones(z){
+    z.appendChild(h('p', 'nota', 'Solo el encargado crea cupones. El cajero los canjea con «Canjear vale o cupón» en la caja: se usan una sola vez, solo en efectivo, y la compra debe valer al menos el monto. Sirve para promociones (cupón) y para autorizar un descuento puntual sin que el cajero lo decida (descuento autorizado, vale 1 día). Las ventas con cupón guardan el total completo y bajan el efectivo esperado en caja, igual que un vale.'));
+    const tipo = sel([['cupon', 'Cupón de promoción'], ['descuento', 'Descuento autorizado']], 'cupon'), mt = input('50', '', 5, 'number'), di = input('30', '', 3, 'number'), nt = input('', 'Para quién o por qué', 80), m = h('div'), zl = h('div', null, null, 'margin-top:12px;'); mt.min = '1'; mt.max = '5000'; di.min = '1'; di.max = '365';
+    tipo.onchange = () => { di.value = tipo.value === 'descuento' ? '1' : '30'; };
+    const f = h('div', null, null, 'display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;'); [campo('Tipo', tipo, 200), campo('Monto $', mt, 100), campo('Vigencia (días)', di, 110), campo('Nota', nt, 220)].forEach((x) => f.appendChild(x));
+    f.appendChild(boton('Crear', async () => { if(!enlace.esEncargado()){ msg(m, 'Solo el encargado puede crear cupones.'); return; } try { const r = await rpc('emitir_cupon', { p_monto: N(mt.value), p_dias: Math.floor(N(di.value)) || 1, p_tipo: tipo.value, p_nota: nt.value.trim() || null }); msg(m, 'Listo. Código: ' + r.folio + ' por ' + din(r.monto) + '. Dáselo al cliente o al cajero.', true); nt.value = ''; carga(); } catch(e){ msg(m, /does not exist|schema cache|Could not find/i.test((e && e.message) || '') ? 'Falta ejecutar el SQL 146 en Supabase.' : errTxt(e)); } }, 'primario')); z.appendChild(f); z.appendChild(m); z.appendChild(zl);
+    const carga = async () => { zl.textContent = ''; let l; try { l = await rpc('cupones_lista'); } catch(e){ return; } if(!l.length){ zl.appendChild(h('p', 'nota', 'Todavía no hay cupones.')); return; }
+      zl.appendChild(tabla(['Código', 'Tipo', 'Monto', 'Estado', 'Vence', ''], l.map((x) => { const f2 = [x.folio, x.tipo === 'descuento' ? 'Descuento' : 'Cupón', din(x.monto) + (x.nota ? ' · ' + x.nota : ''), x.estado === 'vigente' ? 'Vigente' : x.estado === 'usado' ? 'Usado' : 'Vencido', new Date(x.vence_en).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }),
+        x.estado === 'vigente' ? boton('Anular', async () => { if(!window.confirm('¿Anular el cupón ' + x.folio + '?')) return; try { await rpc('cupon_anular', { p_id: x.id }); carga(); } catch(e){ msg(m, errTxt(e)); } }, 'texto', 'padding:2px 8px;') : '']; f2.marca = x.estado === 'vigente'; return f2; }))); zl.appendChild(h('p', 'nota', 'Las filas marcadas siguen vigentes.')); };
+    carga();
+  }
+
+  // ---------- Menú por rentabilidad (SQL 146) ----------
+  function menuRentab(z){
+    z.appendChild(h('p', 'nota', 'Cruza lo que ganas por platillo con lo que vendes (últimos 60 días) y propone el orden del menú QR: primero lo que más deja. «Aplicar orden» lo guarda; los productos sin orden salen después, por nombre. Necesita costo en tus productos para calcular bien.'));
+    const zl = h('div'), m = h('div'); z.appendChild(m); z.appendChild(zl); let filas = [];
+    const pinta = () => { zl.textContent = ''; if(!filas.length){ zl.appendChild(h('p', 'nota', 'No hay productos con ventas ni precio.')); return; } const medV = filas.reduce((s, x) => s + x.v, 0) / filas.length, medM = filas.reduce((s, x) => s + x.mg, 0) / filas.length;
+      const CL = (x) => x.v >= medV && x.mg >= medM ? 'Estrella: déjalo arriba' : x.v >= medV ? 'Popular, deja poco: sube precio o baja costo' : x.mg >= medM ? 'Deja bien pero se vende poco: destácalo' : 'Poco movimiento y poco margen: revísalo';
+      zl.appendChild(tabla(['#', 'Producto', 'Margen por pieza', 'Vendidas', 'Aporta', 'Qué hacer'], filas.slice(0, 40).map((x, i) => [String(i + 1), x.p.nombre, din(x.mg) + (N(x.p.costo) > 0 ? '' : ' (sin costo)'), String(x.v), din(x.mg * x.v), CL(x)])));
+      const aplica = async (quitar) => { if(!enlace.esEncargado()){ msg(m, 'Solo el encargado puede cambiar el menú.'); return; } if(!window.confirm(quitar ? '¿Quitar el orden del menú QR?' : '¿Aplicar este orden al menú QR?')) return; msg(m, 'Guardando…', true); let fallos = 0, lista2 = quitar ? lista().filter((p) => p.orden_menu != null) : filas.slice(0, 200);
+        for(let i = 0; i < lista2.length; i++){ const p = quitar ? lista2[i] : lista2[i].p, r = await enlace.sb.from('productos').update({ orden_menu: quitar ? null : i + 1 }).eq('id', p.id); if(r.error){ fallos++; if(/orden_menu|column/i.test(r.error.message)){ msg(m, 'Falta ejecutar el SQL 146 en Supabase.'); return; } } }
+        msg(m, fallos ? fallos + ' no se pudieron guardar.' : quitar ? 'Orden quitado.' : 'Listo: el menú QR sale en este orden.', !fallos); try { enlace.alCambiar(); } catch(e){} };
+      zl.appendChild(boton('Aplicar orden al menú QR', () => aplica(false), 'primario', 'margin:10px 8px 0 0;')); zl.appendChild(boton('Quitar el orden', () => aplica(true), 'texto', 'margin-top:10px;')); };
+    zl.appendChild(h('p', 'nota', 'Calculando…'));
+    rpc('ventas_periodo', { p_desde: sumaDias(hoy(), -60), p_hasta: hoy() }).then((d) => { const por = new Map((d || []).map((x) => [x.producto_id, N(x.vendidas)]));
+      filas = lista().filter((p) => p.tipo !== 'servicio' && p.tipo !== 'extra' && N(p.precio) > 0).map((p) => ({ p, v: por.get(p.id) || 0, mg: N(p.precio) - N(p.costo) })).sort((a, b) => b.mg * b.v - a.mg * a.v || b.mg - a.mg); pinta(); }).catch((e) => { zl.textContent = ''; msg(m, errTxt(e)); });
+  }
+
+  // ---------- Etapa 41 (SQL 147) ----------
+  const faltaSql = (e) => /does not exist|schema cache|Could not find/i.test((e && e.message) || '') ? 'Falta ejecutar el SQL 147 en Supabase.' : errTxt(e);
+
+  // Puntos por categoría: multiplicador de puntos para las categorías que tú elijas
+  function puntosCat(z){
+    z.appendChild(h('p', 'nota', 'Da puntos extra por comprar ciertas categorías (por ejemplo ×2 en proteínas). Funciona con tus Recompensas: el cliente recibe sus puntos normales y, además, el bono de las categorías con multiplicador. ×1 = sin bono.'));
+    const m = h('div'), zl = h('div'); z.appendChild(m); z.appendChild(zl);
+    rpc('puntos_categoria_ver').then((v) => {
+      const cats = (enlace.categorias() || []).slice().sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
+      if(!v.activo) z.insertBefore(h('p', 'nota', 'Ojo: tus Recompensas están apagadas. Actívalas en Configuración para que se acumulen puntos.', 'color:#a05a00;'), m);
+      if(!cats.length){ zl.appendChild(h('p', 'nota', 'Todavía no tienes categorías. Créalas en Inventario.')); return; }
+      const cajas = cats.map((c) => { const i = input((v.mult && v.mult[c.id]) || 1, '', 4, 'number'); i.min = '1'; i.max = '10'; i.step = '0.5'; i.style.width = '80px'; return { c, i }; });
+      zl.appendChild(tabla(['Categoría', 'Multiplicador'], cajas.map((x) => { const td = h('div'); td.appendChild(x.i); return [x.c.nombre, td]; })));
+      zl.appendChild(boton('Guardar', async () => { if(!enlace.esEncargado()){ msg(m, 'Solo el encargado puede cambiar esto.'); return; }
+        const o = {}; cajas.forEach((x) => { const n = N(x.i.value) || 1; o[x.c.id] = Math.min(10, Math.max(1, n)); });
+        try { await rpc('puntos_categoria_guardar', { p_mult: o }); msg(m, 'Guardado. Aplica a las ventas nuevas con cliente registrado.', true); } catch(e){ msg(m, faltaSql(e)); } }, 'primario', 'margin-top:10px;'));
+    }).catch((e) => msg(m, faltaSql(e)));
+  }
+
+  // Convenios y descuentos por empresa
+  function convenios(z){
+    z.appendChild(h('p', 'nota', 'Descuento para empleados de una empresa (por ejemplo 10% con tope de $200). El cajero lo aplica en la caja con «+ Convenio de empresa»: se genera un vale de un solo uso, solo en efectivo, que vence en un día. Los topes (por compra y usos por día) limitan abusos, pero PUVE no verifica que el cliente trabaje ahí: pide su credencial.'));
+    const em = input('', 'Empresa', 60), pc = input('10', '', 3, 'number'), tm = input('200', '', 6, 'number'), td = input('30', '', 3, 'number'), vn = input('', '', 10, 'date'), m = h('div'), zl = h('div', null, null, 'margin-top:12px;');
+    pc.min = '1'; pc.max = '50'; tm.min = '1'; td.min = '1'; td.max = '500';
+    const f = h('div', null, null, 'display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;'); [campo('Empresa', em, 200), campo('Descuento %', pc, 90), campo('Tope por compra $', tm, 110), campo('Usos por día', td, 90), campo('Vence (opcional)', vn, 140)].forEach((x) => f.appendChild(x));
+    f.appendChild(boton('Guardar convenio', async () => { if(!enlace.esEncargado()){ msg(m, 'Solo el encargado puede crear convenios.'); return; } if(!em.value.trim()){ msg(m, 'Escribe la empresa.'); return; }
+      try { await rpc('convenio_guardar', { p_id: null, p_empresa: em.value.trim(), p_porcentaje: N(pc.value), p_tope_monto: N(tm.value) || 500, p_tope_dia: Math.floor(N(td.value)) || 30, p_vence: vn.value || null, p_activo: true }); msg(m, 'Convenio guardado.', true); em.value = ''; carga(); } catch(e){ msg(m, faltaSql(e)); } }, 'primario'));
+    z.appendChild(f); z.appendChild(m); z.appendChild(zl);
+    const carga = async () => { zl.textContent = ''; let l; try { l = await rpc('convenios_lista', { p_solo_activos: false }); } catch(e){ return; } if(!l.length){ zl.appendChild(h('p', 'nota', 'Todavía no hay convenios.')); return; }
+      zl.appendChild(tabla(['Empresa', 'Descuento', 'Tope', 'Usos hoy', 'Vence', ''], l.map((x) => { const vig = x.activo && (!x.vence || x.vence >= hoy()); const b = h('div', null, null, 'display:flex; gap:6px;');
+        b.appendChild(boton(x.activo ? 'Pausar' : 'Activar', async () => { try { await rpc('convenio_guardar', { p_id: x.id, p_empresa: x.empresa, p_porcentaje: x.porcentaje, p_tope_monto: x.tope_monto, p_tope_dia: x.tope_dia, p_vence: x.vence, p_activo: !x.activo }); carga(); } catch(e){ msg(m, errTxt(e)); } }, 'texto', 'padding:2px 8px;'));
+        b.appendChild(boton('Borrar', async () => { if(!window.confirm('¿Borrar el convenio ' + x.empresa + '?')) return; try { await rpc('convenio_borrar', { p_id: x.id }); carga(); } catch(e){ msg(m, errTxt(e)); } }, 'texto', 'padding:2px 8px;'));
+        const fila = [x.empresa + (vig ? '' : ' (no vigente)'), x.porcentaje + '%', din(x.tope_monto), x.usados_hoy + ' de ' + x.tope_dia, x.vence || '—', b]; fila.marca = vig; return fila; }))); };
+    carga();
+  }
+
+  // Foto del arreglo terminado (floristerías)
+  function fotoArreglo(z){
+    z.appendChild(h('p', 'nota', 'Toma una foto del arreglo ya terminado, guárdala en el encargo y mándasela al cliente por WhatsApp (tú envías el mensaje; PUVE solo prepara el enlace). La foto se ve con ese enlace, así que no la uses con datos personales.'));
+    const m = h('div'), zl = h('div'); z.appendChild(m); z.appendChild(zl);
+    const carga = async () => { zl.textContent = ''; let l; try { l = await rpc('encargos_con_foto', { p_dias: 60 }); } catch(e){ msg(m, faltaSql(e)); return; } if(!l.length){ zl.appendChild(h('p', 'nota', 'No hay encargos recientes.')); return; }
+      l.forEach((x) => { const c = h('div', null, null, 'border-top:1px solid var(--borde); padding:10px 0; display:flex; gap:12px; flex-wrap:wrap; align-items:center;');
+        if(x.foto){ const im = h('img'); im.src = enlace.urlFoto(x.foto); im.alt = 'Foto del encargo'; im.style.cssText = 'width:96px; height:96px; object-fit:cover; border-radius:8px;'; c.appendChild(im); }
+        const t = h('div', null, null, 'flex:1 1 180px;'); t.appendChild(h('strong', null, '#' + x.num + ' · ' + (x.cliente || 'Sin nombre'))); t.appendChild(h('div', 'nota', (x.fecha_entrega ? 'Entrega ' + x.fecha_entrega + ' · ' : '') + (x.notas || ''))); c.appendChild(t);
+        const fi = input('', '', 0, 'file'); fi.accept = 'image/*'; fi.style.display = 'none';
+        fi.onchange = async () => { const f = fi.files && fi.files[0]; if(!f) return; if(f.size > 15 * 1024 * 1024){ msg(m, 'La foto pesa demasiado.'); return; } msg(m, 'Subiendo foto…', true); let nueva = null;
+          try { nueva = await enlace.subirFoto(f); await rpc('encargo_foto_guardar', { p_id: x.id, p_path: nueva }); if(x.foto) enlace.quitarFoto(x.foto); msg(m, 'Foto guardada.', true); carga(); } catch(e){ if(nueva) enlace.quitarFoto(nueva); msg(m, 'No se pudo guardar la foto: ' + faltaSql(e)); } };
+        c.appendChild(fi); c.appendChild(boton(x.foto ? 'Cambiar foto' : 'Tomar o elegir foto', () => fi.click(), 'primario'));
+        if(x.foto && x.telefono) c.appendChild(boton('Enviar por WhatsApp', () => wa(x.telefono, 'Hola ' + (x.cliente || '') + ', tu arreglo ya está listo. Así quedó: ' + enlace.urlFoto(x.foto)), 'texto'));
+        else if(x.foto) c.appendChild(boton('Copiar enlace', () => { try { navigator.clipboard.writeText(enlace.urlFoto(x.foto)); msg(m, 'Enlace copiado.', true); } catch(e){ msg(m, enlace.urlFoto(x.foto)); } }, 'texto'));
+        zl.appendChild(c); }); };
+    carga();
+  }
+
+  // «Arma tu bolsa»: límite de piezas por grupo de opciones en el menú QR (dulcerías)
+  function bolsa(z){
+    z.appendChild(h('p', 'nota', 'Para que el cliente arme su bolsa desde el QR: 1) en Inventario crea un producto «Bolsa» (con su precio) y un grupo de opciones de tipo «varios» con tus dulces; 2) aquí pon cuántos puede elegir como máximo; 3) en Configuración activa los pedidos por QR. El cliente elige hasta ese número y el pedido llega a Pedidos. Ojo: el inventario de cada dulce no se descuenta solo; la bolsa se vende como un producto.'));
+    const m = h('div'), zl = h('div'); z.appendChild(m); z.appendChild(zl);
+    rpc('grupos_con_max').then((l) => { if(!l.length){ zl.appendChild(h('p', 'nota', 'Todavía no tienes grupos de opciones.')); return; }
+      zl.appendChild(tabla(['Grupo', 'Tipo', 'Opciones', 'Máximo a elegir'], l.map((g) => { const i = input(g.max || '', 'Sin límite', 2, 'number'); i.min = '1'; i.max = '8'; i.style.width = '90px'; const w = h('div', null, null, 'display:flex; gap:6px;'); w.appendChild(i);
+        w.appendChild(boton('Guardar', async () => { if(!enlace.esEncargado()){ msg(m, 'Solo el encargado puede cambiar esto.'); return; } if(g.tipo !== 'varios' && i.value){ msg(m, 'El límite solo aplica a grupos de tipo «varios».'); return; }
+          try { await rpc('grupo_max_elegir', { p_id: g.id, p_max: i.value === '' ? null : Math.floor(N(i.value)) }); msg(m, 'Guardado: ' + g.nombre + (i.value ? ' (máximo ' + i.value + ')' : ' (sin límite)'), true); } catch(e){ msg(m, faltaSql(e)); } }, 'texto', 'padding:2px 8px;'));
+        return [g.nombre, g.tipo === 'varios' ? 'Varios' : 'Uno', String(g.opciones), w]; }))); }).catch((e) => msg(m, faltaSql(e)));
+  }
+
+  // Estrellas por ocasión (regalos): marca tus mejores regalos para cada ocasión
+  function estrellas(z){
+    z.appendChild(h('p', 'nota', 'Marca con estrellas (1 a 5) qué regalos recomiendas para cada ocasión. Te queda una lista por ocasión, ordenada de mejor a menos buena, para tenerla a la mano en el mostrador o mandarla a un cliente.'));
+    const OC = ['Cumpleaños', 'Aniversario', 'Boda', 'Bebé', 'Graduación', 'Día de las Madres', 'Navidad', 'Agradecimiento'], oc = sel(OC.map((x) => [x.toLowerCase(), x]), 'cumpleaños'), otra = input('', 'Otra ocasión…', 30), m = h('div'), zl = h('div'), zr = h('div', null, null, 'margin-top:14px;');
+    let marcas = [];
+    const f = h('div', null, null, 'display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;'); f.appendChild(campo('Ocasión', oc, 200)); f.appendChild(campo('O escribe otra', otra, 200)); z.appendChild(f); z.appendChild(m); z.appendChild(zl); z.appendChild(zr);
+    const actual = () => (otra.value.trim() || oc.value).toLowerCase();
+    const pinta = () => { zl.textContent = ''; const o = actual(), mi = new Map(marcas.filter((x) => x.ocasion === o).map((x) => [x.producto_id, x.estrellas])); const ps = lista().filter((p) => p.tipo !== 'extra').slice(0, 300);
+      if(!ps.length){ zl.appendChild(h('p', 'nota', 'No hay productos.')); return; }
+      zl.appendChild(tabla(['Producto', 'Estrellas en «' + o + '»'], ps.map((p) => { const s = sel([['0', '—'], ['1', '★'], ['2', '★★'], ['3', '★★★'], ['4', '★★★★'], ['5', '★★★★★']], String(mi.get(p.id) || 0));
+        s.onchange = async () => { try { await rpc('estrella_ocasion_poner', { p_producto: p.id, p_ocasion: o, p_estrellas: Number(s.value) }); marcas = marcas.filter((x) => !(x.producto_id === p.id && x.ocasion === o)); if(Number(s.value)) marcas.push({ producto_id: p.id, nombre: p.nombre, precio: p.precio, stock: p.stock, ocasion: o, estrellas: Number(s.value) }); resumen(); } catch(e){ msg(m, faltaSql(e)); } }; return [p.nombre, s]; })));
+      resumen(); };
+    const resumen = () => { zr.textContent = ''; if(!marcas.length) return; const por = {}; marcas.forEach((x) => { (por[x.ocasion] = por[x.ocasion] || []).push(x); });
+      Object.keys(por).sort().forEach((k) => { const l = por[k].sort((a, b) => b.estrellas - a.estrellas || String(a.nombre).localeCompare(String(b.nombre), 'es')); zr.appendChild(h('strong', null, k.charAt(0).toUpperCase() + k.slice(1)));
+        zr.appendChild(h('div', 'nota', l.map((x) => '★'.repeat(x.estrellas) + ' ' + x.nombre + ' (' + din(x.precio) + ')').join(' · '), 'margin:4px 0 10px;')); }); };
+    oc.onchange = () => { otra.value = ''; pinta(); }; otra.oninput = pinta;
+    rpc('estrellas_ocasion_lista').then((l) => { marcas = l; pinta(); }).catch((e) => msg(m, faltaSql(e)));
+  }
+
+  // Variantes por sabor y tamaño (suplementos): crea todas las combinaciones de una vez
+  function variantes(z){
+    z.appendChild(h('p', 'nota', 'Escribe el producto, sus sabores y sus tamaños con precio; se crea una pieza por cada combinación («Proteína · Vainilla · 2 lb») con su propia existencia, así cada sabor y tamaño se cuenta aparte. Se crean hasta 60 a la vez y las que ya existan con el mismo nombre se omiten.'));
+    const mo = input('', 'Ej. Proteína whey', 50), sa = h('textarea', 'input-mini'), ta = h('textarea', 'input-mini'), co = input('', '0', 7, 'number'), st = input('0', '', 4, 'number'), m = h('div'), pv = h('div', 'nota');
+    sa.rows = 2; ta.rows = 3; sa.placeholder = 'Vainilla, Chocolate, Fresa'; ta.placeholder = 'Una por línea: tamaño = precio  (ej.  2 lb = 650)'; sa.style.width = ta.style.width = '100%'; sa.maxLength = 300; ta.maxLength = 400; co.min = st.min = '0';
+    z.appendChild(campo('Producto', mo, 260)); z.appendChild(campo('Sabores (separados por coma)', sa, 260)); z.appendChild(campo('Tamaños y precios', ta, 260));
+    const g = h('div', null, null, 'display:flex; gap:10px; flex-wrap:wrap;'); g.appendChild(campo('Costo por pieza $ (opcional)', co, 160)); g.appendChild(campo('Existencia inicial de cada una', st, 160)); z.appendChild(g); z.appendChild(pv); z.appendChild(m);
+    const arma = () => { const sab = Array.from(new Set(sa.value.split(',').map((x) => x.trim()).filter(Boolean))), tam = ta.value.split('\n').map((l) => { const i = l.lastIndexOf('='); return i < 0 ? null : { t: l.slice(0, i).trim(), p: N(l.slice(i + 1)) }; }).filter((x) => x && x.t && x.p > 0);
+      const out = []; tam.forEach((t) => (sab.length ? sab : ['']).forEach((s) => out.push({ nombre: [mo.value.trim(), s, t.t].filter(Boolean).join(' · ').slice(0, 80), precio: t.p }))); return out; };
+    const mira = () => { const l = arma(); pv.textContent = l.length ? 'Se crearán ' + l.length + (l.length > 60 ? ' (son demasiadas, quita alguna)' : '') + ': ' + l.slice(0, 4).map((x) => x.nombre + ' ' + din(x.precio)).join(' · ') + (l.length > 4 ? ' …' : '') : ''; };
+    [mo, sa, ta].forEach((e) => { e.oninput = mira; });
+    z.appendChild(boton('Crear variantes', async () => { if(!enlace.esEncargado()){ msg(m, 'Solo el encargado puede crear productos.'); return; } if(!mo.value.trim()){ msg(m, 'Escribe el nombre del producto.'); return; }
+      const l = arma(); if(!l.length){ msg(m, 'Escribe al menos un tamaño con precio, por ejemplo: 2 lb = 650'); return; } if(l.length > 60){ msg(m, 'Son demasiadas combinaciones (máximo 60).'); return; }
+      const ya = new Set(lista().map((p) => norm(p.nombre))), nv = l.filter((x) => !ya.has(norm(x.nombre))).map((x) => ({ negocio_id: enlace.negocioId(), nombre: x.nombre, precio: x.precio, costo: N(co.value), stock: Math.max(0, Math.floor(N(st.value))), tipo: 'producto' }));
+      if(!nv.length){ msg(m, 'Todas esas variantes ya existen.'); return; } const r = await enlace.sb.from('productos').insert(nv); if(r.error){ msg(m, 'No se pudo crear: ' + r.error.message); return; }
+      msg(m, nv.length + ' variante(s) creadas' + (l.length - nv.length ? ' · ' + (l.length - nv.length) + ' ya existían' : '') + '. Búscalas por nombre en la caja.', true); try { enlace.alCambiar(); } catch(e){} }, 'primario', 'margin-top:10px;'));
+  }
+
+  const TABS = [['fiado', 'Corte de fiado', fiado], ['oferta', 'Oferta del día', oferta], ['temporada', 'Temporada', temporada], ['sustitutos', 'Sustitutos', sustitutos], ['vin', 'Decodificar VIN', vin], ['codigo', 'Datos por código de barras', codigo], ['credencial', 'Fotos credencial', credencial], ['escaner', 'Escáner a PDF', escaner], ['cumple', 'Regalo de cumpleaños', cumple], ['masa', 'Venta de masa', masa], ['copias', 'Copias e impresiones', copias], ['proyecto', 'Plantillas de proyecto', proyecto], ['caja', 'Arma tu caja', caja], ['vitrina', 'Cierre de vitrina', vitrina], ['alta', 'Alta rápida', altaRapida], ['porcion', 'Venta por porción', porcionMuestra], ['promo', 'Promoción de temporada', promo], ['pedido', 'Pedido a proveedor', pedidoProv], ['frecuentes', 'Clientes frecuentes', frecuentes], ['gasta', 'Producto que gasta el servicio', gastaServicio], ['reservas', 'Reservas por QR', reservas], ['resenas', 'Reseñas privadas', resenas], ['cotlink', 'Cotización por enlace', cotLink], ['bloqueos', 'Bloquear horario', bloqueos], ['unir', 'Unir PDFs e imágenes', unirPdf], ['corte', 'Horario de corte', corte], ['regalos', 'Lista de regalos', regalos], ['cupones', 'Cupones y descuentos', cupones], ['menurentab', 'Menú por rentabilidad', menuRentab], ['puntoscat', 'Puntos por categoría', puntosCat], ['convenios', 'Convenios por empresa', convenios], ['fotoarreglo', 'Foto del arreglo', fotoArreglo], ['bolsa', 'Arma tu bolsa (QR)', bolsa], ['estrellas', 'Estrellas por ocasión', estrellas], ['variantes', 'Variantes sabor y tamaño', variantes]];
   window.PuveHerr3 = { enlazar(o){ enlace = Object.assign(enlace, o || {}); }, pestanas: () => TABS.slice() };
   if(window.PuveHerr2 && PuveHerr2.registrar) TABS.forEach((t) => PuveHerr2.registrar(t[0], t[1], t[2]));
 })();
